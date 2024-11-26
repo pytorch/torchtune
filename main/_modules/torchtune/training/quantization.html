@@ -436,6 +436,10 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.peft.lora</span> <span class="kn">import</span> <span class="n">LoRALinear</span><span class="p">,</span> <span class="n">QATLoRALinear</span>
+
+
 <span class="k">try</span><span class="p">:</span>
     <span class="c1"># torchao 0.7+</span>
     <span class="kn">from</span> <span class="nn">torchao.dtypes</span> <span class="kn">import</span> <span class="n">TensorCoreTiledLayout</span>
@@ -483,6 +487,12 @@
     <span class="s2">&quot;Int8DynActInt4WeightQATQuantizerModuleSwap&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
+
+<span class="n">_torchao_0_7_supported</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">torchao.quantization</span> <span class="kn">import</span> <span class="n">qat</span>  <span class="c1"># noqa: F401</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">_torchao_0_7_supported</span> <span class="o">=</span> <span class="kc">False</span>
 
 <span class="n">_quantizer_to_mode</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">_quantizer_mode_to_disable_fake_quant</span> <span class="o">=</span> <span class="p">{}</span>
@@ -614,6 +624,48 @@
 <span class="sd">    If the quantizer is not recognized as a known QAT quantizer, return None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">_quantizer_mode_to_enable_fake_quant</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">quantizer_mode</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">swap_lora_linear_with_qat</span><span class="p">(</span>
+    <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="c1"># TODO: make the types Optional[FakeQuantizeConfig] once we</span>
+    <span class="c1"># support torchao 0.7+ by default</span>
+    <span class="n">activation_qat_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;FakeQuantizeConfig&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">weight_qat_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;FakeQuantizeConfig&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Swap all `LoRALinear` in the model with `QATLoRALinear`.</span>
+
+<span class="sd">    This is used for combining QAT + LoRA during finetuning. The resulting linear layers</span>
+<span class="sd">    will apply the following transformation instead:</span>
+
+<span class="sd">        x -&gt; fake_quantize(W_frozen) @ fake_quantize(x) + BAx</span>
+
+<span class="sd">    Fake quantization here refers to simulating the quantization numerics without actual</span>
+<span class="sd">    dtype casting, with the goal of providing improved accuracies when the model is</span>
+<span class="sd">    ultimately quantized after finetuning.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        module (nn.Module): The model to swap linear layers on</span>
+<span class="sd">        activation_qat_config (Optional[FakeQuantizeConfig]): The config for specifying</span>
+<span class="sd">            how to fake quantize input activations in the base linear layer</span>
+<span class="sd">        weight_qat_config (Optional[FakeQuantizeConfig]): The config for specifying</span>
+<span class="sd">            how to fake quantize base linear weights</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">named_children</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">LoRALinear</span><span class="p">):</span>
+            <span class="n">new_linear</span> <span class="o">=</span> <span class="n">QATLoRALinear</span><span class="o">.</span><span class="n">from_lora_linear</span><span class="p">(</span>
+                <span class="n">child</span><span class="p">,</span>
+                <span class="n">activation_qat_config</span><span class="p">,</span>
+                <span class="n">weight_qat_config</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">new_linear</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">swap_lora_linear_with_qat</span><span class="p">(</span>
+                <span class="n">child</span><span class="p">,</span>
+                <span class="n">activation_qat_config</span><span class="p">,</span>
+                <span class="n">weight_qat_config</span><span class="p">,</span>
+            <span class="p">)</span>
 </pre></div>
 
              </article>

@@ -433,7 +433,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
@@ -558,6 +558,165 @@
         <span class="n">lora_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
         <span class="n">lora_out</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="p">(</span><span class="n">lora_out</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="n">lora_out</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">QATLoRALinear</span><span class="p">(</span><span class="n">LoRALinear</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    LoRA linear layer with quantization-aware training (QAT) applied to the</span>
+<span class="sd">    activations and/or weights before the low rank adapters.</span>
+
+<span class="sd">    QAT leverages fake quantization to simulate the quantization numerics during</span>
+<span class="sd">    training without actually casting the data to lower precision. This class</span>
+<span class="sd">    combines LoRA with QAT to improve the final quantized accuracy during inference</span>
+<span class="sd">    while reducing the memory required during training.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        in_dim (int): input dimension</span>
+<span class="sd">        out_dim (int): output dimension</span>
+<span class="sd">        rank (int): rank of the low-rank approximation</span>
+<span class="sd">        alpha (float): scaling factor for the low-rank approximation</span>
+<span class="sd">        dropout (float): dropout probability. Default: 0.0</span>
+<span class="sd">        activation_qat_config (Optional[FakeQuantizeConfig]): config for specifying</span>
+<span class="sd">            how input activations will be fake quantized, defaults to None</span>
+<span class="sd">        weight_qat_config (Optional[FakeQuantizeConfig]): config for specifying</span>
+<span class="sd">            how weights will be fake quantized, defaults to None</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If `in_dim` is not divisible by weight `group_size`</span>
+
+<span class="sd">    Example usage::</span>
+
+<span class="sd">        activation_qat_config = FakeQuantizeConfig(</span>
+<span class="sd">            dtype=torch.int8,</span>
+<span class="sd">            granularity=&quot;per_token&quot;,</span>
+<span class="sd">            is_symmetric=False,</span>
+<span class="sd">        )</span>
+<span class="sd">        weight_qat_config = FakeQuantizeConfig(</span>
+<span class="sd">            dtype=torch.int4,</span>
+<span class="sd">            group_size=8,</span>
+<span class="sd">            is_symmetric=True,</span>
+<span class="sd">        )</span>
+<span class="sd">        qat_lora_linear = QATLoRALinear(</span>
+<span class="sd">            in_dim=512,</span>
+<span class="sd">            out_dim=1024,</span>
+<span class="sd">            rank=8,</span>
+<span class="sd">            alpha=16,</span>
+<span class="sd">            dropout=0.0,</span>
+<span class="sd">            activation_qat_config=activation_qat_config,</span>
+<span class="sd">            weight_qat_config=weight_qat_config,</span>
+<span class="sd">        )</span>
+<span class="sd">        qat_lora_linear(torch.randn(512))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="c1"># fake quantize configs</span>
+        <span class="c1"># TODO: make the types Optional[FakeQuantizeConfig] once we</span>
+        <span class="c1"># support torchao 0.7+ by default</span>
+        <span class="n">activation_qat_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;FakeQuantizeConfig&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weight_qat_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;FakeQuantizeConfig&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">in_dim</span><span class="p">,</span>
+            <span class="n">out_dim</span><span class="p">,</span>
+            <span class="n">rank</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="p">,</span>
+            <span class="n">dropout</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">quantize_base</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">torchao.quantization.qat.api</span> <span class="kn">import</span> <span class="n">FakeQuantizeConfig</span>
+            <span class="kn">from</span> <span class="nn">torchao.quantization.qat.fake_quantizer</span> <span class="kn">import</span> <span class="n">FakeQuantizer</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;QATLoRALinear is only compatible with torchao 0.7+&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+
+        <span class="c1"># initialize activation fake quantizer</span>
+        <span class="k">if</span> <span class="n">activation_qat_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activation_qat_config</span><span class="p">,</span> <span class="n">FakeQuantizeConfig</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">activation_fake_quantizer</span> <span class="o">=</span> <span class="n">FakeQuantizer</span><span class="p">(</span><span class="n">activation_qat_config</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">activation_fake_quantizer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+
+        <span class="c1"># initialize weight fake quantizer</span>
+        <span class="k">if</span> <span class="n">weight_qat_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight_qat_config</span><span class="p">,</span> <span class="n">FakeQuantizeConfig</span><span class="p">)</span>
+            <span class="n">group_size</span> <span class="o">=</span> <span class="n">weight_qat_config</span><span class="o">.</span><span class="n">group_size</span>
+            <span class="k">if</span> <span class="n">group_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">in_dim</span> <span class="o">%</span> <span class="n">group_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;in_dim (</span><span class="si">%s</span><span class="s2">) must be divisible by group_size (</span><span class="si">%s</span><span class="s2">)&quot;</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">group_size</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weight_fake_quantizer</span> <span class="o">=</span> <span class="n">FakeQuantizer</span><span class="p">(</span><span class="n">weight_qat_config</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weight_fake_quantizer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): input tensor with shape ``(..., in_dim)``</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: output tensor with shape ``(..., out_dim)``</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation_fake_quantizer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_fake_quantizer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">_x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">disabled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">out</span>
+        <span class="n">lora_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">lora_out</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="p">(</span><span class="n">lora_out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="n">lora_out</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_lora_linear</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">lora_linear</span><span class="p">:</span> <span class="n">LoRALinear</span><span class="p">,</span>
+        <span class="c1"># TODO: make the types Optional[FakeQuantizeConfig] once we</span>
+        <span class="c1"># support torchao 0.7+ by default</span>
+        <span class="n">activation_qat_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;FakeQuantizeConfig&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weight_qat_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;FakeQuantizeConfig&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;QATLoRALinear&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a `QATLoRALinear` from an existing `LoRALinear`,</span>
+<span class="sd">        preserving the weights and adapters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bias is not supported in QAT + LoRA yet&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">_quantize_base</span><span class="p">:</span>
+            <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;quantize_base is not compatible with QAT + LoRA&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lora_linear</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">):</span>
+            <span class="n">dropout</span> <span class="o">=</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">p</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dropout</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">new_linear</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">lora_linear</span><span class="o">.</span><span class="n">in_dim</span><span class="p">,</span>
+            <span class="n">lora_linear</span><span class="o">.</span><span class="n">out_dim</span><span class="p">,</span>
+            <span class="n">lora_linear</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span>
+            <span class="n">lora_linear</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+            <span class="n">dropout</span><span class="p">,</span>
+            <span class="n">activation_qat_config</span><span class="p">,</span>
+            <span class="n">weight_qat_config</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># In distributed training, the model may be instantiated</span>
+        <span class="c1"># on the meta device, in which case there is no need to</span>
+        <span class="c1"># copy the weights, and doing so will result in an error</span>
+        <span class="k">if</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;meta&quot;</span><span class="p">):</span>
+            <span class="n">new_linear</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">weight</span>
+        <span class="k">if</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;meta&quot;</span><span class="p">):</span>
+            <span class="n">new_linear</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span>
+        <span class="k">if</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;meta&quot;</span><span class="p">):</span>
+            <span class="n">new_linear</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">lora_linear</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span>
+        <span class="k">return</span> <span class="n">new_linear</span>
 
 
 <span class="k">def</span> <span class="nf">_lora_a_init_params</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
