@@ -83,7 +83,7 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/alpaca-llama2-finetune
+output_dir: /tmp/topv2-llama2-finetune
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
@@ -121,7 +121,7 @@ early_exit_loss:
 
 # Layer Dropout
 layer_dropout:
-  prob: 0.5
+  prob: 0.2
   layers: ":"
   layers_scale: "exp"
   disable_on_eval: True
