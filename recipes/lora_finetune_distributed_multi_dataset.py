@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 import sys
 import time
 
@@ -19,7 +18,6 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
 
 from torchdata.nodes import Loader, T
 from torchdata.nodes.samplers.stop_criteria import StopCriteria
@@ -33,6 +31,7 @@ from torchtune.datasets._sft import SFTTransform
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
     load_dora_magnitudes,
@@ -41,12 +40,7 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import (
-    DummyProfiler,
-    NoOpManager,
-    OffloadActivations,
-    PROFILER_KEY,
-)
+from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
@@ -81,9 +75,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             back during the backward pass. As always, there is a tradeoff--these savings in memory can
             come at the cost of training performance and CPU resources. To recover some runtime cost,
             we've added an option to enable offloading on a different stream to permit overlapping with
-            the computation. This option is currently only available on PyTorch nightly 2.5.0.dev20240907
-            or later and will be enabled by default if an acceptable torch version is found. Activation
-            offloading can be used in conjunction with activation checkpointing.
+            the computation. This option is currently only available on PyTorch 2.5.0 or later and will be
+            enabled by default if an acceptable torch version is found. Activation offloading can be used in
+            conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -136,6 +130,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -149,8 +144,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         _, rank = training.get_world_size_and_rank()
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -164,16 +157,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        # training attributes
-        self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading and self._device.type != "cuda":
-            raise RuntimeError(
-                "enable_activation_offloading should only be enabled for training on CUDA"
-            )
-
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
         self.seed = training.set_seed(seed=cfg.seed)
@@ -186,6 +169,32 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -252,12 +261,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
 
-    def _loss_step(self, logits, labels) -> torch.tensor:
-        if self.profile_mode == "dataloader_only":
-            return torch.tensor([0.1], device="cuda")
-        else:
-            return self._loss_fn(logits, labels)
-
     def setup(self, cfg: DictConfig) -> None:
         """
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
@@ -274,7 +277,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -305,27 +308,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        if cfg.get("use_torchdata", True):
-            self._dataloader = self._setup_data_td(
-                cfg_dataloader=cfg.dataloader,
-                cfg_datasets=cfg.datasets,
-                batch_size=cfg.batch_size,
-            )
-        else:
-            collate_name = cfg.classic_dataloader.pop(
-                "collate_fn", "torchtune.data.padded_collate_sft"
-            )
-            _, self._dataloader = self._setup_data(
-                cfg_dataset=cfg.classic_dataloader.dataset,
-                shuffle=cfg.classic_dataloader.shuffle,
-                batch_size=cfg.batch_size,
-                collate_fn=collate_name,
-            )
+        self._dataloader = self._setup_data_td(
+            cfg_dataloader=cfg.dataloader,
+            cfg_datasets=cfg.datasets,
+            batch_size=cfg.batch_size,
+        )
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -334,17 +325,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
-        try:
-            self._steps_per_epoch = (
-                len(self._dataloader) // self._gradient_accumulation_steps
-            )
-        except TypeError:
-            self._steps_per_epoch = self.max_steps_per_epoch
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
-            self._steps_per_epoch = self.max_steps_per_epoch
+        self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
         # Learning rate scheduler can only be set up after number of steps
@@ -363,10 +344,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.ignore_labels_cache = torch.full(
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
-
-        self.profile_mode = cfg.get("profile_mode", None)
-        if self.profile_mode:
-            assert self.profile_mode in ("dataloader_only", "model_only")
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -424,9 +401,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
+        utils.log_rank_zero(
+            log, f" Profiler config after instantiation: {profiler_cfg}"
+        )
         if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
-
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
             if profiler_cfg["enabled"]:
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
@@ -461,17 +439,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        self.adapter_params = get_adapter_params(model)
-        set_trainable_params(model, self.adapter_params)
+        set_trainable_params(model, get_adapter_params(model))
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
@@ -548,27 +525,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
-        self.activations_handling_ctx = contextlib.nullcontext()
-        if enable_activation_offloading:
-            self.activations_handling_ctx = OffloadActivations()
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
+        )
 
-            # Below is our hack to disable offloading the last output Linear in every
-            # step, as the cost for offloading the activation and then soon after bringing
-            # it back is expensive. Moreover, due to heuristics in our streaming API,
-            # we actually use more memory if we offload it as it interferes with chunkedCE.
-            if hasattr(model, "output") and isinstance(model.output, nn.Module):
-                noop_ctx = NoOpManager()
-                model.output.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.output.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
-
+        # log
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -588,8 +555,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        if self._is_rank_zero:
-            log.info("Optimizer is initialized.")
+        utils.log_rank_zero(log, "Optimizer is initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -604,8 +570,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_one_dataset(
@@ -625,7 +590,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         assert "transform" in cfg_dataset, "transform must be specified in dataset"
         transform = config.instantiate(cfg_dataset.pop("transform"))
 
-        log.info(f"Instantiating dataset {cfg_dataset}")
+        utils.log_rank_zero(log, f"Instantiating dataset {cfg_dataset}")
         return load_hf_dataset(
             **cfg_dataset,
             transform=transform,
@@ -635,14 +600,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_workers=num_workers,
         )
 
-    def _setup_data_td(
+    def _setup_data(
         self,
         cfg_dataloader: DictConfig,
         cfg_datasets: ListConfig,
         batch_size: int,
     ) -> Loader:
         """
-        All torchdata related setup happens here. Currently this recipe supports
+        Torchdata related setup happens here. Currently this recipe supports
         both Map and Streaming datasets (from HuggingFace datasets), and mixing multiple
         datasets (can be mix of Map and Streaming).
         """
@@ -711,65 +676,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             pin_memory=pin_memory,
         )
 
-        log.info("TorchData nodes are initialized")
+        utils.log_rank_zero(log, "TorchData nodes are initialized")
 
         return loader
-
-    def _setup_data(
-        self,
-        cfg_dataset: DictConfig,
-        shuffle: bool,
-        batch_size: int,
-        collate_fn: str,
-    ) -> Tuple[DistributedSampler, DataLoader]:
-        """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
-        """
-        world_size, rank = training.get_world_size_and_rank()
-
-        if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
-            ds = ConcatDataset(datasets=datasets)
-            packed = False
-        else:
-            ds = config.instantiate(cfg_dataset, self._tokenizer)
-            packed = cfg_dataset.get("packed", False)
-
-        # Instantiate collate_fn
-        if "left_pad_sequence" in collate_fn:
-            raise RuntimeError("left_pad_sequence collator is only for inference.")
-        collate_fn = _get_component_from_path(collate_fn)
-
-        sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
-        )
-
-        dataloader = DataLoader(
-            dataset=ds,
-            batch_size=batch_size,
-            sampler=sampler,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
-            collate_fn=(
-                partial(
-                    collate_fn,
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                )
-                if not packed
-                else padded_collate_packed
-            ),
-        )
-
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
-
-        return sampler, dataloader
 
     def save_checkpoint(
         self,
@@ -815,17 +724,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if intermediate_checkpoint:
-            if self._is_rank_zero:
-                log.info("Retrieving optimizer state dict...")
+            utils.log_rank_zero(log, "Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
             )
-            if self._is_rank_zero:
-                log.info(
-                    f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
-                )
+            utils.log_rank_zero(
+                log,
+                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
+            )
         else:
             opt_state_dict = None
 
@@ -833,22 +741,22 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
             start = time.perf_counter()
-            # Filter out the adapter keys and weights from the model state dict. These will
-            # be saved separately
-            adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {
-                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
-            }
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
-            # merge the adapter weights and base weights to create the model checkpoint
-            if not self._save_adapter_weights_only:
+            if self._save_adapter_weights_only:
+                adapter_state_dict = cpu_state_dict
+            else:
+                # Filter out the adapter keys and weights from the model state dict. These will
+                # be saved separately
+                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
+
+                # merge the adapter weights and base weights to create the model checkpoint
                 merged_state_dict = get_merged_lora_ckpt(
                     cpu_state_dict,
                     rank=self._lora_rank,
                     alpha=self._lora_alpha,
                 )
                 checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
@@ -891,7 +799,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -901,29 +809,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
-        loader: Iterable
-        if self.profile_mode == "model_only":
-            print("Generating batch to repeat for model_only profiling...")
-            loader = RepeatBatch(
-                next(iter(self._dataloader)),
-                n=self._steps_per_epoch * self._gradient_accumulation_steps,
-            )
-            print("done!")
-        else:
-            loader = self._dataloader
-
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            epoch_total_dl_time = 0.0
-            epoch_dl_time = 0.0
-            epoch_step_time = 0.0
+            epoch_total_dl_time, epoch_dl_time, epoch_step_time = 0.0, 0.0, 0.0
             pbar = tqdm(
-                total=self._steps_per_epoch * self._gradient_accumulation_steps,
+                total=self._steps_per_epoch,
                 disable=not (rank == 0),
             )
             for idx, (batch, dl_t0, dl_dt, dl_dt_global) in enumerate(
-                iter_timer(loader, barrier=True)
+                iter_timer(self._dataloader, barrier=True)
             ):
                 if (
                     self.max_steps_per_epoch is not None
@@ -953,22 +848,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
 
-                if self.profile_mode == "dataloader_only":
-                    # Barrier before calculating metrics so we don't
-                    # mis-represent total step time
-                    torch.distributed.barrier()
-                    if self._is_rank_zero:
-                        log_dict = {
-                            "tokens_per_second_per_gpu": num_tokens
-                            / (time.perf_counter() - dl_t0),
-                            "twfb": round(dl_dt, 5),
-                            "twfb_pct": round(dl_dt / (time.perf_counter() - dl_t0), 5),
-                        }
-                        self._metric_logger.log_dict(log_dict, step=idx)
-                        pbar.update(1)
-                        pbar.set_description(f"{curr_epoch + 1}|{idx}|Loss: N/A")
-                    continue
-
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
 
@@ -985,30 +864,35 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                running_loss += self._loss_step(logits, labels) * current_num_tokens
+                current_loss = self._loss_fn(logits, labels) * current_num_tokens
 
                 # free logits otherwise it peaks backward memory
                 del logits
 
+                running_loss += current_loss
+                current_loss.backward()
+
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    loss = running_loss / num_tokens
-                    grad_norm = None
-                    if self.profile_mode != "dataloader_only":
-                        loss.backward()
-                        if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
-                            )
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
-                        self._lr_scheduler.step()
+                    # Get total number of tokens across all ranks to normalize gradients
+                    torch.distributed.all_reduce(num_tokens)
+                    # This will ensure that the logged loss matches what we're optimizing
+                    torch.distributed.all_reduce(running_loss)
+                    # Manually scale the gradients from unnormalized loss by total # of tokens
+                    training.scale_grads(self._model, 1 / num_tokens)
+                    if self._clip_grad_norm is not None:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=float(self._clip_grad_norm),
+                        )
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = loss.item()
+                    loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -1019,7 +903,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         self.global_step % self._log_every_n_steps == 0
                         and self._is_rank_zero
                     ):
-
                         time_per_step = time.perf_counter() - t0
                         step_time = time.perf_counter() - dl_t0
                         epoch_total_dl_time += dl_dt_global
@@ -1028,7 +911,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                             "twfb": round(dl_dt, 5),
                             "twfb_pct": round(dl_dt / (time.perf_counter() - dl_t0), 5),
                         }
@@ -1066,13 +950,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
-            if self._is_rank_zero:
                 total_twfb_pct = round(epoch_total_dl_time / epoch_step_time, 5)
-                print(
-                    f"##########\n"
-                    f"End of epoch {self.epochs_run}!"
-                    f"{total_twfb_pct=}, {epoch_step_time=}, {epoch_dl_time=}, {epoch_total_dl_time=}"
-                    f"##########"
+                utils.log_rank_zero(
+                    log,
+                    f"End of epoch {self.epochs_run}! "
+                    f"{total_twfb_pct=}, {epoch_step_time=}, {epoch_dl_time=}, {epoch_total_dl_time=}",
                 )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
@@ -1100,16 +982,6 @@ def iter_timer(
             torch.distributed.barrier()
         dt_global = time.perf_counter() - t0
         yield x, t0, dt, dt_global
-
-
-class RepeatBatch:
-    def __init__(self, batch: Any, n: int) -> None:
-        self.batch = batch
-        self.n = n
-
-    def __iter__(self) -> Iterator[Any]:
-        for _ in range(self.n):
-            yield self.batch.copy()
 
 
 @config.parse
