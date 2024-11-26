@@ -178,10 +178,27 @@ def load_hf_dataset(
     filter_fn: Optional[Callable] = None,
     shuffle: bool = True,
     seed: int = 0,
-    num_workers: int = 1,
+    num_workers: int = 0,
     parallel_method: Literal["process", "thread"] = "thread",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> DatasetType:
+    """
+    Load a HuggingFace dataset (Map or Streaming) and apply a Transform to it.
+
+    Args:
+        source (str): HuggingFace dataset source
+        transform (Transform): Transform to apply to the samples of the dataset
+        filter_fn (Optional[Callable]): Filter function to pass to HuggingFace dataset
+        shuffle (bool): Whether to shuffle the dataset. Default is True. For streaming datasets, this is passed to
+            HuggingFace dataset as .shuffle(). For map datasets, a DistributedSampler is used.
+        seed (int): Seed for the random number generator in the case of Map style dataset shuffling. Default is 0.
+        num_workers (int): Number of workers to use for loading the dataset. Default is 0 (no parallelism). Setting this
+            greater than 0 will create `parallel_method` workers to perform transforms to the dataset
+        parallel_method (Literal["process", "thread"]): Method to use for parallelism. Default is "thread". No effect if
+            num_workers is 0
+        load_dataset_kwargs (Dict[str, Any]): Additional Keyword arguments to pass to HuggingFace dataset. See Hugging Face's
+            documentation.
+    """
     from torchdata.nodes import IterableWrapper, ParallelMapper, SamplerWrapper
 
     # Need to lazy import to avoid circular dependency
@@ -235,6 +252,9 @@ def get_multi_dataset(
     Args:
         datasets (Dict[str, Any]): dictionary of datasets
         weights (Optional[Dict[str, float]]): dictionary of weights for each dataset. If not
+        stop_criteria (str): stop criteria for the sampler. Default "CYCLE_UNTIL_ALL_DATASETS_EXHASTED".
+            see also: torchdata.nodes.StopCriteria
+        seed: (int): seed for the random number generator. Default 0.
 
     """
     from torchdata.nodes import MultiNodeWeightedSampler
@@ -260,6 +280,23 @@ def get_dataloader(
     prefetch_factor: Optional[int] = 4,
     pin_memory: bool = False,
 ) -> Loader:
+    """
+    This will configure TorchData Nodes to approximate torch.utils.data.DataLoader.
+    Given a dataset, apply model_transform (eg tokenization), batching, collation,
+    memory pinning, and pre-fetching.
+
+    Args:
+        dataset (DatasetType): dataset to load. May be a MultiNodeWeightedSampler
+        model_transform (Transform): model transform to apply to the samples of the dataset
+        batch_size (int): batch size
+        collate_fn (Callable[[Any], Any]): collate function to apply to the samples of the dataset
+        packed (bool): whether to pack the dataset. Default is False. Not supported yet.
+        drop_last (bool): whether to drop the last batch. Default is True.
+        num_workers (int): number of workers to use for loading the dataset. Default is 0 (no parallelism
+        parallel_method (Literal["process", "thread"]): method to use for parallelism. Default is "thread".
+        prefetch_factor (Optional[int]): number of batches to prefetch. Default is 4.
+        pin_memory (bool): whether to pin memory. Default is False.
+    """
     if packed:
         raise ValueError("Multimodal datasets don't support packing yet.")
 

@@ -19,14 +19,12 @@ from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
 
-from torchdata.nodes import Loader, T
-from torchdata.nodes.samplers.stop_criteria import StopCriteria
+from torchdata.nodes import Loader, StopCriteria, T
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.data._torchdata import DatasetType
 from torchtune.data._utils import get_dataloader, get_multi_dataset, load_hf_dataset
-from torchtune.datasets import ConcatDataset
 from torchtune.datasets._sft import SFTTransform
 from torchtune.modules.peft import (
     DoRALinear,
@@ -312,7 +310,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        self._dataloader = self._setup_data_td(
+        self._dataloader = self._setup_data(
             cfg_dataloader=cfg.dataloader,
             cfg_datasets=cfg.datasets,
             batch_size=cfg.batch_size,
@@ -950,12 +948,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
-                total_twfb_pct = round(epoch_total_dl_time / epoch_step_time, 5)
-                utils.log_rank_zero(
-                    log,
-                    f"End of epoch {self.epochs_run}! "
-                    f"{total_twfb_pct=}, {epoch_step_time=}, {epoch_dl_time=}, {epoch_total_dl_time=}",
-                )
+                if self._is_rank_zero:
+                    total_twfb_pct = round(epoch_total_dl_time / epoch_step_time, 5)
+                    log.info(
+                        f"End of epoch {self.epochs_run}! "
+                        f"{total_twfb_pct=}, {epoch_step_time=}, {epoch_dl_time=}, {epoch_total_dl_time=}",
+                    )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 

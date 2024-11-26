@@ -86,18 +86,6 @@ datasets:
       _component_: torchtune.datasets.multimodal.the_cauldron_transform
     weight: 1.0
 
-# torch.utils.data.DataLoader Dataset setup, single dataset only
-classic_dataloader:
-  dataset:
-    packed: False # Set to true for great speed ups
-    _component_: torchtune.datasets.multimodal.the_cauldron_dataset
-    subset: ocrvqa
-  shuffle: True
-  collate_fn: torchtune.data.padded_collate_tiled_images_and_mask
-  pin_memory: true
-
-use_torchdata: true
-
 # Fine-tuning arguments
 epochs: 1
 max_steps_per_epoch: 50
