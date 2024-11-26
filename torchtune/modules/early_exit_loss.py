@@ -87,7 +87,7 @@ def early_exit_loss(
 
 
 def layer_ids_to_loss_scales(
-    layer_ids: List,
+    layer_ids: torch.Tensor,
     n_layers: int,
     loss_scale_type: LossScaleType,
     e_scale: float,
@@ -99,7 +99,7 @@ def layer_ids_to_loss_scales(
     scales based on the specified loss scale type and then normalizes them to
     ensure that their sum is 1.0.
     Args:
-        layer_ids (List): A tensor of layer IDs.
+        layer_ids (torch.Tensor): A tensor of layer IDs.
         n_layers (int): The total number of layers.
         loss_scale_type (LossScaleType): The type of loss scaling to use.
         e_scale (float): An early exit scaling factor.
@@ -116,7 +116,7 @@ def layer_ids_to_loss_scales(
         >>> loss_scales = layer_ids_to_loss_scales(layer_ids, n_layers, loss_scale_type, e_scale)
     """
     if loss_scale_type == LossScaleType.ONE:
-        loss_scales = torch.ones(len(layer_ids))
+        loss_scales = torch.ones(len(layer_ids), device=layer_ids.device)
     elif loss_scale_type == LossScaleType.L:
         loss_scales = torch.Tensor(layer_ids + 1)
     elif loss_scale_type == LossScaleType.SUM_L:
