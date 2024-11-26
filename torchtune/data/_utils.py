@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import functools
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, TypeVar, Union
 from urllib import request
@@ -153,6 +152,25 @@ def format_content_with_images(
     return final_content_list
 
 
+def chain(*funcs: Callable):
+    """
+    Chain a list of functions together into a single function.
+
+    Args:
+        funcs (List[Callable]): list of functions to chain together
+
+    Returns:
+        Callable: chained function
+    """
+
+    def chained_fn(x):
+        for fn in funcs:
+            x = fn(x)
+        return x
+
+    return chained_fn
+
+
 @requires_torchdata
 def load_hf_dataset(
     source: str,
@@ -164,7 +182,7 @@ def load_hf_dataset(
     parallel_method: Literal["process", "thread"] = "thread",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> DatasetType:
-    from torchdata.nodes import IterableWrapper, Mapper, ParallelMapper, SamplerWrapper
+    from torchdata.nodes import IterableWrapper, ParallelMapper, SamplerWrapper
 
     # Need to lazy import to avoid circular dependency
     from torchtune.training._distributed import get_world_size_and_rank
@@ -179,20 +197,12 @@ def load_hf_dataset(
     if filter_fn is not None:
         dataset = dataset.filter(filter_fn)
 
-    if num_workers == 0:
-        _Mapper = Mapper  # type: ignore
-    else:
-        _Mapper = functools.partial(
-            ParallelMapper,  # type: ignore
-            num_workers=num_workers,
-            method=parallel_method,
-        )
     world_size, rank = get_world_size_and_rank()
     if streaming:
         dataset = split_dataset_by_node(dataset, rank=rank, world_size=world_size)
         if shuffle:
             dataset = dataset.shuffle(seed=seed)
-        node = IterableWrapper(dataset)  # type: ignore
+        node = IterableWrapper(dataset)
     else:
         sampler = DistributedSampler(
             dataset,
@@ -201,10 +211,12 @@ def load_hf_dataset(
             shuffle=shuffle,
             seed=seed,
         )
-        node = SamplerWrapper(sampler)  # type: ignore
-        node = _Mapper(node, map_fn=dataset.__getitem__)
+        node = SamplerWrapper(sampler)
+        transform = chain(dataset.__getitem__, transform)  # type: ignore
 
-    node = _Mapper(node, transform)
+    node = ParallelMapper(
+        node, map_fn=transform, num_workers=num_workers, method=parallel_method
+    )
 
     return node
 
@@ -251,20 +263,15 @@ def get_dataloader(
     if packed:
         raise ValueError("Multimodal datasets don't support packing yet.")
 
-    from torchdata.nodes import Batcher, Mapper, ParallelMapper, PinMemory, Prefetcher
+    from torchdata.nodes import Batcher, ParallelMapper, PinMemory, Prefetcher
 
-    if num_workers == 0:
-        _Mapper = Mapper  # noqa[N806]
-    else:
-        _Mapper = functools.partial(  # noqa[N806]
-            ParallelMapper,
-            num_workers=num_workers,
-            method=parallel_method,
-        )
-
-    node = _Mapper(dataset, map_fn=model_transform)
+    node = ParallelMapper(
+        dataset, map_fn=model_transform, num_workers=num_workers, method=parallel_method
+    )
     node = Batcher(node, batch_size, drop_last=drop_last)
-    node = _Mapper(node, map_fn=collate_fn)
+    node = ParallelMapper(
+        node, map_fn=collate_fn, num_workers=num_workers, method=parallel_method
+    )
     if pin_memory:
         node = PinMemory(node)
     if prefetch_factor is not None:
