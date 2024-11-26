@@ -347,6 +347,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     ) -> None:
         self._checkpoint_dir = Path(checkpoint_dir)
 
+        # repo_id is necessary because, when saving a model adapter, we have to add it
+        # to the adapter config. This json file is produced and saved in the download step.
+        repo_id_path = Path.joinpath(
+            self._checkpoint_dir, training.REPO_ID_FNAME
+        ).with_suffix(".json")
+        self.repo_id = None
+        if repo_id_path.exists():
+            with open(repo_id_path, "r") as json_file:
+                data = json.load(json_file)
+                self.repo_id = data.get("repo_id")
+
         # e.g.
         # checkpoint_files:
         #   filename_format: model-{}-of-{}.safetensors
@@ -645,7 +656,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             num_shards = len(split_state_dicts)
             map_original_name_to_new_name = {}
             for cpt_idx, model_state_dict in split_state_dicts.items():
-                shard_name = training.SHARD_FILENAME.format(
+                shard_name = training.SHARD_FNAME.format(
                     cpt_idx=cpt_idx, num_shards=num_shards
                 )
                 map_original_name_to_new_name[cpt_idx] = shard_name
@@ -672,13 +683,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     k: map_original_name_to_new_name[int(cpt_idx)] + ".safetensors"
                     for k, cpt_idx in self._weight_map.items()
                 }
-                index_file_name = training.SAFETENSOR_INDEX_FILENAME
+                index_file_name = training.SAFETENSOR_INDEX_FNAME
             else:
                 weight_map = {
                     k: map_original_name_to_new_name[int(cpt_idx)] + ".bin"
                     for k, cpt_idx in self._weight_map.items()
                 }
-                index_file_name = training.TORCHTUNE_INDEX_FILENAME
+                index_file_name = training.TORCHTUNE_INDEX_FNAME
 
             index_path = Path.joinpath(
                 self._output_dir,
@@ -727,7 +738,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
                 # TODO: add "if self._safe_serialization:"
                 peft_output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", training.ADAPTER_MODEL_FILENAME
+                    self._output_dir, f"epoch_{epoch}", training.ADAPTER_MODEL_FNAME
                 ).with_suffix(".bin")
                 torch.save(state_dict[training.ADAPTER_KEY], peft_output_path)
                 logger.info(
@@ -753,10 +764,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 state_dict[
                     training.ADAPTER_CONFIG
                 ] = convert_weights.tune_to_peft_adapter_config(
-                    state_dict[training.ADAPTER_CONFIG]
+                    state_dict[training.ADAPTER_CONFIG],
+                    base_model_name_or_path=self.repo_id,
                 )
+
                 output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", training.ADAPTER_CONFIG_FILENAME
+                    self._output_dir, f"epoch_{epoch}", training.ADAPTER_CONFIG_FNAME
                 ).with_suffix(".json")
                 with open(output_path, "w") as f:
                     json.dump(state_dict[training.ADAPTER_CONFIG], f)
@@ -945,11 +958,9 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                     model_state_dict
                 )
 
-            # TODO: We should consider adding adapter/model config
-            # like we do for HF.
-
+            # TODO: We should consider adding adapter/model config, like we do for HF.
             # Output file is always a .pt
-            model_filename = training.SHARD_FILENAME.format(cpt_idx=1, num_shards=1)
+            model_filename = training.SHARD_FNAME.format(cpt_idx=1, num_shards=1)
             checkpoint_file = Path.joinpath(
                 self._output_dir, f"epoch_{epoch}", model_filename
             ).with_suffix(".pt")
@@ -962,7 +973,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         if training.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", training.ADAPTER_MODEL_FILENAME
+                self._output_dir, f"epoch_{epoch}", training.ADAPTER_MODEL_FNAME
             ).with_suffix(".pt")
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(

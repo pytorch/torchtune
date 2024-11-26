@@ -23,11 +23,12 @@ ADAPTER_CONFIG = "adapter_config"
 
 # default used by huggingface when looking for saved adapters
 # https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32
-ADAPTER_CONFIG_FILENAME = "adapter_config"
-ADAPTER_MODEL_FILENAME = "adapter_model"
-SHARD_FILENAME = "model-{int(cpt_idx):05d}-of-{int(num_shards):05d}"
-SAFETENSOR_INDEX_FILENAME = "model.safetensors.index.json"
-TORCHTUNE_INDEX_FILENAME = "pytorch_model.bin.index.json"
+ADAPTER_CONFIG_FNAME = "adapter_config"
+ADAPTER_MODEL_FNAME = "adapter_model"
+SHARD_FNAME = "model-{int(cpt_idx):05d}-of-{int(num_shards):05d}"
+SAFETENSOR_INDEX_FNAME = "model.safetensors.index"
+TORCHTUNE_INDEX_FNAME = "pytorch_model.bin.index"
+REPO_ID_FNAME = "repo_id"
 
 # key used for adapter weights such as LoRA weights
 ADAPTER_KEY = "adapter"
