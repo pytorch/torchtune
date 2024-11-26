@@ -485,7 +485,7 @@
 <span class="sd">        ]</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;texts&quot;</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;texts&quot; and &quot;image&quot;</span>
 <span class="sd">            column names to the actual column names in the dataset. Default is None,</span>
 <span class="sd">            keeping the default column names.</span>
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
@@ -550,7 +550,6 @@
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span>
 
 
-<span class="c1"># TODO: point to Flamingo model transform as an example</span>
 <div class="viewcode-block" id="the_cauldron_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.multimodal.the_cauldron_dataset.html#torchtune.datasets.multimodal.the_cauldron_dataset">[docs]</a><span class="k">def</span> <span class="nf">the_cauldron_dataset</span><span class="p">(</span>
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
