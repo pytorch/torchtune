@@ -948,12 +948,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
-                if self._is_rank_zero:
-                    total_twfb_pct = round(epoch_total_dl_time / epoch_step_time, 5)
-                    log.info(
-                        f"End of epoch {self.epochs_run}! "
-                        f"{total_twfb_pct=}, {epoch_step_time=}, {epoch_dl_time=}, {epoch_total_dl_time=}",
-                    )
+            if self._is_rank_zero:
+                total_twfb_pct = round(epoch_total_dl_time / epoch_step_time, 5)
+                log.info(
+                    f"End of epoch {self.epochs_run}! "
+                    f"{total_twfb_pct=}, {epoch_step_time=}, {epoch_dl_time=}, {epoch_total_dl_time=}",
+                )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
