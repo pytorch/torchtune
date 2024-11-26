@@ -914,7 +914,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     pbar_val.set_description(
                         f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {current_loss / (idx + 1)}"
                     )
-                    idx += 1
+                    idx += 1  # NOTE: added by us
 
                 mean_val_loss = running_val_loss / (idx + 1 - max_len_samples)
                 self._metric_logger.log_dict(

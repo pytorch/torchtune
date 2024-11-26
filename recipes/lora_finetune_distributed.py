@@ -190,6 +190,24 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
+        # NOTE: added by us
+        self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
+        self.max_seq_len = cfg.get("max_seq_len", None)
+        self._max_validation_steps = int(
+            cfg.get("samples_per_validation_steps") / cfg.batch_size
+        )
+        log.info(
+            f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
+        )
+        assert self.max_steps_per_epoch is None
+        effective_batch_size = cfg.batch_size * cfg.gradient_accumulation_steps
+        self.max_steps_per_epoch = int(
+            cfg.get("samples_per_epoch") / effective_batch_size
+        )
+        log.info(
+            f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
+        )
+
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
@@ -647,6 +665,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         different checkpoint files. To correctly resume from training, the adapter weights
         and recipe state must be provided along with the base model weights.
         """
+        # NOTE: added by us
+        if self.save_checkpoints_interval:
+            if epoch + 1 == self.total_epochs:
+                pass
+            elif (
+                self.save_checkpoints_interval > 0
+                and epoch % self.save_checkpoints_interval == 0
+            ):
+                pass
+            else:
+                return
+        else:
+            return
+
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
@@ -743,6 +775,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         torch.distributed.barrier()
 
+    # NOTE: added by us
+    def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
+        """
+        Skip samples that are too long. This is needed for the training loop to handle
+        samples that are too long to fit in the model.
+        """
+        if self.max_seq_len is None:
+            return False
+        return len(batch["tokens"][0]) > self.max_seq_len
+
     def train(self) -> None:
         """
         The core training loop.
@@ -769,13 +811,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._sampler.set_epoch(curr_epoch)
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
-            for idx, batch in enumerate(self._dataloader):
+            # NOTE: added by us - counter to account for samples that are too long
+            idx = 0
+            for _, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
                 ):
                     break
+
+                # NOTE: added by us
+                if self._skip_max_seq_len_samples(batch):
+                    max_len_samples += 1
+                    continue
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -893,6 +942,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
+
+                    idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
