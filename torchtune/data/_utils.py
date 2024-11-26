@@ -4,9 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import functools
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, TypeVar, Union
 from urllib import request
+
+from datasets import load_dataset
+from datasets.distributed import split_dataset_by_node
+
+from torch.utils.data import DistributedSampler
+
+from torchtune.data._torchdata import DatasetType, Loader, requires_torchdata
+from torchtune.modules.transforms import Transform
 
 T = TypeVar("T", bound=type)
 
@@ -142,3 +151,123 @@ def format_content_with_images(
             final_content_list.append({"type": "image", "content": images.pop(0)})
 
     return final_content_list
+
+
+@requires_torchdata
+def load_hf_dataset(
+    source: str,
+    transform: Transform,
+    filter_fn: Optional[Callable] = None,
+    shuffle: bool = True,
+    seed: int = 0,
+    num_workers: int = 1,
+    parallel_method: Literal["process", "thread"] = "thread",
+    **load_dataset_kwargs: Dict[str, Any],
+) -> DatasetType:
+    from torchdata.nodes import IterableWrapper, Mapper, ParallelMapper, SamplerWrapper
+
+    # Need to lazy import to avoid circular dependency
+    from torchtune.training._distributed import get_world_size_and_rank
+
+    streaming = load_dataset_kwargs.get("streaming", False)
+    if "subset" in load_dataset_kwargs:
+        assert (
+            "name" not in load_dataset_kwargs
+        ), f"found both 'subset' and 'name' found, you may only specify one, {load_dataset_kwargs=}"
+        load_dataset_kwargs["name"] = load_dataset_kwargs.pop("subset")
+    dataset = load_dataset(source, **load_dataset_kwargs)
+    if filter_fn is not None:
+        dataset = dataset.filter(filter_fn)
+
+    if num_workers == 0:
+        _Mapper = Mapper  # type: ignore
+    else:
+        _Mapper = functools.partial(
+            ParallelMapper,  # type: ignore
+            num_workers=num_workers,
+            method=parallel_method,
+        )
+    world_size, rank = get_world_size_and_rank()
+    if streaming:
+        dataset = split_dataset_by_node(dataset, rank=rank, world_size=world_size)
+        if shuffle:
+            dataset = dataset.shuffle(seed=seed)
+        node = IterableWrapper(dataset)  # type: ignore
+    else:
+        sampler = DistributedSampler(
+            dataset,
+            num_replicas=world_size,
+            rank=rank,
+            shuffle=shuffle,
+            seed=seed,
+        )
+        node = SamplerWrapper(sampler)  # type: ignore
+        node = _Mapper(node, map_fn=dataset.__getitem__)
+
+    node = _Mapper(node, transform)
+
+    return node
+
+
+@requires_torchdata
+def get_multi_dataset(
+    datasets: dict[str, DatasetType],
+    weights: dict[str, float],
+    stop_criteria: str = "CYCLE_UNTIL_ALL_DATASETS_EXHAUSTED",
+    seed: int = 0,
+) -> DatasetType:
+    """
+    Given a dictionary of datasets and their corresponding weights, return a dataset that
+    samples from the given datasets according to the specified weights.
+
+    Args:
+        datasets (Dict[str, Any]): dictionary of datasets
+        weights (Optional[Dict[str, float]]): dictionary of weights for each dataset. If not
+
+    """
+    from torchdata.nodes import MultiNodeWeightedSampler
+
+    return MultiNodeWeightedSampler(
+        source_nodes=datasets,
+        weights=weights,
+        stop_criteria=stop_criteria,
+        seed=seed,
+    )
+
+
+@requires_torchdata
+def get_dataloader(
+    dataset: DatasetType,
+    model_transform: Transform,
+    batch_size: int,
+    collate_fn: Callable[[Any], Any],
+    packed: bool = False,
+    drop_last: bool = True,
+    num_workers: int = 0,
+    parallel_method: Literal["process", "thread"] = "thread",
+    prefetch_factor: Optional[int] = 4,
+    pin_memory: bool = False,
+) -> Loader:
+    if packed:
+        raise ValueError("Multimodal datasets don't support packing yet.")
+
+    from torchdata.nodes import Batcher, Mapper, ParallelMapper, PinMemory, Prefetcher
+
+    if num_workers == 0:
+        _Mapper = Mapper  # noqa[N806]
+    else:
+        _Mapper = functools.partial(  # noqa[N806]
+            ParallelMapper,
+            num_workers=num_workers,
+            method=parallel_method,
+        )
+
+    node = _Mapper(dataset, map_fn=model_transform)
+    node = Batcher(node, batch_size, drop_last=drop_last)
+    node = _Mapper(node, map_fn=collate_fn)
+    if pin_memory:
+        node = PinMemory(node)
+    if prefetch_factor is not None:
+        node = Prefetcher(node, prefetch_factor)
+
+    return Loader(node)
