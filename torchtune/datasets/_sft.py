@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Literal, Mapping, Optional
+from typing import Any, Callable, Dict, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
@@ -13,8 +13,6 @@ from torch.utils.data import Dataset
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
 
-from torchtune.data._torchdata import DatasetType
-from torchtune.data._utils import load_hf_dataset
 from torchtune.modules.transforms import Transform
 
 
@@ -171,29 +169,3 @@ class SFTTransform(Transform):
             tokenized_dict = transformed_sample
 
         return tokenized_dict
-
-
-def SFTDatasetNode(  # noqa[N802]
-    source: str,
-    message_transform: Transform,
-    model_transform: Transform,
-    filter_fn: Optional[Callable] = None,
-    num_workers: int = 1,
-    parallel_method: Literal["process", "thread"] = "thread",
-    shuffle: bool = True,
-    seed: int = 0,
-    **load_dataset_kwargs: Dict[str, Any],
-) -> DatasetType:
-    return load_hf_dataset(
-        source=source,
-        transform=SFTTransform(
-            message_transform=message_transform,
-            model_transform=model_transform,
-        ),
-        filter_fn=filter_fn,
-        num_workers=num_workers,
-        parallel_method=parallel_method,
-        shuffle=shuffle,
-        seed=seed,
-        **load_dataset_kwargs,
-    )
