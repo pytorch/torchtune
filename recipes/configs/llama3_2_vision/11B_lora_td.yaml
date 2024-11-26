@@ -49,7 +49,7 @@ checkpointer:
 resume_from_checkpoint: False
 save_adapter_weights_only: False # PeFT formatting not available yet. This will save it in torchtune format only.
 
-# TorchData Dataset setup
+# TorchData setup
 dataloader:
   shuffle: True
   collate_fn: torchtune.data.padded_collate_tiled_images_and_mask
@@ -60,29 +60,31 @@ dataloader:
   prefetch_factor: 2
 seed: null
 
-multi_datasets:
-  stop_criterion: CYCLE_UNTIL_ALL_DATASETS_EXHAUSTED
-  datasets:
-    ocrvqa:
-      weight: 1.0
-      dataset:
-        _component_: torchtune.datasets.multimodal.the_cauldron_dataset_torchdata
-        subset: ocrvqa
-    dvqa:
-      weight: 1.0
-      dataset:
-        _component_: torchtune.datasets.multimodal.the_cauldron_dataset_torchdata
-        subset: dvqa
-    docvqa:
-      weight: 1.0
-      dataset:
-        _component_: torchtune.datasets.multimodal.the_cauldron_dataset_torchdata
-        subset: docvqa
-    tabmwp:
-      weight: 1.0
-      dataset:
-        _component_: torchtune.datasets.multimodal.the_cauldron_dataset_torchdata
-        subset: tabmwp
+datasets:
+  - source: HuggingFaceM4/the_cauldron
+    subset: ocrvqa
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
+  - source: HuggingFaceM4/the_cauldron
+    subset: dvqa
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
+  - source: HuggingFaceM4/the_cauldron
+    subset: docvqa
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
+  - source: HuggingFaceM4/the_cauldron
+    subset: tabmwp
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
 
 # torch.utils.data.DataLoader Dataset setup, single dataset only
 classic_dataloader:
@@ -98,7 +100,7 @@ use_torchdata: true
 
 # Fine-tuning arguments
 epochs: 1
-max_steps_per_epoch: null
+max_steps_per_epoch: 50
 batch_size: 4
 gradient_accumulation_steps: 1
 optimizer:

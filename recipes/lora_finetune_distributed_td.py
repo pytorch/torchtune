@@ -21,22 +21,15 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchdata.nodes import (
-    BaseNode,
-    Batcher,
-    Loader,
-    Mapper,
-    MultiDatasetWeightedSampler,
-    ParallelMapper,
-    PinMemory,
-    Prefetcher,
-    T,
-)
-from torchdata.nodes.samplers.multi_dataset_weighted_sampler import StopCriteria
+from torchdata.nodes import Loader, T
+from torchdata.nodes.samplers.stop_criteria import StopCriteria
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
+from torchtune.data._torchdata import DatasetType
+from torchtune.data._utils import get_dataloader, get_multi_dataset, load_hf_dataset
 from torchtune.datasets import ConcatDataset
+from torchtune.datasets._sft import SFTTransform
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
@@ -320,7 +313,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if cfg.get("use_torchdata", True):
             self._dataloader = self._setup_data_td(
                 cfg_dataloader=cfg.dataloader,
-                cfg_multi_datasets=cfg.multi_datasets,
+                cfg_datasets=cfg.datasets,
                 batch_size=cfg.batch_size,
             )
         else:
@@ -618,31 +611,34 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_one_dataset(
         self,
         cfg_dataset: DictConfig,
+        global_streaming: bool,
         global_shuffle: bool,
         global_parallel_method: str,
-        global_streaming: bool,
         global_num_workers: int,
-    ) -> BaseNode:
+    ) -> DatasetType:
         streaming = cfg_dataset.pop("streaming", global_streaming)
-        parallel_method = cfg_dataset.pop("parallel_method", global_parallel_method)
         shuffle = cfg_dataset.pop("shuffle", global_shuffle)
+        parallel_method = cfg_dataset.pop("parallel_method", global_parallel_method)
         num_workers = cfg_dataset.pop("num_workers", global_num_workers)
 
-        return config.instantiate(
-            cfg_dataset,
-            self._tokenizer,
+        # Instantiate dataset transform
+        assert "transform" in cfg_dataset, "transform must be specified in dataset"
+        transform = config.instantiate(cfg_dataset.pop("transform"))
+
+        log.info(f"Instantiating dataset {cfg_dataset}")
+        return load_hf_dataset(
+            **cfg_dataset,
+            transform=transform,
             streaming=streaming,
             shuffle=shuffle,
             parallel_method=parallel_method,
             num_workers=num_workers,
         )
 
-        return ds
-
     def _setup_data_td(
         self,
         cfg_dataloader: DictConfig,
-        cfg_multi_datasets: DictConfig,
+        cfg_datasets: ListConfig,
         batch_size: int,
     ) -> Loader:
         """
@@ -650,8 +646,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         both Map and Streaming datasets (from HuggingFace datasets), and mixing multiple
         datasets (can be mix of Map and Streaming).
         """
-        world_size, rank = training.get_world_size_and_rank()
-
         # Get global settings
         shuffle = cfg_dataloader.shuffle
         parallel_method = cfg_dataloader.get("parallel_method", "thread")
@@ -660,69 +654,66 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         num_workers = cfg_dataloader.get("num_workers", 0)
         pin_memory = cfg_dataloader.get("pin_memory", True)
         collate_fn = cfg_dataloader.collate_fn
-        prefetch_factor = cfg_dataloader.get("prefetch_factor", 2)
+        prefetch_factor = cfg_dataloader.get("prefetch_factor", 6)
 
-        stop_criterion = cfg_multi_datasets.get(
-            "stop_criterion", StopCriteria.CYCLE_UNTIL_ALL_DATASETS_EXHAUSTED
+        # Multi-Dataset Stop Criteria
+        stop_criteria = cfg_dataloader.get(
+            "stop_criteria", StopCriteria.CYCLE_UNTIL_ALL_DATASETS_EXHAUSTED
         )
         weights, datasets = {}, {}
-        cfg_datasets = cfg_multi_datasets.datasets
-        for k, cfg_and_weight in cfg_datasets.items():
-            weights[k] = float(cfg_and_weight.weight)
-            datasets[k] = Prefetcher(
-                self._setup_one_dataset(
-                    cfg_dataset=cfg_and_weight.dataset,
-                    global_shuffle=shuffle,
-                    global_parallel_method=parallel_method,
-                    global_streaming=streaming,
-                    global_num_workers=num_workers,
-                ),
-                prefetch_factor=prefetch_factor,
+        for idx, cfg_dataset in enumerate(cfg_datasets):
+            dataset_name = cfg_dataset.pop("name", None)
+            if dataset_name is None:
+                dataset_name = cfg_dataset.get("subset", None)
+            key = f"{idx}" + (f"_{dataset_name}" if dataset_name else "")
+            assert key not in weights, f"Duplicate dataset name {key}"
+            weights[key] = float(cfg_dataset.pop("weight"))
+            datasets[key] = self._setup_one_dataset(
+                cfg_dataset=cfg_dataset,
+                global_shuffle=shuffle,
+                global_parallel_method=parallel_method,
+                global_streaming=streaming,
+                global_num_workers=num_workers,
             )
 
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
             raise RuntimeError("left_pad_sequence collator is only for inference.")
-        collate_fn = _get_component_from_path(collate_fn)
 
-        # TODO: add multi-dataset mixer
-        if num_workers == 0:
-            _Mapper = Mapper  # noqa[N806]
-        else:
-            _Mapper = partial(  # noqa[N806]
-                ParallelMapper,
-                num_workers=num_workers,
-                method=parallel_method,
+        collate_fn = (
+            partial(
+                _get_component_from_path(collate_fn),
+                padding_idx=self._tokenizer.pad_id,
+                ignore_idx=self._loss_fn.ignore_index,
             )
-        if len(cfg_datasets) == 1:
-            node = next(iter(datasets.values()))
-        else:
-            node = MultiDatasetWeightedSampler(
-                source_nodes=datasets,
-                weights=weights,
-                stop_criterion=stop_criterion,
-            )
-        node = Batcher(node, batch_size, drop_last=True)
-        node = _Mapper(
-            node,
-            map_fn=(
-                partial(
-                    collate_fn,  # noqa
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                )
-                if not packed
-                else padded_collate_packed
-            ),
+            if not packed
+            else padded_collate_packed
         )
-        if pin_memory:
-            node = PinMemory(node)
-        if num_workers > 0:
-            node = Prefetcher(node, prefetch_factor)
+        if len(datasets) > 1:
+            dataset = get_multi_dataset(
+                datasets=datasets,
+                weights=weights,
+                stop_criteria=stop_criteria,
+            )
+        else:
+            dataset = next(iter(datasets.values()))
+
+        loader = get_dataloader(
+            dataset=dataset,
+            model_transform=SFTTransform(model_transform=self._tokenizer),
+            batch_size=batch_size,
+            collate_fn=collate_fn,
+            packed=packed,
+            drop_last=True,
+            num_workers=num_workers,
+            parallel_method=parallel_method,
+            prefetch_factor=prefetch_factor,
+            pin_memory=pin_memory,
+        )
 
         log.info("TorchData nodes are initialized")
 
-        return Loader(node)
+        return loader
 
     def _setup_data(
         self,
@@ -801,24 +792,27 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
-        if self._is_rank_zero:
-            log.info(
-                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
-            )
-            start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "Saving checkpoint. This may take some time. Retrieving full model state dict...",
+        )
+        start = time.perf_counter()
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        state_dict = self._model.state_dict()
+        if self._save_adapter_weights_only:
+            state_dict = get_adapter_state_dict(state_dict, device=None)
+
+        cpu_state_dict = training.gather_cpu_state_dict(
+            state_dict,
             self._is_rank_zero,
             device=self._device,
-            trainable_only=self._save_adapter_weights_only,
         )
-        if self._is_rank_zero:
-            log.info(
-                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
-            )
+        utils.log_rank_zero(
+            log,
+            f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
+        )
 
         if intermediate_checkpoint:
             if self._is_rank_zero:
