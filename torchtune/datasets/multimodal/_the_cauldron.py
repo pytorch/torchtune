@@ -239,9 +239,11 @@ def the_cauldron_dataset(
 
 def the_cauldron_transform(
     model_transform: Optional[Transform] = None,
-    column_map: Optional[Dict[str, str]] = None,
+    texts_col: str = "texts",
+    images_col: str = "images",
     new_system_prompt: Optional[str] = None,
 ) -> SFTTransform:
+    column_map = {"texts": texts_col, "images": images_col}
     return SFTTransform(
         message_transform=TheCauldronToMessages(
             column_map=column_map,
