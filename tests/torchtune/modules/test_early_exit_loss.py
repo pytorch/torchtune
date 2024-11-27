@@ -128,7 +128,7 @@ def test_gradual_early_exit_curriculum(train_last_layer):
         [True, True, True, True],
         max_steps=4,
         train_last_layer=train_last_layer,
-        percent_scale=1,
+        fraction_scale=1,
     )
     expected = np.array([False, False, False, train_last_layer])
     assert np.array_equal(curriculum.get(), expected)

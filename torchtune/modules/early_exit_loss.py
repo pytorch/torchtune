@@ -249,8 +249,8 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
         train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
         last_step (Optional[int]): The last step the curriculum stopped at in a previous run.
             This is used when resuming training.
-        percent_scale (float, optional): A scaling factor to determine at which percentage
-            of steps, all the layers will be enabled. At `steps = max_steps / percent_scale`, all the layers will be enabled.
+        fraction_scale (float, optional): A scaling factor to determine at which fraction
+            of steps, all the layers will be enabled. At `steps = max_steps * fraction_scale`, all the layers will be enabled.
         verbose (bool, optional): Whether to print verbose logs. Defaults to False.
     """
 
@@ -260,7 +260,7 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
         max_steps: int,
         train_last_layer: bool = True,
         last_step: Optional[int] = None,
-        percent_scale: float = 2,
+        fraction_scale: float = 0.5,
         verbose: bool = False,
     ):
         super().__init__(
@@ -272,7 +272,7 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
         )
         self._final_do_output_hidden_states = np.copy(self._do_output_hidden_states)
         self._step = 0
-        self._percent_scale = percent_scale
+        self._fraction_scale = fraction_scale
 
         # Initialize all layers to False
         for i in range(len(self._do_output_hidden_states)):
@@ -282,15 +282,16 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
         """
         Perform a step in the curriculum.
         This method updates the `_do_output_hidden_states` attribute based on the current
-            step and the percentage of completed training steps.
+            step and the fraction of completed training steps.
         """
-        percent_trained = self._step / self.max_steps
+        fraction_trained = self._step / self.max_steps
         n_layers = len(self._do_output_hidden_states)
         # Enable each layer based on proportion of completed training steps
         for layer_index in range(len(self._do_output_hidden_states)):
-            should_train = (percent_trained * self._percent_scale) >= (
-                n_layers - layer_index
-            ) / n_layers
+            should_train = (
+                fraction_trained
+                >= self._fraction_scale * (n_layers - layer_index) / n_layers
+            )
             self._do_output_hidden_states[layer_index] = should_train
 
         # Only enable layers that are set by the user
