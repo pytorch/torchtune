@@ -146,9 +146,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
-        # NOTE: added by us
-        self._is_rank_zero = True
-
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -1093,7 +1090,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
-                    idx += 1  # NOTE: added by us
+                idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

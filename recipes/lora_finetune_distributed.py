@@ -910,8 +910,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         {"val_loss": mean_val_loss},
                         step=self.global_step,
                     )
+                utils.log_rank_zero(
+                    log, f"Number of samples that were too long: {max_len_samples}"
+                )
                 pbar_val.close()
-                print("Number of samples that were too long: ", max_len_samples)
 
             # ------ Training Epoch ------ #
             # Initialize tokens count and running loss (for grad accumulation)
@@ -1062,7 +1064,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
-                    idx += 1  # NOTE: added by us
+                idx += 1  # NOTE: added by us
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
