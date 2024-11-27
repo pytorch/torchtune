@@ -14,14 +14,17 @@ from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-from torchtune.modules.peft import LoRALinear
+from torchtune.modules.peft import LoRALinear, QATLoRALinear
+from torchtune.training.quantization import _torchao_0_7_supported
 from torchtune.training.seed import set_seed
+
 
 RANK = 4
 ALPHA = 1.0
 BSZ = 2
 SEQ_LEN = 32
 EXPECTED_VAL = 1.1252
+QAT_EXPECTED_VAL = 0.6291
 
 
 @pytest.fixture(autouse=True)
@@ -232,3 +235,12 @@ class TestLoRALinear:
         assert torch.allclose(
             lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
         )
+
+    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
+    def test_qat_lora_forward(self, inputs, lora_linear, out_dim) -> None:
+        lora_linear = lora_linear(use_bias=True, dtype=torch.float32)
+        qat_lora_linear = QATLoRALinear.from_lora_linear(lora_linear)
+        expected = torch.tensor(QAT_EXPECTED_VAL)
+        actual = qat_lora_linear(inputs)
+        assert actual.shape == (BSZ, SEQ_LEN, out_dim)
+        torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
