@@ -293,20 +293,22 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
         # Output file is always a .pt file with the epoch number in the name
         if not adapter_only:
-            checkpoint_file = Path.joinpath(
+            output_path = Path.joinpath(
                 self._output_dir, f"torchtune_model_{epoch}"
             ).with_suffix(".pt")
-            torch.save(state_dict[training.MODEL_KEY], checkpoint_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save(state_dict[training.MODEL_KEY], output_path)
             logger.info(
                 "Model checkpoint of size "
-                f"{os.path.getsize(checkpoint_file) / 1000**3:.2f} GB "
-                f"saved to {checkpoint_file}"
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
             )
 
         if training.ADAPTER_KEY in state_dict:
-            output_path = Path.joinpath(
-                self._output_dir, f"adapter_{epoch}"
-            ).with_suffix(".pt")
+            output_path = Path.joinpath(self._output_dir, "adapter_model").with_suffix(
+                ".pt"
+            )
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
@@ -324,6 +326,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "
@@ -736,12 +739,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             map_original_name_to_new_name = {}
             for cpt_idx, model_state_dict in split_state_dicts.items():
                 shard_name = training.SHARD_FNAME.format(
-                    cpt_idx=cpt_idx, num_shards=num_shards
+                    cpt_idx=f"{int(cpt_idx):05d}", num_shards=f"{int(num_shards):05d}"
                 )
                 map_original_name_to_new_name[cpt_idx] = shard_name
                 output_path = Path.joinpath(
                     self._output_dir, f"epoch_{epoch}", shard_name
                 )
+                output_path.parent.mkdir(parents=True, exist_ok=True)
                 if not self._safe_serialization:
                     output_path = output_path.with_suffix(".bin")
                     torch.save(model_state_dict, output_path)
@@ -788,8 +792,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # Save torchtune format adapter weights even if we save PEFT format
             # This way we can resume no matter what (and memory footprint of adapter weights is small)
             output_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", f"adapter_{epoch}"
+                self._output_dir, f"epoch_{epoch}", "adapter_model"
             ).with_suffix(".pt")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
@@ -867,6 +872,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             output_path = Path.joinpath(
                 self._output_dir, "recipe_state", "recipe_state.pt"
             )
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "
@@ -1085,6 +1091,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             checkpoint_file = Path.joinpath(
                 self._output_dir, f"epoch_{epoch}", model_filename
             ).with_suffix(".pt")
+            checkpoint_file.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.MODEL_KEY], checkpoint_file)
             logger.info(
                 "Model checkpoint of size "
@@ -1096,6 +1103,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             output_path = Path.joinpath(
                 self._output_dir, f"epoch_{epoch}", training.ADAPTER_MODEL_FNAME
             ).with_suffix(".pt")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
@@ -1116,6 +1124,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             output_path = Path.joinpath(
                 self._output_dir, "recipe_state", "recipe_state.pt"
             )
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "

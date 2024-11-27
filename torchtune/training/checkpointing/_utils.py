@@ -28,7 +28,7 @@ ADAPTER_CONFIG = "adapter_config"
 # https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32
 ADAPTER_CONFIG_FNAME = "adapter_config"
 ADAPTER_MODEL_FNAME = "adapter_model"
-SHARD_FNAME = "model-{int(cpt_idx):05d}-of-{int(num_shards):05d}"
+SHARD_FNAME = "model-{cpt_idx}-of-{num_shards}"
 SAFETENSOR_INDEX_FNAME = "model.safetensors.index"
 TORCH_INDEX_FNAME = "pytorch_model.bin.index"
 
@@ -322,6 +322,8 @@ def copy_files(
     Copies files from the input directory to the output directory, preserving the directory structure.
 
     This function will skip copying files that already exist in the output directory or have specific suffixes.
+    It will also skip folders and files that start with '.'. E.g. ".cache/" and ".git".
+
     Args:
         input_dir (Union[str, Path]): The path to the input directory containing files to be copied.
         output_dir (Union[str, Path]): The path to the output directory where files should be copied.
@@ -337,6 +339,10 @@ def copy_files(
     """
 
     for root, dirs, files in os.walk(input_dir):
+
+        # Filter out directories that start with '.'. E.g. ".cache/"
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+
         # Construct the corresponding directory in the output
         relative_path = os.path.relpath(root, input_dir)
         dest_dir = os.path.join(output_dir, relative_path)
@@ -345,6 +351,10 @@ def copy_files(
         os.makedirs(dest_dir, exist_ok=True)
 
         for file in files:
+            # Skip files that start with '.'. E.g. ".git"
+            if file.startswith("."):
+                continue
+
             # Check if the file has one of the specified suffixes
             if suffixes and any(file.endswith(suffix) for suffix in suffixes):
                 continue
