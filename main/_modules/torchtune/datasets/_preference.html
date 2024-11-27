@@ -518,9 +518,14 @@
 <span class="sd">        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See</span>
 <span class="sd">            the Hugging Face `docs &lt;https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter&gt;`_ for more</span>
 <span class="sd">            details.</span>
+<span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False. Packed is</span>
+<span class="sd">            currently not supported for ``PreferenceDataset`` and a ``ValueError`` will be raised if this is set to True.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging</span>
 <span class="sd">            Face&#39;s `API ref &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset&gt;`_</span>
 <span class="sd">            for more details.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``packed`` is True, this feature is not supported for ``PreferenceDataset``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -530,8 +535,14 @@
         <span class="n">message_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
         <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
         <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Packed is currently not supported for preference datasets.&quot;</span>
+            <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_message_transform</span> <span class="o">=</span> <span class="n">message_transform</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
