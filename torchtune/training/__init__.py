@@ -36,6 +36,7 @@ from torchtune.training.activations import apply_selective_activation_checkpoint
 from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
+    CheckpointClient,
     Checkpointer,
     DistributedCheckpointer,
     EPOCHS_KEY,
@@ -51,6 +52,7 @@ from torchtune.training.checkpointing import (
     SEED_KEY,
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
+    TrainingProgress,
     update_state_dict_for_classifier,
 )
 from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup, get_lr
@@ -78,6 +80,7 @@ __all__ = [
     "get_dtype",
     "set_default_dtype",
     "validate_expected_param_dtype",
+    "CheckpointClient",
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "DistributedCheckpointer",
@@ -131,4 +134,5 @@ __all__ = [
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
+    "TrainingProgress",
 ]
