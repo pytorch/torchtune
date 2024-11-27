@@ -109,14 +109,14 @@ class PreferenceDataset(Dataset):
         packed: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
-        self._tokenizer = tokenizer
-        self._message_transform = message_transform
-        self._data = load_dataset(source, **load_dataset_kwargs)
-
         if packed:
             raise ValueError(
                 "Packed is currently not supported for preference datasets."
             )
+
+        self._tokenizer = tokenizer
+        self._message_transform = message_transform
+        self._data = load_dataset(source, **load_dataset_kwargs)
 
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
