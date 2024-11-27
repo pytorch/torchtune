@@ -216,6 +216,8 @@ def the_cauldron_dataset(
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
     """
+    if packed:
+        raise ValueError("Multimodal datasets don't support packing yet.")
 
     message_transform = TheCauldronToMessages(
         column_map=column_map,
@@ -231,6 +233,5 @@ def the_cauldron_dataset(
         split=split,
         **load_dataset_kwargs,
     )
-    if packed:
-        raise ValueError("Multimodal datasets don't support packing yet.")
+
     return ds

@@ -18,6 +18,7 @@ def multimodal_chat_dataset(
     source: str,
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
+    packed: bool = False,
     image_tag: Optional[str] = None,
     image_dir: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
@@ -79,6 +80,7 @@ def multimodal_chat_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by dictionaries
             indicating to the tokenizer where to place image tokens. If images are present and this is None,
             then will prepend image tokens to the first user message in the sample by default. If text-only, leave
@@ -169,7 +171,14 @@ def multimodal_chat_dataset(
 
     Returns:
         SFTDataset: the configured :class:`~torchtune.datasets.SFTDataset`
+
+    Raises:
+        ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.
+
     """
+    if packed:
+        raise ValueError("Multimodal datasets don't support packing yet.")
+
     message_transform = ShareGPTToMessages(
         train_on_input=False,
         column_map=column_map,
