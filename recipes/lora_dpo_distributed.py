@@ -764,11 +764,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     loss = loss.mean()
                     reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
-                    loss = loss
                     running_val_loss += loss
                     pbar_val.update(1)
                     pbar_val.set_description(
-                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {loss / (idx + 1)}"
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
                     )
                     idx += 1
 

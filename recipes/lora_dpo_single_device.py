@@ -610,7 +610,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     running_val_loss += loss
                     pbar_val.update(1)
                     pbar_val.set_description(
-                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {loss / (idx + 1)}"
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
                     )
                     idx += 1
 

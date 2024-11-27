@@ -881,9 +881,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                     # Calculate the number of unmasked tokens in the current batch
                     # and increment the total number of tokens seen in the step
-                    current_num_tokens = (
-                        batch["labels"] != self._loss_fn.ignore_index
-                    ).sum()
+                    # current_num_tokens = (
+                    #     batch["labels"] != self._loss_fn.ignore_index
+                    # ).sum()
 
                     # Shape [b, s], needed for the loss not the model
                     labels = batch.pop("labels")
@@ -904,7 +904,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Compute loss
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
-                    current_loss = self._loss_fn(logits, labels)
+                    # NOTE: we don't need to multiply by the number of tokens because we are not accumulating gradients
+                    current_loss = self._loss_fn(logits, labels)  # * current_num_tokens
 
                     # free logits otherwise it peaks backward memory
                     del logits
@@ -912,7 +913,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     running_val_loss += current_loss
                     pbar_val.update(1)
                     pbar_val.set_description(
-                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {current_loss / (idx + 1)}"
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
                     )
                     idx += 1  # NOTE: added by us
 

@@ -791,13 +791,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # Calculate the number of unmasked tokens in the current batch
                     # and increment the total number of tokens seen in the step
-                    current_num_tokens = (
-                        batch["labels"] != self._loss_fn.ignore_index
-                    ).sum()
+                    # current_num_tokens = (
+                    #     batch["labels"] != self._loss_fn.ignore_index
+                    # ).sum()
 
                     # TODO: finish this feature
                     # try:
-                    current_loss = self._loss_step(batch)
+                    # NOTE: we don't need to multiply by the number of tokens because we are not accumulating gradients
+                    current_loss = self._loss_step(batch)  # * current_num_tokens
                     # except RuntimeError as e:
                     #     log.error(f"Error in validation loss computation: {e}")
                     #     val_loss = torch.tensor(0.0, device=self._device)
