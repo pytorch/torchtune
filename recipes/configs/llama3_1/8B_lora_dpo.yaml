@@ -18,7 +18,7 @@
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3_1.llama3_1_8b
+  _component_: torchtune.models.llama3_1.lora_llama3_1_8b
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
