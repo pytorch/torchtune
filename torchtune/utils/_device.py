@@ -190,7 +190,8 @@ class DeviceSupport(Enum):
     The following enumeration defines various device configurations with attributes:
     1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu", "xpu").
     2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU", "XPU").
-    3. `communication_backend` (str): Specifies the backend used for communication on this device (e.g., "gloo", "nccl", "hccl", "ccl").
+    3. `communication_backend` (str): Specifies the backend used for communication on this device 
+        (e.g., "gloo", "nccl", "hccl", "ccl").
     """
 
     CPU = ("cpu", "CPU", "gloo")
