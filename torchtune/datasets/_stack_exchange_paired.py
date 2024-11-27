@@ -78,6 +78,7 @@ def stack_exchange_paired_dataset(
     source: str = "lvwerra/stack-exchange-paired",
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
+    packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
@@ -101,6 +102,8 @@ def stack_exchange_paired_dataset(
             Keys should be "prompt", "chosen", and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False and this
+            is currently not supported for this dataset. A ValueError will be raised if this is set to True.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
@@ -108,9 +111,15 @@ def stack_exchange_paired_dataset(
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
+    Raises:
+        ValueError: If ``packed`` is True, they are not supported for preference datasets yet.
+
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.
     """
+
+    if packed:
+        raise ValueError("StackExchangePairedDataset does not support packing.")
 
     column_map = column_map or {
         "prompt": "question",
