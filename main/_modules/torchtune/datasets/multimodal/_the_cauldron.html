@@ -645,6 +645,8 @@
 <span class="sd">        &gt;&gt;&gt;     print(f&quot;Batch size: {len(batch)}&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; Batch size: 8</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Multimodal datasets don&#39;t support packing yet.&quot;</span><span class="p">)</span>
 
     <span class="n">message_transform</span> <span class="o">=</span> <span class="n">TheCauldronToMessages</span><span class="p">(</span>
         <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
@@ -660,8 +662,7 @@
         <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="n">packed</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Multimodal datasets don&#39;t support packing yet.&quot;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">ds</span></div>
 </pre></div>
 
