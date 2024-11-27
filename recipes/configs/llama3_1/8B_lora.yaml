@@ -6,12 +6,12 @@
 #   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth"
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora
+#   tune run --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora_dpo
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora_dpo checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # For single device LoRA finetuning please use 8B_lora_single_device.yaml

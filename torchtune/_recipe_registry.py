@@ -304,7 +304,7 @@ _ALL_RECIPES = [
             ),
             Config(
                 name="llama3_1/8B_lora_single_device",
-                file_path="llama3_1/8B_lora_single_device.yaml",
+                file_path="llama3_1/8B_lora_dpo_single_device.yaml",
             ),
         ],
         supports_distributed=False,
