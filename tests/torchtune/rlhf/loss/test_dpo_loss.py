@@ -6,7 +6,7 @@
 
 import pytest
 import torch
-from torchtune.rlhf.loss import DPOLoss, RSOLoss, SimPOLoss
+from torchtune.rlhf.loss import DPOLoss, DPOPLoss, RPOLoss, RSOLoss, SimPOLoss
 
 
 @pytest.fixture(autouse=True)
@@ -34,6 +34,22 @@ class TestDPOLosses:
             beta=2.0,
             gamma=0.5,
             label_smoothing=0.0,
+        )
+
+    @pytest.fixture
+    def rpo_loss(self):
+        return RPOLoss(
+            beta=0.1,
+            label_smoothing=0.0,
+            rpo_alpha=1.0,
+        )
+
+    @pytest.fixture
+    def dpop_loss(self):
+        return DPOPLoss(
+            beta=0.1,
+            label_smoothing=0.0,
+            lambda_dpop=0.1,
         )
 
     @pytest.fixture
@@ -78,6 +94,61 @@ class TestDPOLosses:
         exp_scaled_logits = torch.exp(torch.tensor([0.0, -1.0, -2.0]))
         expected_losses = -(1 / (1 + exp_scaled_logits)).log()
         losses, *_ = dpo_loss(*loss_inputs)
+
+        torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
+
+    def test_dpop_loss(self, dpop_loss, loss_inputs):
+        """
+        here's the maths (see `loss_inputs`):
+        ratios = torch.tensor([-0.4, 20.0, 20.0])
+        ref_ratios = torch.tensor([-0.4, 10, 0.0])
+
+            logits is ratios - ref_ratios
+
+        logits = torch.tensor([0.0, 10.0, 20.0])
+
+        positive_reg = torch.tensor([0.0, -0.1,  0.9])
+        scaled_logits = torch.tensor([0.0, 1.0, 2.0])
+
+        logsigmoid is log(1/1+exp(-scaled_logits))
+        exp(-scaled_logits) is [1, 1/e, 1/e^2]
+        logsigmoid is -log([1 / 2, 1 / (1 + 1/e), 1 / (1 + 1/e^2)])
+
+        positive_reg = reference_chosen_logps - policy_chosen_logps
+
+        losses = torch.tensor([0.6931, 0.3133, 0.2169])
+        """
+        expected_losses = torch.tensor([0.6931, 0.3133, 0.2169])
+        losses, *_ = dpop_loss(*loss_inputs)
+        torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
+
+    def test_rpo_loss(self, rpo_loss, loss_inputs):
+        """
+        here's the maths (see `loss_inputs`):
+        ratios = torch.tensor([-0.4, 20.0, 20.0])
+        ref_ratios = torch.tensor([-0.4, 10, 0.0])
+
+            logits is ratios - ref_ratios
+
+        logits = torch.tensor([0.0, 10.0, 20.0])
+        scaled_logits = torch.tensor([0.0, 1.0, 2.0])
+
+        since label_smoothing is zero, loss is NLL with temperature scaled logits
+            logsigmoid is log(1/1+exp(-scaled_logits))
+            exp(-scaled_logits) is [1, 1/e, 1/e^2]
+            logsigmoid is -log([1 / 2, 1 / (1 + 1/e), 1 / (1 + 1/e^2)])
+
+        expected_losses = -torch.tensor(
+            [1 / 2, 1 / (1 + torch.exp(torch.tensor(-1.0)) + rpo_alpha * nll_loss), 1 / (1 + torch.exp(torch.tensor(-2.0)))]
+        ).log()
+        expected_losses = -expected_logsigmoids
+        """
+        # Assume that we get this nll_loss, notice that it is unique, so it is not in fixture.
+        nll_loss = torch.tensor([-0.5, 1.0, -0.2])
+        exp_scaled_logits = torch.exp(torch.tensor([0.0, -1.0, -2.0]))
+        expected_losses = -(1 / (1 + exp_scaled_logits)).log()  # rpo_alpha * nll_loss
+        expected_losses = expected_losses + 1.0 * nll_loss
+        losses, *_ = rpo_loss(*loss_inputs, nll_loss=nll_loss)
 
         torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
 

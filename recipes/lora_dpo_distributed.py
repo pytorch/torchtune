@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import torch
+import torch.nn.functional as F
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -33,7 +34,7 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.rlhf.loss import SimPOLoss
+from torchtune.rlhf.loss import RPOLoss, SimPOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -564,7 +565,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor] | Tuple[
+        torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
+    ]:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
@@ -596,6 +599,23 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
+
+        chosen_labels = all_logits[:len_chosen]
+
+        if isinstance(self._loss_fn, RPOLoss):
+            nll_loss = F.cross_entropy(
+                torch.flatten(chosen_logits, end_dim=1),
+                torch.flatten(chosen_labels, end_dim=1),
+                ignore_index=0,
+            )
+
+            return (
+                chosen_log_probs,
+                rejected_log_probs,
+                chosen_logits,
+                rejected_logits,
+                nll_loss,
+            )
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
 
@@ -633,14 +653,23 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += batch[0].numel()
-
-                (
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    policy_chosen_logits,
-                    policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                if isinstance(self._loss_fn, RPOLoss):
+                    num_tokens += batch[0].numel()
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                        nll_loss,
+                    ) = self.concatenated_forward(self._model, batch)
+                else:
+                    num_tokens += batch[0].numel()
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                    ) = self.concatenated_forward(self._model, batch)
 
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
