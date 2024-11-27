@@ -20,12 +20,12 @@ from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to
 from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
 from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
 from torchtune.training.checkpointing._utils import (
+    copy_files,
     FormattedCheckpointFiles,
     get_largest_iter_folder,
     get_path,
     ModelType,
     safe_torch_load,
-    save_config,
 )
 from torchtune.utils._logging import get_logger, log_rank_zero
 
@@ -118,7 +118,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for a recipe_state.pt in output_dir/recipe_state.
+            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/recipe_state.
             Default is None.
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
@@ -160,6 +160,15 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         self._resume_from_checkpoint = resume_from_checkpoint
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
+        self._output_dir.mkdir(exist_ok=True)
+
+        # save all files in input_dir, except model weights and mapping, to output_dir
+        # this is useful to preserve the tokenizer, configs, license, etc.
+        copy_files(
+            self._checkpoint_dir,
+            self._output_dir,
+            suffixes=training.SUFFIXES_TO_NOT_COPY,
+        )
 
         # resume from ckpt
         self._recipe_checkpoint = None
@@ -174,7 +183,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 if os.path.exists(tentative_recipe_state_path):
                     recipe_checkpoint = tentative_recipe_state_path
                     logger.info(
-                        f"Found resume_from_checkpoint=True, and empty recipe_checkpoint path. Using {recipe_checkpoint}."
+                        f"Found resume_from_checkpoint=True and recipe_checkpoint=None. Using {recipe_checkpoint}."
                     )
                 else:
                     raise ValueError(
@@ -199,7 +208,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                     if os.path.exists(tentative_adapter_checkpoint):
                         adapter_checkpoint = tentative_adapter_checkpoint
                         logger.info(
-                            f"Found resume_from_checkpoint=True, and empty adapter_checkpoint path. Using {adapter_checkpoint}."
+                            f"Found resume_from_checkpoint=True and adapter_checkpoint=None. Using {adapter_checkpoint}."
                         )
             else:
                 adapter_checkpoint = os.path.join(self._output_dir, adapter_checkpoint)
@@ -281,7 +290,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-        self._output_dir.mkdir(exist_ok=True)
 
         # Output file is always a .pt file with the epoch number in the name
         if not adapter_only:
@@ -363,7 +371,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for a recipe_state.pt in output_dir/recipe_state.
+            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/recipe_state.
             Default is None.
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
@@ -412,6 +420,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
+        self._output_dir.mkdir(exist_ok=True)
+
         self._resume_from_checkpoint = resume_from_checkpoint
         self._safe_serialization = safe_serialization
 
@@ -425,8 +435,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             Path.joinpath(self._checkpoint_dir, "config.json").read_text()
         )
 
-        # save config.json to output_dir
-        save_config(self._output_dir, self._config)
+        # save all files in input_dir, except model weights and mapping, to output_dir
+        # this is useful to preserve the tokenizer, configs, license, etc.
+        copy_files(
+            self._checkpoint_dir,
+            self._output_dir,
+            suffixes=training.SUFFIXES_TO_NOT_COPY,
+        )
 
         # resume from ckpt
         self._recipe_checkpoint = None
@@ -441,7 +456,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 if os.path.exists(tentative_recipe_state_path):
                     recipe_checkpoint = tentative_recipe_state_path
                     logger.info(
-                        f"Found resume_from_checkpoint=True, and empty recipe_checkpoint path. Using {recipe_checkpoint}."
+                        f"Found resume_from_checkpoint=True and recipe_checkpoint=None. Using {recipe_checkpoint}."
                     )
                 else:
                     raise ValueError(
@@ -466,7 +481,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     if os.path.exists(tentative_adapter_checkpoint):
                         adapter_checkpoint = tentative_adapter_checkpoint
                         logger.info(
-                            f"Found resume_from_checkpoint=True, and empty adapter_checkpoint path. Using {adapter_checkpoint}."
+                            f"Found resume_from_checkpoint=True and adapter_checkpoint=None. Using {adapter_checkpoint}."
                         )
             else:
                 adapter_checkpoint = os.path.join(self._output_dir, adapter_checkpoint)
@@ -632,8 +647,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-        self._output_dir.mkdir(exist_ok=True)
-
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
             if self._model_type == ModelType.PHI3_MINI:
@@ -755,7 +768,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     k: map_original_name_to_new_name[cpt_idx] + ".bin"
                     for k, cpt_idx in self._weight_map.items()
                 }
-                index_file_name = training.TORCHTUNE_INDEX_FNAME
+                index_file_name = training.TORCH_INDEX_FNAME
 
             index_path = Path.joinpath(
                 self._output_dir,
@@ -893,7 +906,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for a recipe_state.pt in output_dir/recipe_state.
+            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/recipe_state.
             Default is None.
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
@@ -926,6 +939,15 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         self._resume_from_checkpoint = resume_from_checkpoint
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
+        self._output_dir.mkdir(exist_ok=True)
+
+        # save all files in input_dir, except model weights and mapping, to output_dir
+        # this is useful to preserve the tokenizer, configs, license, etc.
+        copy_files(
+            self._checkpoint_dir,
+            self._output_dir,
+            suffixes=training.SUFFIXES_TO_NOT_COPY,
+        )
 
         # resume from ckpt
         self._recipe_checkpoint = None
@@ -940,7 +962,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 if os.path.exists(tentative_recipe_state_path):
                     recipe_checkpoint = tentative_recipe_state_path
                     logger.info(
-                        f"Found resume_from_checkpoint=True, and empty recipe_checkpoint path. Using {recipe_checkpoint}."
+                        f"Found resume_from_checkpoint=True and recipe_checkpoint=None. Using {recipe_checkpoint}."
                     )
                 else:
                     raise ValueError(
@@ -965,7 +987,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                     if os.path.exists(tentative_adapter_checkpoint):
                         adapter_checkpoint = tentative_adapter_checkpoint
                         logger.info(
-                            f"Found resume_from_checkpoint=True, and empty adapter_checkpoint path. Using {adapter_checkpoint}."
+                            f"Found resume_from_checkpoint=True and adapter_checkpoint=None. Using {adapter_checkpoint}."
                         )
             else:
                 adapter_checkpoint = os.path.join(self._output_dir, adapter_checkpoint)
@@ -1032,7 +1054,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-        self._output_dir.mkdir(exist_ok=True)
 
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]

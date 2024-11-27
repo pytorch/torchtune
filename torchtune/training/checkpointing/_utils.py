@@ -4,13 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import json
+import os
 
 import re
+import shutil
 import string
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterable, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -29,8 +30,19 @@ ADAPTER_CONFIG_FNAME = "adapter_config"
 ADAPTER_MODEL_FNAME = "adapter_model"
 SHARD_FNAME = "model-{int(cpt_idx):05d}-of-{int(num_shards):05d}"
 SAFETENSOR_INDEX_FNAME = "model.safetensors.index"
-TORCHTUNE_INDEX_FNAME = "pytorch_model.bin.index"
+TORCH_INDEX_FNAME = "pytorch_model.bin.index"
+
+# Needed when setting up output dir in checkpointing
 REPO_ID_FNAME = "original_repo_id"
+SUFFIXES_TO_NOT_COPY = [
+    ".pt",
+    ".bin",
+    ".safetensors",
+    SAFETENSOR_INDEX_FNAME,
+    TORCH_INDEX_FNAME,
+    ADAPTER_CONFIG_FNAME,
+    ADAPTER_MODEL_FNAME,
+]
 
 # key used for adapter weights such as LoRA weights
 ADAPTER_KEY = "adapter"
@@ -230,22 +242,6 @@ def safe_torch_load(
     return state_dict
 
 
-def save_config(path: Path, config: Dict[str, Any]) -> None:
-    """
-    Save a configuration dictionary to a file.
-
-    Args:
-        path (Path): Path to save the configuration file.
-        config (Dict[str, Any]): Configuration dictionary to save.
-    """
-    if not path.is_dir():
-        path.mkdir(exist_ok=True)
-    file_path = Path.joinpath(path, "config.json")
-    if not file_path.exists():
-        with open(file_path, "w") as f:
-            json.dump(config, f)
-
-
 def update_state_dict_for_classifier(
     state_dict: Dict[str, torch.Tensor],
     model_named_parameters: Iterable[Tuple[str, torch.nn.Parameter]],
@@ -315,3 +311,49 @@ def get_largest_iter_folder(dir: Union[str, Path], pattern: str = r"^epoch_(\d+)
         latest_epoch_folder = max(iter_folders, key=lambda x: x[1])[0]
 
     return latest_epoch_folder
+
+
+def copy_files(
+    input_dir: Union[str, Path],
+    output_dir: Union[str, Path],
+    suffixes: Optional[List[str]] = None,
+):
+    """
+    Copies files from the input directory to the output directory, preserving the directory structure.
+
+    This function will skip copying files that already exist in the output directory or have specific suffixes.
+    Args:
+        input_dir (Union[str, Path]): The path to the input directory containing files to be copied.
+        output_dir (Union[str, Path]): The path to the output directory where files should be copied.
+        suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.
+          Defaults to ['.pt', '.bin', '.safetensors'] if not provided.
+    Returns:
+        None
+    Example:
+    >>> copy_files('path/to/input_dir', 'path/to/output_dir')
+
+    This will copy all files from 'path/to/input_dir' to 'path/to/output_dir', except those that
+    already exist in the destination or have the specified suffixes.
+    """
+
+    for root, dirs, files in os.walk(input_dir):
+        # Construct the corresponding directory in the output
+        relative_path = os.path.relpath(root, input_dir)
+        dest_dir = os.path.join(output_dir, relative_path)
+
+        # Create the directory in the output if it doesn't exist
+        os.makedirs(dest_dir, exist_ok=True)
+
+        for file in files:
+            # Check if the file has one of the specified suffixes
+            if suffixes and any(file.endswith(suffix) for suffix in suffixes):
+                continue
+
+            src_file = os.path.join(root, file)
+            dest_file = os.path.join(dest_dir, file)
+
+            # Copy the file if it doesn't already exist in the destination
+            if not os.path.exists(dest_file):
+                shutil.copy2(src_file, dest_file)
+
+    return
