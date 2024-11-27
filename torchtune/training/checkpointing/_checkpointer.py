@@ -103,9 +103,11 @@ class _CheckpointerInterface(Protocol):
 
     """
 
-    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: ...
+    def load_checkpoint(self, **kwargs) -> Dict[str, Any]:
+        ...
 
-    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: ...
+    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None:
+        ...
 
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
@@ -423,6 +425,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: If the values in the input state_dict are not Tensors
         """
+
         self._weight_map = {}
 
         # merged state_dict contains keys and weights from all the checkpoint files
@@ -670,14 +673,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
-                state_dict[training.ADAPTER_KEY] = (
-                    convert_weights.tune_to_peft_adapter_weights(
-                        state_dict[training.ADAPTER_KEY],
-                        num_heads=self._config["num_attention_heads"],
-                        num_kv_heads=self._config["num_key_value_heads"],
-                        dim=self._config["hidden_size"],
-                        head_dim=self._config.get("head_dim", None),
-                    )
+                state_dict[
+                    training.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
+                    state_dict[training.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
                 peft_output_path = Path.joinpath(
                     self._output_dir, "adapter_model"
@@ -703,10 +706,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
             else:
-                state_dict[training.ADAPTER_CONFIG] = (
-                    convert_weights.tune_to_peft_adapter_config(
-                        state_dict[training.ADAPTER_CONFIG]
-                    )
+                state_dict[
+                    training.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    state_dict[training.ADAPTER_CONFIG]
                 )
                 output_path = Path.joinpath(self._output_dir, "adapter_config.json")
                 with open(output_path, "w") as f:
@@ -956,8 +959,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         checkpoint_dir (str): Directory containing the checkpoint files
         output_dir (str): Directory to save the checkpoint files
         process_group (Optional[dist.ProcessGroup]): Optional process group to use
-            for distributed saving/loading.
-            If None, the default process group will be used.
+            for distributed saving/loading. If None, the default process group will be used.
             For checkpointing, gloo CPU-based backend is needed.
     """
 
@@ -977,8 +979,8 @@ class DistributedCheckpointer(_CheckpointerInterface):
 
     def _get_latest_intermediate_checkpoint(self) -> Optional[str]:
         """
-        This method iterates over the available intermediate checkpoints and finds the latest checkpoint
-        to load.
+        This method iterates over the available intermediate distributed checkpoints and
+        finds the latest checkpoint to load.
 
         Returns:
             str: The fully qualified path of the checkpoint directory containing the latest and valid
@@ -1001,15 +1003,12 @@ class DistributedCheckpointer(_CheckpointerInterface):
         return None
 
     def load_checkpoint(
-        self, state_dict: Dict[str, Any] = None, checkpoint_path: Optional[str] = None
+        self, state_dict: Dict[str, Any], checkpoint_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Load a Distributed checkpoint saved at the <checkpoint_path>
         If no path is provided, latest intermediate checkpoint is loaded.
         """
-
-        if state_dict is None:
-            raise ValueError("State dict must be provided to load the checkpoint into.")
 
         # If no checkpoint path is provided, load the latest intermediate checkpoint.
         if checkpoint_path is None:
@@ -1039,8 +1038,8 @@ class DistributedCheckpointer(_CheckpointerInterface):
         save_async: bool = False,
     ) -> None:
         """
-        Save a distributed checkpoint to disk.
-        If ``save_async`` is True, the save happens asynchronously unblocking the GPUs faster. This
+        Save a distributed checkpoint to storage.
+        If ``save_async`` is True, the save happens asynchronously unblocking the GPUs sooner. This
         should only be used for the intermediate checkpoints. Final checkpoint has to be a synchronous
         one as the finetuning job can not terminate until the checkpoint gets persisted.
 
