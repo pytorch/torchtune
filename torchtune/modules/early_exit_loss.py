@@ -154,7 +154,8 @@ class EarlyExitCurriculum:
             should be output to calculate their losses.
         max_steps (int): The maximum number of steps in the curriculum.
         train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
-        last_step (Optional[int]): The last step the curriculum stopped at in a previous run. This is used when resuming training.
+        last_step (Optional[int]): The last step the curriculum stopped at in a previous run.
+            This is used when resuming training.
         verbose (bool, optional): Whether to print verbose logs. Defaults to False.
     """
 
@@ -196,10 +197,31 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
     """
     A rotational early exit curriculum, which rotates the layer enablement one step forward
     at each step.
+    Args:
+        do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
+            should be output to calculate their losses.
+        max_steps (int): The maximum number of steps in the curriculum.
+        train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
+        last_step (Optional[int]): The last step the curriculum stopped at in a previous run.
+            This is used when resuming training.
+        verbose (bool, optional): Whether to print verbose logs. Defaults to False.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        do_output_hidden_states: List[bool],
+        max_steps: int,
+        train_last_layer: bool = True,
+        last_step: Optional[int] = None,
+        verbose: bool = False,
+    ):
+        super().__init__(
+            do_output_hidden_states=do_output_hidden_states,
+            max_steps=max_steps,
+            train_last_layer=train_last_layer,
+            last_step=last_step,
+            verbose=verbose,
+        )
         self._initial_do_output_hidden_states = np.copy(self._do_output_hidden_states)
 
     def step(self):
@@ -221,19 +243,33 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
     """
     A gradual early exit curriculum, which gradually enables more layers (starting from the last layer) as training progresses.
     Args:
-        *args: Positional arguments passed to the parent EarlyExitCurriculum class.
+        do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
+            should be output to calculate their losses.
+        max_steps (int): The maximum number of steps in the curriculum.
+        train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
+        last_step (Optional[int]): The last step the curriculum stopped at in a previous run.
+            This is used when resuming training.
         percent_scale (float, optional): A scaling factor to determine at which percentage
             of steps, all the layers will be enabled. At `steps = max_steps / percent_scale`, all the layers will be enabled.
-        **kwargs: Keyword arguments passed to the parent EarlyExitCurriculum class.
+        verbose (bool, optional): Whether to print verbose logs. Defaults to False.
     """
 
     def __init__(
         self,
-        *args,
+        do_output_hidden_states: List[bool],
+        max_steps: int,
+        train_last_layer: bool = True,
+        last_step: Optional[int] = None,
         percent_scale: float = 2,
-        **kwargs,
+        verbose: bool = False,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            do_output_hidden_states=do_output_hidden_states,
+            max_steps=max_steps,
+            train_last_layer=train_last_layer,
+            last_step=last_step,
+            verbose=verbose,
+        )
         self._final_do_output_hidden_states = np.copy(self._do_output_hidden_states)
         self._step = 0
         self._percent_scale = percent_scale
