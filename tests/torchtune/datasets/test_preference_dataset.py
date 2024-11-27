@@ -156,7 +156,6 @@ class TestPreferenceDataset:
         assert expected_chosen_labels[0] == ds[0]["chosen_labels"]
         assert expected_rejected_labels[0] == ds[0]["rejected_labels"]
 
-    @mock.patch("torchtune.datasets._preference.load_dataset")
     def test_dataset_fails_with_packed(self):
         with pytest.raises(
             ValueError,

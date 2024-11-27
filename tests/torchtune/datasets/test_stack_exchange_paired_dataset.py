@@ -107,7 +107,6 @@ class TestStackExchangePairedDataset:
         ):
             stack_exchange_paired_dataset(
                 tokenizer=DummyTokenizer(),
-                train_on_input=True,
                 packed=True,
             )
 
