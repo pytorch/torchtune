@@ -102,7 +102,8 @@ class TestStackExchangePairedDataset:
 
     def test_dataset_fails_with_packed(self):
         with pytest.raises(
-            ValueError, match="StackExchangePairedDataset does not support packing"
+            ValueError,
+            match="Packed is currently not supported for preference datasets",
         ):
             stack_exchange_paired_dataset(
                 tokenizer=DummyTokenizer(),
