@@ -40,8 +40,7 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
-# TODO: add explanation of EE and LD and cite papers
-# TODO: add to .yaml file full test commands and different examples, citing commands to implement different papers.
+
 class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Early exit and layer dropout full finetuning to make the model more robust to early exit and skipping
