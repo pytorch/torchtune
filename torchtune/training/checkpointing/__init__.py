@@ -17,6 +17,7 @@ from torchtune.training.checkpointing._utils import (
     ADAPTER_MODEL_FNAME,
     EPOCHS_KEY,
     FormattedCheckpointFiles,
+    get_largest_iter_folder,
     MAX_STEPS_KEY,
     MODEL_KEY,
     ModelType,
@@ -39,6 +40,7 @@ Checkpointer = Union[
 ]
 
 __all__ = [
+    "get_largest_iter_folder",
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",

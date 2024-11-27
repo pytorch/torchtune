@@ -5,10 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
+
+import re
 import string
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Iterable, Tuple, Union
 from warnings import warn
 
 import torch
@@ -28,7 +30,7 @@ ADAPTER_MODEL_FNAME = "adapter_model"
 SHARD_FNAME = "model-{int(cpt_idx):05d}-of-{int(num_shards):05d}"
 SAFETENSOR_INDEX_FNAME = "model.safetensors.index"
 TORCHTUNE_INDEX_FNAME = "pytorch_model.bin.index"
-REPO_ID_FNAME = "repo_id"
+REPO_ID_FNAME = "original_repo_id"
 
 # key used for adapter weights such as LoRA weights
 ADAPTER_KEY = "adapter"
@@ -292,3 +294,24 @@ def update_state_dict_for_classifier(
         state_dict.pop("output.bias")
     if state_dict["output.weight"].shape[0] != output_weight.shape[0] or force_override:
         state_dict["output.weight"] = output_weight
+
+
+# TODO: add test
+def get_largest_iter_folder(dir: Union[str, Path], pattern: str = r"^epoch_(\d+)"):
+    latest_epoch_folder = None
+    iter_folders = []
+    regex = re.compile(pattern)
+
+    # Iterate over the directory contents
+    for fname in os.listdir(dir):
+        match = regex.match(fname)
+        if match:
+            # Extract the number from the match
+            iter_number = int(match.group(1))
+            iter_folders.append((fname, iter_number))
+
+    # Find the folder with the largest iter number
+    if iter_folders:
+        latest_epoch_folder = max(iter_folders, key=lambda x: x[1])[0]
+
+    return latest_epoch_folder
