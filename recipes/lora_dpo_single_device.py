@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, List
 from warnings import warn
 
 import torch
@@ -30,7 +30,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
-from torchtune.rlhf.loss import SimPOLoss
+from torchtune.rlhf.loss import SimPOLoss, KTOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -57,6 +57,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         - :class:`~torchtune.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
         - :class:`~torchtune.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
+        - :class:`~torchtune.rlhf.loss.KTOLoss`: Kahneman-Tversky Optimization (KTO).
+
 
     Assumptions:
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
@@ -331,11 +333,22 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
+    def _unpair_row(self, examples: List[Dict[str, List[Dict[str, str]]]]) -> List[Dict[str, List[Dict[str, str]]]]:
+        batch_size = len(examples["chosen"])
+        new_rows = {
+            "completion": examples["chosen"] + examples["rejected"],
+            "label": [True] * batch_size + [False] * batch_size,
+        }
+        if "prompt" in examples:
+            new_rows["prompt"] = examples["prompt"] + examples["prompt"]
+        return new_rows
+
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        num_proc: Optional[int] = None
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -350,6 +363,14 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             ds = ConcatDataset(datasets=datasets)
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
+        # We need extra processing for KTO.
+        if isinstance(self._loss_fn, KTOLoss):
+            column_names = ds.column_names
+            # We are assuming that we get dataset in correct formatting or pairs dataset like for any contrastive procedure.
+            # See reference implementation in: https://github.com/huggingface/trl/blob/main/trl/data_utils.py
+            if "chosen" in column_names and "rejected" in column_names:
+                ds = ds.map(self._unpair_row, batched=True, remove_columns=["chosen", "rejected"], num_proc=num_proc)
 
         sampler = DistributedSampler(
             ds,
@@ -425,7 +446,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor] | Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
@@ -436,9 +457,21 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         Returns:
             Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
         """
+
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
         concatenated_labels = concatenated_labels.to(self._device)
+
+        if isinstance(self._loss_fn, KTOLoss):
+            with torch.no_grad():
+                KL_logits = model(
+                    concatenated_input_ids,
+                ).logits
+
+            KL_logps = rlhf.get_batch_log_probs(
+                KL_logits,
+                concatenated_labels, # FIXME: Must be KL labels!
+            )
 
         # formed by concatenating an equal number of "chosen" and "rejected".
         len_chosen = concatenated_input_ids.shape[0] // 2
@@ -458,7 +491,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
 
-        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+        if not isinstance(self._loss_fn, KTOLoss):
+            return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+        else:
+            return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits, KL_logps)
 
     def train(self) -> None:
         """
@@ -489,13 +525,23 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += batch[0].numel()
-                (
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    policy_chosen_logits,
-                    policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                if not isinstance(self._loss_fn, KTOLoss):
+                    num_tokens += batch[0].numel()
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                    ) = self.concatenated_forward(self._model, batch)
+                else:
+                    num_tokens += batch[0].numel()
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                        policy_KL_logps,
+                    ) = self.concatenated_forward(self._model, batch)
 
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
@@ -506,6 +552,24 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 if isinstance(self._loss_fn, SimPOLoss):
                     loss, chosen_rewards, rejected_rewards = self._loss_fn(
                         policy_chosen_log_probs, policy_rejected_log_probs
+                    )
+                elif isinstance(self._loss_fn, KTOLoss):
+                    # In case of KTOLoss we require reference_KL_logps
+                    with torch.no_grad(), disable_adapter(self._model):
+                        (
+                            reference_chosen_log_probs,
+                            reference_rejected_log_probs,
+                            _,
+                            _,
+                            reference_KL_logps,
+                        ) = self.concatenated_forward(self._model, batch)
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_KL_logps,
+                        reference_chosen_log_probs,
+                        reference_rejected_log_probs,
+                        reference_KL_logps
                     )
                 else:
                     # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
@@ -569,6 +633,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             "logits/rejected": policy_rejected_logits_mean.cpu(),
                             "logits/chosen": policy_chosen_logits_mean.cpu(),
                         }
+
                         if self._log_peak_memory_stats:
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
