@@ -89,6 +89,8 @@ def _get_device_type_from_env() -> str:
         device = "cuda"
     elif is_npu_available:
         device = "npu"
+    elif torch.xpu.is_available():
+        device = "xpu"
     else:
         device = "cpu"
     return device
@@ -136,7 +138,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     If CUDA-like is available and being used, this function also sets the CUDA-like device.
 
     Args:
-        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu" or "npu".
+        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu" or "npu" or "xpu".
 
     Example:
         >>> device = get_device("cuda")
@@ -149,7 +151,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     if device is None:
         device = _get_device_type_from_env()
     device = torch.device(device)
-    if device.type in ["cuda", "npu"]:
+    if device.type in ["cuda", "npu", "xpu"]:
         device = _setup_device(device)
     _validate_device_from_env(device)
     return device
@@ -186,14 +188,15 @@ class DeviceSupport(Enum):
     This is a simple enum for compute devices,
     This currently only supports CPU, CUDA, NPU.
     The following enumeration defines various device configurations with attributes:
-    1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu").
-    2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU").
-    3. `communication_backend` (str): Specifies the backend used for communication on this device (e.g., "gloo", "nccl", "hccl").
+    1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu", "xpu").
+    2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU", "XPU").
+    3. `communication_backend` (str): Specifies the backend used for communication on this device (e.g., "gloo", "nccl", "hccl", "ccl").
     """
 
     CPU = ("cpu", "CPU", "gloo")
     CUDA = ("cuda", "GPU", "nccl")
     NPU = ("npu", "NPU", "hccl")
+    XPU = ("xpu", "XPU", "ccl")
 
     def __init__(
         self,
@@ -216,7 +219,7 @@ class DeviceSupport(Enum):
 def get_device_support() -> DeviceSupport:
     """function that gets the DeviceSupport with compute devices based on the current machine.
 
-    This currently only supports CPU, CUDA, NPU.
+    This currently only supports CPU, CUDA, NPU, XPU.
 
     Returns:
         device_support: DeviceSupport
