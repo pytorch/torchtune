@@ -716,6 +716,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     do_output_hidden_states=do_output_hidden_states,
                     max_steps=self.total_epochs * self._steps_per_epoch,
                     train_last_layer=train_last_layer,
+                    last_step=self.global_step,
                     verbose=verbose,
                 )
                 do_output_hidden_states = early_exit_loss_curriculum.get()

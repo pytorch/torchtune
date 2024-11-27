@@ -154,6 +154,7 @@ class EarlyExitCurriculum:
             should be output to calculate their losses.
         max_steps (int): The maximum number of steps in the curriculum.
         train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
+        last_step (Optional[int]): The last step the curriculum stopped at in a previous run. This is used when resuming training.
         verbose (bool, optional): Whether to print verbose logs. Defaults to False.
     """
 
@@ -162,6 +163,7 @@ class EarlyExitCurriculum:
         do_output_hidden_states: List[bool],
         max_steps: int,
         train_last_layer: bool = True,
+        last_step: Optional[int] = None,
         verbose: bool = False,
     ):
         self._init_do_output_hidden_states = do_output_hidden_states
@@ -169,6 +171,7 @@ class EarlyExitCurriculum:
         self.train_last_layer = train_last_layer
         self.verbose = verbose
         self.max_steps = max_steps
+        self._step = 0 if last_step is None else last_step
 
     def step(self) -> None:
         """
@@ -207,6 +210,7 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
         # Rotate layer enablement one step forward
         self._do_output_hidden_states = np.roll(self._do_output_hidden_states, 1)
 
+        self._step += 1
         if self.verbose:
             log.info(
                 f"Updated self._do_output_hidden_states to {self._do_output_hidden_states}."
