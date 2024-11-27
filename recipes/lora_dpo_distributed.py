@@ -624,7 +624,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # formed by concatenating an equal number of "chosen" and "rejected".
         len_chosen = concatenated_input_ids.shape[0] // 2
 
-        all_logits = model(concatenated_input_ids)
+        with self.activations_handling_ctx:
+            all_logits = model(concatenated_input_ids)
 
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
