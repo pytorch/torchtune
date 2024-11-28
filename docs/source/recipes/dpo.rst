@@ -13,7 +13,7 @@ To see the best results when using this recipe, it may be helpful to first fine-
 on-distribution for the domain you're interested in. To do this, check out our other fine-tuning recipes in the :ref:`recipe overview <recipes_overview_label>` which
 support a variety of SFT paradigms.
 
-We provide configs which you can get up and running quickly. Here is an example with Llama 3.1 8B:
+After supervised fine-tuning, here is an example of DPO with Llama 3.1 8B:
 
 .. note::
 
@@ -24,7 +24,6 @@ We provide configs which you can get up and running quickly. Here is an example 
 .. code-block:: bash
 
     tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
-    --output-dir /tmp/Meta-Llama-3.1-8B-Instruct \
     --ignore-patterns "original/consolidated.00.pth"
     --HF_TOKEN <HF_TOKEN>
 
@@ -32,7 +31,7 @@ We provide configs which you can get up and running quickly. Here is an example 
     tune run lora_dpo_single_device --config llama3_1/8B_lora_dpo_single_device
 
     # run on two gpus
-    tune run --nnodes 1 --nproc_per_node 2 lora_dpo_distributed --config llama3_1/8B_lora_dpo
+    tune run --nproc_per_node 2 lora_dpo_distributed --config llama3_1/8B_lora_dpo
 
 It's easy to get started with this recipe with your dataset of choice, including custom local datasets,
 and datasets from Hugging Face. Check out our primer on :ref:`preference datasets <preference_dataset_usage_label>` to
