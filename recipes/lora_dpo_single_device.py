@@ -44,9 +44,11 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
     This recipe supports:
         - Activation checkpointing. This is enabled by default but is configurable.
+        - Activation offloading - this is enabled by default and should only be used alongside
+            activation checkpointing.
         - Full bf16 training for supported HW architectures. We currently check bf16 support via
-        the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
-        setting `dtype=bf16` in configuration.
+            the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
+            setting `dtype=bf16` in configuration.
         - Checkpointing: of LoRA adapter parameters and their optimizer states. When resuming
             from a checkpoint, the adapter parameters are loaded from the checkpoint along
             with the base model weights. Note that intra-epoch resumption is not supported.
@@ -74,6 +76,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
 
     """
 
@@ -100,6 +104,29 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
+
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif self._enable_activation_checkpointing:
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -190,6 +217,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -251,6 +279,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
@@ -287,6 +316,11 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
             lora_unexpected=lora_unexpected,
+        )
+
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
@@ -443,7 +477,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         # formed by concatenating an equal number of "chosen" and "rejected".
         len_chosen = concatenated_input_ids.shape[0] // 2
 
-        all_logits = model(concatenated_input_ids)
+        with self.activations_handling_ctx:
+            all_logits = model(concatenated_input_ids)
 
         all_log_probs = rlhf.get_batch_log_probs(
             all_logits,
