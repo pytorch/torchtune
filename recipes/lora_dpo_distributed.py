@@ -774,7 +774,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 mean_val_loss = running_val_loss / (idx + 1)
                 if self._is_rank_zero:
                     self._metric_logger.log_dict(
-                        {"val_loss": mean_val_loss},
+                        {
+                            "val_loss": mean_val_loss,
+                            "val_reward_accuracies": reward_accuracies.mean().cpu(),
+                        },
                         step=self.global_step,
                     )
                 pbar_val.close()
