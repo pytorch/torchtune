@@ -8,7 +8,7 @@ This recipe supports finetuning on next-token prediction tasks using parameter e
 such as :ref:`glossary_lora` and :ref:`glossary_qlora`. These techniques
 significantly reduce memory consumption during training whilst still maintaining competitive performance.
 
-We provide configs which you can get up and running quickly. Here is an example with llama 3.1 8B:
+We provide configs which you can get up and running quickly. Here is an example with Llama 3.1 8B:
 
 .. note::
 
