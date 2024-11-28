@@ -30,7 +30,6 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
-from torchtune.rlhf.loss import SimPOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -56,7 +55,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     The following losses are supported in this recipe:
         - :class:`~torchtune.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     Assumptions:
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
@@ -445,12 +443,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         all_logits = model(concatenated_input_ids)
 
-        all_log_probs = rlhf.get_batch_log_probs(
-            all_logits,
-            concatenated_labels,
-            # see :class:`~torchtune.rlhf.loss.dpo.SimPOLoss`
-            return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
-        )
+        all_log_probs = rlhf.get_batch_log_probs(all_logits, concatenated_labels)
 
         chosen_log_probs = all_log_probs[:len_chosen]
         rejected_log_probs = all_log_probs[len_chosen:]
@@ -503,26 +496,19 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
                 del policy_chosen_logits, policy_rejected_logits
 
-                if isinstance(self._loss_fn, SimPOLoss):
-                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                        policy_chosen_log_probs, policy_rejected_log_probs
-                    )
-                else:
-                    # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
-                    # the reference model's output - reference-free losses (such as SimPO) don't require this.
-                    with torch.no_grad(), disable_adapter(self._model):
-                        (
-                            reference_chosen_log_probs,
-                            reference_rejected_log_probs,
-                            _,
-                            _,
-                        ) = self.concatenated_forward(self._model, batch)
-                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                        policy_chosen_log_probs,
-                        policy_rejected_log_probs,
+                with torch.no_grad(), disable_adapter(self._model):
+                    (
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                    )
+                        _,
+                        _,
+                    ) = self.concatenated_forward(self._model, batch)
+                loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                    policy_chosen_log_probs,
+                    policy_rejected_log_probs,
+                    reference_chosen_log_probs,
+                    reference_rejected_log_probs,
+                )
 
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
