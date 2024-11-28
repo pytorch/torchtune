@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>SimPOLoss &mdash; torchtune main documentation</title>
+  <title>torchtune.rlhf.loss.SimPOLoss &mdash; torchtune main documentation</title>
   
 
   
@@ -397,7 +397,7 @@
         
           <li><a href="../api_ref_rlhf.html">torchtune.rlhf</a> &gt;</li>
         
-      <li>SimPOLoss</li>
+      <li>torchtune.rlhf.loss.SimPOLoss</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -433,12 +433,12 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="simpoloss">
-<h1>SimPOLoss<a class="headerlink" href="#simpoloss" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
+  <section id="torchtune-rlhf-loss-simpoloss">
+<h1>torchtune.rlhf.loss.SimPOLoss<a class="headerlink" href="#torchtune-rlhf-loss-simpoloss" title="Permalink to this heading">¶</a></h1>
+<dl class="py data">
 <dt class="sig sig-object py" id="torchtune.rlhf.loss.SimPOLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.rlhf.loss.</span></span><span class="sig-name descname"><span class="pre">SimPOLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/rlhf/loss/dpo.html#SimPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.rlhf.loss.SimPOLoss" title="Permalink to this definition">¶</a></dt>
-<dd><p>SimPO: Simple Preference Optimization with a Reference-Free Reward: <a class="reference external" href="https://arxiv.org/abs/2405.14734">https://arxiv.org/abs/2405.14734</a>.
+<span class="sig-prename descclassname"><span class="pre">torchtune.rlhf.loss.</span></span><span class="sig-name descname"><span class="pre">SimPOLoss</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;function</span> <span class="pre">SimPOLoss&gt;</span></em><a class="reference internal" href="../_modules/torchtune/rlhf/loss/dpo.html#SimPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.rlhf.loss.SimPOLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple Preference Optimization with a Reference-Free Reward: <a class="reference external" href="https://arxiv.org/abs/2405.14734">https://arxiv.org/abs/2405.14734</a>.
 Intuition from the paper:</p>
 <blockquote>
 <div><p>The effectiveness of SimPO is attributed to a key design: using the average log probability of a sequence as
@@ -461,34 +461,10 @@ Default is 0.5.</p></li>
 <li><p><strong>label_smoothing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Parameter encoding uncertainty about the labels. Default is 0.</p></li>
 </ul>
 </dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.rlhf.loss.SimPOLoss.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">policy_chosen_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_rejected_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/rlhf/loss/dpo.html#SimPOLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.rlhf.loss.SimPOLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute the SimPO loss for a batch chosen and rejected average log probabilities.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>policy_chosen_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><em>torch.Tensor</em></a>) – Average log probabilities of the policy model
-for the chosen responses with shape [b,].</p></li>
-<li><p><strong>policy_rejected_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><em>torch.Tensor</em></a>) – Average log probabilities of the policy model
-for the rejected responses with shape [b,].</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p>losses: The SimPO loss for each example in the batch.</p></li>
-<li><p>chosen_rewards: Rewards for the chosen responses.</p></li>
-<li><p>rejected_rewards: Rewards for the rejected responses.</p></li>
-</ul>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)">torch.Tensor</a>]; A tuple of three tensors with shape [b,]</p>
+<dt class="field-even">Type<span class="colon">:</span></dt>
+<dd class="field-even"><p>SimPO</p>
 </dd>
 </dl>
-</dd></dl>
-
 </dd></dl>
 
 </section>
@@ -536,7 +512,7 @@ for the rejected responses with shape [b,].</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">SimPOLoss</a></li>
+<li><a class="reference internal" href="#">torchtune.rlhf.loss.SimPOLoss</a></li>
 </ul>
 
             </div>
