@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>disable_kv_cache &mdash; torchtune main documentation</title>
+  <title>Direct Preference Optimization &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="delete_kv_caches" href="torchtune.modules.common_utils.delete_kv_caches.html" />
-    <link rel="prev" title="local_kv_cache" href="torchtune.modules.common_utils.local_kv_cache.html" />
+    <link rel="next" title="Datasets Overview" href="../basics/datasets_overview.html" />
+    <link rel="prev" title="Distributed Quantization-Aware Training (QAT)" href="qat_distributed.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -304,11 +304,11 @@
 <li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/dpo.html">Direct Preference Optimization</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Direct Preference Optimization</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
 <ul>
@@ -346,13 +346,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
@@ -396,15 +396,13 @@
       </li>
 
         
-          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
-        
-      <li>disable_kv_cache</li>
+      <li>Direct Preference Optimization</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.common_utils.disable_kv_cache.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/recipes/dpo.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -434,65 +432,71 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="disable-kv-cache">
-<h1>disable_kv_cache<a class="headerlink" href="#disable-kv-cache" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.common_utils.disable_kv_cache">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.common_utils.</span></span><span class="sig-name descname"><span class="pre">disable_kv_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generator" title="(in Python v3.13)"><span class="pre">Generator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/common_utils.html#disable_kv_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.common_utils.disable_kv_cache" title="Permalink to this definition">¶</a></dt>
-<dd><p>This context manager temporarily disables KV-cacheing on a given model, which must already
-already have KV-caches setup. All forward passes using the model within this context manager
-will not use KV-caches.</p>
-<p>KV-caches will be disabled when entering the context manager, and will be enabled upon exit,
-without being modified.</p>
-<p>This is useful in cases where we might wish to alternate between model calls which use KV-cacheing,
-and model calls which do not use KV-cacheing, without the additional overhead of deleting and setting caches up
-every time.</p>
-<p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.models.llama3_2</span> <span class="kn">import</span> <span class="n">llama3_2_1b</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">disable_kv_cache</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">llama3_2_1b</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># setup caches</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">setup_caches</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-<span class="gp">&gt;&gt;&gt; </span>                    <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
-<span class="go">KVCache()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># now temporarily disable caches</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">disable_kv_cache</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
-<span class="go">False</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
-<span class="go">KVCache()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># caches are now re-enabled, and their state is untouched</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">())</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="p">)</span>
-<span class="go">KVCache()</span>
+  <section id="direct-preference-optimization">
+<span id="dpo-recipe-label"></span><h1>Direct Preference Optimization<a class="headerlink" href="#direct-preference-optimization" title="Permalink to this heading">¶</a></h1>
+<p>This recipe supports several <a class="reference external" href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization</a> (DPO)-style fine-tuning techniques.
+These techniques aim to steer (or <a class="reference external" href="https://en.wikipedia.org/wiki/AI_alignment">align</a>) a model towards some desirable behaviours.
+For example, a common goal is to train language models to produce safe and honest outputs,
+or to be <a class="reference external" href="https://arxiv.org/abs/2204.05862">helpful and harmless</a>.</p>
+<p>To see the best results when using this recipe, it may be helpful to first fine-tune your model with using supervised fine-tuning to ensure your model is
+on-distribution for the domain you’re interested in. To do this, check out our other fine-tuning recipes in the <a class="reference internal" href="recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipe overview</span></a> which
+support a variety of SFT paradigms.</p>
+<p>After supervised fine-tuning, here is an example of DPO with Llama 3.1 8B:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You may need to be granted access to the Llama model you’re interested in. See
+<a class="reference internal" href="../tutorials/first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">here</span></a> for details on accessing gated repositories.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3.1-8B-Instruct<span class="w"> </span><span class="se">\</span>
+--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span>
+--HF_TOKEN<span class="w"> </span>&lt;HF_TOKEN&gt;
+
+<span class="c1"># run on a single device</span>
+tune<span class="w"> </span>run<span class="w"> </span>lora_dpo_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_1/8B_lora_dpo_single_device
+
+<span class="c1"># run on two gpus</span>
+tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_dpo_distributed<span class="w"> </span>--config<span class="w"> </span>llama3_1/8B_lora_dpo
 </pre></div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model</strong> (<em>nn.Module</em>) – model to disable KV-cacheing for.</p>
-</dd>
-<dt class="field-even">Yields<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>None</em> – Returns control to the caller with KV-caches disabled on the given model.</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the model does not have caches setup. Use <a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.setup_caches" title="torchtune.modules.TransformerDecoder.setup_caches"><code class="xref py py-func docutils literal notranslate"><span class="pre">setup_caches()</span></code></a> to
-    setup caches first.</p>
-</dd>
-</dl>
-</dd></dl>
-
+<p>It’s easy to get started with this recipe with your dataset of choice, including custom local datasets,
+and datasets from Hugging Face. Check out our primer on <a class="reference internal" href="../basics/preference_datasets.html#preference-dataset-usage-label"><span class="std std-ref">preference datasets</span></a> to
+see how to do this.</p>
+<p>For this recipe we include different DPO-style losses:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../generated/torchtune.rlhf.loss.DPOLoss.html#torchtune.rlhf.loss.DPOLoss" title="torchtune.rlhf.loss.DPOLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">Direct</span> <span class="pre">Preference</span> <span class="pre">Optimization</span></code></a> (DPO) loss <a class="footnote-reference brackets" href="#id4" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>. The DPO loss function
+increases the relative log-probabilities of preferred to un-preferred responses, whilst using log probabilities
+from a reference model to prevent policy degradation during training. Alongside RLHF, this is the most commonly used
+alignment technique and is used to train a growing number of state-of-the-art LLMs e.g. Llama3.1, Gemma 2, Qwen2, etc.
+This is a good starting point for alignment fine-tuning.</p></li>
+<li><p><a class="reference internal" href="../generated/torchtune.rlhf.loss.RSOLoss.html#torchtune.rlhf.loss.RSOLoss" title="torchtune.rlhf.loss.RSOLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">Statistical</span> <span class="pre">Rejection</span> <span class="pre">Sampling</span> <span class="pre">Optimization</span></code></a> (RSO) or “hinge” loss <a class="footnote-reference brackets" href="#id5" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a>.
+RSO builds on concepts from support vector machines and DPO, applying a margin-based approach that penalizes
+low-quality responses while ensuring a significant gap between chosen and un-chosen log probabilities.</p></li>
+</ul>
+<p>To use any of these, simply use the <code class="docutils literal notranslate"><span class="pre">loss</span></code> config entry or flag through the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">torchtune CLI</span></a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_dpo_single_device<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora_dpo_single_device<span class="w"> </span><span class="se">\</span>
+<span class="nv">loss</span><span class="o">=</span>torchtune.modules.loss.RSOLoss<span class="w"> </span><span class="se">\</span>
+<span class="nv">gamma</span><span class="o">=</span><span class="m">0</span>.5
+</pre></div>
+</div>
+<p>For a deeper understanding of the different levers you can pull when using this recipe,
+see our documentation for the different PEFT training paradigms we support:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-lora"><span class="std std-ref">Low Rank Adaptation (LoRA)</span></a></p></li>
+<li><p><a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a></p></li>
+<li><p><a class="reference internal" href="../tutorials/memory_optimizations.html#glossary-dora"><span class="std std-ref">Weight-Decomposed Low-Rank Adaptation (DoRA)</span></a></p></li>
+</ul>
+<p>Many of our other memory optimization features can be used in this recipe. You can learn more about all of our memory optimization features in our <a class="reference internal" href="../tutorials/memory_optimizations.html#memory-optimization-overview-label"><span class="std std-ref">memory optimization overview</span></a>.</p>
+<p class="rubric">References:</p>
+<aside class="footnote brackets" id="id4" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">1</a><span class="fn-bracket">]</span></span>
+<p>Rafailov, R., Sharma, A., Mitchell, E., Manning, C.D., Ermon, S. and Finn, C., 2024.
+Direct preference optimization: Your language model is secretly a reward model. Advances in Neural Information Processing Systems, 36.</p>
+</aside>
+<aside class="footnote brackets" id="id5" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">2</a><span class="fn-bracket">]</span></span>
+<p>Liu, T., Zhao, Y., Joshi, R., Khalman, M., Saleh, M., Liu, P.J. and Liu, J., 2023.
+Statistical rejection sampling improves preference optimization. arXiv preprint arXiv:2309.06657.</p>
+</aside>
 </section>
 
 
@@ -503,10 +507,10 @@ every time.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.common_utils.delete_kv_caches.html" class="btn btn-neutral float-right" title="delete_kv_caches" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../basics/datasets_overview.html" class="btn btn-neutral float-right" title="Datasets Overview" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.common_utils.local_kv_cache.html" class="btn btn-neutral" title="local_kv_cache" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="qat_distributed.html" class="btn btn-neutral" title="Distributed Quantization-Aware Training (QAT)" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -538,7 +542,7 @@ every time.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">disable_kv_cache</a></li>
+<li><a class="reference internal" href="#">Direct Preference Optimization</a></li>
 </ul>
 
             </div>
