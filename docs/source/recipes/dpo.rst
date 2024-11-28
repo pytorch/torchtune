@@ -5,7 +5,7 @@ Direct Preference Optimization
 ====================================
 
 This recipe supports several `Direct Preference Optimization <https://arxiv.org/abs/2305.18290>`_ (DPO)-style fine-tuning techniques.
-These techniques which aim to steer (or `align <https://en.wikipedia.org/wiki/AI_alignment>`_) a model towards some desirable behaviours.
+These techniques aim to steer (or `align <https://en.wikipedia.org/wiki/AI_alignment>`_) a model towards some desirable behaviours.
 For example, a common goal is to train language models to produce safe and honest outputs,
 or to be `helpful and harmless <https://arxiv.org/abs/2204.05862>`_.
 
