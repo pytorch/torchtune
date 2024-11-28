@@ -18,6 +18,7 @@ def vqa_dataset(
     image_dir: str = None,
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
+    packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
@@ -63,6 +64,7 @@ def vqa_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
@@ -122,7 +124,14 @@ def vqa_dataset(
 
     Returns:
         SFTDataset: the configured :class:`~torchtune.datasets.SFTDataset`
+
+    Raises:
+        ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.
+
     """
+    if packed:
+        raise ValueError("Multimodal datasets don't support packing yet.")
+
     message_transform = InputOutputToMessages(
         column_map=column_map, new_system_prompt=new_system_prompt, image_dir=image_dir
     )

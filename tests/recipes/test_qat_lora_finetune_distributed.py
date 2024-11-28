@@ -45,7 +45,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.9325, 11.9325, 11.9325, 11.9369],
+            "llama3": [11.9835, 11.9694, 11.9615, 11.9383],
         }
         return loss_values_map[model_type]
 
@@ -66,6 +66,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
     ):
         ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         cmd = f"""
@@ -80,11 +81,12 @@ class TestQATLoRAFinetuneDistributedRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             metric_logger.filename={log_file} \
-            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.path={tokenizer_path} \
             tokenizer.prompt_template=null \
             compile={should_compile} \
             enable_activation_checkpointing=False \
             enable_activation_offloading=False \
+            quantizer.groupsize=32 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -154,6 +156,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
             save_adapter_weights_only={save_adapter_weights_only} \
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
+            quantizer.groupsize=32 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -182,6 +185,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
             metric_logger.filename={log_file} \
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
+            quantizer.groupsize=32 \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
@@ -228,6 +232,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
+            quantizer.groupsize=32 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
