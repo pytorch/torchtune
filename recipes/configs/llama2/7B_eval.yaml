@@ -1,0 +1,85 @@
+# Config for multi-device LoRA finetuning in lora_finetune_classification_distributed.py
+# using a Llama2 7B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
+#
+# To launch on 2 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_classification_distributed.py --config llama2/7B_lora_classification
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 2 --recipes lora_finetune_classification_distributed.py --config llama2/7B_lora_classification checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# For single device LoRA finetuning please use 7B_lora_single_device.yaml
+# or 7B_qlora_single_device.yaml
+
+# Add some high level XP naming configs
+xp_name: add_attributes__dropout_0.05__rank_24__alpha_32
+xp_key: 9f933a75d89d42d9859a72d656dcbf3e
+base_model_path: /nfs/scratch/qhsu/models/base/Llama-2-7b-hf
+base_model_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
+output_dir_parent: /nfs/scratch/qhsu/models/finetuned
+checkpoint_epoch: 0
+eval_prefix: mops_2k
+eval_dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling__add_attributes
+eval_dataset_split: mops_dataset_2k
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama2.llama2_7b
+
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /nfs/scratch/qhsu/models/base/Llama-2-7b-hf/tokenizer.model
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: ${base_model_path}
+  checkpoint_files: ${base_model_files}
+  # checkpoint_dir: ${output_dir_parent}/amazon_esci__dropout_0.05__rank_24__alpha_32
+  # checkpoint_files: [hf_model_0001_1.pt, hf_model_0002_1.pt]
+  # checkpoint_dir: ${output_dir_parent}/${xp_name}/epoch_0
+  # checkpoint_files: [hf_model_0001_2.pt, hf_model_0002_2.pt]
+  adapter_checkpoint: ${output_dir_parent}/${xp_name}/adapter_${checkpoint_epoch}.pt
+  adapter_config: ${output_dir_parent}/${xp_name}/adapter_config.json
+  # eval_adapter_checkpoint: ${output_dir_parent}/${xp_name}/adapter_1.pt
+  recipe_checkpoint:
+  output_dir: ${output_dir_parent}/${xp_name}
+  model_type: LLAMA2
+resume_from_checkpoint: false
+save_adapter_weights_only: false
+
+# Dataset and Sampler
+
+val_dataset:
+  _component_: torchtune.datasets.prompt_completion_dataset
+  # source: /nfs/scratch/qhsu/dataset/relevance_labeling_esci__may_baseline_reorganized
+  source: ${eval_dataset_source}
+  # source: /nfs/scratch/qhsu/dataset/relevance_labeling_mops_orig_prod_eval_set_2k
+  from_disk: true
+  text_column: prompt
+  label_column: completion
+  split: ${eval_dataset_split}
+  max_seq_len: 850
+  packed: false
+val_batch_size: 32
+# validate_every_n_steps: 2 # Not working
+
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+
+# Environment
+device: cuda
+dtype: bf16
+
+metric_logger:
+  _component_: torchtune.training.metric_logging.CometLogger
+  # the Comet project to log to
+  project: llama-query-product-relevance
+  experiment_key: ${xp_key}
+  mode: get
+  log_code: false
