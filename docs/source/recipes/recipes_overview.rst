@@ -28,7 +28,7 @@ Our recipes include:
 * Single-device full fine-tuning
 * Distributed full fine-tuning
 * Distributed LoRA fine-tuning
-* Direct Preference Optimization (DPO)
+* :ref:`Direct Preference Optimization (DPO) <dpo_recipe_label>`
 * Proximal Policy Optimization (PPO)
 * :ref:`Distributed Quantization-Aware Training (QAT)<qat_distributed_recipe_label>`.
 
