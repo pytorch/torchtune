@@ -192,7 +192,7 @@ class TestScales:
         assert_expected(actual_scale, expected_scale, atol=1e-7, rtol=1e-3)
 
 
-class TestLayerDopoutModel:
+class TestLayerDropoutModel:
     def test_prepare_layer_dropout_uniform(self):
         class MockModel(torch.nn.Module):
             def __init__(self):
