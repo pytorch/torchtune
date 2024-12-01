@@ -33,7 +33,11 @@ class MockLayer(nn.Module):
 
 class TestEarlyExitLoss:
     @pytest.fixture
-    def mock_model(self):
+    def num_layers(self):
+        return 12
+
+    @pytest.fixture
+    def mock_model(self, num_layers):
         # Create mock components
         tok_embeddings = nn.Embedding(1000, 512)  # Example vocab size and embedding dim
         layers = nn.ModuleList([MockLayer() for _ in range(12)])  # 12 mock layers
@@ -49,7 +53,7 @@ class TestEarlyExitLoss:
             head_dim=64,
             norm=norm,
             output=output,
-            num_layers=12,
+            num_layers=num_layers,
             output_hidden_states=[0, 1, 2],  # Example layers to output hidden states
         )
         return model
@@ -75,13 +79,13 @@ class TestEarlyExitLoss:
         "scale_type",
         [e.value for e in LossScaleType],
     )
-    def test_layer_ids_to_loss_scales(self, scale_type):
-        n_layers = 12
-        n_subset_layers = 5
-        layer_ids = torch.tensor(random.sample(range(0, n_layers), n_subset_layers))
-
-        scales = layer_ids_to_loss_scales(layer_ids, n_layers, scale_type, 1.0)
-        assert torch.isclose(scales.sum(), torch.tensor(1.0))
+    def test_layer_ids_to_loss_scales(self, scale_type, num_layers):
+        for n_subset_layers in range(1, num_layers + 1):
+            layer_ids = torch.tensor(
+                random.sample(range(0, num_layers), n_subset_layers)
+            )
+            scales = layer_ids_to_loss_scales(layer_ids, num_layers, scale_type, 1.0)
+            assert torch.isclose(scales.sum(), torch.tensor(1.0))
 
     def test_early_exit_loss_vs_manual(
         self, mock_model, hidden_states_dict, labels, loss_fn
