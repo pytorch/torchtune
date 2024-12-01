@@ -109,6 +109,7 @@ def test_rotational_early_exit_curriculum(train_last_layer):
     expected = np.array([False, True, train_last_layer])
     assert np.array_equal(curriculum.get(), expected)
     curriculum.step()
+    # Since the last element is already True on this rotation, the value of `train_last_layer` has no effect.
     expected = np.array([False, False, True])
     assert np.array_equal(curriculum.get(), expected)
     curriculum.step()
@@ -135,6 +136,7 @@ def test_gradual_early_exit_curriculum(train_last_layer):
     curriculum.step()
     assert np.array_equal(curriculum.get(), [False, False, False, train_last_layer])
     curriculum.step()
+    # Since the last element is already True on this update, the value of `train_last_layer` has no effect.
     assert np.array_equal(curriculum.get(), [False, False, False, True])
     curriculum.step()
     assert np.array_equal(curriculum.get(), [False, False, True, True])
