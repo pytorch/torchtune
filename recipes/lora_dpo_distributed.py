@@ -690,7 +690,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
-        running_loss = 0
         num_tokens = 0
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -707,6 +706,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             with torch.no_grad():
                 running_val_loss = 0
+                running_reward_accuracy = 0
                 num_eval_steps = (
                     min(self._max_validation_steps, len(self._dataloader_validation))
                     if self._max_validation_steps is not None
@@ -770,7 +770,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         )
 
                     loss = loss.mean()
-                    reward_accuracies = (chosen_rewards > rejected_rewards).float()
+                    reward_accuracy = (
+                        (chosen_rewards > rejected_rewards).float().mean().cpu()
+                    )
+                    running_reward_accuracy += reward_accuracy
 
                     running_val_loss += loss
                     pbar_val.update(1)
