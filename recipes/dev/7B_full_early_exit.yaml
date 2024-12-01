@@ -16,13 +16,13 @@
 #
 # To reproduce experiments of various papers that use early exit loss and/or layer dropout:
 # - LayerSkip (https://arxiv.org/abs/2404.16710) on TOPv2:
-#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l layer_dropout.prob=0.2 layer_dropout.scale=exp
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss.scale=1.0 early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l layer_dropout.prob=0.2 layer_dropout.scale=exp
 #
 # - LITE (https://arxiv.org/abs/2310.18581):
-#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml layer_dropout=null early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=one
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml layer_dropout=null early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=one early_exit_loss.curriculum=null epochs=5
 #
 # - LayerDrop (https://arxiv.org/abs/1909.11556):
-#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss=null layer_dropout.prob=0.2 layer_dropout.layers=::2
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss=null layer_dropout.prob=0.2 layer_dropout.layers=1::2
 #
 # - Progressive Layer Dropping (https://arxiv.org/abs/2010.13369) (The paper also implements a curriculum for layer drop probability which is not yet implemented.):
 #   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss=null layer_dropout.prob=0.5 layer_dropout.scale=exp
@@ -66,7 +66,7 @@ checkpointer:
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 2
+batch_size: 8
 epochs: 1
 optimizer:
   _component_: torch.optim.AdamW

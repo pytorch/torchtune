@@ -81,7 +81,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     apply to both training and evaluation.
             To reproduce results of different papers that use layer dropout:
                 - LayerDrop (https://arxiv.org/abs/1909.11556) that applies dropout on every other layer, set
-                    ``layer_dropout.prob=0.2 layer_dropout.layers=::2``.
+                    ``layer_dropout.prob=0.2 layer_dropout.layers=1::2``.
                 - Progressive Layer Dropping (https://arxiv.org/abs/2010.13369) that increases dropout linearly
                     across layers, set ``layer_dropout.prob=0.5 layer_dropout.layers_scale=linear``.
                     The paper also implements a curriculum for layer drop probability which is not yet implemented.
