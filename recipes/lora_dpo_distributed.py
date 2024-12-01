@@ -15,8 +15,14 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig, ListConfig
 
+
 from torch import nn
-from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed import (
+    destroy_process_group,
+    init_process_group,
+    all_gather,
+    get_world_size,
+)
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
@@ -129,10 +135,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         self._is_rank_zero = rank == 0
-        print("\n\nrank = ", rank)
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -163,13 +168,16 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
         self._max_validation_steps = int(
-            cfg.get("samples_per_validation_steps") / cfg.batch_size
+            cfg.get("samples_per_validation_steps") / (cfg.batch_size * world_size)
         )
         log.info(
             f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
         )
         assert self.max_steps_per_epoch is None
-        effective_batch_size = cfg.batch_size * cfg.gradient_accumulation_steps
+        # NOTE (smurty): effective_batch_size also needs to be multipled by the number of GPUs!
+        effective_batch_size = (
+            cfg.batch_size * cfg.gradient_accumulation_steps * world_size
+        )
         self.max_steps_per_epoch = int(
             cfg.get("samples_per_epoch") / effective_batch_size
         )
@@ -772,11 +780,23 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     idx += 1
 
                 mean_val_loss = running_val_loss / (idx + 1)
+                gathered_reward_acc = [
+                    torch.zeros_like(reward_accuracies) for _ in range(get_world_size())
+                ]
+                gathered_mean_val_loss = [
+                    torch.zeros_like(mean_val_loss) for _ in range(get_world_size())
+                ]
+                all_gather(gathered_reward_acc, reward_accuracies)
+                all_gather(gathered_mean_val_loss, mean_val_loss)
+
+                reward_accuracies = torch.tensor(gathered_reward_acc).mean().cpu()
+                mean_val_loss = torch.tensor(gathered_mean_val_loss).mean().cpu()
+
                 if self._is_rank_zero:
                     self._metric_logger.log_dict(
                         {
                             "val_loss": mean_val_loss,
-                            "val_reward_accuracies": reward_accuracies.mean().cpu(),
+                            "val_reward_accuracies": reward_accuracies,
                         },
                         step=self.global_step,
                     )
