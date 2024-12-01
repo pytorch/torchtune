@@ -6,6 +6,8 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
+import random
+
 import numpy as np
 import pytest
 import torch
@@ -69,10 +71,16 @@ class TestEarlyExitLoss:
         assert isinstance(loss, torch.Tensor)
         assert loss.item() >= 0
 
-    def test_layer_ids_to_loss_scales(self):
-        layer_ids = torch.tensor([0, 1, 2])
+    @pytest.mark.parametrize(
+        "scale_type",
+        [e.value for e in LossScaleType],
+    )
+    def test_layer_ids_to_loss_scales(self, scale_type):
         n_layers = 12
-        scales = layer_ids_to_loss_scales(layer_ids, n_layers, LossScaleType.SUM_L, 1.0)
+        n_subset_layers = 5
+        layer_ids = torch.tensor(random.sample(range(0, n_layers), n_subset_layers))
+
+        scales = layer_ids_to_loss_scales(layer_ids, n_layers, scale_type, 1.0)
         assert torch.isclose(scales.sum(), torch.tensor(1.0))
 
     def test_early_exit_loss_vs_manual(
