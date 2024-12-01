@@ -186,10 +186,14 @@ class TestScales:
     def test_get_scale_sin(self):
         scale_type = ScaleType.SIN
         scale_period = 10
-        val = 5
-        expected_scale = math.sin(0.5 * math.pi * 5 / 10)
-        actual_scale = get_scale(scale_type, scale_period, val)
-        assert_expected(actual_scale, expected_scale, atol=1e-7, rtol=1e-3)
+
+        assert_expected(get_scale(scale_type, scale_period, 0), 0.0)
+        assert_expected(
+            get_scale(scale_type, scale_period, scale_period / 2),
+            math.sin(0.5 * math.pi * 0.5),
+        )
+        assert_expected(get_scale(scale_type, scale_period, scale_period), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period * 2), 1.0)
 
 
 class TestLayerDropoutModel:

@@ -201,6 +201,8 @@ def get_scale(
     """
     if scale_period == 0:
         return 1.0
+    if val >= scale_period:
+        return 1.0
 
     # all the equations below aim to make scale = 0 when val=0, and scale = 1 when val=scale_period
     scale = {
@@ -212,8 +214,8 @@ def get_scale(
         ScaleType.SIGMOID: 1 / (1 + math.exp(-10 * (val / scale_period - 0.5))),
     }[scale_type]
 
-    # after scale_period, scale should be 1
-    return min(scale, 1.0)
+    # ensure returned scale is between 0.0 and 1.0 (inclusive)
+    return max(min(scale, 1.0), 0.0)
 
 
 def prepare_layer_dropout(
