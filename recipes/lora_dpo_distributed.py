@@ -720,11 +720,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 # NOTE: added by us - counter to account for samples that are too long
                 idx = 0
                 for _, batch in enumerate(self._dataloader_validation):
-
-                    if (
-                        self._max_validation_steps is not None
-                        and idx == self._max_validation_steps
-                    ):
+                    if idx >= num_eval_steps:
                         break
 
                     # NOTE: added by us
@@ -820,11 +816,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             # NOTE: added by us - counter to account for samples that are too long
             idx = 0
             for _, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
+                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
                     break
 
                 # NOTE: added by us

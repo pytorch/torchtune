@@ -137,7 +137,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         self._is_rank_zero = rank == 0
 
@@ -195,19 +195,24 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
         self._max_validation_steps = int(
-            cfg.get("samples_per_validation_steps") / cfg.batch_size
+            cfg.get("samples_per_validation_steps") / (cfg.batch_size * world_size)
         )
-        log.info(
-            f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
-        )
+
+        if self._is_rank_zero:
+            log.info(
+                f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size * world_size)"
+            )
         assert self.max_steps_per_epoch is None
-        effective_batch_size = cfg.batch_size * cfg.gradient_accumulation_steps
+        effective_batch_size = (
+            cfg.batch_size * cfg.gradient_accumulation_steps * world_size
+        )
         self.max_steps_per_epoch = int(
             cfg.get("samples_per_epoch") / effective_batch_size
         )
-        log.info(
-            f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
-        )
+        if self._is_rank_zero:
+            log.info(
+                f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -352,6 +357,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
+        print(len(self._dataloader))
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
@@ -818,10 +824,104 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
+            self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
+
+            # NOTE: added by us
+            # ------ Validation Step ------ #
+            self._model.eval()
+
+            with torch.no_grad():
+                running_val_loss = 0
+                num_eval_steps = (
+                    min(self._max_validation_steps, len(self._dataloader_validation))
+                    if self._max_validation_steps is not None
+                    else len(self._dataloader_validation)
+                )
+                # NOTE: added by us
+                # start a counter for samples that are too long
+                max_len_samples = 0
+
+                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                # NOTE: added by us - counter to account for samples that are too long
+                idx = 0
+                for _, batch in enumerate(self._dataloader_validation):
+                    if idx >= num_eval_steps:
+                        break
+
+                    # NOTE: added by us
+                    if self._skip_max_seq_len_samples(batch):
+                        max_len_samples += 1
+                        continue
+
+                    # Start tracking CUDA memory for active steps for just the first epoch
+                    if (
+                        self._is_rank_zero
+                        and curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    ):
+                        torch.cuda.memory._record_memory_history()
+
+                    utils.batch_to_device(batch, self._device)
+
+                    # Calculate the number of unmasked tokens in the current batch
+                    # and increment the total number of tokens seen in the step
+                    # current_num_tokens = (
+                    #     batch["labels"] != self._loss_fn.ignore_index
+                    # ).sum()
+
+                    # Shape [b, s], needed for the loss not the model
+                    labels = batch.pop("labels")
+
+                    with self.activations_handling_ctx:
+                        logits = self._model(**batch)
+
+                    # Shift labels to compute loss
+                    # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                    # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                    labels = torch.hstack(
+                        (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                    )
+                    if not isinstance(logits, list):
+                        labels = labels.reshape(-1)
+                        logits = logits.reshape(-1, logits.size(-1))
+
+                    # Compute loss
+                    # Loss is normalized by default so we multiply by the number of tokens
+                    # This way we can normalize by the total number of tokens if we're accumulating gradients
+                    # NOTE: we don't need to multiply by the number of tokens because we are not accumulating gradients
+                    current_loss = self._loss_fn(logits, labels)  # * current_num_tokens
+
+                    # free logits otherwise it peaks backward memory
+                    del logits
+
+                    running_val_loss += current_loss
+                    pbar_val.update(1)
+                    pbar_val.set_description(
+                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
+                    )
+                    idx += 1
+
+                mean_val_loss = running_val_loss / (idx + 1)
+                gathered_val_loss = [
+                    torch.zeros_like(mean_val_loss) for _ in range(world_size)
+                ]
+                torch.distributed.all_gather(gathered_val_loss, mean_val_loss)
+                print(gathered_val_loss)
+                mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
+                print(mean_val_loss)
+                if self._is_rank_zero:
+                    self._metric_logger.log_dict(
+                        {"val_loss": mean_val_loss},
+                        step=self.global_step,
+                    )
+                utils.log_rank_zero(
+                    log, f"Number of samples that were too long: {max_len_samples}"
+                )
+                pbar_val.close()
 
             # ------ Training Epoch ------ #
             # Initialize tokens count and running loss (for grad accumulation)
@@ -838,11 +938,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # NOTE: added by us - counter to account for samples that are too long
             idx = 0
             for _, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
+                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
                     break
 
                 # NOTE: added by us
