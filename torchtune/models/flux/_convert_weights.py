@@ -77,7 +77,7 @@ def _convert_key(key: str) -> str:
         i += 1
         for layer_idx, layer_name in enumerate(["block_1", "attn_1", "block_2"]):
             if layer == layer_name:
-                new_parts.append(str(layer_idx))  # layer name -> idx in the sequence
+                new_parts.append(str(layer_idx))
                 if layer_name.startswith("attn"):
                     _convert_attn_layer(new_parts, parts, i)
                 else:
@@ -90,9 +90,8 @@ def _convert_key(key: str) -> str:
     elif section == "down":
         new_parts.append(parts[i])  # add the down block idx
         i += 1
-        # resnet layers are preceded by "block"
         if parts[i] == "block":
-            new_parts.append("layers")  # "block" -> "layers"
+            new_parts.append("layers")
             i += 1
             new_parts.append(parts[i])  # add the resnet layer idx
             i += 1
@@ -109,9 +108,8 @@ def _convert_key(key: str) -> str:
         # so we need to convert [0, 1, 2, 3] -> [3, 2, 1, 0]
         new_parts.append(str(3 - int(parts[i])))
         i += 1
-        # resnet layers are preceded by "block"
         if parts[i] == "block":
-            new_parts.append("layers")  # "block" -> "layers"
+            new_parts.append("layers")
             i += 1
             new_parts.append(parts[i])  # add the resnet layer idx
             i += 1
