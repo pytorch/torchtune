@@ -36,6 +36,7 @@ TORCH_INDEX_FNAME = "pytorch_model.bin.index"
 REPO_ID_FNAME = "original_repo_id"
 SUFFIXES_TO_NOT_COPY = [
     ".pt",
+    ".pth",
     ".bin",
     ".safetensors",
     SAFETENSOR_INDEX_FNAME,
@@ -313,10 +314,11 @@ def get_largest_iter_folder(dir: Union[str, Path], pattern: str = r"^epoch_(\d+)
     return latest_epoch_folder
 
 
+# TODO: instead of copying, make it a symlink when we start using HF cache
 def copy_files(
     input_dir: Union[str, Path],
     output_dir: Union[str, Path],
-    suffixes: Optional[List[str]] = None,
+    ignore_suffixes: Optional[List[str]] = None,
 ):
     """
     Copies files from the input directory to the output directory, preserving the directory structure.
@@ -327,7 +329,7 @@ def copy_files(
     Args:
         input_dir (Union[str, Path]): The path to the input directory containing files to be copied.
         output_dir (Union[str, Path]): The path to the output directory where files should be copied.
-        suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.
+        ignore_suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.
           Defaults to ['.pt', '.bin', '.safetensors'] if not provided.
     Returns:
         None
@@ -356,7 +358,9 @@ def copy_files(
                 continue
 
             # Check if the file has one of the specified suffixes
-            if suffixes and any(file.endswith(suffix) for suffix in suffixes):
+            if ignore_suffixes and any(
+                file.endswith(suffix) for suffix in ignore_suffixes
+            ):
                 continue
 
             src_file = os.path.join(root, file)

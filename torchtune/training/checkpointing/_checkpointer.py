@@ -167,7 +167,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         copy_files(
             self._checkpoint_dir,
             self._output_dir,
-            suffixes=training.SUFFIXES_TO_NOT_COPY,
+            ignore_suffixes=training.SUFFIXES_TO_NOT_COPY,
         )
 
         # resume from ckpt
@@ -443,7 +443,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         copy_files(
             self._checkpoint_dir,
             self._output_dir,
-            suffixes=training.SUFFIXES_TO_NOT_COPY,
+            ignore_suffixes=training.SUFFIXES_TO_NOT_COPY,
         )
 
         # resume from ckpt
@@ -952,7 +952,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         copy_files(
             self._checkpoint_dir,
             self._output_dir,
-            suffixes=training.SUFFIXES_TO_NOT_COPY,
+            ignore_suffixes=training.SUFFIXES_TO_NOT_COPY,
         )
 
         # resume from ckpt
