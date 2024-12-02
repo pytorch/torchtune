@@ -17,6 +17,10 @@ from warnings import warn
 import torch
 from safetensors import safe_open
 
+from torchtune.utils._logging import get_logger
+
+logger = get_logger("DEBUG")
+
 """
 Keys used during checkpoint load and checkpoint save.
 """
@@ -24,13 +28,17 @@ Keys used during checkpoint load and checkpoint save.
 # adapter config containing info about LoRA modules, rank, alpha
 ADAPTER_CONFIG = "adapter_config"
 
-# default used by huggingface when looking for saved adapters
+# default used by huggingface when looking for saved files
 # https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32
 ADAPTER_CONFIG_FNAME = "adapter_config"
 ADAPTER_MODEL_FNAME = "adapter_model"
-SHARD_FNAME = "model-{cpt_idx}-of-{num_shards}"
 SAFETENSOR_INDEX_FNAME = "model.safetensors.index"
 TORCH_INDEX_FNAME = "pytorch_model.bin.index"
+
+# standardize checkpointing
+SHARD_FNAME = "ft-model-{cpt_idx}-of-{num_shards}"
+RECIPE_STATE_DIRNAME = "recipe_state"
+BASE_MODEL_DIRNAME = "base_model"
 
 # Needed when setting up output dir in checkpointing
 REPO_ID_FNAME = "original_repo_id"
@@ -371,3 +379,81 @@ def copy_files(
                 shutil.copy2(src_file, dest_file)
 
     return
+
+
+def get_recipe_checkpoint_path(
+    output_dir: Path,
+    recipe_checkpoint: Optional[str] = None,
+    resume_from_checkpoint: bool = False,
+):
+    """
+    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/recipe_state/recipe_state.pt
+    This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
+
+    Args:
+        output_dir (Path): Directory containing the recipe checkpoint.
+        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
+        resume_from_checkpoint (bool): Whether to resume from a checkpoint.
+    Returns:
+        Path: Path to the recipe checkpoint file.
+    Raises:
+        ValueError: If resume_from_checkpoint is True and the recipe checkpoint file is missing.
+    """
+    if not resume_from_checkpoint:
+        return None
+
+    if recipe_checkpoint:
+        recipe_checkpoint = os.path.join(output_dir, recipe_checkpoint)
+    else:
+        # Look for the recipe checkpoint in the output directory
+        tentative_recipe_state_path = os.path.join(
+            output_dir,
+            "recipe_state",  # TODO: recipe_state folder should be a constant
+            "recipe_state.pt",
+        )
+        if os.path.exists(tentative_recipe_state_path):
+            recipe_checkpoint = tentative_recipe_state_path
+        else:
+            raise ValueError(
+                "If resume_from_checkpoint is True, recipe_checkpoint file must be provided "
+                f"or exist at {tentative_recipe_state_path}."
+            )
+
+    return Path(recipe_checkpoint)
+
+
+def get_adapter_checkpoint_path(
+    output_dir: Path,
+    adapter_checkpoint: Optional[str] = None,
+    resume_from_checkpoint: bool = False,
+    pattern: str = r"^epoch_(\d+)",
+):
+    r"""
+    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/epoch_{latest_epoch}/adapter_model.pt
+    This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
+
+    Args:
+        output_dir (Path): Directory containing the adapter checkpoint.
+        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.
+        resume_from_checkpoint (bool): Whether to resume from a checkpoint.
+        pattern (str): Regex pattern to match the epoch folder. Defaults to "epoch_(\d+)".
+
+    Returns:
+        Path: Path to the adapter checkpoint file, or None if not applicable.
+    """
+    if not resume_from_checkpoint:
+        return None
+
+    if adapter_checkpoint:
+        adapter_checkpoint = os.path.join(output_dir, adapter_checkpoint)
+    else:
+        # Look for the latest adapter checkpoint in the output directory
+        largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
+        if largest_iter_folder:
+            tentative_adapter_checkpoint = os.path.join(
+                output_dir, largest_iter_folder, "adapter_model.pt"
+            )
+            if os.path.exists(tentative_adapter_checkpoint):
+                adapter_checkpoint = tentative_adapter_checkpoint
+
+    return Path(adapter_checkpoint) if adapter_checkpoint else None
