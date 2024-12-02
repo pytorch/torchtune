@@ -30,7 +30,6 @@ class TestT5Tokenizer:
 
     def test_decoding(self, tokenizer):
         text = "this is torchtune"
-        decoded_text = "<|startoftext|>this is torchtune <|endoftext|>"
         assert text == tokenizer.decode(tokenizer.encode(text))
 
     def test_call(self, tokenizer):
