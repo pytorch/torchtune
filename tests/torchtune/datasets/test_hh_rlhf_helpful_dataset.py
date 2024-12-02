@@ -107,3 +107,14 @@ class TestHHRLHFHelpfulDataset:
         else:
             # Check that the input is masked
             assert sample["rejected_labels"].count(CROSS_ENTROPY_IGNORE_IDX) == 16
+
+    def test_dataset_fails_with_packed(self):
+        with pytest.raises(
+            ValueError,
+            match="Packed is currently not supported for preference datasets",
+        ):
+            hh_rlhf_helpful_dataset(
+                tokenizer=DummyTokenizer(),
+                train_on_input=True,
+                packed=True,
+            )
