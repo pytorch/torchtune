@@ -357,7 +357,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
-        print(len(self._dataloader))
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
