@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 2 lora_dpo_distributed --config llama2/7B_lora_dpo
@@ -83,4 +83,7 @@ log_peak_memory_stats: True
 # Environment
 device: cuda
 dtype: bf16
+
+# Memory management
 enable_activation_checkpointing: True  # True reduces memory
+enable_activation_offloading: False  # True reduces memory

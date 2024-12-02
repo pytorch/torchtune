@@ -23,6 +23,18 @@ except ImportError as e:
         """
     ) from e
 
+# Enables faster downloading. For more info: https://huggingface.co/docs/huggingface_hub/en/guides/download#faster-downloads
+# To disable, run `HF_HUB_ENABLE_HF_TRANSFER=0 tune download <model_config>`
+try:
+    import os
+
+    import hf_transfer  # noqa
+
+    if os.environ.get("HF_HUB_ENABLE_HF_TRANSFER") is None:
+        os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+except ImportError:
+    pass
+
 from torchtune import datasets, generation, models, modules, utils
 
 __all__ = [datasets, models, modules, utils, generation]

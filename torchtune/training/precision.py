@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Dict, Generator, Iterable, Optional, Tuple
+from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
 import torch
 
@@ -147,7 +147,9 @@ def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
 
 
 def validate_expected_param_dtype(
-    named_params: Iterable[Tuple[str, torch.nn.Parameter]], dtype: torch.dtype
+    named_params: Iterable[Tuple[str, torch.nn.Parameter]],
+    dtype: torch.dtype,
+    exclude_param_names: Optional[List[str]] = None,
 ) -> None:
     """
     Validates that all input parameters have the expected dtype.
@@ -155,11 +157,15 @@ def validate_expected_param_dtype(
     Args:
         named_params (Iterable[Tuple[str, torch.nn.Parameter]]): Iterable of named parameters.
         dtype (torch.dtype): Expected dtype.
+        exclude_param_names (Optional[List[str]]): Optional list of parameter names to exclude from dtype checking
 
     Raises:
         ValueError: If any parameter has a different dtype than `dtype`.
     """
     for name, param in named_params:
+        if exclude_param_names is not None:
+            if any(n in name for n in exclude_param_names):
+                continue
         if param.dtype != dtype:
             raise ValueError(
                 f"Parameter {name} has dtype {param.dtype}, but expected {dtype}"
