@@ -6,7 +6,7 @@
 
 import math
 from enum import Enum
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Union
 
 import torch
 
@@ -219,21 +219,21 @@ def get_scale(
 
 
 def prepare_layer_dropout(
-    model: torch.nn.Module,
+    layers: Union[torch.nn.ModuleList, Iterable[torch.nn.Module]],
     prob_max: float = 0.0,
     prob_layer_scale: Optional[ScaleType] = ScaleType.UNIFORM,
     layers_str: Optional[str] = None,
     disable_on_eval: Optional[bool] = True,
 ) -> None:
     """
-    Prepare a model for layer dropout by wrapping each layer with a ModuleLayerDropoutWrapper.
-    This function takes in a model, the maximum probability of dropping a layer,
+    Prepare a model's layers for layer dropout by wrapping each layer with a ModuleLayerDropoutWrapper.
+    This function takes in a list of layers, the maximum probability of dropping a layer,
     the scaling type for the layer dropout probability, a string specifying which
     layers to apply dropout to, and a boolean indicating whether to disable dropout
     during evaluation. It then wraps each layer of the model inplace with a
     ModuleLayerDropoutWrapper, which applies layer dropout to the input tensor.
     Args:
-        model (torch.nn.Module): The model to prepare for layer dropout.
+        layers (Union[torch.nn.ModuleList, Iterable[torch.nn.Module]]): The list of layers to prepare for layer dropout.
         prob_max (float): The maximum probability of dropping a layer. Defaults to 0.0.
         prob_layer_scale (Optional[ScaleType]): The scaling type for the dropout probability
             across layers. Defaults to ScaleType.UNIFORM.
@@ -263,24 +263,24 @@ def prepare_layer_dropout(
         ...         return x
         >>> model = MyModel()
         >>> # Apply layer dropout uniformly to all layers
-        >>> prepare_layer_dropout(model, prob_max=0.2, prob_layer_scale=ScaleType.UNIFORM)
+        >>> prepare_layer_dropout(model.layers, prob_max=0.2, prob_layer_scale=ScaleType.UNIFORM)
         >>> # Apply layer dropout every other layer, as described in LayerDrop paper
             (Fan et al., https://arxiv.org/abs/1909.11556v1)
-        >>> prepare_layer_dropout(model, prob_max=0.2, prob_layer_scale=ScaleType.UNIFORM, layers_str="::2")
+        >>> prepare_layer_dropout(model.layers, prob_max=0.2, prob_layer_scale=ScaleType.UNIFORM, layers_str="::2")
         >>> # Apply layer dropout that increases linearly across layers, as described in Progressive Layer
             Dropout paper (Zhang et al., https://arxiv.org/abs/2010.13369)
-        >>> prepare_layer_dropout(model, prob_max=0.2, prob_layer_scale=ScaleType.LINEAR)
+        >>> prepare_layer_dropout(model.layers, prob_max=0.2, prob_layer_scale=ScaleType.LINEAR)
         >>> # Apply layer dropout that increases exponentially across layers, as described in
             LayerSkip paper (Elhoushi et al., https://arxiv.org/abs/2404.16710)
-        >>> prepare_layer_dropout(model, prob_max=0.2, prob_layer_scale=ScaleType.EXP)
+        >>> prepare_layer_dropout(model.layers, prob_max=0.2, prob_layer_scale=ScaleType.EXP)
     """
-    num_layers = len(model.layers)
+    num_layers = len(layers)
     has_dropout = (
         slice_str_to_array(layers_str, num_layers)
         if layers_str
         else [True] * num_layers
     )
-    for layer_id in range(len(model.layers)):
+    for layer_id in range(len(layers)):
         prob = (
             prob_max
             * get_scale(
@@ -299,6 +299,4 @@ def prepare_layer_dropout(
         layer_dropout = LayerDropout(
             prob, disable_on_eval=disable_on_eval, seed=layer_id
         )
-        model.layers[layer_id] = ModuleLayerDropoutWrapper(
-            model.layers[layer_id], layer_dropout
-        )
+        layers[layer_id] = ModuleLayerDropoutWrapper(layers[layer_id], layer_dropout)

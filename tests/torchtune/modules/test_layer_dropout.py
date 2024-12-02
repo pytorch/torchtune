@@ -224,7 +224,7 @@ class TestLayerDropoutModel:
         prob_max = 0.5
         prob_layer_scale = ScaleType.UNIFORM
         layers_str = "0:4"
-        prepare_layer_dropout(model, prob_max, prob_layer_scale, layers_str)
+        prepare_layer_dropout(model.layers, prob_max, prob_layer_scale, layers_str)
         for i, layer in enumerate(model.layers):
             assert hasattr(layer, "dropout")
             if i in range(0, 4):
@@ -244,7 +244,7 @@ class TestLayerDropoutModel:
         prob_max = 0.5
         prob_layer_scale = ScaleType.EXP
         layers_str = ":"
-        prepare_layer_dropout(model, prob_max, prob_layer_scale, layers_str)
+        prepare_layer_dropout(model.layers, prob_max, prob_layer_scale, layers_str)
         for i, layer in enumerate(model.layers):
             assert hasattr(layer, "dropout")
             if i == 0:
@@ -266,7 +266,7 @@ class TestLayerDropoutModel:
         prob_max = 0.5
         prob_layer_scale = ScaleType.LINEAR
         layers_str = ":"
-        prepare_layer_dropout(model, prob_max, prob_layer_scale, layers_str)
+        prepare_layer_dropout(model.layers, prob_max, prob_layer_scale, layers_str)
         for i, layer in enumerate(model.layers):
             assert hasattr(layer, "dropout")
             if i == 0:

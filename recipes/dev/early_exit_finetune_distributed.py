@@ -404,7 +404,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_layer_dropout = cfg.get("layer_dropout", None)
         if cfg_layer_dropout:
             prepare_layer_dropout(
-                self._model,
+                self._model.layers,
                 prob_max=cfg_layer_dropout.get("prob", 0.0),
                 prob_layer_scale=cfg_layer_dropout.get("layers_scale", "uniform"),
                 layers_str=cfg_layer_dropout.get("layers", ":"),
