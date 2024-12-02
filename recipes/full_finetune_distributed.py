@@ -275,6 +275,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
             if self._enable_async_checkpointing:
                 checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
                     self._model,
@@ -285,7 +289,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     ),
                 )
 
-            # Update recipe state from checkpoint
+            # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
 
         # initialize loss
