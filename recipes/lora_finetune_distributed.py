@@ -910,9 +910,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.zeros_like(mean_val_loss) for _ in range(world_size)
                 ]
                 torch.distributed.all_gather(gathered_val_loss, mean_val_loss)
-                print(gathered_val_loss)
                 mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
-                print(mean_val_loss)
                 if self._is_rank_zero:
                     self._metric_logger.log_dict(
                         {"val_loss": mean_val_loss},
