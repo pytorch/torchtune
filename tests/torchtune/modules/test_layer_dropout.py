@@ -195,6 +195,21 @@ class TestScales:
         assert_expected(get_scale(scale_type, scale_period, scale_period), 1.0)
         assert_expected(get_scale(scale_type, scale_period, scale_period * 2), 1.0)
 
+    def test_get_scale_sigmoid(self):
+        scale_type = ScaleType.SIGMOID
+        scale_period = 10
+
+        # sigmoid(0) is close to 0 but not 0, hence adding relatively large rotl and atol
+        assert_expected(
+            get_scale(scale_type, scale_period, 0), 0.0, rtol=1e-2, atol=1e-2
+        )
+        assert_expected(
+            get_scale(scale_type, scale_period, scale_period / 2),
+            0.5,
+        )
+        assert_expected(get_scale(scale_type, scale_period, scale_period), 1.0)
+        assert_expected(get_scale(scale_type, scale_period, scale_period * 2), 1.0)
+
 
 class TestLayerDropoutModel:
     def test_prepare_layer_dropout_uniform(self):
