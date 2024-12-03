@@ -3,11 +3,20 @@
 import torch
 from typing import Optional, Dict, Any
 
+import subprocess
+import logging
+
+logger = logging.getLogger(__name__)
+
 def get_gpu_peak_flops() -> float:
     """Get theoretical peak FLOPS for the current GPU.
     
     Returns:
         float: Peak FLOPS for the current GPU. Returns 0 if CUDA is not available.
+        
+    Note:
+        Uses hardcoded BF16 peak FLOPS values for NVIDIA A100, H100, and H200 GPUs.
+        For other GPUs, falls back to A100's peak FLOPS.
     """
     if not torch.cuda.is_available():
         return 0.0
@@ -15,17 +24,40 @@ def get_gpu_peak_flops() -> float:
     # Get current device properties
     device = torch.cuda.current_device()
     props = torch.cuda.get_device_properties(device)
+    device_name = props.name
     
-    # Calculate theoretical peak FLOPS
-    # FLOPS = 2 * cores * clock_rate * operations_per_cycle
-    gpu_flops = (
-        2  # for fused multiply-add
-        * props.multi_processor_count  # SM count
-        * props.max_clock_rate * 1e3  # Convert to Hz
-        * props.max_threads_per_block  # Threads per SM
-    )
+    try:
+        # Run the lspci command and capture the output
+        result = subprocess.run(["lspci"], stdout=subprocess.PIPE, text=True)
+        # Filter the output for lines containing both "NVIDIA" and "H100"
+        filtered_lines = [
+            line
+            for line in result.stdout.splitlines()
+            if "NVIDIA" in line and "H100" in line
+        ]
+        # Join all filtered lines into a single string
+        device_name = " ".join(filtered_lines) or device_name
+    except FileNotFoundError as e:
+        logger.warning(f"Error running lspci: {e}, fallback to use device_name")
     
-    return gpu_flops
+    if "A100" in device_name:
+        # data from https://www.nvidia.com/en-us/data-center/a100/
+        return 312e12
+    elif "H100" in device_name:
+        # data from https://www.nvidia.com/en-us/data-center/h100/
+        # NOTE: Specifications are one-half lower without sparsity.
+        if "NVL" in device_name:
+            return 835e12
+        elif "PCIe" in device_name:
+            return 756e12
+        else:  # for H100 SXM and other variants
+            return 989e12
+    elif "H200" in device_name:
+        # data from https://www.nvidia.com/en-us/data-center/h200/
+        return 989e12
+    else:  # for other GPU types, assume A100
+        logger.warning(f"Peak flops undefined for: {device_name}, fallback to A100")
+        return 312e12
 
 def calculate_mfu_and_flops(
     model_flops: float,

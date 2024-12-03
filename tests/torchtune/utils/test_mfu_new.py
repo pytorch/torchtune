@@ -2,27 +2,49 @@
 
 import pytest
 import torch
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from torchtune.utils import mfu
 
 
 def test_get_gpu_peak_flops():
     """Test GPU peak FLOPS calculation."""
-    # Mock CUDA device properties
+    # Mock CUDA device properties and lspci output
     mock_props = MagicMock()
-    mock_props.multi_processor_count = 10
-    mock_props.max_clock_rate = 1000  # MHz
-    mock_props.max_threads_per_block = 1024
+    mock_props.name = "NVIDIA A100-SXM4-80GB"
     
     with patch('torch.cuda.is_available', return_value=True), \
          patch('torch.cuda.current_device', return_value=0), \
-         patch('torch.cuda.get_device_properties', return_value=mock_props):
+         patch('torch.cuda.get_device_properties', return_value=mock_props), \
+         patch('subprocess.run') as mock_run:
+        # Test A100
         peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 312e12  # A100 peak FLOPS
         
-        # Expected: 2 * 10 * (1000 * 1e3) * 1024
-        expected_flops = 2 * 10 * (1000 * 1e3) * 1024
-        assert peak_flops == expected_flops
+        # Test H100 NVL
+        mock_props.name = "NVIDIA H100 NVL"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 835e12  # H100 NVL peak FLOPS
+        
+        # Test H100 PCIe
+        mock_props.name = "NVIDIA H100 PCIe"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 756e12  # H100 PCIe peak FLOPS
+        
+        # Test H100 SXM
+        mock_props.name = "NVIDIA H100-SXM5"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 989e12  # H100 SXM peak FLOPS
+        
+        # Test H200
+        mock_props.name = "NVIDIA H200"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 989e12  # H200 peak FLOPS
+        
+        # Test fallback for unknown GPU
+        mock_props.name = "NVIDIA Unknown GPU"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 312e12  # Falls back to A100
 
 
 def test_get_gpu_peak_flops_no_cuda():
