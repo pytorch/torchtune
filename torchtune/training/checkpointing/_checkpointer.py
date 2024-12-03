@@ -128,7 +128,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/recipe_state.
+            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
             Default is None.
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
@@ -241,8 +241,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
     ) -> None:
         """
         Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
-        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
-        state. The output state dicts have the following formats:
+        checkpoint file ``recipe_state.pt`` is created in ``_output_dir/RECIPE_STATE_DIRNAME``
+        which contains the recipe state. The output state dicts have the following formats:
 
         >>> # Model
         >>> {
@@ -304,7 +304,9 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
-            output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
+            output_path = Path.joinpath(
+                self._output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict, output_path)
             logger.info(
@@ -353,7 +355,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/recipe_state.
+            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
             Default is None.
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
@@ -642,8 +644,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     ) -> None:
         """
         Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
-        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
-        state.
+        checkpoint file ``recipe_state.pt`` is created in ``_output_dir/RECIPE_STATE_DIRNAME``
+        which contains the recipe state.
 
         The state_dict is first converted back to the HF format and then partitioned based on the
         ``_weight_map`` into separate checkpoint files.
@@ -1023,8 +1025,8 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
     ) -> None:
         """
         Save Meta checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
-        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
-        state.
+        checkpoint file ``recipe_state.pt`` is created in ``_output_dir/RECIPE_STATE_DIRNAME``
+        which contains the recipe state.
 
         Args:
             state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
