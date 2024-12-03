@@ -15,7 +15,7 @@
 # This config works only for distilling on a single device.
 
 
-output_dir: /tmp/torchtune/qwen2_knowledge/distillation_single_device # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/qwen2_1_5_to_0_5B/KD_single_device # /tmp may be deleted by your system. Change it to your preference.
 
 # Model Arguments
 model:
@@ -41,7 +41,7 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-0.5B-Instruct
+  output_dir: ${output_dir}
   model_type: QWEN2
 
 teacher_checkpointer:
@@ -89,7 +89,7 @@ compile: False  # torch.compile the model + loss, True increases speed + decreas
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
@@ -97,6 +97,8 @@ log_peak_memory_stats: True
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
+
 
 
 # Profiler (disabled)
