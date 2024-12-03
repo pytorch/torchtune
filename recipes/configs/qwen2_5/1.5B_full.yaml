@@ -47,7 +47,7 @@ shuffle: True
 epochs: 1
 max_steps_per_epoch: null
 batch_size: 2
-gradient_accumulation_steps: 1  # Use to increase virtual batch size
+gradient_accumulation_steps: 1  # Use to increase effective batch size
 optimizer:
   _component_: torch.optim.AdamW
   fused: True

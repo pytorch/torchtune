@@ -60,7 +60,7 @@ optimizer:
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+gradient_accumulation_steps: 8  # Use to increase effective batch size
 
 # Training env
 device: cuda

@@ -64,7 +64,7 @@ collate_fn: torchtune.data.padded_collate_tiled_images_and_mask
 epochs: 1
 max_steps_per_epoch: null
 batch_size: 2
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+gradient_accumulation_steps: 8  # Use to increase effective batch size
 optimizer:
   _component_: torch.optim.AdamW
   fused: True

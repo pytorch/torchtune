@@ -64,7 +64,7 @@ loss:
 max_steps_per_epoch: null
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
-gradient_accumulation_steps: 1  # Use to increase virtual batch size
+gradient_accumulation_steps: 1  # Use to increase effective batch size
 
 # Training env
 device: cuda

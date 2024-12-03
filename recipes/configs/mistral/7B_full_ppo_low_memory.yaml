@@ -128,7 +128,7 @@ batch_size: 64
 num_steps: 10000
 ppo_epochs: 2
 ppo_batch_size: 32
-gradient_accumulation_steps: 1  # Use to increase virtual batch size
+gradient_accumulation_steps: 1  # Use to increase effective batch size
 
 # Memory management and performance
 compile: True  # torch.compile the model + loss, True increases speed + decreases memory

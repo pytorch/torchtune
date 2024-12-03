@@ -76,7 +76,7 @@ fsdp:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+gradient_accumulation_steps: 8  # Use to increase effective batch size
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
