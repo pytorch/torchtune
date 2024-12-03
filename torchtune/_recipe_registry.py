@@ -321,6 +321,10 @@ _ALL_RECIPES = [
                 name="llama3_1/8B_lora_dpo",
                 file_path="llama3_1/8B_lora_dpo.yaml",
             ),
+            Config(
+                name="sarvam1/lora_dpo",
+                file_path="sarvam1/lora_dpo.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
