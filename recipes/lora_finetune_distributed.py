@@ -137,7 +137,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
 
         self._is_rank_zero = rank == 0
 
@@ -195,19 +195,24 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
         self._max_validation_steps = int(
-            cfg.get("samples_per_validation_steps") / cfg.batch_size
+            cfg.get("samples_per_validation_steps") / (cfg.batch_size * world_size)
         )
-        log.info(
-            f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
-        )
+
+        if self._is_rank_zero:
+            log.info(
+                f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size * world_size)"
+            )
         assert self.max_steps_per_epoch is None
-        effective_batch_size = cfg.batch_size * cfg.gradient_accumulation_steps
+        effective_batch_size = (
+            cfg.batch_size * cfg.gradient_accumulation_steps * world_size
+        )
         self.max_steps_per_epoch = int(
             cfg.get("samples_per_epoch") / effective_batch_size
         )
-        log.info(
-            f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
-        )
+        if self._is_rank_zero:
+            log.info(
+                f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -818,7 +823,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
@@ -843,11 +847,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 # NOTE: added by us - counter to account for samples that are too long
                 idx = 0
                 for _, batch in enumerate(self._dataloader_validation):
-                    if (
-                        self.max_steps_per_epoch is not None
-                        and (idx // self._gradient_accumulation_steps)
-                        == self.max_steps_per_epoch
-                    ):
+                    if idx >= num_eval_steps:
                         break
 
                     # NOTE: added by us
@@ -905,6 +905,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     idx += 1
 
                 mean_val_loss = running_val_loss / (idx + 1)
+                gathered_val_loss = [
+                    torch.zeros_like(mean_val_loss) for _ in range(world_size)
+                ]
+                torch.distributed.all_gather(gathered_val_loss, mean_val_loss)
+                mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
                 if self._is_rank_zero:
                     self._metric_logger.log_dict(
                         {"val_loss": mean_val_loss},
@@ -930,11 +935,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # NOTE: added by us - counter to account for samples that are too long
             idx = 0
             for _, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
+                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
                     break
 
                 # NOTE: added by us
