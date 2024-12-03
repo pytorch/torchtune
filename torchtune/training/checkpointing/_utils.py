@@ -387,7 +387,7 @@ def get_recipe_checkpoint_path(
     resume_from_checkpoint: bool = False,
 ):
     """
-    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/recipe_state/recipe_state.pt
+    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
 
     Args:
@@ -408,7 +408,7 @@ def get_recipe_checkpoint_path(
         # Look for the recipe checkpoint in the output directory
         tentative_recipe_state_path = os.path.join(
             output_dir,
-            "recipe_state",  # TODO: recipe_state folder should be a constant
+            RECIPE_STATE_DIRNAME,
             "recipe_state.pt",
         )
         if os.path.exists(tentative_recipe_state_path):
