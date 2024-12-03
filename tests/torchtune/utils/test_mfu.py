@@ -90,12 +90,12 @@ def test_get_model_flops_mlp():
     assert abs(flops - expected_flops) < 1e-5
 
 
-def test_calculate_mfu():
-    """Test MFU calculation with known values."""
+def test_calculate_mfu_and_flops():
+    """Test MFU and FLOPS calculation with known values."""
     # Mock GPU peak FLOPS
     with patch('torchtune.utils.mfu.get_gpu_peak_flops', return_value=1e12):  # 1 TFLOPS
         # Test case: Model doing 0.1 TFLOPS (10% utilization)
-        mfu_value = mfu.calculate_mfu(
+        mfu_value, actual_flops = mfu.calculate_mfu_and_flops(
             model_flops=1e11,  # 0.1 TFLOPS
             batch_size=1,
             step_time=1.0,  # 1 second
@@ -103,11 +103,12 @@ def test_calculate_mfu():
             device=torch.device("cuda")
         )
         assert abs(mfu_value - 10.0) < 1e-5  # Should be 10%
+        assert abs(actual_flops - 1e11) < 1e-5  # Should be 0.1 TFLOPS
 
 
-def test_calculate_mfu_no_cuda():
-    """Test MFU calculation when CUDA is not available."""
-    mfu_value = mfu.calculate_mfu(
+def test_calculate_mfu_and_flops_no_cuda():
+    """Test MFU and FLOPS calculation when CUDA is not available."""
+    mfu_value, actual_flops = mfu.calculate_mfu_and_flops(
         model_flops=1e9,
         batch_size=1,
         step_time=1.0,
@@ -115,14 +116,15 @@ def test_calculate_mfu_no_cuda():
         device=torch.device("cpu")
     )
     assert mfu_value == 0.0
+    assert actual_flops == 0.0
 
 
-def test_calculate_mfu_multi_gpu():
-    """Test MFU calculation with multiple GPUs."""
+def test_calculate_mfu_and_flops_multi_gpu():
+    """Test MFU and FLOPS calculation with multiple GPUs."""
     # Mock GPU peak FLOPS
     with patch('torchtune.utils.mfu.get_gpu_peak_flops', return_value=1e12):  # 1 TFLOPS per GPU
         # Test with 4 GPUs
-        mfu_value = mfu.calculate_mfu(
+        mfu_value, actual_flops = mfu.calculate_mfu_and_flops(
             model_flops=1e11,  # 0.1 TFLOPS
             batch_size=1,
             step_time=1.0,
@@ -132,10 +134,11 @@ def test_calculate_mfu_multi_gpu():
         # Total peak FLOPS = 4 TFLOPS, actual = 0.1 TFLOPS
         # MFU should be (0.1 / 4) * 100 = 2.5%
         assert abs(mfu_value - 2.5) < 1e-5
+        assert abs(actual_flops - 1e11) < 1e-5  # Should still be 0.1 TFLOPS
 
 
-def test_end_to_end_mfu():
-    """Test end-to-end MFU calculation with a real model."""
+def test_end_to_end_mfu_and_flops():
+    """Test end-to-end MFU and FLOPS calculation with a real model."""
     model = SimpleMLP(in_features=32, hidden_size=64, out_features=16)
     
     # Calculate expected FLOPs
@@ -147,8 +150,8 @@ def test_end_to_end_mfu():
         model_flops = mfu.get_model_flops(model, input_shape=(1, 32))
         assert abs(model_flops - expected_model_flops) < 1e-5
         
-        # Then calculate MFU
-        mfu_value = mfu.calculate_mfu(
+        # Then calculate MFU and FLOPS
+        mfu_value, actual_flops = mfu.calculate_mfu_and_flops(
             model_flops=model_flops,
             batch_size=128,  # Larger batch size
             step_time=1.0,
@@ -159,3 +162,7 @@ def test_end_to_end_mfu():
         # Expected MFU = (model_flops * batch_size) / (peak_flops * step_time) * 100
         expected_mfu = (expected_model_flops * 128) / 1e12 * 100
         assert abs(mfu_value - expected_mfu) < 1e-5
+        
+        # Expected FLOPS = model_flops * batch_size / step_time
+        expected_actual_flops = expected_model_flops * 128 / 1.0
+        assert abs(actual_flops - expected_actual_flops) < 1e-5

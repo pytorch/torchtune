@@ -871,17 +871,22 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     ):
                         time_per_step = time.perf_counter() - t0
                         tokens_per_second = num_tokens / (time_per_step * world_size)
+                        # Calculate MFU and actual FLOPS
+                        mfu_value, actual_flops = mfu.calculate_mfu_and_flops(
+                            model_flops=self._model_flops,
+                            batch_size=len(batch),
+                            step_time=time_per_step,
+                            world_size=world_size,
+                            device=self._device
+                        )
+                        
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": tokens_per_second,
-                            "mfu": mfu.calculate_mfu(
-                                model_flops=self._model_flops,
-                                batch_size=len(batch),
-                                step_time=time_per_step,
-                                world_size=world_size,
-                                device=self._device
-                            ),
+                            "mfu": mfu_value,
+                            "flops": actual_flops,
+                            "tflops": actual_flops / 1e12,  # Convert to TFLOPS for readability
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(

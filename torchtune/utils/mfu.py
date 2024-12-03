@@ -27,14 +27,14 @@ def get_gpu_peak_flops() -> float:
     
     return gpu_flops
 
-def calculate_mfu(
+def calculate_mfu_and_flops(
     model_flops: float,
     batch_size: int,
     step_time: float,
     world_size: int = 1,
     device: Optional[torch.device] = None,
-) -> float:
-    """Calculate Model FLOPs Utilization.
+) -> tuple[float, float]:
+    """Calculate Model FLOPs Utilization and actual FLOPS.
     
     Args:
         model_flops: Number of FLOPs for one forward pass
@@ -44,22 +44,24 @@ def calculate_mfu(
         device: Optional device to use for calculation. If None, uses current device.
     
     Returns:
-        float: MFU as a percentage (0-100)
+        tuple[float, float]: A tuple containing:
+            - MFU as a percentage (0-100)
+            - Actual FLOPS achieved (operations per second)
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
     if device.type != "cuda":
-        return 0.0
+        return 0.0, 0.0
         
     peak_flops = get_gpu_peak_flops() * world_size
     if peak_flops == 0:
-        return 0.0
+        return 0.0, 0.0
         
     actual_flops = (model_flops * batch_size) / step_time
     mfu = (actual_flops / peak_flops) * 100
     
-    return mfu
+    return mfu, actual_flops
 
 def get_model_flops(
     model: torch.nn.Module,
