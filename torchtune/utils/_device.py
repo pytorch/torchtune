@@ -186,7 +186,7 @@ Got key "{k}" with value of type {type(v)}"""
 class DeviceSupport(Enum):
     """
     This is a simple enum for compute devices,
-    This currently only supports CPU, CUDA, NPU.
+    This currently only supports CPU, CUDA, NPU, and XPU.
     The following enumeration defines various device configurations with attributes:
     1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu", "xpu").
     2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU", "XPU").
