@@ -22,8 +22,8 @@ from kagglehub import model_download
 from kagglehub.auth import set_kaggle_credentials
 from kagglehub.exceptions import KaggleApiHTTPError
 from kagglehub.handle import parse_model_handle
-from torchtune import training
 from torchtune._cli.subcommand import Subcommand
+from torchtune.training.checkpointing._utils import REPO_ID_FNAME
 
 
 class Download(Subcommand):
@@ -174,7 +174,7 @@ class Download(Subcommand):
         # from the rest of the CLI. When saving a model adapter, we have to add the repo_id
         # to the adapter config.
         # TODO: this needs to be updated when we start using HF cache
-        file_path = os.path.join(true_output_dir, training.REPO_ID_FNAME + ".json")
+        file_path = os.path.join(true_output_dir, REPO_ID_FNAME + ".json")
         with open(file_path, "w") as json_file:
             json.dump({"repo_id": args.repo_id}, json_file, indent=4)
 
@@ -210,9 +210,7 @@ class Download(Subcommand):
             # save the repo_id. This is necessary because the download step is a separate command
             # from the rest of the CLI. When saving a model adapter, we have to add the repo_id
             # to the adapter config.
-            file_path = os.path.join(output_dir, training.REPO_ID_FNAME).with_suffix(
-                ".json"
-            )
+            file_path = os.path.join(output_dir, REPO_ID_FNAME).with_suffix(".json")
             with open(file_path, "w") as json_file:
                 json.dump({"repo_id": args.repo_id}, json_file, indent=4)
 

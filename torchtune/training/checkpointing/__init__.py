@@ -12,9 +12,7 @@ from torchtune.training.checkpointing._checkpointer import (
 )
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
-    ADAPTER_CONFIG_FNAME,
     ADAPTER_KEY,
-    ADAPTER_MODEL_FNAME,
     EPOCHS_KEY,
     FormattedCheckpointFiles,
     get_largest_iter_folder,
@@ -22,14 +20,9 @@ from torchtune.training.checkpointing._utils import (
     MODEL_KEY,
     ModelType,
     OPT_KEY,
-    REPO_ID_FNAME,
     RNG_KEY,
-    SAFETENSOR_INDEX_FNAME,
     SEED_KEY,
-    SHARD_FNAME,
     STEPS_KEY,
-    SUFFIXES_TO_NOT_COPY,
-    TORCH_INDEX_FNAME,
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
@@ -41,7 +34,6 @@ Checkpointer = Union[
 ]
 
 __all__ = [
-    "get_largest_iter_folder",
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",
@@ -49,13 +41,7 @@ __all__ = [
     "Checkpointer",
     "update_state_dict_for_classifier",
     "ADAPTER_CONFIG",
-    "ADAPTER_CONFIG_FNAME",
-    "ADAPTER_MODEL_FNAME",
-    "SHARD_FNAME",
-    "SAFETENSOR_INDEX_FNAME",
-    "SUFFIXES_TO_NOT_COPY",
-    "TORCH_INDEX_FNAME",
-    "REPO_ID_FNAME",
+    "get_largest_iter_folder",
     "ADAPTER_KEY",
     "EPOCHS_KEY",
     "MAX_STEPS_KEY",
