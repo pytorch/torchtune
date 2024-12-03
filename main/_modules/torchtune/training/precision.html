@@ -483,6 +483,7 @@
 <span class="sd">        - NCCL is available and version &gt;= 2.10</span>
 <span class="sd">        - MPS is available and torch was built with MPS</span>
 <span class="sd">        - NPU is available and supports bf16</span>
+<span class="sd">        - XPU is available and supports bf16</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        bool: True if bf16 is available, False otherwise.</span>
@@ -496,7 +497,8 @@
     <span class="p">)</span>
     <span class="n">mps_support</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_built</span><span class="p">()</span>
     <span class="n">npu_support</span> <span class="o">=</span> <span class="n">is_npu_available</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">npu</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">cuda_support</span> <span class="ow">or</span> <span class="n">mps_support</span> <span class="ow">or</span> <span class="n">npu_support</span>
+    <span class="n">xpu_support</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">xpu</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">xpu</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cuda_support</span> <span class="ow">or</span> <span class="n">mps_support</span> <span class="ow">or</span> <span class="n">npu_support</span> <span class="ow">or</span> <span class="n">xpu_support</span>
 
 
 <div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.get_dtype.html#torchtune.training.get_dtype">[docs]</a><span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span>
