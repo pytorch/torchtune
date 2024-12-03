@@ -29,14 +29,14 @@ def get_gpu_peak_flops() -> float:
     try:
         # Run the lspci command and capture the output
         result = subprocess.run(["lspci"], stdout=subprocess.PIPE, text=True)
-        # Filter the output for lines containing both "NVIDIA" and "H100"
-        filtered_lines = [
+        # Filter for NVIDIA GPU lines
+        nvidia_lines = [
             line
             for line in result.stdout.splitlines()
-            if "NVIDIA" in line and "H100" in line
+            if "NVIDIA" in line
         ]
-        # Join all filtered lines into a single string
-        device_name = " ".join(filtered_lines) or device_name
+        # Use the first NVIDIA GPU line found, or fallback to device_name
+        device_name = nvidia_lines[0] if nvidia_lines else device_name
     except FileNotFoundError as e:
         logger.warning(f"Error running lspci: {e}, fallback to use device_name")
     

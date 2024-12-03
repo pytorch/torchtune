@@ -9,40 +9,51 @@ from torchtune.utils import mfu
 
 def test_get_gpu_peak_flops():
     """Test GPU peak FLOPS calculation."""
-    # Mock CUDA device properties and lspci output
+    # Mock CUDA device properties
     mock_props = MagicMock()
-    mock_props.name = "NVIDIA A100-SXM4-80GB"
+    mock_props.name = "NVIDIA Unknown GPU"  # This will be overridden by lspci output
+    
+    # Mock subprocess.run for lspci command
+    mock_lspci = MagicMock()
     
     with patch('torch.cuda.is_available', return_value=True), \
          patch('torch.cuda.current_device', return_value=0), \
          patch('torch.cuda.get_device_properties', return_value=mock_props), \
-         patch('subprocess.run') as mock_run:
+         patch('subprocess.run', return_value=mock_lspci):
+        
         # Test A100
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation A100-SXM4-80GB (rev a1)"
         peak_flops = mfu.get_gpu_peak_flops()
         assert peak_flops == 312e12  # A100 peak FLOPS
         
         # Test H100 NVL
-        mock_props.name = "NVIDIA H100 NVL"
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H100 NVL (rev a1)"
         peak_flops = mfu.get_gpu_peak_flops()
         assert peak_flops == 835e12  # H100 NVL peak FLOPS
         
         # Test H100 PCIe
-        mock_props.name = "NVIDIA H100 PCIe"
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H100 PCIe (rev a1)"
         peak_flops = mfu.get_gpu_peak_flops()
         assert peak_flops == 756e12  # H100 PCIe peak FLOPS
         
         # Test H100 SXM
-        mock_props.name = "NVIDIA H100-SXM5"
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H100-SXM5 (rev a1)"
         peak_flops = mfu.get_gpu_peak_flops()
         assert peak_flops == 989e12  # H100 SXM peak FLOPS
         
         # Test H200
-        mock_props.name = "NVIDIA H200"
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H200 (rev a1)"
         peak_flops = mfu.get_gpu_peak_flops()
         assert peak_flops == 989e12  # H200 peak FLOPS
         
-        # Test fallback for unknown GPU
-        mock_props.name = "NVIDIA Unknown GPU"
+        # Test multiple GPUs - should use first one
+        mock_lspci.stdout = """00:00.0 3D controller: NVIDIA Corporation H100-SXM5 (rev a1)
+                              00:00.1 3D controller: NVIDIA Corporation A100-SXM4-80GB (rev a1)"""
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 989e12  # Uses first GPU (H100 SXM)
+        
+        # Test fallback when lspci fails
+        mock_lspci.stdout = "00:00.0 3D controller: Unknown GPU"  # No NVIDIA GPU found
         peak_flops = mfu.get_gpu_peak_flops()
         assert peak_flops == 312e12  # Falls back to A100
 
