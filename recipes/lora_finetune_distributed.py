@@ -550,11 +550,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Calculate model FLOPs for MFU tracking
         if self._is_rank_zero:
-            # Use a small batch size and sequence length for FLOPs calculation
-            self._model_flops = mfu.get_model_flops(
-                model=model,
-                input_shape=(1, 32),  # (batch_size, seq_len)
-                device=self._device
+            # Calculate model FLOPs for MFU tracking
+            self._model_flops = mfu.get_transformer_flops(
+                hidden_size=cfg_model.hidden_size,
+                intermediate_size=cfg_model.hidden_size * 4,  # Standard transformer uses 4x
+                num_layers=cfg_model.num_layers,
+                seq_len=cfg_model.seq_length
             )
             utils.log_rank_zero(
                 log,

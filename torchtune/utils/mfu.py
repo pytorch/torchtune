@@ -63,35 +63,40 @@ def calculate_mfu_and_flops(
     
     return mfu, actual_flops
 
-def get_model_flops(
-    model: torch.nn.Module,
-    input_shape: tuple,
-    device: Optional[torch.device] = None,
+def get_transformer_flops(
+    hidden_size: int,
+    intermediate_size: int,
+    num_layers: int,
+    seq_len: int,
 ) -> float:
-    """Calculate FLOPs for one forward pass of the model.
+    """Calculate FLOPs for one forward pass of a transformer model.
     
     Args:
-        model: PyTorch model
-        input_shape: Shape of input tensor (batch_size, seq_len)
-        device: Optional device to use for calculation. If None, uses current device.
+        hidden_size: Hidden size of the model
+        intermediate_size: Intermediate size in MLP layers
+        num_layers: Number of transformer layers
+        seq_len: Sequence length
     
     Returns:
         float: Number of FLOPs for one forward pass
     """
-    try:
-        from fvcore.nn import FlopCountAnalysis
-    except ImportError:
-        raise ImportError(
-            "fvcore package not found. Please install it with: pip install fvcore"
-        )
-        
-    if device is None:
-        device = next(model.parameters()).device
-        
-    # Create dummy input
-    batch_size, seq_len = input_shape
-    dummy_input = torch.zeros(batch_size, seq_len, dtype=torch.long, device=device)
+    # FLOPs per attention layer
+    qkv_flops = 3 * hidden_size * hidden_size  # QKV projections
+    attn_scores_flops = seq_len * hidden_size * seq_len  # Attention scores
+    attn_output_flops = seq_len * seq_len * hidden_size  # Attention output
+    attn_proj_flops = hidden_size * hidden_size  # Output projection
     
-    # Calculate FLOPs
-    flops = FlopCountAnalysis(model, (dummy_input,))
-    return float(flops.total())
+    # FLOPs per MLP layer
+    mlp_flops = 2 * hidden_size * intermediate_size  # Two linear layers
+    
+    # Total FLOPs per layer
+    flops_per_layer = (
+        qkv_flops + attn_scores_flops + attn_output_flops + attn_proj_flops + mlp_flops
+    )
+    
+    # Total FLOPs for all layers
+    total_flops = flops_per_layer * num_layers
+    
+    # Each operation above is a matrix multiplication which uses 2 FLOPs per operation
+    # (one multiply and one add)
+    return total_flops * 2
