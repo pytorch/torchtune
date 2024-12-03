@@ -767,7 +767,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                     loss = loss.mean()
                     reward_accuracy = (
-                        (chosen_rewards > rejected_rewards).float().mean().cpu()
+                        (chosen_rewards > rejected_rewards).float().mean()
                     )
                     running_reward_accuracy += reward_accuracy
 
@@ -779,13 +779,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     idx += 1
 
                 mean_val_loss = running_val_loss / (idx + 1)
+                mean_reward_acc = running_reward_accuracy / (idx + 1)
                 gathered_reward_acc = [
-                    torch.zeros_like(reward_accuracies) for _ in range(get_world_size())
+                    torch.zeros_like(mean_reward_acc) for _ in range(get_world_size())
                 ]
                 gathered_mean_val_loss = [
                     torch.zeros_like(mean_val_loss) for _ in range(get_world_size())
                 ]
-                all_gather(gathered_reward_acc, reward_accuracies)
+                all_gather(gathered_reward_acc, mean_reward_acc)
                 all_gather(gathered_mean_val_loss, mean_val_loss)
 
                 reward_accuracies = torch.tensor(gathered_reward_acc).mean().cpu()
