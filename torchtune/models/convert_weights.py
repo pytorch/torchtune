@@ -244,6 +244,7 @@ def tune_to_peft_adapter_config(
         map(_TO_PEFT_TARGET_MODULES.get, adapter_config["target_modules"])
     )
 
+    # needed for PEFT to load the adapter weights
     if base_model_name_or_path:
         adapter_config["base_model_name_or_path"] = base_model_name_or_path
 
