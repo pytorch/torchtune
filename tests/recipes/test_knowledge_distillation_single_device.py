@@ -27,6 +27,12 @@ from tests.test_utils import (
 )
 from torchtune import config
 
+from torchtune.training.checkpointing._utils import (
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+    SHARD_FNAME,
+)
+
 
 class TestKDSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
@@ -184,6 +190,15 @@ class TestKDSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        checkpoint_files = [
+            os.path.join(
+                tmpdir,
+                epoch_folder_minus_one,
+                SHARD_FNAME.format(cpt_idx=1, num_shards=1),
+            )
+        ]
         cmd_2 = f"""
         tune run knowledge_distillation_single_device \
             --config qwen2/knowledge_distillation_single_device \
@@ -191,8 +206,8 @@ class TestKDSingleDeviceRecipe:
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "adapter.bin")}
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \

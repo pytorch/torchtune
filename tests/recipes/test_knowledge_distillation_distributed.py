@@ -28,6 +28,12 @@ from tests.test_utils import (
 )
 from torchtune import config
 
+from torchtune.training.checkpointing._utils import (
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+    SHARD_FNAME,
+)
+
 
 class TestKDDistributedRecipe:
     def _get_test_config_overrides(self, epochs: int = 2):
@@ -146,6 +152,15 @@ class TestKDDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        checkpoint_files = [
+            os.path.join(
+                tmpdir,
+                epoch_folder_minus_one,
+                SHARD_FNAME.format(cpt_idx=1, num_shards=1),
+            )
+        ]
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
             --config llama3_2/knowledge_distillation_distributed \
@@ -153,8 +168,8 @@ class TestKDDistributedRecipe:
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "adapter.bin")}
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             teacher_checkpointer.checkpoint_dir='{ckpt_dir}' \

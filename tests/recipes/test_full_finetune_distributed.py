@@ -27,6 +27,12 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
+from torchtune.training.checkpointing._utils import (
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+    SHARD_FNAME,
+)
+
 
 class TestFullFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
@@ -169,6 +175,15 @@ class TestFullFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        checkpoint_files = [
+            os.path.join(
+                tmpdir,
+                epoch_folder_minus_one,
+                SHARD_FNAME.format(cpt_idx=1, num_shards=1),
+            )
+        ]
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
             --config {config} \
@@ -177,8 +192,8 @@ class TestFullFinetuneDistributedRecipe:
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{tmpdir}' \
-            checkpointer.checkpoint_files=[{os.path.join(tmpdir, "torchtune_model_0.pt")}]\
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}\
+            checkpointer.checkpoint_files={checkpoint_files}\
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \

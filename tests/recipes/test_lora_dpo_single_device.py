@@ -25,6 +25,11 @@ from tests.test_utils import (
 )
 from torchtune import config
 
+from torchtune.training.checkpointing._utils import (
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+)
+
 
 class TestLoRADPOSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
@@ -99,7 +104,10 @@ class TestLoRADPOSingleDeviceRecipe:
 
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
+
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
@@ -109,8 +117,8 @@ class TestLoRADPOSingleDeviceRecipe:
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "adapter.bin")}
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
