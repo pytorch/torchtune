@@ -1,4 +1,4 @@
-# Config for multi-device knowledge distillation in knowledge_distillation_distributed.py
+# Config for single device knowledge distillation in kd_single_device.py
 # using a teacher and student model
 #
 # This config assumes that you've ran the following commands before launching KD:
@@ -7,13 +7,15 @@
 #   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct
 #
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2/1.5B_lora
+#   tune run lora_finetune_single_device --config qwen2/1.5B_lora_single_device
 #
-# To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config qwen2/knowledge_distillation_distributed
+# To launch on a single device, run the following command from root:
+#   tune run knowledge_distillation_single_device --config qwen2/1.5_to_0.5B_KD_single_device
 #
-# This config works best for distilling on 2+ devices.
+# This config works only for distilling on a single device.
 
+
+output_dir: /tmp/torchtune/qwen2_knowledge/distillation_single_device # /tmp may be deleted by your system. Change it to your preference.
 
 # Model Arguments
 model:
@@ -39,17 +41,17 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-0.5B-Instruct-kd
+  output_dir: /tmp/Qwen2-0.5B-Instruct
   model_type: QWEN2
 
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
-    hf_model_0001_0.pt
+    model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  output_dir: /tmp/Qwen2-1.5B-Instruct
   model_type: QWEN2
 
 resume_from_checkpoint: False
@@ -81,27 +83,25 @@ kd_ratio: 0.5
 # Training
 epochs: 1
 max_steps_per_epoch: null
-compile: False  # pytorch compile, set to true for better perf/memory
 gradient_accumulation_steps: 8  # Use to increase virtual batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
-output_dir: /tmp/qwen_kd
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
 
-# Show case the usage of pytorch profiler
-# Set enabled to False as it's only needed for debugging training
+
+# Profiler (disabled)
 profiler:
   _component_: torchtune.training.setup_torch_profiler
-
   enabled: False
 
   #Output directory of trace artifacts
@@ -120,6 +120,6 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 5
+  warmup_steps: 3
   active_steps: 2
   num_cycles: 1
