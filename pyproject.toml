@@ -58,6 +58,7 @@ dev = [
     "urllib3<2.0.0",
     "wandb",
     "expecttest",
+    "fvcore",  # For MFU calculation
 ]
 
 [tool.setuptools.dynamic]
