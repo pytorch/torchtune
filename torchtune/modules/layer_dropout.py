@@ -17,7 +17,7 @@ class LayerDropout(torch.nn.Module):
     """
     A module that applies layer dropout to the input tensor of an underlying module.
     It drops a portion of an input tensor, applies the underlying module on the
-        remaining parts of the tensor, and then concatenates with the dropped portion of the tensor.
+    remaining parts of the tensor, and then concatenates with the dropped portion of the tensor.
     When applied during training, it can have a regularization effect, and can potentially speedup training.
     Args:
         prob (float): The probability of dropping an input. Defaults to 0.0.
@@ -232,13 +232,14 @@ def prepare_layer_dropout(
     layers to apply dropout to, and a boolean indicating whether to disable dropout
     during evaluation. It then wraps each layer of the model inplace with a
     ModuleLayerDropoutWrapper, which applies layer dropout to the input tensor.
+
     Args:
         layers (Union[torch.nn.ModuleList, Iterable[torch.nn.Module]]): The list of layers to prepare for layer dropout.
         prob_max (float): The maximum probability of dropping a layer. Defaults to 0.0.
-        prob_layer_scale (Optional[ScaleType]): The scaling type for the dropout probability
-            across layers. Defaults to ScaleType.UNIFORM.
-        layers_str (Optional[str]): A string specifying which layers to apply dropout to.
-            Defaults to None which means apply to all layers.
+        prob_layer_scale (Optional[ScaleType]): The scaling type for the dropout probability across layers. Defaults to
+            ScaleType.UNIFORM.
+        layers_str (Optional[str]): A string specifying which layers to apply dropout to. Defaults to None which means
+            apply to all layers.
         disable_on_eval (Optional[bool]): Whether to disable dropout during evaluation. Defaults to True.
     Returns:
         None
