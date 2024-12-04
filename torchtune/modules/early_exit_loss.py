@@ -40,6 +40,7 @@ def early_exit_loss(
     and optional parameters for scaling the loss. It computes the early exit loss by
     iterating over the hidden states, computing the logits and losses at each layer,
     and then scaling and summing these losses.
+
     Args:
         model (TransformerDecoder): The model to compute the early exit loss for.
         hidden_states_dict (Dict[int, torch.Tensor]): A dictionary of hidden states,
@@ -98,6 +99,7 @@ def layer_ids_to_loss_scales(
     a loss scale type, and an early exit scaling factor. It computes the loss
     scales based on the specified loss scale type and then normalizes them to
     ensure that their sum is 1.0.
+
     Args:
         layer_ids (torch.Tensor): A tensor of layer IDs.
         n_layers (int): The total number of layers.
@@ -149,6 +151,7 @@ class EarlyExitCurriculum:
     """
     A curriculum for early exit loss training, which controls which layers to use their hidden states
     during training.
+
     Args:
         do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
             should be output to calculate their losses.
@@ -197,6 +200,7 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
     """
     A rotational early exit curriculum, which rotates the layer enablement one step forward
     at each step.
+
     Args:
         do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
             should be output to calculate their losses.
@@ -242,6 +246,7 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
 class GradualEarlyExitCurriculum(EarlyExitCurriculum):
     """
     A gradual early exit curriculum, which gradually enables more layers (starting from the last layer) as training progresses.
+
     Args:
         do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
             should be output to calculate their losses.
@@ -250,7 +255,8 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
         last_step (Optional[int]): The last step the curriculum stopped at in a previous run.
             This is used when resuming training.
         fraction_scale (float): A scaling factor to determine at which fraction
-            of steps, all the layers will be enabled. At `steps = max_steps * fraction_scale`, all the layers will be enabled. Defaults to 0.5.
+            of steps, all the layers will be enabled. At `steps = max_steps * fraction_scale`, all the layers will be
+            enabled. Defaults to 0.5.
         verbose (bool): Whether to print verbose logs. Defaults to False.
     """
 
@@ -314,6 +320,7 @@ def setup_early_exit_loss_curriculum(
     This function takes in an early exit curriculum type and optional arguments.
     It returns an instance of the corresponding early exit curriculum class,
     or None if the curriculum type is NONE.
+
     Args:
         early_exit_curriculum (EarlyExitCurriculumType): The type of early exit curriculum to set up.
         *args: Optional positional arguments for the early exit curriculum constructor.

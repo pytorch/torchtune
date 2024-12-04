@@ -19,6 +19,7 @@ class LayerDropout(torch.nn.Module):
     It drops a portion of an input tensor, applies the underlying module on the
     remaining parts of the tensor, and then concatenates with the dropped portion of the tensor.
     When applied during training, it can have a regularization effect, and can potentially speedup training.
+
     Args:
         prob (float): The probability of dropping an input. Defaults to 0.0.
         dim (Optional[int]): The dimension of input tensor along which to drop layers. Defaults to 0 (i.e., batch size).
@@ -61,6 +62,7 @@ class LayerDropout(torch.nn.Module):
     ) -> torch.Tensor:
         """
         Apply layer dropout to the input tensor.
+
         Args:
             function (Union[Callable, torch.nn.Module]): The function or module to apply to the input tensor.
             input (torch.Tensor): The input tensor.
@@ -101,6 +103,7 @@ class ModuleLayerDropoutWrapper(torch.nn.Module):
     A wrapper module that adds layer dropout functionality to a given module.
     This class wraps a given module and applies layer dropout to it. It also
     provides getter and setter methods for the wrapped module's attributes.
+
     Args:
         module (torch.nn.Module): The module to wrap.
         dropout (LayerDropout): The layer dropout object.
@@ -185,6 +188,7 @@ def get_scale(
     Compute a scaling factor based on the provided scale type, period, and value.
     The scaling factor is designed to be 0 when the value is 0 and 1 when the value
     reaches or is larger than the scale period.
+
     Args:
         scale_type (ScaleType): The type of scaling to use.
         scale_period (int): The period over which the scaling factor increases from 0 to 1.
