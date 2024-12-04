@@ -31,7 +31,6 @@ from torchtune import config
 from torchtune.training.checkpointing._utils import (
     get_largest_iter_folder,
     RECIPE_STATE_DIRNAME,
-    SHARD_FNAME,
 )
 
 
@@ -154,13 +153,6 @@ class TestKDDistributedRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        checkpoint_files = [
-            os.path.join(
-                tmpdir,
-                epoch_folder_minus_one,
-                SHARD_FNAME.format(cpt_idx=1, num_shards=1),
-            )
-        ]
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
             --config llama3_2/knowledge_distillation_distributed \
