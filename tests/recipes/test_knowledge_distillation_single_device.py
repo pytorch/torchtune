@@ -28,6 +28,7 @@ from tests.test_utils import (
 from torchtune import config
 
 from torchtune.training.checkpointing._utils import (
+    ADAPTER_MODEL_FNAME,
     get_largest_iter_folder,
     RECIPE_STATE_DIRNAME,
 )
@@ -198,7 +199,7 @@ class TestKDSingleDeviceRecipe:
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "adapter.bin")}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.bin")}
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \

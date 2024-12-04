@@ -177,14 +177,10 @@ class TestFullFinetuneDistributedRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        checkpoint_files = [
-            os.path.join(
-                tmpdir,
-                epoch_folder_minus_one,
-                SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
-                + ".safetensors",
-            )
-        ]
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + ".safetensors"
+        )
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
             --config {config} \
@@ -193,7 +189,7 @@ class TestFullFinetuneDistributedRecipe:
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{tmpdir}' \
-            checkpointer.checkpoint_files={checkpoint_files}\
+            checkpointer.checkpoint_files=[{os.path.join(tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
