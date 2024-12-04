@@ -210,7 +210,7 @@ class Download(Subcommand):
             # save the repo_id. This is necessary because the download step is a separate command
             # from the rest of the CLI. When saving a model adapter, we have to add the repo_id
             # to the adapter config.
-            file_path = os.path.join(output_dir, REPO_ID_FNAME).with_suffix(".json")
+            file_path = os.path.join(output_dir, REPO_ID_FNAME + ".json")
             with open(file_path, "w") as json_file:
                 json.dump({"repo_id": args.repo_id}, json_file, indent=4)
 
