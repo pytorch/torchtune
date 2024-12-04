@@ -30,16 +30,6 @@ model:
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /fs/class-projects/fall2024/cmsc473/c473g002/models/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
-  prompt_template:
-    system:
-      - "System:\n"
-      - "\n"
-    user:
-      - "Evaluate policy compliance for this conversation:\n"
-      - "\n"
-    assistant:
-      - "Compliance Evaluation:\n"
-      - "\n"
   max_seq_len: null
 
 checkpointer:
@@ -91,7 +81,7 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
-epochs: 100
+epochs: 5
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
 compile: False # set it to True for better memory and performance

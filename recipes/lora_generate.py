@@ -121,14 +121,11 @@ class InferenceRecipe:
 
     @torch.inference_mode()
     def generate(self, cfg: DictConfig):
-        prompt_template = self._tokenizer.prompt_template.template
-        system_prompt = prompt_template['system'][0] + cfg['dataset']['new_system_prompt'] + prompt_template['system'][1]
-        user_prompt = prompt_template['user'][0] + cfg.prompt + prompt_template['user'][1]
-        response_prefix = prompt_template['assistant'][0]
+        system_prompt = cfg['dataset']['new_system_prompt']
 
-        tokens = self.convert_prompt_to_tokens(
-            system_prompt + user_prompt + response_prefix, cfg.get("chat_format", None), cfg.get("instruct_template", None)
-        )
+        msgs = [Message(role="system", content=system_prompt, eot=True), Message(role="user", content=cfg.prompt, eot=True)]
+        tokens, mask = self._tokenizer.tokenize_messages(msgs)
+        tokens = tokens[:-1] # remove EOS because we want to continue generating
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 
         custom_generate_next_token = None
