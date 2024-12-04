@@ -9,6 +9,7 @@ from unittest import mock
 import pytest
 
 from PIL import Image
+from tests.common import ASSETS
 from tests.test_utils import (
     assert_dialogue_equal,
     CHAT_SAMPLE,
@@ -23,6 +24,8 @@ from torchtune.data._messages import (
     ShareGPTToMessages,
     validate_messages,
 )
+
+PYTORCH_RGB_IMAGE_AS_PIL = Image.open(ASSETS / "rgb_pytorch.png")
 
 
 class TestMessage:
@@ -105,6 +108,60 @@ class TestInputOutputToMessages:
             "maybe_input": "hello world",
             "maybe_output": "hello world",
         }
+
+    @pytest.mark.parametrize(
+        "input_image, expected_image",
+        [
+            ("rgb_pytorch.png", PYTORCH_RGB_IMAGE_AS_PIL),
+            (ASSETS / "rgb_pytorch.png", PYTORCH_RGB_IMAGE_AS_PIL),
+            (PYTORCH_RGB_IMAGE_AS_PIL, PYTORCH_RGB_IMAGE_AS_PIL),
+        ],
+    )
+    def test_call_with_image(self, sample, input_image, expected_image):
+        # Add the image to the sample
+        sample["image"] = input_image
+
+        # Create the transform
+        transform = InputOutputToMessages(
+            column_map={
+                "input": "maybe_input",
+                "output": "maybe_output",
+                "image": "image",
+            },
+            # Need to test if the image_dir is properly joined w/ image
+            image_dir=ASSETS if isinstance(input_image, str) else None,
+        )
+        actual = transform(sample)
+        expected = [
+            Message(
+                role="user",
+                content=[
+                    {"type": "text", "content": "hello world"},
+                    {"type": "image", "content": expected_image},
+                ],
+                masked=True,
+                eot=True,
+            ),
+            Message(role="assistant", content="hello world", masked=False, eot=True),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
+    def test_call_with_image_fails_when_bad_image_inputs_are_passed(self, sample):
+        # Construct a bad column_map without an 'image' key
+        column_map = {
+            "input": "maybe_input",
+            "output": "maybe_output",
+        }
+
+        # Create a transform that expects an image column
+        with pytest.raises(
+            ValueError,
+            match="Please specify an 'image' key in column_map",
+        ):
+            transform = InputOutputToMessages(
+                column_map=column_map,
+                image_dir=ASSETS,
+            )
 
     def test_call(self, sample):
         transform = InputOutputToMessages(
