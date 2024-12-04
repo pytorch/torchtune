@@ -128,6 +128,10 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/90B_full",
                 file_path="llama3_2_vision/90B_full.yaml",
             ),
+            Config(
+                name="sarvam1/full_finetune",
+                file_path="sarvam1/full_finetune.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
