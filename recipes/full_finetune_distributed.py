@@ -143,7 +143,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -196,26 +196,27 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
-        self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
         # NOTE: added by us
         self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
         self.max_seq_len = cfg.get("max_seq_len", None)
         self._max_validation_steps = int(
-            cfg.get("samples_per_validation_steps") / cfg.batch_size
+            cfg.get("samples_per_validation_steps") / (cfg.batch_size * world_size)
         )
-        log.info(
-            f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
+        effective_batch_size = (
+            cfg.batch_size * cfg.gradient_accumulation_steps * world_size
         )
-        assert self.max_steps_per_epoch is None
-        effective_batch_size = cfg.batch_size * cfg.gradient_accumulation_steps
         self.max_steps_per_epoch = int(
             cfg.get("samples_per_epoch") / effective_batch_size
         )
-        log.info(
-            f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
-        )
+        if self._is_rank_zero:
+            log.info(
+                f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
+            )
+            log.info(
+                f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -862,11 +863,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # NOTE: added by us - counter to account for samples that are too long
                 idx = 0
                 for _, batch in enumerate(self._dataloader_validation):
-
-                    if (
-                        self._max_validation_steps is not None
-                        and idx == self._max_validation_steps
-                    ):
+                    if idx >= num_eval_steps:
                         break
 
                     # NOTE: added by us
@@ -915,12 +912,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     idx += 1  # NOTE: added by us
 
                 mean_val_loss = running_val_loss / (idx + 1)
-                self._metric_logger.log_dict(
-                    {"val_loss": mean_val_loss},
-                    step=self.global_step,
+                gathered_val_loss = [
+                    torch.zeros_like(mean_val_loss) for _ in range(world_size)
+                ]
+                torch.distributed.all_gather(gathered_val_loss, mean_val_loss)
+                mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
+                if self._is_rank_zero:
+                    self._metric_logger.log_dict(
+                        {"val_loss": mean_val_loss},
+                        step=self.global_step,
+                    )
+                utils.log_rank_zero(
+                    log, f"Number of samples that were too long: {max_len_samples}"
                 )
                 pbar_val.close()
-                print("Number of samples that were too long: ", max_len_samples)
 
             # ------ Training Epoch ------ #
             # Initialize tokens count and running loss (for grad accumulation)
@@ -938,12 +943,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # NOTE: added by us - counter to account for samples that are too long
             idx = 0
             for _, batch in enumerate(self._dataloader):
-
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
+                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
                     break
 
                 # NOTE: added by us
