@@ -246,12 +246,12 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
         do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
             should be output to calculate their losses.
         max_steps (int): The maximum number of steps in the curriculum.
-        train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
+        train_last_layer (bool): Whether to always calculate loss for the last layer. Defaults to True.
         last_step (Optional[int]): The last step the curriculum stopped at in a previous run.
             This is used when resuming training.
-        fraction_scale (float, optional): A scaling factor to determine at which fraction
-            of steps, all the layers will be enabled. At `steps = max_steps * fraction_scale`, all the layers will be enabled.
-        verbose (bool, optional): Whether to print verbose logs. Defaults to False.
+        fraction_scale (float): A scaling factor to determine at which fraction
+            of steps, all the layers will be enabled. At `steps = max_steps * fraction_scale`, all the layers will be enabled. Defaults to 0.5.
+        verbose (bool): Whether to print verbose logs. Defaults to False.
     """
 
     def __init__(
