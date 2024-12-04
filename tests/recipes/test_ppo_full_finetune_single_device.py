@@ -247,7 +247,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
             checkpointer.checkpoint_files={policy_checkpoint_files}\
-            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA2 \
 
@@ -362,14 +362,20 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         # Resume training at step 2
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
+
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards=1) + ".safetensors"
+        )
         cmd_2 = f"""
         tune run ppo_full_finetune_single_device \
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
-            checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, "hf_model_0001_0.pt")}]\
-            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, "recipe_state.pt")}\
+            checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA2 \
 
@@ -377,7 +383,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
 
             value_checkpointer.checkpoint_dir='{value_tmpdir}' \
-            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, "hf_model_0001_0.pt")}]\
+            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \

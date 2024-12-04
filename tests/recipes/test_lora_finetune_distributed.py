@@ -187,8 +187,8 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "adapter.bin")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "adapter.safetensors")}
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \

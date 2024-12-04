@@ -199,7 +199,7 @@ class TestKDSingleDeviceRecipe:
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, "adapter.bin")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \

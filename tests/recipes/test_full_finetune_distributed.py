@@ -181,7 +181,8 @@ class TestFullFinetuneDistributedRecipe:
             os.path.join(
                 tmpdir,
                 epoch_folder_minus_one,
-                SHARD_FNAME.format(cpt_idx=1, num_shards=1),
+                SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+                + ".safetensors",
             )
         ]
         cmd_2 = f"""
@@ -193,7 +194,7 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{tmpdir}' \
             checkpointer.checkpoint_files={checkpoint_files}\
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
