@@ -390,7 +390,7 @@ def get_recipe_checkpoint_path(
     resume_from_checkpoint: bool = False,
 ):
     """
-    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt
+    If recipe_checkpoint is None, look for recipe_state.bin in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.{suffix}.
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
 
     Args:
@@ -405,24 +405,23 @@ def get_recipe_checkpoint_path(
     if not resume_from_checkpoint:
         return None
 
+    recipe_checkpoint_path = None
     if recipe_checkpoint:
-        recipe_checkpoint = os.path.join(output_dir, recipe_checkpoint)
+        recipe_checkpoint_path = os.path.join(output_dir, recipe_checkpoint)
     else:
-        # Look for the recipe checkpoint in the output directory
-        tentative_recipe_state_path = os.path.join(
-            output_dir,
-            RECIPE_STATE_DIRNAME,
-            "recipe_state.pt",
-        )
-        if os.path.exists(tentative_recipe_state_path):
-            recipe_checkpoint = tentative_recipe_state_path
-        else:
-            raise ValueError(
-                "If resume_from_checkpoint is True, recipe_checkpoint file must be provided "
-                f"or exist at {tentative_recipe_state_path}."
-            )
+        # Look for the recipe_state in /recipe_state
+        tentative_folder_path = os.path.join(output_dir, RECIPE_STATE_DIRNAME)
+        for file_name in os.listdir(tentative_folder_path):
+            if file_name.startswith("recipe_state" + "."):
+                recipe_checkpoint_path = os.path.join(tentative_folder_path, file_name)
 
-    return Path(recipe_checkpoint)
+    # TODO: improve this msg
+    if not recipe_checkpoint_path or not os.path.exists(recipe_checkpoint_path):
+        raise ValueError(
+            "If resume_from_checkpoint is True, recipe_checkpoint file must be provided."
+        )
+
+    return Path(recipe_checkpoint_path)
 
 
 def get_adapter_checkpoint_path(
@@ -432,7 +431,7 @@ def get_adapter_checkpoint_path(
     pattern: str = r"^epoch_(\d+)",
 ):
     r"""
-    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/epoch_{latest_epoch}/adapter_model.pt
+    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.{suffix}.
     This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
 
     Args:
@@ -449,14 +448,16 @@ def get_adapter_checkpoint_path(
 
     if adapter_checkpoint:
         adapter_checkpoint = os.path.join(output_dir, adapter_checkpoint)
+        # TODO: add error if it doesnt exist
     else:
         # Look for the latest adapter checkpoint in the output directory
         largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
+
         if largest_iter_folder:
-            tentative_adapter_checkpoint = os.path.join(
-                output_dir, largest_iter_folder, "adapter_model.pt"
-            )
-            if os.path.exists(tentative_adapter_checkpoint):
-                adapter_checkpoint = tentative_adapter_checkpoint
+            folder_path = os.path.join(output_dir, largest_iter_folder)
+            for file_name in os.listdir(folder_path):
+                if file_name.startswith(ADAPTER_MODEL_FNAME + "."):
+                    adapter_checkpoint = os.path.join(folder_path, file_name)
+                    break
 
     return Path(adapter_checkpoint) if adapter_checkpoint else None

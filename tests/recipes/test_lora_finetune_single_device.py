@@ -326,7 +326,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         # Load base model and trained adapter weights into LoRA model and call fwd
         epoch_folder = get_largest_iter_folder(tmpdir)
-        suffix = ".safetensors"
+        suffix = ".bin"
         adpt_path = os.path.join(tmpdir, epoch_folder, ADAPTER_MODEL_FNAME + suffix)
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
 

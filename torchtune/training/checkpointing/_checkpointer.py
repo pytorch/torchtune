@@ -268,9 +268,9 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             shard_name = SHARD_FNAME.format(
                 cpt_idx="1".zfill(5), num_shards="1".zfill(5)
             )
-            output_path = Path.joinpath(self._output_dir, shard_name).with_suffix(
-                ".bin"
-            )
+            output_path = Path.joinpath(
+                self._output_dir, f"epoch_{epoch}", shard_name
+            ).with_suffix(".bin")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.MODEL_KEY], output_path)
             logger.info(
@@ -281,7 +281,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
         if training.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
-                self._output_dir, ADAPTER_MODEL_FNAME
+                self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
             ).with_suffix(".bin")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
@@ -1061,7 +1061,8 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             checkpoint_file = Path.joinpath(
                 self._output_dir, f"epoch_{epoch}", model_filename
             ).with_suffix(".bin")
-            checkpoint_file.mkdir(parents=True, exist_ok=True)
+            checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
+
             torch.save(state_dict[training.MODEL_KEY], checkpoint_file)
             logger.info(
                 "Model checkpoint of size "
