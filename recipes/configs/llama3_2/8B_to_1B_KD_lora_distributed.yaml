@@ -10,12 +10,12 @@
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config llama3_2/8B_to_1B_KD_distributed
+#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config llama3_2/8B_to_1B_KD_lora_distributed
 #
 # This config works best for distilling on 2+ devices.
 
 
-output_dir: /tmp/torchtune/llama3_2_8B_to_1B/KD_distributed # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/llama3_2_8B_to_1B/KD_lora_distributed # /tmp may be deleted by your system. Change it to your preference.
 
 # Model Arguments
 model:

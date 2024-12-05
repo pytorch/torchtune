@@ -10,12 +10,12 @@
 #   tune run lora_finetune_single_device --config qwen2/1.5B_lora_single_device
 #
 # To launch on a single device, run the following command from root:
-#   tune run knowledge_distillation_single_device --config qwen2/1.5_to_0.5B_KD_single_device
+#   tune run knowledge_distillation_single_device --config qwen2/1.5_to_0.5B_KD_lora_single_device
 #
 # This config works only for distilling on a single device.
 
 
-output_dir: /tmp/torchtune/qwen2_1_5_to_0_5B/KD_single_device # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/qwen2_1_5_to_0_5B/KD_lora_single_device # /tmp may be deleted by your system. Change it to your preference.
 
 # Model Arguments
 model:
