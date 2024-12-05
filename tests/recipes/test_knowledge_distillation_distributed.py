@@ -32,6 +32,8 @@ from torchtune.training.checkpointing._utils import (
     ADAPTER_MODEL_FNAME,
     get_largest_iter_folder,
     RECIPE_STATE_DIRNAME,
+    safe_torch_load,
+    SHARD_FNAME,
 )
 
 
@@ -246,8 +248,12 @@ class TestKDDistributedRecipe:
         )
 
         # Load base model and trained adapter weights into LoRA model and call fwd
-        with open(f"{tmpdir}/adapter_1.pt", "rb") as f:
-            lora_sd = torch.load(f, weights_only=True)
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        adpt_path = Path.joinpath(
+            tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.safetensors"
+        )
+        lora_sd = safe_torch_load(adpt_path, weights_only=True)
+
         with open(ckpt_path, "rb") as f:
             base_model_sd = torch.load(f, weights_only=True)
         lora_model.load_state_dict(lora_sd, strict=False)
@@ -255,8 +261,13 @@ class TestKDDistributedRecipe:
         baseline_out = lora_model(inputs)
 
         # Load merged final ckpt directly into 3 and call fwd
-        with open(f"{tmpdir}/torchtune_model_1.pt", "rb") as f:
-            sd = torch.load(f, weights_only=True)
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
+            + ".safetensors"
+        )
+        model_path = Path.joinpath(tmpdir, epoch_folder, model_ckpt_fname)
+        sd = safe_torch_load(model_path, weights_only=True)
+
         llama3_model.load_state_dict(sd)
         merged_ckpt_out = llama3_model(inputs)
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)
