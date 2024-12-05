@@ -50,12 +50,9 @@ except ImportError:
         Int8DynActInt4WeightQATQuantizer,
     )
 
-from torchtune.utils._version import torch_version_ge
-
 
 _SUPPORTS_INT8_MIXED_PRECISION_TRAINING = (
-    torch_version_ge("2.4.0")
-    and Version(torchao.__version__) >= Version("0.7.0.dev")
+    Version(torchao.__version__) >= Version("0.7.0.dev")
     and torch.cuda.is_available()
     and torch.cuda.get_device_capability() >= (8, 0)
 )
