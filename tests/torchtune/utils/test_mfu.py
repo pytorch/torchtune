@@ -2,61 +2,60 @@
 
 import pytest
 import torch
-import torch.nn as nn
 from unittest.mock import patch, MagicMock
 
 from torchtune.utils import mfu
-
-
-class SimpleLinear(nn.Module):
-    """Simple model with known FLOPs count.
-    
-    For a linear layer with input size M and output size N:
-    FLOPs = 2 * M * N (multiply-add for each output element)
-    """
-    def __init__(self, in_features=32, out_features=64):
-        super().__init__()
-        self.linear = nn.Linear(in_features, out_features)
-        
-    def forward(self, x):
-        return self.linear(x)
-
-
-class SimpleMLP(nn.Module):
-    """Simple MLP with known FLOPs count.
-    
-    For each linear layer:
-    FLOPs = 2 * in_features * out_features
-    Total FLOPs = sum of FLOPs for each layer
-    """
-    def __init__(self, in_features=32, hidden_size=64, out_features=16):
-        super().__init__()
-        self.fc1 = nn.Linear(in_features, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, out_features)
-        
-    def forward(self, x):
-        x = self.fc1(x)
-        x = torch.relu(x)  # ReLU has negligible FLOPs
-        x = self.fc2(x)
-        return x
 
 
 def test_get_gpu_peak_flops():
     """Test GPU peak FLOPS calculation."""
     # Mock CUDA device properties
     mock_props = MagicMock()
-    mock_props.multi_processor_count = 10
-    mock_props.max_clock_rate = 1000  # MHz
-    mock_props.max_threads_per_block = 1024
+    mock_props.name = "NVIDIA Unknown GPU"  # This will be overridden by lspci output
+    
+    # Mock subprocess.run for lspci command
+    mock_lspci = MagicMock()
     
     with patch('torch.cuda.is_available', return_value=True), \
          patch('torch.cuda.current_device', return_value=0), \
-         patch('torch.cuda.get_device_properties', return_value=mock_props):
-        peak_flops = mfu.get_gpu_peak_flops()
+         patch('torch.cuda.get_device_properties', return_value=mock_props), \
+         patch('subprocess.run', return_value=mock_lspci):
         
-        # Expected: 2 * 10 * (1000 * 1e3) * 1024
-        expected_flops = 2 * 10 * (1000 * 1e3) * 1024
-        assert peak_flops == expected_flops
+        # Test A100
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation A100-SXM4-80GB (rev a1)"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 312e12  # A100 peak FLOPS
+        
+        # Test H100 NVL
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H100 NVL (rev a1)"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 835e12  # H100 NVL peak FLOPS
+        
+        # Test H100 PCIe
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H100 PCIe (rev a1)"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 756e12  # H100 PCIe peak FLOPS
+        
+        # Test H100 SXM
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H100-SXM5 (rev a1)"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 989e12  # H100 SXM peak FLOPS
+        
+        # Test H200
+        mock_lspci.stdout = "00:00.0 3D controller: NVIDIA Corporation H200 (rev a1)"
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 989e12  # H200 peak FLOPS
+        
+        # Test multiple GPUs - should use first one
+        mock_lspci.stdout = """00:00.0 3D controller: NVIDIA Corporation H100-SXM5 (rev a1)
+                              00:00.1 3D controller: NVIDIA Corporation A100-SXM4-80GB (rev a1)"""
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 989e12  # Uses first GPU (H100 SXM)
+        
+        # Test fallback when lspci fails
+        mock_lspci.stdout = "00:00.0 3D controller: Unknown GPU"  # No NVIDIA GPU found
+        peak_flops = mfu.get_gpu_peak_flops()
+        assert peak_flops == 312e12  # Falls back to A100
 
 
 def test_get_gpu_peak_flops_no_cuda():
@@ -66,27 +65,36 @@ def test_get_gpu_peak_flops_no_cuda():
         assert peak_flops == 0.0
 
 
-def test_get_model_flops_linear():
-    """Test FLOPs calculation for a simple linear model."""
-    model = SimpleLinear(in_features=32, out_features=64)
+def test_get_transformer_flops():
+    """Test FLOPs calculation for a transformer model."""
+    # Test case: Small transformer
+    hidden_size = 128
+    intermediate_size = 512
+    num_layers = 2
+    seq_len = 32
     
-    # Expected FLOPs for linear layer: 2 * in_features * out_features
-    expected_flops = 2 * 32 * 64
+    flops = mfu.get_transformer_flops(
+        hidden_size=hidden_size,
+        intermediate_size=intermediate_size,
+        num_layers=num_layers,
+        seq_len=seq_len
+    )
     
-    flops = mfu.get_model_flops(model, input_shape=(1, 32))
-    assert abs(flops - expected_flops) < 1e-5
-
-
-def test_get_model_flops_mlp():
-    """Test FLOPs calculation for a simple MLP model."""
-    model = SimpleMLP(in_features=32, hidden_size=64, out_features=16)
+    # Expected FLOPs per layer:
+    # QKV: 3 * h * h = 3 * 128 * 128
+    # Attn scores: s * h * s = 32 * 128 * 32
+    # Attn output: s * s * h = 32 * 32 * 128
+    # Output proj: h * h = 128 * 128
+    # MLP: 2 * h * i = 2 * 128 * 512
+    expected_per_layer = (
+        (3 * 128 * 128) +  # QKV
+        (32 * 128 * 32) +  # Attn scores
+        (32 * 32 * 128) +  # Attn output
+        (128 * 128) +      # Output proj
+        (2 * 128 * 512)    # MLP
+    )
+    expected_flops = expected_per_layer * num_layers * 2  # *2 for multiply-add
     
-    # Expected FLOPs:
-    # First layer: 2 * 32 * 64
-    # Second layer: 2 * 64 * 16
-    expected_flops = (2 * 32 * 64) + (2 * 64 * 16)
-    
-    flops = mfu.get_model_flops(model, input_shape=(1, 32))
     assert abs(flops - expected_flops) < 1e-5
 
 
@@ -138,16 +146,32 @@ def test_calculate_mfu_and_flops_multi_gpu():
 
 
 def test_end_to_end_mfu_and_flops():
-    """Test end-to-end MFU and FLOPS calculation with a real model."""
-    model = SimpleMLP(in_features=32, hidden_size=64, out_features=16)
+    """Test end-to-end MFU and FLOPS calculation with a transformer model."""
+    # Test case: Small transformer
+    hidden_size = 128
+    intermediate_size = 512
+    num_layers = 2
+    seq_len = 32
     
     # Calculate expected FLOPs
-    expected_model_flops = (2 * 32 * 64) + (2 * 64 * 16)
+    expected_per_layer = (
+        (3 * hidden_size * hidden_size) +  # QKV
+        (seq_len * hidden_size * seq_len) +  # Attn scores
+        (seq_len * seq_len * hidden_size) +  # Attn output
+        (hidden_size * hidden_size) +  # Output proj
+        (2 * hidden_size * intermediate_size)  # MLP
+    )
+    expected_model_flops = expected_per_layer * num_layers * 2  # *2 for multiply-add
     
     # Mock GPU peak FLOPS
     with patch('torchtune.utils.mfu.get_gpu_peak_flops', return_value=1e12):  # 1 TFLOPS
         # First get model FLOPs
-        model_flops = mfu.get_model_flops(model, input_shape=(1, 32))
+        model_flops = mfu.get_transformer_flops(
+            hidden_size=hidden_size,
+            intermediate_size=intermediate_size,
+            num_layers=num_layers,
+            seq_len=seq_len
+        )
         assert abs(model_flops - expected_model_flops) < 1e-5
         
         # Then calculate MFU and FLOPS
