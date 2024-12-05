@@ -7,7 +7,7 @@
 import json
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import torch
 from torch.utils.data import Dataset
@@ -240,7 +240,7 @@ def lora_llama3_test_config(
     ]
 
 
-def write_hf_ckpt_config(ckpt_dir: str):
+def write_hf_ckpt_config(ckpt_dir: Union[str, Path]):
     config = {
         "hidden_size": 256,
         "num_attention_heads": 16,

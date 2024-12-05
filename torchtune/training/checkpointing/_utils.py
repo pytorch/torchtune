@@ -302,7 +302,10 @@ def update_state_dict_for_classifier(
 
 
 # TODO: add test
-def get_largest_iter_folder(dir: Union[str, Path], pattern: str = r"^epoch_(\d+)"):
+def get_largest_iter_folder(
+    dir: Union[str, Path], pattern: str = r"^epoch_(\d+)"
+) -> Union[None, str]:
+
     latest_epoch_folder = None
     iter_folders = []
     regex = re.compile(pattern)
@@ -327,7 +330,7 @@ def copy_files(
     input_dir: Union[str, Path],
     output_dir: Union[str, Path],
     ignore_suffixes: Optional[List[str]] = None,
-):
+) -> None:
     """
     Copies files from the input directory to the output directory, preserving the directory structure.
 

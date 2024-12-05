@@ -177,9 +177,9 @@ class TestFullFinetuneDistributedRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        suffix = ".safetensors" if ckpt_type == "hf" else ".bin"
         model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
-            + ".safetensors"
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
         )
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
