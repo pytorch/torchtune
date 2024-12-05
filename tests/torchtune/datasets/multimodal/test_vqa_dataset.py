@@ -47,3 +47,13 @@ class TestMultimodalInstructDataset:
             assert prompt == expected_tokens[i]
             assert label == expected_labels[i]
             assert isinstance(image[0], PngImageFile)
+
+    def test_dataset_fails_with_packed(self, tokenizer):
+        with pytest.raises(
+            ValueError, match="Multimodal datasets don't support packing yet."
+        ):
+            vqa_dataset(
+                model_transform=tokenizer,
+                source="json",
+                packed=True,
+            )

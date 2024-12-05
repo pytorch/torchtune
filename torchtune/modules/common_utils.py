@@ -9,7 +9,7 @@ import mmap
 import sys
 from collections import OrderedDict
 from functools import partial
-from typing import Any, Dict, Generator, Optional, Tuple
+from typing import Any, Dict, Generator, Optional
 from warnings import warn
 
 import torch
@@ -24,10 +24,10 @@ _use_low_cpu_ram: bool = False
 def reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
     state_dict: Dict[str, Any],
-    *args: Tuple[Any, ...],
+    *args: Any,
     dtype: torch.dtype = torch.bfloat16,
     offload_to_cpu: bool = True,
-    **kwargs: Dict[Any, Any],
+    **kwargs: Any,
 ):
     """
     A state_dict hook that replaces NF4 tensors with their restored
@@ -47,10 +47,10 @@ def reparametrize_as_dtype_state_dict_post_hook(
     Args:
         model (nn.Module): the model to take ``state_dict()`` on
         state_dict (Dict[str, Any]): the state dict to modify
-        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.
+        *args (Any): Unused args passed when running this as a state_dict hook.
         dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
         offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
-        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.
+        **kwargs (Any): Unused keyword args passed when running this as a state_dict hook.
     """
     for k, v in state_dict.items():
         if isinstance(v, NF4Tensor):
@@ -62,10 +62,10 @@ def reparametrize_as_dtype_state_dict_post_hook(
 def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
     state_dict: Dict[str, Any],
-    *args: Tuple[Any, ...],
+    *args: Any,
     dtype: torch.dtype = torch.bfloat16,
     offload_to_cpu: bool = True,
-    **kwargs: Dict[Any, Any],
+    **kwargs: Any,
 ):
     """
     A state_dict hook that replaces NF4 tensors with their restored
@@ -88,10 +88,10 @@ def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
     Args:
         model (nn.Module): the model to take ``state_dict()`` on
         state_dict (Dict[str, Any]): the state dict to modify
-        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.
+        *args (Any): Unused args passed when running this as a state_dict hook.
         dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
         offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
-        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.
+        **kwargs (Any): Unused keyword args passed when running this as a state_dict hook.
     """
     # Create a state dict of FakeTensors that matches the state_dict
     mode = FakeTensorMode()
@@ -149,11 +149,7 @@ def _register_reparametrize_state_dict_hooks(
         RuntimeError: If the low RAM reparametrize hook is used on Windows or an incompatible torch version.
     """
     if _use_low_cpu_ram:
-        if torch.__version__ < "2.5.0.dev20240906":
-            raise RuntimeError(
-                "Low RAM reparametrize_as_dtype_state_dict_post_hook requires PyTorch 2.5.0.dev20240906 or later."
-            )
-        elif sys.platform == "win32":
+        if sys.platform == "win32":
             # mmap.MAP_SHARED is not supported on Windows but this change targets colab.
             raise RuntimeError(
                 "Low RAM reparametrize_as_dtype_state_dict_post_hook is not supported on Windows."

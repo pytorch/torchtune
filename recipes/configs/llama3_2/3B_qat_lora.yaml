@@ -1,47 +1,45 @@
-# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
-# using a Qwen2.5 1.5B model
+# Config for multi-device QAT + LoRA finetuning in qat_lora_finetune_distributed.py
+# using a Llama3.2 3B Instruct model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2_5-1_5B-Instruct --ignore-patterns None
+#   tune download meta-llama/Llama-3.2-3B-Instruct --output-dir /tmp/Llama-3.2-3B-Instruct --ignore-patterns "original/consolidated.00.pth"
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2_5/1_5B_lora
+#   tune run --nproc_per_node 2 qat_lora_finetune_distributed --config llama3_2/3B_qat_lora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2_5/1_5B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
-#
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# For single device LoRA finetuning please use 1_5B_lora_single_device.yaml
+#   tune run --nproc_per_node 2 qat_lora_finetune_distributed --config llama3_2/3B_qat_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Llama-3.2-3B-Instruct/original/tokenizer.model
+  max_seq_len: null
 
 # Model Arguments
 model:
-  _component_: torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct
+  _component_: torchtune.models.llama3_2.lora_llama3_2_3b
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
-  lora_rank: 32  # higher increases accuracy and memory
-  lora_alpha: 64  # usually alpha=2*rank
+  lora_rank: 64  # higher increases accuracy and memory
+  lora_alpha: 128  # usually alpha=2*rank
   lora_dropout: 0.0
-
-tokenizer:
-  _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
-  path: /tmp/Qwen2_5-1_5B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2_5-1_5B-Instruct/merges.txt
-  max_seq_len: null
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2_5-1_5B-Instruct
+  checkpoint_dir: /tmp/Llama-3.2-3B-Instruct/
   checkpoint_files: [
-    model.safetensors
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2_5-1_5B-Instruct-lora-finetune
-  model_type: QWEN2
+  output_dir: /tmp/Llama-3.2-3B-Instruct/
+  model_type: LLAMA3_2
 resume_from_checkpoint: False
+save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
@@ -49,14 +47,14 @@ dataset:
   packed: False  # True increases speed
 seed: null
 shuffle: True
-batch_size: 2
+batch_size: 4
 
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
   fused: True
-  lr: 2e-5
-
+  weight_decay: 0.01
+  lr: 3e-4
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -71,24 +69,22 @@ gradient_accumulation_steps: 8  # Use to increase virtual batch size
 compile: False  # pytorch compile, set to true for better perf/memory
 
 # Logging
-output_dir: /tmp/Qwen2_5-1_5B-Instruct-lora-finetune
+output_dir: /tmp/qat_lora_finetune_output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda
 dtype: bf16
-enable_activation_checkpointing: True  # True reduces memory
+enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 
-# Show case the usage of pytorch profiler
-# Set enabled to False as it's only needed for debugging training
+# Profiler (disabled)
 profiler:
   _component_: torchtune.training.setup_torch_profiler
-
   enabled: False
 
   #Output directory of trace artifacts
@@ -107,6 +103,11 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 5
+  warmup_steps: 3
   active_steps: 2
   num_cycles: 1
+
+# QAT arguments
+quantizer:
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
+  groupsize: 256

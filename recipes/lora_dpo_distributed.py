@@ -33,7 +33,6 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.rlhf.loss import SimPOLoss
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -58,6 +57,18 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
+
+        - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
+            flag. Activation offloading is a technique similar to activations checkpointing that helps
+            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
+            checkpointing drops the activation in the forward to recompute it later in the backward,
+            activations offloading will drop the activation in the forward to the CPU and bring it
+            back during the backward pass. As always, there is a tradeoff--these savings in memory can
+            come at the cost of training performance and CPU resources. To recover some runtime cost,
+            we've added an option to enable offloading on a different stream to permit overlapping with
+            the computation. This option is currently only available on PyTorch 2.5 or later and will
+            be enabled by default if an acceptable torch version is found. Activation offloading can be
+            used in conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -97,7 +108,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     The following losses are supported in this recipe:
         - :class:`~torchtune.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
-        - :class:`~torchtune.rlhf.loss.SimPOLoss`: Simple Preference Optimization (SimPO).
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -109,6 +119,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         ValueError: If ``dtype`` is set to fp16.
         ValueError: If world_size is 1
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -122,8 +134,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         _, rank = training.get_world_size_and_rank()
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -137,8 +147,28 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        # training attributes
-        self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif self._enable_activation_checkpointing:
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
 
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
@@ -226,13 +256,16 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             # log config with parameter override
             self._metric_logger.log_config(cfg)
-            log.info("_metric_logger is initialized.")
+
+        utils.log_rank_zero(log, "metric logger is initialized.")
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
@@ -254,8 +287,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -294,6 +327,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         base_model_state_dict: Dict[str, Any],
@@ -314,11 +348,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        init_start = time.perf_counter()
+
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
@@ -396,11 +431,18 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             lora_unexpected=lora_unexpected,
         )
         # Ensure no params and buffers are on meta device
+
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
+        )
+
         training.validate_no_params_on_meta_device(model)
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -420,8 +462,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        if self._is_rank_zero:
-            log.info("Optimizer and loss are initialized.")
+        utils.log_rank_zero(log, "Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -436,8 +477,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+
+        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -479,8 +520,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -582,14 +622,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # formed by concatenating an equal number of "chosen" and "rejected".
         len_chosen = concatenated_input_ids.shape[0] // 2
 
-        all_logits = model(concatenated_input_ids)
+        with self.activations_handling_ctx:
+            all_logits = model(concatenated_input_ids)
 
-        all_log_probs = rlhf.get_batch_log_probs(
-            all_logits,
-            concatenated_labels,
-            # see :class:`~torchtune.rlhf.loss.dpo.SimPOLoss`
-            return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
-        )
+        all_log_probs = rlhf.get_batch_log_probs(all_logits, concatenated_labels)
 
         chosen_log_probs = all_log_probs[:len_chosen]
         rejected_log_probs = all_log_probs[len_chosen:]
@@ -648,26 +684,19 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
                 del policy_chosen_logits, policy_rejected_logits
 
-                if isinstance(self._loss_fn, SimPOLoss):
-                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                        policy_chosen_log_probs, policy_rejected_log_probs
-                    )
-                else:
-                    # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
-                    # the reference model's output - reference-free losses (such as SimPO) don't require this.
-                    with torch.no_grad(), disable_adapter(self._model):
-                        (
-                            reference_chosen_log_probs,
-                            reference_rejected_log_probs,
-                            _,
-                            _,
-                        ) = self.concatenated_forward(self._model, batch)
-                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                        policy_chosen_log_probs,
-                        policy_rejected_log_probs,
+                with torch.no_grad(), disable_adapter(self._model):
+                    (
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                    )
+                        _,
+                        _,
+                    ) = self.concatenated_forward(self._model, batch)
+                loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                    policy_chosen_log_probs,
+                    policy_rejected_log_probs,
+                    reference_chosen_log_probs,
+                    reference_rejected_log_probs,
+                )
 
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
@@ -753,11 +782,11 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
+    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     config.log_config(recipe_name="LoRADPORecipeDistributed", cfg=cfg)
 
