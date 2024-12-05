@@ -242,7 +242,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = "safetensors"
+        suffix = ".safetensors"
         cmd_2 = f"""
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
@@ -326,7 +326,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         # Load base model and trained adapter weights into LoRA model and call fwd
         epoch_folder = get_largest_iter_folder(tmpdir)
-        suffix = "safetensors"
+        suffix = ".safetensors"
         adpt_path = os.path.join(tmpdir, epoch_folder, ADAPTER_MODEL_FNAME + suffix)
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
 

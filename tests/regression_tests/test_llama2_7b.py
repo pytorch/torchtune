@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import re
 import runpy
 import sys
@@ -14,6 +15,7 @@ import torchtune
 from tests.common import TUNE_PATH
 from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
 
+from torchtune.training.checkpointing._utils import get_largest_iter_folder, SHARD_FNAME
 
 CKPT = "llama2_7b"
 

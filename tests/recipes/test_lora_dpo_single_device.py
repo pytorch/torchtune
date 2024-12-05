@@ -111,7 +111,7 @@ class TestLoRADPOSingleDeviceRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = "safetensors"
+        suffix = ".safetensors"
         cmd_2 = f"""
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
