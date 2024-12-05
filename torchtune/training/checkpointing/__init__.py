@@ -5,11 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 from typing import Union
 
-from torchtune.training.checkpointing._checkpoint_client import (
-    CheckpointClient,
-    TrainingProgress,
-)
-
 from torchtune.training.checkpointing._checkpointer import (
     DistributedCheckpointer,
     FullModelHFCheckpointer,
@@ -41,7 +36,6 @@ Checkpointer = Union[
 ]
 
 __all__ = [
-    "CheckpointClient",
     "FullModelHFCheckpointer",
     "FullModelMetaCheckpointer",
     "FullModelTorchTuneCheckpointer",
@@ -61,5 +55,4 @@ __all__ = [
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
     "FormattedCheckpointFiles",
-    "TrainingProgress",
 ]

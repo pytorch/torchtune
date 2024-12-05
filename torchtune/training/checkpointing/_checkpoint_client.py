@@ -298,7 +298,7 @@ class CheckpointClient:
     ) -> Dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
-        Due to being disributed, this mehod is called on every rank.
+        Due to being distributed, this method is called on every rank.
         """
         if self._is_rank_zero:
             dcp_load_start = time.perf_counter()
