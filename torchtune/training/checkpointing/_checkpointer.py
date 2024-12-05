@@ -266,7 +266,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         # Output file is always a .bin file with the epoch number in the name
         if not adapter_only:
             shard_name = SHARD_FNAME.format(
-                cpt_idx=f"{int(1):05d}", num_shards=f"{int(1):05d}"
+                cpt_idx="1".zfill(5), num_shards="1".zfill(5)
             )
             output_path = Path.joinpath(self._output_dir, shard_name).with_suffix(
                 ".bin"
@@ -745,7 +745,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 # TODO: We should probably use the original shard name and just add a prefix
                 # however, having the SHARD_FNAME standardizes our checkpoints
                 shard_name = SHARD_FNAME.format(
-                    cpt_idx=f"{int(cpt_idx):05d}", num_shards=f"{int(num_shards):05d}"
+                    cpt_idx=f"{cpt_idx}".zfill(5), num_shards=f"{num_shards}".zfill(5)
                 )
                 map_original_name_to_new_name[cpt_idx] = shard_name
                 output_path = Path.joinpath(
@@ -1055,7 +1055,9 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 )
 
             # TODO: We should consider adding adapter/model config, like we do for HF.
-            model_filename = SHARD_FNAME.format(cpt_idx=1, num_shards=1)
+            model_filename = SHARD_FNAME.format(
+                cpt_idx="1".zfill(5), num_shards="1".zfill(5)
+            )
             checkpoint_file = Path.joinpath(
                 self._output_dir, f"epoch_{epoch}", model_filename
             ).with_suffix(".bin")
