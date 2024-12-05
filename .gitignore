@@ -4,6 +4,8 @@
 # To debug why a file is being ignored, use the command:
 #    git check-ignore -v $my_ignored_file
 
+**/._*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
