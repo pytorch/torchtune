@@ -886,8 +886,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": tokens_per_second,
                             "mfu": mfu_value,
-                            "flops": actual_flops,
-                            "tflops": actual_flops / 1e12,  # Convert to TFLOPS for readability
+                            "tflops": actual_flops / 1e12  # Convert to TFLOPS for readability
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
