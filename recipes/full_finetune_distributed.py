@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
@@ -124,6 +125,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
+        self._save_interval = cfg.get("save_interval", None)
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
@@ -664,6 +666,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
+        step: Optional[int] = None,
     ) -> None:
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
@@ -740,6 +743,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
+            
+            ckpt_path = f"epoch_{epoch}"
+            if step is not None:
+                ckpt_path = f"{ckpt_path}_step_{step}"
+            self._checkpointer._output_dir = os.path.join(self._checkpointer._output_dir, ckpt_path)
 
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
@@ -921,8 +929,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
+                    if self._save_interval is not None and (idx + 1) % self._save_interval == 0:
+                        self.save_checkpoint(epoch=curr_epoch, step=idx)
+
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+            self.save_checkpoint(epoch=curr_epoch, step=None)
 
         self._profiler.stop()
 
