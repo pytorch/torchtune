@@ -245,8 +245,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         if cfg_early_exit_loss:
             self._do_early_exit_loss = True
             self._early_exit_loss_scale = cfg_early_exit_loss.get("scale", 1.0)
-            self._early_exit_loss_scale_type = cfg_early_exit_loss.get(
-                "scale_type", "one"
+            self._early_exit_loss_scale_type = _get_component_from_path(
+                cfg_early_exit_loss.get(
+                    "scale_type", "torchtune.modules.early_exit_loss.sum_l_loss_scale"
+                )
             )
         else:
             self._do_early_exit_loss = False

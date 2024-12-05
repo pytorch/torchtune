@@ -17,10 +17,14 @@ from torchtune.modules.early_exit_loss import (
     early_exit_loss,
     EarlyExitCurriculumType,
     GradualEarlyExitCurriculum,
-    layer_ids_to_loss_scales,
-    LossScaleType,
+    inv_l_loss_scale,
+    inv_sqrt_l_loss_scale,
+    linear_l_loss_scale,
     RotationalEarlyExitCurriculum,
     setup_early_exit_loss_curriculum,
+    sqrt_l_loss_scale,
+    sum_l_loss_scale,
+    uniform_loss_scale,
 )
 
 # Mock components for TransformerDecoder
@@ -76,15 +80,22 @@ class TestEarlyExitLoss:
         assert loss.item() >= 0
 
     @pytest.mark.parametrize(
-        "scale_type",
-        [e.value for e in LossScaleType],
+        "scale_fn",
+        [
+            uniform_loss_scale,
+            linear_l_loss_scale,
+            sum_l_loss_scale,
+            sqrt_l_loss_scale,
+            inv_l_loss_scale,
+            inv_sqrt_l_loss_scale,
+        ],
     )
-    def test_layer_ids_to_loss_scales(self, scale_type, num_layers):
+    def test_layer_ids_to_loss_scales(self, scale_fn, num_layers):
         for n_subset_layers in range(1, num_layers + 1):
             layer_ids = torch.tensor(
                 random.sample(range(0, num_layers), n_subset_layers)
             )
-            scales = layer_ids_to_loss_scales(layer_ids, num_layers, scale_type, 1.0)
+            scales = scale_fn(layer_ids, num_layers, 1.0)
             assert torch.isclose(scales.sum(), torch.tensor(1.0))
 
     def test_early_exit_loss_vs_manual(
@@ -98,7 +109,7 @@ class TestEarlyExitLoss:
             labels,
             loss_fn,
             e_scale=1,
-            loss_scale_type="one",
+            loss_scale_fn=uniform_loss_scale,
         )
         # Manually calculate the loss for each hidden state
         total_loss = 0.0

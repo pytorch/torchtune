@@ -16,10 +16,10 @@
 #
 # To reproduce experiments of various papers that use early exit loss and/or layer dropout:
 # - LayerSkip (https://arxiv.org/abs/2404.16710) on TOPv2:
-#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss.scale=1.0 early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l layer_dropout.prob=0.2 layer_dropout.scale=exp
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss.scale=1.0 early_exit_loss.curriculum=gradual early_exit_loss.scale_type=torchtune.modules.early_exit_loss.linear_l_loss_scale layer_dropout.prob=0.2 layer_dropout.scale=exp
 #
 # - LITE (https://arxiv.org/abs/2310.18581):
-#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml layer_dropout=null early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=one early_exit_loss.curriculum=null epochs=5
+#   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml layer_dropout=null early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=torchtune.modules.early_exit_loss.uniform_loss_scale early_exit_loss.curriculum=null epochs=5
 #
 # - LayerDrop (https://arxiv.org/abs/1909.11556):
 #   tune run --nnodes 1 --nproc_per_node 4 dev/early_exit_finetune_distributed --config recipes/dev/7B_full_early_exit.yaml early_exit_loss=null layer_dropout.prob=0.2 layer_dropout.layers=1::2
@@ -126,7 +126,7 @@ profiler:
 early_exit_loss:
   layers: ":"
   curriculum: "gradual"
-  scale_type: "sum_l"
+  scale_type: torchtune.modules.early_exit_loss.sum_l_loss_scale
   scale: 1.0
 
 # Layer Dropout

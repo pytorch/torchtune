@@ -6,7 +6,7 @@
 
 import copy
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -17,13 +17,52 @@ from torchtune.modules.transformer import TransformerDecoder
 log = utils.get_logger("DEBUG")
 
 
-class LossScaleType(str, Enum):
-    ONE = "one"
-    L = "l"
-    SUM_L = "sum_l"
-    INV_L = "inv_l"
-    SQRT_L = "sqrt_l"
-    INV_SQRT_L = "inv_sqrt_l"
+def uniform_loss_scale(
+    layer_ids: torch.Tensor, n_layers: int, e_scale: float = 1.0
+) -> torch.Tensor:
+    loss_scales = torch.ones(len(layer_ids), device=layer_ids.device)
+    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
+    return loss_scales / torch.sum(loss_scales)
+
+
+def linear_l_loss_scale(
+    layer_ids: torch.Tensor, n_layers: int, e_scale: float = 1.0
+) -> torch.Tensor:
+    loss_scales = torch.Tensor(layer_ids + 1)
+    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
+    return loss_scales / torch.sum(loss_scales)
+
+
+def sum_l_loss_scale(
+    layer_ids: torch.Tensor, n_layers: int, e_scale: float = 1.0
+) -> torch.Tensor:
+    loss_scales = torch.cumsum(layer_ids + 1, dim=0)
+    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
+    return loss_scales / torch.sum(loss_scales)
+
+
+def sqrt_l_loss_scale(
+    layer_ids: torch.Tensor, n_layers: int, e_scale: float = 1.0
+) -> torch.Tensor:
+    loss_scales = torch.sqrt(layer_ids + 1)
+    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
+    return loss_scales / torch.sum(loss_scales)
+
+
+def inv_l_loss_scale(
+    layer_ids: torch.Tensor, n_layers: int, e_scale: float = 1.0
+) -> torch.Tensor:
+    loss_scales = 1.0 / (layer_ids + 1)
+    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
+    return loss_scales / torch.sum(loss_scales)
+
+
+def inv_sqrt_l_loss_scale(
+    layer_ids: torch.Tensor, n_layers: int, e_scale: float = 1.0
+) -> torch.Tensor:
+    loss_scales = torch.reciprocal(torch.sqrt(layer_ids + 1))
+    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
+    return loss_scales / torch.sum(loss_scales)
 
 
 def early_exit_loss(
@@ -32,7 +71,9 @@ def early_exit_loss(
     labels: torch.Tensor,
     loss_fn: torch.nn.Module,
     e_scale: float = 1.0,
-    loss_scale_type: LossScaleType = LossScaleType.SUM_L,
+    loss_scale_fn: Callable[
+        [torch.Tensor, int, float], torch.Tensor
+    ] = uniform_loss_scale,
 ) -> torch.Tensor:
     """
     Compute the early exit loss for a given model and outputs of intermediate layers.
@@ -47,9 +88,9 @@ def early_exit_loss(
             where each key is a layer index and each value is a tensor of shape [b, s, d].
         labels (torch.Tensor): The labels for the input data.
         loss_fn (torch.nn.Module): The loss function to use (should be the same as the standard loss function for last layer).
-        e_scale (float, optional): A scaling factor for the early exit losses. Defaults to 1.0.
-        loss_scale_type (LossScaleType, optional): The type of loss scaling to use to determine
-            scale of each layer's loss. Defaults to LossScaleType.SUM_L.
+        e_scale (float): A scaling factor for the early exit losses. Defaults to 1.0.
+        loss_scale_fn (Callable[[torch.Tensor, int, float], torch.Tensor]): A function to determine scale of each
+            layer's loss. Defaults to uniform_loss_scale.
     Returns:
         torch.Tensor: The computed early exit loss.
     """
@@ -77,66 +118,13 @@ def early_exit_loss(
     s_unpadded = (labels != loss_fn.ignore_index).sum()
     losses_early = losses_early.float().sum(-1) / s_unpadded
     # Shape: [e]
-    losses_scales = layer_ids_to_loss_scales(
+    losses_scales = loss_scale_fn(
         torch.Tensor(hidden_layer_ids).to(losses_early),
         len(model.layers),
-        loss_scale_type,
         e_scale,
     )
 
     return torch.sum(losses_scales * losses_early)
-
-
-def layer_ids_to_loss_scales(
-    layer_ids: torch.Tensor,
-    n_layers: int,
-    loss_scale_type: LossScaleType,
-    e_scale: float,
-) -> torch.Tensor:
-    """
-    Compute the loss scales for a given set of layer IDs and loss scale type.
-    This function takes in a list of layer IDs, the total number of layers,
-    a loss scale type, and an early exit scaling factor. It computes the loss
-    scales based on the specified loss scale type and then normalizes them to
-    ensure that their sum is 1.0.
-
-    Args:
-        layer_ids (torch.Tensor): A tensor of layer IDs.
-        n_layers (int): The total number of layers.
-        loss_scale_type (LossScaleType): The type of loss scaling to use.
-        e_scale (float): An early exit scaling factor.
-    Returns:
-        torch.Tensor: The computed loss scales.
-    Raises:
-        ValueError: If the provided loss scale type is not supported.
-        AssertionError: If the sum of the loss scales is not close to 1.0.
-    Example:
-        >>> layer_ids = [0, 1, 2]
-        >>> n_layers = 3
-        >>> loss_scale_type = LossScaleType.SUM_L
-        >>> e_scale = 1.0
-        >>> loss_scales = layer_ids_to_loss_scales(layer_ids, n_layers, loss_scale_type, e_scale)
-    """
-    if loss_scale_type == LossScaleType.ONE:
-        loss_scales = torch.ones(len(layer_ids), device=layer_ids.device)
-    elif loss_scale_type == LossScaleType.L:
-        loss_scales = torch.Tensor(layer_ids + 1)
-    elif loss_scale_type == LossScaleType.SUM_L:
-        loss_scales = torch.cumsum(layer_ids + 1, dim=0)
-    elif loss_scale_type == LossScaleType.SQRT_L:
-        loss_scales = torch.sqrt(layer_ids + 1)
-    elif loss_scale_type == LossScaleType.INV_L:
-        loss_scales = 1.0 / (layer_ids + 1)
-    elif loss_scale_type == LossScaleType.INV_SQRT_L:
-        loss_scales = torch.reciprocal(torch.sqrt(layer_ids + 1))
-    else:
-        raise ValueError(f"Unsupported loss_scale type {loss_scale_type}")
-
-    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
-    # normalize loss scales to ensure that their sum is 1.0
-    loss_scales = loss_scales / torch.sum(loss_scales)
-
-    return loss_scales
 
 
 class EarlyExitCurriculumType(str, Enum):
