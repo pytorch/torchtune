@@ -230,23 +230,10 @@ class Int8MixedPrecisionTrainingQuantizer:
         # as well as better FSDP compatibility in torchtune.
         quantize_fn = int8_mixed_precision_training(self._config, module_swap=True)
 
-        # custom filter_fn to work with torchtune's peft
         def filter_fn(module: nn.Module, name: str) -> bool:
-            if isinstance(module, nn.Linear):
-                # skip LoRA adapters since they are too small, so the speedup will not
-                # outweight quantization overhead.
-                # also skip LM head since end2end speedup is slightly worse.
-                # there are also possible issues with tied word embeddings.
-                if (
-                    name.endswith(".lora_a")
-                    or name.endswith(".lora_b")
-                    or module.weight.shape[0] >= 32_000
-                ):
-                    return False
-                else:
-                    return True
-
-            return False
+            # skip LM head since end2end speedup is slightly worse.
+            # there are also possible issues with tied word embeddings.
+            return isinstance(module, nn.Linear) and module.out_features < 32_000
 
         # don't set inductor config, otherwise compile will be very slow
         # (it will affect global torch.compile() config)
