@@ -249,7 +249,7 @@ class TestKDDistributedRecipe:
 
         # Load base model and trained adapter weights into LoRA model and call fwd
         epoch_folder = get_largest_iter_folder(tmpdir)
-        adpt_path = Path.joinpath(
+        adpt_path = os.path.join(
             tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.safetensors"
         )
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
@@ -265,7 +265,7 @@ class TestKDDistributedRecipe:
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5))
             + ".safetensors"
         )
-        model_path = Path.joinpath(tmpdir, epoch_folder, model_ckpt_fname)
+        model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
         sd = safe_torch_load(model_path, weights_only=True)
 
         llama3_model.load_state_dict(sd)

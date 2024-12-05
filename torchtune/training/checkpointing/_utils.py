@@ -208,14 +208,14 @@ def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
 
 
 def safe_torch_load(
-    checkpoint_path: Path, weights_only: bool = True, mmap: bool = True
+    checkpoint_path: Union[Path, str], weights_only: bool = True, mmap: bool = True
 ) -> Dict[str, Any]:
     """
     Utility to load a checkpoint file onto CPU in a safe manner. Provides separate handling for
     safetensors files.
 
     Args:
-        checkpoint_path (Path): Path to the checkpoint file.
+        checkpoint_path (Union[Path, str]): Path to the checkpoint file.
         weights_only (bool): Whether to load only tensors, primitive types, and dictionaries
             (passthrough to torch.load). Default: True
         mmap (bool): Whether to mmap from disk into CPU memory. Default: True
