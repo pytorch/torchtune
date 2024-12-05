@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import copy
-from enum import Enum
 from typing import Callable, Dict, List, Optional
 
 import numpy as np
@@ -125,12 +124,6 @@ def early_exit_loss(
     )
 
     return torch.sum(losses_scales * losses_early)
-
-
-class EarlyExitCurriculumType(str, Enum):
-    NONE = "none"
-    ROTATIONAL = "rot"
-    GRADUAL = "gradual"
 
 
 # TODO: create a base curriculum class that can be used for other aspects, e.g., dropout, datasets, etc.
@@ -297,32 +290,3 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
             log.info(
                 f"Updated self._do_output_hidden_states to {self._do_output_hidden_states}."
             )
-
-
-def setup_early_exit_loss_curriculum(
-    early_exit_curriculum: EarlyExitCurriculumType, *args, **kwargs
-) -> Optional[EarlyExitCurriculum]:
-    """
-    Set up an early exit loss curriculum based on the provided type.
-    This function takes in an early exit curriculum type and optional arguments.
-    It returns an instance of the corresponding early exit curriculum class,
-    or None if the curriculum type is NONE.
-
-    Args:
-        early_exit_curriculum (EarlyExitCurriculumType): The type of early exit curriculum to set up.
-        *args: Optional positional arguments for the early exit curriculum constructor.
-        **kwargs: Optional keyword arguments for the early exit curriculum constructor.
-    Returns:
-        Optional[EarlyExitCurriculum]:
-            An instance of the corresponding early exit curriculum class, or None.
-    Raises:
-        ValueError: If the provided early exit curriculum type is not supported.
-    """
-    if early_exit_curriculum == EarlyExitCurriculumType.NONE:
-        return None
-    elif early_exit_curriculum == EarlyExitCurriculumType.ROTATIONAL:
-        return RotationalEarlyExitCurriculum(*args, **kwargs)
-    elif early_exit_curriculum == EarlyExitCurriculumType.GRADUAL:
-        return GradualEarlyExitCurriculum(*args, **kwargs)
-    else:
-        raise ValueError(f"Unsupported early loss curriculum {early_exit_curriculum}.")

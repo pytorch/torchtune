@@ -15,13 +15,11 @@ import torch.nn as nn
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.early_exit_loss import (
     early_exit_loss,
-    EarlyExitCurriculumType,
     GradualEarlyExitCurriculum,
     inv_l_loss_scale,
     inv_sqrt_l_loss_scale,
     linear_l_loss_scale,
     RotationalEarlyExitCurriculum,
-    setup_early_exit_loss_curriculum,
     sqrt_l_loss_scale,
     sum_l_loss_scale,
     uniform_loss_scale,
@@ -131,17 +129,6 @@ class TestEarlyExitLoss:
 
 
 class TestEarlyExitLossCurriculum:
-    def test_setup_early_exit_loss_curriculum(self):
-        curriculum = setup_early_exit_loss_curriculum(
-            EarlyExitCurriculumType.ROTATIONAL, [True, False, True], 100
-        )
-        assert isinstance(curriculum, RotationalEarlyExitCurriculum)
-
-        curriculum = setup_early_exit_loss_curriculum(
-            EarlyExitCurriculumType.GRADUAL, [True, False, True], 100
-        )
-        assert isinstance(curriculum, GradualEarlyExitCurriculum)
-
     @pytest.mark.parametrize(
         "train_last_layer",
         [

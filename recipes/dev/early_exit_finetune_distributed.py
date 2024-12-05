@@ -25,11 +25,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.common_utils import slice_str_to_array
 
-from torchtune.modules.early_exit_loss import (
-    early_exit_loss,
-    EarlyExitCurriculum,
-    setup_early_exit_loss_curriculum,
-)
+from torchtune.modules.early_exit_loss import early_exit_loss, EarlyExitCurriculum
 from torchtune.modules.layer_dropout import prepare_layer_dropout
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
@@ -712,9 +708,11 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             train_last_layer = cfg_early_exit_loss.get("include_last_layer", True)
             verbose = cfg_early_exit_loss.get("verbose", False)
 
-            if cfg_early_exit_loss.get("curriculum", None):
-                early_exit_loss_curriculum = setup_early_exit_loss_curriculum(
-                    early_exit_curriculum=cfg_early_exit_loss.curriculum,
+            early_exit_loss_curriculum = cfg_early_exit_loss.get("curriculum", None)
+            if early_exit_loss_curriculum:
+                early_exit_loss_curriculum = _get_component_from_path(
+                    early_exit_loss_curriculum
+                )(
                     do_output_hidden_states=do_output_hidden_states,
                     max_steps=self.total_epochs * self._steps_per_epoch,
                     train_last_layer=train_last_layer,
@@ -723,7 +721,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 )
                 do_output_hidden_states = early_exit_loss_curriculum.get()
             else:
-                early_exit_loss_curriculum = None
                 if train_last_layer:
                     do_output_hidden_states[len(self._model.layers) - 1] = True
 
