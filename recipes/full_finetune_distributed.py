@@ -181,6 +181,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
+        if cfg.mixed_precision.enabled:
+            if not cfg.compile or not cfg.dataset.packed:
+                raise ValueError(
+                    "When mixed_precision.enabled is True, both compile and dataset.packed must be True."
+                )
+
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)

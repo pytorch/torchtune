@@ -82,6 +82,11 @@ output_dir: /tmp/full-llama3-finetune
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
+# mixed precision (disabled)
+mixed_precision:
+  _component_: torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer
+  enabled: false
+
 # Profiler (disabled)
 profiler:
   _component_: torchtune.training.setup_torch_profiler

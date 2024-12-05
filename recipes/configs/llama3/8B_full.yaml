@@ -72,6 +72,11 @@ custom_sharded_layers: ['tok_embeddings', 'output']  # Layers to shard separatel
 # Reduced precision
 dtype: bf16
 
+# mixed precision (disabled)
+mixed_precision:
+  _component_: torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer
+  enabled: false
+
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
