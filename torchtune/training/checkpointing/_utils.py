@@ -222,7 +222,7 @@ def save_config(path: Path, config: Dict[str, Any]) -> None:
         config (Dict[str, Any]): Configuration dictionary to save.
     """
     if not path.is_dir():
-        path.mkdir(exist_ok=True)
+        path.mkdir(exist_ok=True, parents=True)
     file_path = Path.joinpath(path, "config.json")
     if not file_path.exists():
         with open(file_path, "w") as f:
