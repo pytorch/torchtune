@@ -124,8 +124,8 @@ profiler:
 
 # Early Exit Loss
 early_exit_loss:
-  layers: ":"
-  curriculum: torchtune.modules.early_exit_loss.GradualEarlyExitCurriculum
+  layers: "0::4"
+  curriculum: torchtune.modules.early_exit_loss.RotationalEarlyExitCurriculum
   scale_fn: torchtune.modules.early_exit_loss.sum_l_loss_scale
   scale: 1.0
 
