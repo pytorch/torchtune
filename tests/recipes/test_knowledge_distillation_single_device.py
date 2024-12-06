@@ -65,7 +65,7 @@ class TestKDSingleDeviceRecipe:
         tmpdir,
         monkeypatch,
     ):
-        config = "qwen2/knowledge_distillation_single_device"
+        config = "qwen2/1.5_to_0.5B_KD_lora_single_device"
         model_type = "llama3"
         ckpt_type = "tune"
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
@@ -152,7 +152,7 @@ class TestKDSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run knowledge_distillation_single_device \
-            --config qwen2/knowledge_distillation_single_device \
+            --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -186,7 +186,7 @@ class TestKDSingleDeviceRecipe:
         # Resume training
         cmd_2 = f"""
         tune run knowledge_distillation_single_device \
-            --config qwen2/knowledge_distillation_single_device \
+            --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -242,7 +242,7 @@ class TestKDSingleDeviceRecipe:
 
         cmd = f"""
         tune run knowledge_distillation_single_device \
-            --config qwen2/knowledge_distillation_single_device \
+            --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \

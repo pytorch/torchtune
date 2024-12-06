@@ -24,6 +24,8 @@
 #   tune run ppo_full_finetune_single_device --config mistral/7B_full_ppo_low_memory checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 
+output_dir: /tmp/torchtune/mistral_7B/full_ppo_low_memory # /tmp may be deleted by your system. Change it to your preference.
+
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
@@ -68,7 +70,7 @@ checkpointer:
     ]
   # this is the only place where you should update `recipe_checkpoint` if resuming training
   recipe_checkpoint: null
-  output_dir: ${output_dir}/policy
+  output_dir: ${output_dir}
   model_type: MISTRAL
 
 # this should be setup identically to the policy model checkpointer at the start of training
@@ -115,7 +117,6 @@ reward_checkpointer:
   model_type: REWARD
 
 resume_from_checkpoint: False
-output_dir: /tmp/mistral7b-ppo-finetune
 seed: null
 shuffle: True
 
@@ -127,10 +128,10 @@ batch_size: 64
 num_steps: 10000
 ppo_epochs: 2
 ppo_batch_size: 32
-gradient_accumulation_steps: 1  # Use to increase virtual batch size
+gradient_accumulation_steps: 1  # Use to increase effective batch size
 
 # Memory management and performance
-compile: True  # pytorch compile, set to true for better perf/memory
+compile: True  # torch.compile the model + loss, True increases speed + decreases memory
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 3e-6
@@ -176,6 +177,6 @@ kl_coeff: 0.01
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 
 log_every_n_steps: 1

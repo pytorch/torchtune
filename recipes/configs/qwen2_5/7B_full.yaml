@@ -17,6 +17,8 @@
 # Single device full finetuning requires more memory optimizations. It's
 # best to use 7B_full_single_device.yaml for those cases
 
+output_dir: /tmp/torchtune/qwen2_5_7B/full # /tmp may be deleted by your system. Change it to your preference.
+
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
@@ -45,7 +47,7 @@ checkpointer:
     model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2_5-7B-Instruct-finetune
+  output_dir: ${output_dir}
   model_type: QWEN2
 resume_from_checkpoint: False
 
@@ -59,8 +61,8 @@ optimizer:
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
+gradient_accumulation_steps: 8  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 
 # Training env
@@ -76,10 +78,10 @@ dtype: bf16
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
-output_dir: /tmp/Qwen2_5-7B-Instruct-finetune
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
+
 
 # Profiler (disabled)
 profiler:
