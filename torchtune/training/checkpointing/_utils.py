@@ -431,7 +431,7 @@ def get_adapter_checkpoint_path(
     pattern: str = r"^epoch_(\d+)",
 ):
     r"""
-    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.{suffix}.
+    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.
     This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
 
     Args:
@@ -446,18 +446,19 @@ def get_adapter_checkpoint_path(
     if not resume_from_checkpoint:
         return None
 
+    adapter_checkpoint_path = None
+
     if adapter_checkpoint:
-        adapter_checkpoint = os.path.join(output_dir, adapter_checkpoint)
+        adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
         # TODO: add error if it doesnt exist
     else:
         # Look for the latest adapter checkpoint in the output directory
         largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
 
-        if largest_iter_folder:
-            folder_path = os.path.join(output_dir, largest_iter_folder)
-            for file_name in os.listdir(folder_path):
-                if file_name.startswith(ADAPTER_MODEL_FNAME + "."):
-                    adapter_checkpoint = os.path.join(folder_path, file_name)
-                    break
+        tentative_adapter_checkpoint_path = os.path.join(
+            output_dir, largest_iter_folder, "adapter_model.pt"
+        )
+        if os.path.exists(tentative_adapter_checkpoint):
+            adapter_checkpoint_path = tentative_adapter_checkpoint
 
-    return Path(adapter_checkpoint) if adapter_checkpoint else None
+    return Path(adapter_checkpoint_path) if adapter_checkpoint_path else None

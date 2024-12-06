@@ -242,17 +242,18 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
         cmd_2 = f"""
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             batch_size=8 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, ADAPTER_MODEL_FNAME + suffix)}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
@@ -326,8 +327,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         # Load base model and trained adapter weights into LoRA model and call fwd
         epoch_folder = get_largest_iter_folder(tmpdir)
-        suffix = ".bin"
-        adpt_path = os.path.join(tmpdir, epoch_folder, ADAPTER_MODEL_FNAME + suffix)
+        adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
 
         with open(ckpt_path, "rb") as f:

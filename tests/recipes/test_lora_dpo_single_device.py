@@ -111,7 +111,6 @@ class TestLoRADPOSingleDeviceRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
         cmd_2 = f"""
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
@@ -121,7 +120,7 @@ class TestLoRADPOSingleDeviceRecipe:
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, ADAPTER_MODEL_FNAME + suffix)}
+            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
@@ -190,8 +189,7 @@ class TestLoRADPOSingleDeviceRecipe:
 
         # Load base model and trained adapter weights into LoRA model and call fwd
         epoch_folder = get_largest_iter_folder(tmpdir)
-        suffix = ".bin"
-        adpt_path = os.path.join(tmpdir, epoch_folder, ADAPTER_MODEL_FNAME + suffix)
+        adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
 
         with open(ckpt_path, "rb") as f:
@@ -201,6 +199,7 @@ class TestLoRADPOSingleDeviceRecipe:
         baseline_out = lora_model(inputs)
 
         # Load merged final ckpt directly into llama2 and call fwd
+        suffix = ".bin"
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
         )

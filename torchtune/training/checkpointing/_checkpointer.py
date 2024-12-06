@@ -794,6 +794,23 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 json.dump(index_data, f, indent=2)
 
         if training.ADAPTER_KEY in state_dict:
+
+            # TODO: saving it "as is" is a requirement because, if we only save with
+            # convert_weights.tune_to_peft_adapter_weights, we do NOT have a fn
+            # convert_weights.peft_to_tune. The .pt format is not needed, but
+            # it is an easy way to distinguish the adapters. Ideally we should save only one.
+
+            output_path = Path.joinpath(
+                self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
+            ).with_suffix(".pt")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save(state_dict[training.ADAPTER_KEY], output_path)
+            logger.info(
+                "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
+
             if self._model_type == ModelType.PHI3_MINI:
                 logger.warning(
                     "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
