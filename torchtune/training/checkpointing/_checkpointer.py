@@ -199,7 +199,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             checkpoint_dir=self._checkpoint_dir,
             output_dir=self._output_dir,
             resume_from_checkpoint=self._resume_from_checkpoint,
-            has_adapter_checkpoint=adapter_checkpoint is not None,
+            has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
 
         # we currently accept only a single file
@@ -456,7 +456,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             checkpoint_dir=self._checkpoint_dir,
             output_dir=self._output_dir,
             resume_from_checkpoint=self._resume_from_checkpoint,
-            has_adapter_checkpoint=adapter_checkpoint is not None,
+            has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
 
         if self._resume_from_checkpoint:
@@ -969,7 +969,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             checkpoint_dir=self._checkpoint_dir,
             output_dir=self._output_dir,
             resume_from_checkpoint=self._resume_from_checkpoint,
-            has_adapter_checkpoint=adapter_checkpoint is not None,
+            has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
 
         # we currently accept only a single file
