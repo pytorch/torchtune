@@ -48,6 +48,7 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
     def __init__(
         self,
         path: str,
+        max_seq_len: Optional[int] = None,
         prompt_template: Optional[str] = Llama2ChatTemplate(),
     ):
         if not path.endswith('.model'):
@@ -56,7 +57,8 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
         self._tokenizer.pad_id = self.eos_id if self.pad_id is None else self.pad_id
         self.stop_tokens = [self.eos_id]
         self._tokenizer.chat_template = prompt_template if prompt_template is not None else PROMPT_TEMPLATE
-
+        self.max_seq_len = max_seq_len
+    
     @property
     def eos_id(self):
         return self._tokenizer.eos_token_id
@@ -98,8 +100,10 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
 
     def tokenize_messages(
         self,
-        *,
         messages: List[Message],
+        *,
+        add_bos_tokens: bool = False,
+        add_end_tokens: bool = False,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -136,11 +140,14 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
         """
         hf_messages = []
         for message in messages:
-            hf_messages.append({"role": message.role, "content": message.content})
+            hf_messages.append({"role": message.role, "content": message.content[0]["content"]})
         templated_message = self._tokenizer.apply_chat_template(hf_messages, tokenize=False)
-        hf_output_dict = self._tokenizer(templated_message)
+        hf_output_dict = self._tokenizer(templated_message, add_special_tokens=add_bos_tokens)
         input_ids = hf_output_dict["input_ids"]
         attention_mask = [bool(x) for x in hf_output_dict["attention_mask"]]
+        if add_end_tokens:
+            # do nothing for now
+            pass
         return input_ids, attention_mask
     
     def __call__(
