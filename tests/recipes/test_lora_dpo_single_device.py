@@ -70,6 +70,8 @@ class TestLoRADPOSingleDeviceRecipe:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+        output_tmpdir = Path(str(tmpdir) + "_output")
+        output_tmpdir.mkdir()
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
@@ -80,13 +82,13 @@ class TestLoRADPOSingleDeviceRecipe:
         cmd_1 = f"""
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
@@ -109,20 +111,20 @@ class TestLoRADPOSingleDeviceRecipe:
         resumed_log_file = gen_log_file_name(resumed_log_dir)
 
         # Resume training
-        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder = get_largest_iter_folder(output_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.adapter_checkpoint={os.path.join(output_tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(output_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
             metric_logger.filename={resumed_log_file} \
@@ -148,17 +150,19 @@ class TestLoRADPOSingleDeviceRecipe:
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+        output_tmpdir = Path(str(tmpdir) + "_output")
+        output_tmpdir.mkdir()
 
         cmd = f"""
         tune run lora_dpo_single_device \
             --config llama2/7B_lora_dpo_single_device \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
@@ -188,8 +192,10 @@ class TestLoRADPOSingleDeviceRecipe:
         )
 
         # Load base model and trained adapter weights into LoRA model and call fwd
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
+        epoch_folder = get_largest_iter_folder(output_tmpdir)
+        adpt_path = os.path.join(
+            output_tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt"
+        )
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
 
         with open(ckpt_path, "rb") as f:
@@ -203,7 +209,7 @@ class TestLoRADPOSingleDeviceRecipe:
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
         )
-        model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
+        model_path = os.path.join(output_tmpdir, epoch_folder, model_ckpt_fname)
         sd = safe_torch_load(model_path, weights_only=True)
 
         llama2_model.load_state_dict(sd)

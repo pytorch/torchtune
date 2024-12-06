@@ -89,19 +89,21 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+        output_tmpdir = Path(str(tmpdir) + "_output")
+        output_tmpdir.mkdir()
 
         cmd = f"""
         tune run lora_finetune_single_device \
             --config {config} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
             model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}] \
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
@@ -149,19 +151,21 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+        output_tmpdir = Path(str(tmpdir) + "_output")
+        output_tmpdir.mkdir()
 
         cmd = f"""
         tune run lora_finetune_single_device
             --config llama2/7B_qlora_single_device \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
             model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
@@ -205,6 +209,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+        output_tmpdir = Path(str(tmpdir) + "_output")
+        output_tmpdir.mkdir()
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
@@ -217,13 +223,13 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             --config llama2/7B_lora_single_device \
             batch_size=8 \
             gradient_accumulation_steps=1 \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
             model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
@@ -240,22 +246,22 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
-        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder = get_largest_iter_folder(output_tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             batch_size=8 \
             gradient_accumulation_steps=1 \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
             model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.adapter_checkpoint={os.path.join(output_tmpdir, epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(output_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
@@ -283,17 +289,19 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+        output_tmpdir = Path(str(tmpdir) + "_output")
+        output_tmpdir.mkdir()
 
         cmd = f"""
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
-            output_dir={tmpdir} \
+            output_dir={output_tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
             model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
+            checkpointer.output_dir={output_tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
@@ -326,8 +334,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         )
 
         # Load base model and trained adapter weights into LoRA model and call fwd
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
+        epoch_folder = get_largest_iter_folder(output_tmpdir)
+        adpt_path = os.path.join(
+            output_tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt"
+        )
         lora_sd = safe_torch_load(adpt_path, weights_only=True)
 
         with open(ckpt_path, "rb") as f:
@@ -340,7 +350,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         model_ckpt_fname = (
             SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + ".bin"
         )
-        model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
+        model_path = os.path.join(output_tmpdir, epoch_folder, model_ckpt_fname)
         sd = safe_torch_load(model_path, weights_only=True)
 
         llama2_model.load_state_dict(sd)

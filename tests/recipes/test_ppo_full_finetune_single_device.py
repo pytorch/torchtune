@@ -159,6 +159,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         write_hf_ckpt_config(ckpt_dir)
         write_hf_ckpt_config(policy_tmpdir)
         write_hf_ckpt_config(value_tmpdir)
+
         # There are 4 steps in total (num_steps / batch size)
         # and the dataset has 8 samples, so each epoch will be 2 batches
         # a single step is a single batch update, and we checkpoint at every epoch (2 steps)
