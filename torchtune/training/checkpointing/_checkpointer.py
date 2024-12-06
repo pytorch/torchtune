@@ -148,7 +148,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
     ) -> None:
 
         # Fail fast if ``checkpoint_files`` is invalid
-        # FIXME TODO
+        # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
             raise ValueError(
                 "Currently we only support reading from a single torchtune checkpoint file. "
