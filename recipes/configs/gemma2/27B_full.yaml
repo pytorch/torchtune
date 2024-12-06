@@ -72,3 +72,8 @@ metric_logger:
 output_dir: /tmp/alpaca-gemma2-27b-finetune
 log_every_n_steps: 1
 log_peak_memory_stats: True
+
+# mixed precision (disabled)
+mixed_precision:
+  _component_: torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer
+  enabled: false
