@@ -229,17 +229,17 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir='{policy_tmpdir}' \
-            checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA2 \
 
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
 
-            value_checkpointer.checkpoint_dir='{value_tmpdir}' \
-            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
+            value_checkpointer.checkpoint_dir='{ckpt_dir}' \
+            value_checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -359,8 +359,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
-            checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA2 \
 
@@ -368,7 +368,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
 
             value_checkpointer.checkpoint_dir='{value_tmpdir}' \
-            value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
+            value_checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
             reward_checkpointer.checkpoint_dir='{ckpt_dir}' \

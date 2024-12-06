@@ -84,9 +84,6 @@ class TestFullFinetuneDistributedRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        output_tmpdir = Path(str(tmpdir) + "_output")
-        output_tmpdir.mkdir()
-
         # Config file needed for model conversion.
         write_hf_ckpt_config(ckpt_dir)
 
@@ -95,11 +92,11 @@ class TestFullFinetuneDistributedRecipe:
             --config {config} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            output_dir={output_tmpdir} \
+            output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={output_tmpdir} \
+            checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
@@ -150,9 +147,6 @@ class TestFullFinetuneDistributedRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
-        output_tmpdir = Path(str(tmpdir) + "_output")
-        output_tmpdir.mkdir()
-
         # Config file needed for model conversion.
         # Create a second copy for training resume
         write_hf_ckpt_config(ckpt_dir)
@@ -164,11 +158,11 @@ class TestFullFinetuneDistributedRecipe:
             --config {config} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            output_dir={output_tmpdir} \
+            output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={output_tmpdir} \
+            checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
@@ -182,7 +176,7 @@ class TestFullFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
-        epoch_folder = get_largest_iter_folder(output_tmpdir)
+        epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         suffix = ".safetensors" if ckpt_type == "hf" else ".bin"
         model_ckpt_fname = (
@@ -195,9 +189,9 @@ class TestFullFinetuneDistributedRecipe:
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
-            checkpointer.checkpoint_dir='{tmpdir}' \
-            checkpointer.checkpoint_files=[{os.path.join(tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
