@@ -434,15 +434,22 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">safetensors</span> <span class="kn">import</span> <span class="n">safe_open</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Keys used during checkpoint load and checkpoint save.</span>
@@ -450,19 +457,49 @@
 
 <span class="c1"># adapter config containing info about LoRA modules, rank, alpha</span>
 <span class="n">ADAPTER_CONFIG</span> <span class="o">=</span> <span class="s2">&quot;adapter_config&quot;</span>
+
+<span class="c1"># default used by huggingface when looking for saved files</span>
+<span class="c1"># https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32</span>
+<span class="n">ADAPTER_CONFIG_FNAME</span> <span class="o">=</span> <span class="s2">&quot;adapter_config&quot;</span>
+<span class="n">ADAPTER_MODEL_FNAME</span> <span class="o">=</span> <span class="s2">&quot;adapter_model&quot;</span>
+<span class="n">SAFETENSOR_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;model.safetensors.index&quot;</span>
+<span class="n">TORCH_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;pytorch_model.bin.index&quot;</span>
+
+<span class="c1"># standardize checkpointing</span>
+<span class="n">SHARD_FNAME</span> <span class="o">=</span> <span class="s2">&quot;ft-model-</span><span class="si">{cpt_idx}</span><span class="s2">-of-</span><span class="si">{num_shards}</span><span class="s2">&quot;</span>
+<span class="n">RECIPE_STATE_DIRNAME</span> <span class="o">=</span> <span class="s2">&quot;recipe_state&quot;</span>
+<span class="n">BASE_MODEL_DIRNAME</span> <span class="o">=</span> <span class="s2">&quot;base_model&quot;</span>
+
+<span class="c1"># Needed when setting up output dir in checkpointing</span>
+<span class="n">REPO_ID_FNAME</span> <span class="o">=</span> <span class="s2">&quot;original_repo_id&quot;</span>
+<span class="n">SUFFIXES_TO_NOT_COPY</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;.pt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.pth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.bin&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.safetensors&quot;</span><span class="p">,</span>
+    <span class="n">SAFETENSOR_INDEX_FNAME</span><span class="p">,</span>
+    <span class="n">TORCH_INDEX_FNAME</span><span class="p">,</span>
+    <span class="n">ADAPTER_CONFIG_FNAME</span><span class="p">,</span>
+    <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">,</span>
+<span class="p">]</span>
+
 <span class="c1"># key used for adapter weights such as LoRA weights</span>
 <span class="n">ADAPTER_KEY</span> <span class="o">=</span> <span class="s2">&quot;adapter&quot;</span>
+
 <span class="c1"># number of epochs completed thus far</span>
 <span class="n">EPOCHS_KEY</span> <span class="o">=</span> <span class="s2">&quot;epochs_run&quot;</span>
 <span class="n">MAX_STEPS_KEY</span> <span class="o">=</span> <span class="s2">&quot;max_steps_per_epoch&quot;</span>
 <span class="n">MODEL_KEY</span> <span class="o">=</span> <span class="s2">&quot;model&quot;</span>
 <span class="n">OPT_KEY</span> <span class="o">=</span> <span class="s2">&quot;optimizer&quot;</span>
 <span class="n">SEED_KEY</span> <span class="o">=</span> <span class="s2">&quot;seed&quot;</span>
+
 <span class="c1"># total number of epochs for training; resumed training runs for</span>
 <span class="c1"># (total_epochs - epochs_run) number of epochs</span>
 <span class="n">TOTAL_EPOCHS_KEY</span> <span class="o">=</span> <span class="s2">&quot;total_epochs&quot;</span>
+
 <span class="c1"># number of steps completed thus far - for PPO</span>
 <span class="n">STEPS_KEY</span> <span class="o">=</span> <span class="s2">&quot;steps_run&quot;</span>
+
 <span class="c1"># rng state for ensuring correct training resuming in PPO</span>
 <span class="n">RNG_KEY</span> <span class="o">=</span> <span class="s2">&quot;rng_state&quot;</span>
 
@@ -601,14 +638,14 @@
 
 
 <span class="k">def</span> <span class="nf">safe_torch_load</span><span class="p">(</span>
-    <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Utility to load a checkpoint file onto CPU in a safe manner. Provides separate handling for</span>
 <span class="sd">    safetensors files.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        checkpoint_path (Path): Path to the checkpoint file.</span>
+<span class="sd">        checkpoint_path (Union[Path, str]): Path to the checkpoint file.</span>
 <span class="sd">        weights_only (bool): Whether to load only tensors, primitive types, and dictionaries</span>
 <span class="sd">            (passthrough to torch.load). Default: True</span>
 <span class="sd">        mmap (bool): Whether to mmap from disk into CPU memory. Default: True</span>
@@ -641,22 +678,6 @@
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to load checkpoint from </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">. &quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
     <span class="k">return</span> <span class="n">state_dict</span>
-
-
-<span class="k">def</span> <span class="nf">save_config</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Save a configuration dictionary to a file.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        path (Path): Path to save the configuration file.</span>
-<span class="sd">        config (Dict[str, Any]): Configuration dictionary to save.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-        <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;config.json&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="update_state_dict_for_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.training.update_state_dict_for_classifier.html#torchtune.training.update_state_dict_for_classifier">[docs]</a><span class="k">def</span> <span class="nf">update_state_dict_for_classifier</span><span class="p">(</span>
@@ -707,6 +728,267 @@
         <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;output.bias&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">output_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">force_override</span><span class="p">:</span>
         <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_weight</span></div>
+
+
+<span class="c1"># TODO: add test</span>
+<span class="k">def</span> <span class="nf">get_largest_iter_folder</span><span class="p">(</span>
+    <span class="nb">dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+
+    <span class="n">latest_epoch_folder</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">iter_folders</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+
+    <span class="c1"># Iterate over the directory contents</span>
+    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="c1"># Extract the number from the match</span>
+            <span class="n">iter_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">iter_folders</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">fname</span><span class="p">,</span> <span class="n">iter_number</span><span class="p">))</span>
+
+    <span class="c1"># Find the folder with the largest iter number</span>
+    <span class="k">if</span> <span class="n">iter_folders</span><span class="p">:</span>
+        <span class="n">latest_epoch_folder</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">iter_folders</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">latest_epoch_folder</span>
+
+
+<span class="c1"># TODO: instead of copying, make it a symlink when we start using HF cache</span>
+<span class="k">def</span> <span class="nf">copy_files</span><span class="p">(</span>
+    <span class="n">input_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">ignore_suffixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copies files from the input directory to the output directory, preserving the directory structure.</span>
+
+<span class="sd">    This function will skip copying files that already exist in the output directory or have specific suffixes.</span>
+<span class="sd">    It will also skip folders and files that start with &#39;.&#39;. E.g. &quot;.cache/&quot; and &quot;.git&quot;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_dir (Union[str, Path]): The path to the input directory containing files to be copied.</span>
+<span class="sd">        output_dir (Union[str, Path]): The path to the output directory where files should be copied.</span>
+<span class="sd">        ignore_suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.</span>
+<span class="sd">          Defaults to [&#39;.pt&#39;, &#39;.bin&#39;, &#39;.safetensors&#39;] if not provided.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    Example:</span>
+<span class="sd">    &gt;&gt;&gt; copy_files(&#39;path/to/input_dir&#39;, &#39;path/to/output_dir&#39;)</span>
+
+<span class="sd">    This will copy all files from &#39;path/to/input_dir&#39; to &#39;path/to/output_dir&#39;, except those that</span>
+<span class="sd">    already exist in the destination or have the specified suffixes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
+
+        <span class="c1"># Filter out directories that start with &#39;.&#39;. E.g. &quot;.cache/&quot;</span>
+        <span class="n">dirs</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)]</span>
+
+        <span class="c1"># Construct the corresponding directory in the output</span>
+        <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">input_dir</span><span class="p">)</span>
+        <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+
+        <span class="c1"># Create the directory in the output if it doesn&#39;t exist</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="c1"># Skip files that start with &#39;.&#39;. E.g. &quot;.git&quot;</span>
+            <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Check if the file has one of the specified suffixes</span>
+            <span class="k">if</span> <span class="n">ignore_suffixes</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span> <span class="k">for</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">ignore_suffixes</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">src_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+            <span class="n">dest_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+            <span class="c1"># Copy the file if it doesn&#39;t already exist in the destination</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dest_file</span><span class="p">):</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">src_file</span><span class="p">,</span> <span class="n">dest_file</span><span class="p">)</span>
+
+    <span class="k">return</span>
+
+
+<span class="k">def</span> <span class="nf">get_recipe_checkpoint_path</span><span class="p">(</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.</span>
+<span class="sd">    This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_dir (Path): Directory containing the recipe checkpoint.</span>
+<span class="sd">        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.</span>
+<span class="sd">        resume_from_checkpoint (bool): Whether to resume from a checkpoint.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: Path to the recipe checkpoint file if resume_from_checkpoint is True, otherwise None.</span>
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If resume_from_checkpoint is True and the recipe checkpoint file is missing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">recipe_checkpoint</span><span class="p">:</span>
+        <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">recipe_checkpoint</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">output_dir</span><span class="p">,</span> <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># TODO: improve this msg</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">recipe_checkpoint_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;If resume_from_checkpoint is True, recipe_checkpoint file must be provided.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_adapter_checkpoint_path</span><span class="p">(</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.</span>
+<span class="sd">    This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_dir (Path): Directory containing the adapter checkpoint.</span>
+<span class="sd">        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.</span>
+<span class="sd">        resume_from_checkpoint (bool): Whether to resume from a checkpoint.</span>
+<span class="sd">        pattern (str): Regex pattern to match the epoch folder. Defaults to &quot;epoch_(\d+)&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">adapter_checkpoint</span><span class="p">:</span>
+        <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">adapter_checkpoint</span><span class="p">)</span>
+        <span class="c1"># TODO: add error if it doesnt exist</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Look for the latest adapter checkpoint in the output directory</span>
+        <span class="n">largest_iter_folder</span> <span class="o">=</span> <span class="n">get_largest_iter_folder</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span>
+
+        <span class="n">tentative_adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">output_dir</span><span class="p">,</span> <span class="n">largest_iter_folder</span><span class="p">,</span> <span class="s2">&quot;adapter_model.pt&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tentative_adapter_checkpoint_path</span><span class="p">):</span>
+            <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">tentative_adapter_checkpoint_path</span>
+
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">adapter_checkpoint_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">adapter_checkpoint_path</span> <span class="k">else</span> <span class="kc">None</span>
+
+
+<span class="k">def</span> <span class="nf">get_model_checkpoint_path</span><span class="p">(</span>
+    <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">has_adapter_checkpoint</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns Paths to model checkpoint files, handling resuming from checkpoint, file formating and checking</span>
+<span class="sd">    if the files exists.</span>
+
+<span class="sd">    If resuming from checkpoint, the checkpoint files are loaded from the output directory. Otherwise,</span>
+<span class="sd">    they are loaded from the checkpoint directory.</span>
+
+<span class="sd">    If checkpoint_fiels is a dictionary, it is converted to a list of formatted checkpoint filenames.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checkpoint_files (Union[List[str], Dict[str, str]]): List or dictionary of checkpoint file names.</span>
+<span class="sd">            If a dictionary with keys [&quot;filename_format&quot;, &quot;max_filename&quot;] is provided,</span>
+<span class="sd">            it is converted to a list of formatted checkpoint filenames.</span>
+<span class="sd">        checkpoint_dir (Union[str, Path]): Directory containing the checkpoint files.</span>
+<span class="sd">        output_dir (Union[str, Path]): Directory to use when resuming from a checkpoint.</span>
+<span class="sd">        resume_from_checkpoint (bool): Whether to resume from a checkpoint.</span>
+<span class="sd">        has_adapter_checkpoint (bool): Indicates if there is an adapter checkpoint.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        list[Path]: Sorted list of paths to the checkpoint files.</span>
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; checkpoint_files = [&quot;model-00001-of-00002.safetensors&quot;, &quot;model-00002-of-00002.safetensors&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; checkpoint_dir = &quot;/path/to/checkpoints&quot;</span>
+<span class="sd">        &gt;&gt;&gt; output_dir = &quot;/path/to/output&quot;</span>
+<span class="sd">        &gt;&gt;&gt; resume_from_checkpoint = True</span>
+<span class="sd">        &gt;&gt;&gt; has_adapter_checkpoint = False</span>
+<span class="sd">        &gt;&gt;&gt; paths = get_model_checkpoint_path(</span>
+<span class="sd">        ...     checkpoint_files,</span>
+<span class="sd">        ...     checkpoint_dir,</span>
+<span class="sd">        ...     output_dir,</span>
+<span class="sd">        ...     resume_from_checkpoint,</span>
+<span class="sd">        ...     has_adapter_checkpoint</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; print(paths)</span>
+<span class="sd">        [PosixPath(&#39;/path/to/output/{largest_epoch}/model-00001-of-00002.safetensors&#39;),</span>
+<span class="sd">         PosixPath(&#39;/path/to/output/{largest_epoch}/model-00002-of-00002.safetensors&#39;)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">validate_checkpoint_files</span><span class="p">(</span>
+        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">input_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span>
+        <span class="n">missing_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validates that the checkpoint files exist and sorts based on ID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">checkpoint_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">checkpoint_files</span><span class="p">:</span>
+            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">)</span>
+            <span class="n">checkpoint_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">checkpoint_paths</span><span class="p">)</span>
+
+    <span class="c1"># load or resume from model weights</span>
+
+    <span class="c1"># e.g.</span>
+    <span class="c1"># checkpoint_files:</span>
+    <span class="c1">#   filename_format: model-{}-of-{}.safetensors</span>
+    <span class="c1">#   max_filename: 00191</span>
+    <span class="c1"># becomes checkpoint_files = [model-00001-of-00191.safetensors, model-00002-of-00191,..]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+        <span class="c1"># TODO: this can be a function instead of a class</span>
+        <span class="n">formatted_checkpoint_files</span> <span class="o">=</span> <span class="n">FormattedCheckpointFiles</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+            <span class="n">checkpoint_files</span>
+        <span class="p">)</span>
+        <span class="n">checkpoint_files</span> <span class="o">=</span> <span class="n">formatted_checkpoint_files</span><span class="o">.</span><span class="n">build_checkpoint_filenames</span><span class="p">()</span>
+
+    <span class="c1"># Case 1: no resuming from ckpt</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+        <span class="n">input_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
+
+    <span class="c1"># Case 2: Resuming from ckpt, but its full finetuning (no adapter)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">has_adapter_checkpoint</span><span class="p">:</span>
+        <span class="n">input_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
+
+    <span class="c1"># Case 3: Resuming from ckpt and has an adapter.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># FIXME</span>
+        <span class="c1"># TODO: if the model has lora + trained weights, e.g. embeddings,</span>
+        <span class="c1"># we will silently not load the trained model, because we load from checkpoint_dir.</span>
+        <span class="c1"># We cannot load from output_dir because we always merge the adapter weights into the model</span>
+        <span class="n">input_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
+
+    <span class="n">checkpoint_paths</span> <span class="o">=</span> <span class="n">validate_checkpoint_files</span><span class="p">(</span>
+        <span class="n">checkpoint_files</span><span class="p">,</span>
+        <span class="n">input_dir</span><span class="o">=</span><span class="n">input_dir</span><span class="p">,</span>
+        <span class="n">missing_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">checkpoint_paths</span>
 </pre></div>
 
              </article>
