@@ -46,7 +46,7 @@ class DeepFusionModel(nn.Module):
         >>> # DeepFusionModel combines the encoder and decoder
         >>> model = DeepFusionModel(decoder, encoder)
         >>>
-        >>> # Load full fused checkpoints (e.g. a Flamingo checkpoint)
+        >>> # Load full fused checkpoints (e.g. a Llama3.2 Vision checkpoint)
         >>> model.load_state_dict(...)
         >>>
         >>> # Or load pretrained individual models (fusion_params are not loaded)

@@ -113,6 +113,7 @@ torchtune tutorials.
    recipes/recipes_overview
    recipes/lora_finetune_single_device
    recipes/qat_distributed
+   recipes/dpo
 
 .. toctree::
    :glob:

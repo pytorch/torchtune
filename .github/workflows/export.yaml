@@ -1,0 +1,51 @@
+name: Export
+
+on:
+  push:
+    paths:
+      - 'torchtune/modules/_export/**'
+      - 'tests/torchtune/modules/_export/**'
+  pull_request:
+    paths:
+      - 'torchtune/modules/_export/**'
+      - 'tests/torchtune/modules/_export/**'
+  schedule:
+    # Runs at midnight evvery day
+    - cron: '0 0 * * *'
+
+concurrency:
+  group: unit-test${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -l -eo pipefail {0}
+
+jobs:
+  export_unit_tests:
+    if: github.repository_owner == 'pytorch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      - name: Setup conda env
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          miniconda-version: "latest"
+          activate-environment: test
+          python-version: ${{ matrix.python-version }}
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: |
+          bash torchtune/modules/_export/install_requirements.sh
+          python -m pip install torchao
+          python -m pip install -e ".[dev]"
+      - name: Run unit tests with coverage
+        run: pytest tests/torchtune/modules/_export --cov=. --cov-report=xml --durations=20 -vv
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3

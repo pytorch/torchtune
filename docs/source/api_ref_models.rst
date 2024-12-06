@@ -6,6 +6,31 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
+llama3.3
+--------
+
+Text-only models from the 3.3 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
+
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct>`__ before downloading it.
+
+To download the Llama-3.3-70B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-3.3-70B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llama3_3.llama3_3_70b
+    llama3_3.lora_llama3_3_70b
+    llama3_3.qlora_llama3_3_70b
+
+.. note::
+
+    The Llama3.3 tokenizer reuses the :class:`~torchtune.models.llama3.llama3_tokenizer` class.
+
 llama3.2
 --------
 

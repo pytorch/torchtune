@@ -70,7 +70,7 @@ class TestKDDistributedRecipe:
 
         cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
-            --config llama3_2/knowledge_distillation_distributed \
+            --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -128,7 +128,7 @@ class TestKDDistributedRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
-            --config llama3_2/knowledge_distillation_distributed \
+            --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -158,7 +158,7 @@ class TestKDDistributedRecipe:
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
-            --config llama3_2/knowledge_distillation_distributed \
+            --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -209,7 +209,7 @@ class TestKDDistributedRecipe:
 
         cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
-            --config llama3_2/knowledge_distillation_distributed \
+            --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \

@@ -29,6 +29,7 @@ from .transformer import (  # noqa
     TransformerSelfAttentionLayer,
 )
 from .vision_transformer import VisionTransformer
+from .vq_embeddings import VectorQuantizedEmbeddings
 
 __all__ = [
     "MultiHeadAttention",
@@ -38,6 +39,7 @@ __all__ = [
     "KVCache",
     "RotaryPositionalEmbeddings",
     "VisionRotaryPositionalEmbeddings",
+    "VectorQuantizedEmbeddings",
     "RMSNorm",
     "TiedLinear",
     "Fp32LayerNorm",

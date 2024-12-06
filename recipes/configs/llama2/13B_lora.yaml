@@ -19,6 +19,8 @@
 # the 13B model.
 
 
+output_dir: /tmp/torchtune/llama2_13B/lora # /tmp may be deleted by your system. Change it to your preference.
+
 # Model Arguments
 model:
   _component_: torchtune.models.llama2.lora_llama2_13b
@@ -39,7 +41,7 @@ checkpointer:
   ]
   adapter_checkpoint: null
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-2-13b-hf/
+  output_dir: ${output_dir}
   model_type: LLAMA2
 resume_from_checkpoint: False
 save_adapter_weights_only: False
@@ -74,14 +76,13 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
+gradient_accumulation_steps: 8  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
-output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
@@ -90,6 +91,7 @@ device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
+
 
 # Profiler (disabled)
 profiler:

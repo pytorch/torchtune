@@ -112,6 +112,8 @@ class TestFullFinetuneDistributedRecipe:
         # should be the same.
         if not optim_in_bwd:
             cmd.append("clip_grad_norm=100")
+            # Test that gradient clipping works with CPU offload
+            cmd.append("fsdp_cpu_offload=True")
         else:
             cmd.append("optimizer_in_bwd=True")
 

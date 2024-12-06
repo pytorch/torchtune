@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Dict, Generator, Iterable, Optional, Tuple
+from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
 import torch
 
@@ -53,6 +53,7 @@ def verify_bf16_support() -> bool:
         - NCCL is available and version >= 2.10
         - MPS is available and torch was built with MPS
         - NPU is available and supports bf16
+        - XPU is available and supports bf16
 
     Returns:
         bool: True if bf16 is available, False otherwise.
@@ -66,7 +67,8 @@ def verify_bf16_support() -> bool:
     )
     mps_support = torch.backends.mps.is_available() and torch.backends.mps.is_built()
     npu_support = is_npu_available and torch.npu.is_bf16_supported()
-    return cuda_support or mps_support or npu_support
+    xpu_support = torch.xpu.is_available() and torch.xpu.is_bf16_supported()
+    return cuda_support or mps_support or npu_support or xpu_support
 
 
 def get_dtype(
@@ -147,7 +149,9 @@ def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
 
 
 def validate_expected_param_dtype(
-    named_params: Iterable[Tuple[str, torch.nn.Parameter]], dtype: torch.dtype
+    named_params: Iterable[Tuple[str, torch.nn.Parameter]],
+    dtype: torch.dtype,
+    exclude_param_names: Optional[List[str]] = None,
 ) -> None:
     """
     Validates that all input parameters have the expected dtype.
@@ -155,11 +159,15 @@ def validate_expected_param_dtype(
     Args:
         named_params (Iterable[Tuple[str, torch.nn.Parameter]]): Iterable of named parameters.
         dtype (torch.dtype): Expected dtype.
+        exclude_param_names (Optional[List[str]]): Optional list of parameter names to exclude from dtype checking
 
     Raises:
         ValueError: If any parameter has a different dtype than `dtype`.
     """
     for name, param in named_params:
+        if exclude_param_names is not None:
+            if any(n in name for n in exclude_param_names):
+                continue
         if param.dtype != dtype:
             raise ValueError(
                 f"Parameter {name} has dtype {param.dtype}, but expected {dtype}"
