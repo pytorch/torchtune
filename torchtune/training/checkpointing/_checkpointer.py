@@ -900,7 +900,9 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
     ) -> None:
+
         # Fail fast if ``checkpoint_files`` is invalid
+        # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
             raise ValueError(
                 "Currently we only support reading from a single torchtune checkpoint file. "
