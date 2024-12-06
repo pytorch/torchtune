@@ -8,8 +8,6 @@
 # This config needs 8 GPUs to run
 #   tune run --nproc_per_node 8 lora_finetune_distributed --config llama3_3/70B_lora
 
-output_dir: /tmp/torchtune/llama3_3_70B/lora # /tmp may be deleted by your system. Change it to your preference.
-
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_3.lora_llama3_3_70b
@@ -28,11 +26,40 @@ tokenizer:
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-3.3-70B-Instruct/
-  checkpoint_files:
-    filename_format: model-{}-of-{}.safetensors
-    max_filename: "00030"
+  checkpoint_files: [
+    model-00001-of-00030.safetensors,
+    model-00002-of-00030.safetensors,
+    model-00003-of-00030.safetensors,
+    model-00004-of-00030.safetensors,
+    model-00005-of-00030.safetensors,
+    model-00006-of-00030.safetensors,
+    model-00007-of-00030.safetensors,
+    model-00008-of-00030.safetensors,
+    model-00009-of-00030.safetensors,
+    model-00010-of-00030.safetensors,
+    model-00011-of-00030.safetensors,
+    model-00012-of-00030.safetensors,
+    model-00013-of-00030.safetensors,
+    model-00014-of-00030.safetensors,
+    model-00015-of-00030.safetensors,
+    model-00016-of-00030.safetensors,
+    model-00017-of-00030.safetensors,
+    model-00018-of-00030.safetensors,
+    model-00019-of-00030.safetensors,
+    model-00020-of-00030.safetensors,
+    model-00021-of-00030.safetensors,
+    model-00022-of-00030.safetensors,
+    model-00023-of-00030.safetensors,
+    model-00024-of-00030.safetensors,
+    model-00025-of-00030.safetensors,
+    model-00026-of-00030.safetensors,
+    model-00027-of-00030.safetensors,
+    model-00028-of-00030.safetensors,
+    model-00029-of-00030.safetensors,
+    model-00030-of-00030.safetensors,
+  ]
   recipe_checkpoint: null
-  output_dir: ${output_dir}
+  output_dir: /tmp/Llama-3.3-70B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
 save_adapter_weights_only: True # Set to false to save the whole model + adapter merged
@@ -61,13 +88,14 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1  # Use to increase effective batch size
-compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+gradient_accumulation_steps: 1  # Use to increase virtual batch size
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Logging
+output_dir: /tmp/lora-llama3_3-finetune-output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}/logs
+  log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
