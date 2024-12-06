@@ -9,12 +9,29 @@ from typing import List, Optional
 from torchtune.models.llama3._component_builders import llama3, lora_llama3
 
 from torchtune.modules import TransformerDecoder
+from torchtune.models.sarvam1._tokenizer import Sarvam1Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.data._prompt_templates import _TemplateType
+from torchtune.data._prompt_templates import _get_prompt_template
 
 
 """
 Model builders build specific instantiations using Llama 3 component builders.
 """
+
+def sarvam1_tokenizer(path: str, prompt_template: Optional[str] = None) -> Sarvam1Tokenizer:
+    """
+    Tokenizer for Sarvam1.
+
+    Args:
+        path (str): path to the tokenizer
+        prompt_template (Optional[str]): optional specified prompt template.
+            If given, assumed to be a huggingface prompt template name.
+
+    Returns:
+        Sarvam1Tokenizer: Instantiation of the Llama2 tokenizer
+    """
+    return Sarvam1Tokenizer(path=path, prompt_template=prompt_template)
 
 
 def sarvam1() -> TransformerDecoder:
