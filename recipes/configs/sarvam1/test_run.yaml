@@ -1,0 +1,110 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Llama2 7B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config llama2/7B_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config llama2/7B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# Single device full finetuning requires more memory optimizations. It's
+# best to use 7B_full_single_device.yaml for those cases
+
+# Model Arguments
+model:
+  _component_: torchtune.models.sarvam1.sarvam1
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.sarvam1.sarvam1_tokenizer
+  path: /home/rahul_sarvam_ai/nemo_models/original_tokenizer/tokenizer.model
+  max_seq_len: 8192
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+  packed: True  # True increases speed
+seed: null
+shuffle: True
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /home/rahul_sarvam_ai/nemo_models/sarvam-1-pt
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: /home/rahul_sarvam_ai/torchtune_models/test_run
+  save_interval: 1000 # save every 1000 steps
+  model_type: LLAMA3
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 1
+epochs: 1
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  lr: 7e-6
+  weight_decay: 0.01
+  betas: [0.9, 0.98]
+
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+clip_grad_norm: 1.0
+max_steps_per_epoch: null
+gradient_accumulation_steps: 6  # Use to increase virtual batch size
+compile: False  # pytorch compile, set to true for better perf/memory
+optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: False  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
+
+# Reduced precision
+dtype: bf16
+
+# enable logging to the built-in WandBLogger
+metric_logger:
+  _component_: torchtune.training.metric_logging.WandBLogger
+  # the W&B project to log to
+  project: torchtune
+output_dir: /home/rahul_sarvam_ai/torchtune_models/test_run
+log_every_n_steps: 10
+log_peak_memory_stats: True
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 2
+  num_cycles: 1
