@@ -17,6 +17,8 @@
 
 output_dir: /tmp/torchtune/llama3_2_1B/lora_single_device # /tmp may be deleted by your system. Change it to your preference.
 
+output_dir: /tmp/torchtune/llama3_2_1B/lora_single_device # /tmp may be deleted by your system. Change it to your preference.
+
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_2.lora_llama3_2_1b
