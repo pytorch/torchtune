@@ -52,16 +52,16 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 - ``early_exit_loss.layers`` is a string, whose format mimics indexing in numpy arrays (e.g., `:`
                 depicts all layers, `0:10:3` depicts layers 0, 3, 6, 9, and `1,5,11` depicts layers 1,5,11), to
                 represent which layers to apply early exit loss at,
-                - ``early_exit_loss.scale_type`` and ``early_exit_loss.scale`` determine how we calculate the
+                - ``early_exit_loss.scale_fn`` and ``early_exit_loss.scale`` determine how we calculate the
                 weights of losses at different  layers when calculating total loss, and
                 - ``early_exit_loss.curriculum`` depicts how the early exit loss layers change across training
                 iterations.
             See ``torchtune/modules/early_exit_loss.py` for more details of each argument.
             To reproduce experiments of different papers that use early exit loss:
                 - LayerSkip (https://arxiv.org/abs/2404.16710) for finetuning on TOPv2: set
-                ``early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_type=l``,
+                ``early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_fn=l``,
                 - LITE (https://arxiv.org/abs/2310.18581) for finetuning Llama2 7B on Alpaca you can set
-                ``early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_type=one``.
+                ``early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_fn=one``.
 
         - Layer Dropout. (a.k.a. Stochastic Depth) This drops samples stochastically for each layer during training.
             "Dropping" a sample at a layer in this context means a sample will pass through the layer without modification.
@@ -243,7 +243,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             self._early_exit_loss_scale = cfg_early_exit_loss.get("scale", 1.0)
             self._early_exit_loss_scale_type = _get_component_from_path(
                 cfg_early_exit_loss.get(
-                    "scale_type", "torchtune.modules.early_exit_loss.sum_l_loss_scale"
+                    "scale_fn", "torchtune.modules.early_exit_loss.sum_l_loss_scale"
                 )
             )
         else:
