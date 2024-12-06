@@ -134,10 +134,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
     Raises:
         ValueError: If more than one checkpoint file is provided
-        ValueError: If the checkpoint file does not have a .bin extension
-        ValueError: If ``resume_from_checkpoint`` is True but ``recipe_checkpoint`` is None
-
-
     """
 
     def __init__(
@@ -364,8 +360,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
     Args:
         checkpoint_dir (str): Directory containing the checkpoint files
-        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load. Since the checkpointer takes care
-            of sorting by file ID, the order in this list does not matter. TODO: update this
+        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load or a dictionary
+            containing the keys keys ["filename_format", "max_filename"]. Since the checkpointer takes care
+            of sorting by file ID, the order in this list does not matter.
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
@@ -376,7 +373,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             Default is None.
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
-        safe_serialization (bool): If True, the checkpointer will save the checkpoint file using `safetensors`
+        safe_serialization (bool): If True, the checkpointer will save the checkpoint file using `safetensors`.
+            Default is True.
     """
 
     def __init__(

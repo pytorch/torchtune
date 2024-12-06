@@ -244,7 +244,6 @@ def safe_torch_load(
                 map_location="cpu",
                 mmap=mmap,
                 weights_only=weights_only,
-                # TODO: should we add assign=True?
             )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
@@ -329,6 +328,7 @@ def get_largest_iter_folder(
 def copy_files(
     input_dir: Union[str, Path],
     output_dir: Union[str, Path],
+    *,
     ignore_suffixes: Optional[List[str]] = None,
 ) -> None:
     """
@@ -388,7 +388,7 @@ def get_recipe_checkpoint_path(
     output_dir: Path,
     recipe_checkpoint: Optional[str] = None,
     resume_from_checkpoint: bool = False,
-):
+) -> Optional[Path]:
     """
     If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
@@ -398,7 +398,7 @@ def get_recipe_checkpoint_path(
         recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
         resume_from_checkpoint (bool): Whether to resume from a checkpoint.
     Returns:
-        Path: Path to the recipe checkpoint file.
+        Optional[Path]: Path to the recipe checkpoint file if resume_from_checkpoint is True, otherwise None.
     Raises:
         ValueError: If resume_from_checkpoint is True and the recipe checkpoint file is missing.
     """
@@ -429,7 +429,7 @@ def get_adapter_checkpoint_path(
     adapter_checkpoint: Optional[str] = None,
     resume_from_checkpoint: bool = False,
     pattern: str = r"^epoch_(\d+)",
-):
+) -> Optional[Path]:
     r"""
     If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.
     This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
@@ -441,7 +441,7 @@ def get_adapter_checkpoint_path(
         pattern (str): Regex pattern to match the epoch folder. Defaults to "epoch_(\d+)".
 
     Returns:
-        Path: Path to the adapter checkpoint file, or None if not applicable.
+        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
     """
     if not resume_from_checkpoint:
         return None
@@ -471,6 +471,43 @@ def get_model_checkpoint_path(
     resume_from_checkpoint: bool,
     has_adapter_checkpoint: bool,
 ) -> list[Path]:
+    """
+    Returns Paths to model checkpoint files, handling resuming from checkpoint, file formating and checking
+    if the files exists.
+
+    If resuming from checkpoint, the checkpoint files are loaded from the output directory. Otherwise,
+    they are loaded from the checkpoint directory.
+
+    If checkpoint_fiels is a dictionary, it is converted to a list of formatted checkpoint filenames.
+
+    Args:
+        checkpoint_files (Union[List[str], Dict[str, str]]): List or dictionary of checkpoint file names.
+            If a dictionary with keys ["filename_format", "max_filename"] is provided,
+            it is converted to a list of formatted checkpoint filenames.
+        checkpoint_dir (Union[str, Path]): Directory containing the checkpoint files.
+        output_dir (Union[str, Path]): Directory to use when resuming from a checkpoint.
+        resume_from_checkpoint (bool): Whether to resume from a checkpoint.
+        has_adapter_checkpoint (bool): Indicates if there is an adapter checkpoint.
+    Returns:
+        list[Path]: Sorted list of paths to the checkpoint files.
+    Example:
+        >>> checkpoint_files = ["model-00001-of-00002.safetensors", "model-00002-of-00002.safetensors"]
+        >>> checkpoint_dir = "/path/to/checkpoints"
+        >>> output_dir = "/path/to/output"
+        >>> resume_from_checkpoint = True
+        >>> has_adapter_checkpoint = False
+        >>> paths = get_model_checkpoint_path(
+        ...     checkpoint_files,
+        ...     checkpoint_dir,
+        ...     output_dir,
+        ...     resume_from_checkpoint,
+        ...     has_adapter_checkpoint
+        ... )
+        >>> print(paths)
+        [PosixPath('/path/to/output/{largest_epoch}/model-00001-of-00002.safetensors'),
+         PosixPath('/path/to/output/{largest_epoch}/model-00002-of-00002.safetensors')]
+    """
+
     def validate_checkpoint_files(
         checkpoint_files: Union[List[str]],
         input_dir: Optional[Path] = None,
