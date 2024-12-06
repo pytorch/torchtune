@@ -556,7 +556,7 @@ def get_model_checkpoint_path(
 
     checkpoint_paths = validate_checkpoint_files(
         checkpoint_files,
-        input_dir=checkpoint_dir,
+        input_dir=input_dir,
         missing_ok=False,
     )
 
