@@ -59,9 +59,12 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             See ``torchtune/modules/early_exit_loss.py` for more details of each argument.
             To reproduce experiments of different papers that use early exit loss:
                 - LayerSkip (https://arxiv.org/abs/2404.16710) for finetuning on TOPv2: set
-                ``early_exit_loss.scale=1.0, early_exit_loss.curriculum=gradual early_exit_loss.scale_fn=l``,
+                ``early_exit_loss.scale=1.0,
+                    early_exit_loss.curriculum=torchtune.modules.early_exit_loss.GradualEarlyExitCurriculum
+                    early_exit_loss.scale_fn=torchtune.modules.early_exit_loss.linear_l_loss_scale``,
                 - LITE (https://arxiv.org/abs/2310.18581) for finetuning Llama2 7B on Alpaca you can set
-                ``early_exit_loss.layers=8,12,16,20,24,28 early_exit_loss.scale_fn=one``.
+                ``early_exit_loss.layers=8,12,16,20,24,28
+                    early_exit_loss.scale_fn=torchtune.modules.early_exit_loss.uniform_loss_scale``.
 
         - Layer Dropout. (a.k.a. Stochastic Depth) This drops samples stochastically for each layer during training.
             "Dropping" a sample at a layer in this context means a sample will pass through the layer without modification.
