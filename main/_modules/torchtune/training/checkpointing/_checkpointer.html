@@ -620,7 +620,7 @@
             <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
-            <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># we currently accept only a single file</span>
@@ -877,7 +877,7 @@
             <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
-            <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
@@ -1374,7 +1374,7 @@
             <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
-            <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># we currently accept only a single file</span>
