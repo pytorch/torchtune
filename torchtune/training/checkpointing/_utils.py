@@ -390,7 +390,7 @@ def get_recipe_checkpoint_path(
     resume_from_checkpoint: bool = False,
 ):
     """
-    If recipe_checkpoint is None, look for recipe_state.bin in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.{suffix}.
+    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
 
     Args:
@@ -458,7 +458,71 @@ def get_adapter_checkpoint_path(
         tentative_adapter_checkpoint_path = os.path.join(
             output_dir, largest_iter_folder, "adapter_model.pt"
         )
-        if os.path.exists(tentative_adapter_checkpoint):
-            adapter_checkpoint_path = tentative_adapter_checkpoint
+        if os.path.exists(tentative_adapter_checkpoint_path):
+            adapter_checkpoint_path = tentative_adapter_checkpoint_path
 
     return Path(adapter_checkpoint_path) if adapter_checkpoint_path else None
+
+
+def get_model_checkpoint_path(
+    checkpoint_files: Union[List[str], Dict[str, str]],
+    checkpoint_dir: Union[str, Path],
+    output_dir: Union[str, Path],
+    resume_from_checkpoint: bool,
+    has_adapter_checkpoint: bool,
+) -> list[Path]:
+    def validate_checkpoint_files(
+        checkpoint_files: Union[List[str]],
+        input_dir: Optional[Path] = None,
+        missing_ok=False,
+    ) -> List[Path]:
+        """
+        Validates that the checkpoint files exist and sorts based on ID.
+        """
+        if not input_dir:
+            input_dir = self._checkpoint_dir
+
+        checkpoint_paths: List[Path] = []
+        for f in checkpoint_files:
+            checkpoint_path = get_path(input_dir, f, missing_ok)
+            checkpoint_paths.append(checkpoint_path)
+
+        return sorted(checkpoint_paths)
+
+    # load or resume from model weights
+
+    # e.g.
+    # checkpoint_files:
+    #   filename_format: model-{}-of-{}.safetensors
+    #   max_filename: 00191
+    # becomes checkpoint_files = [model-00001-of-00191.safetensors, model-00002-of-00191,..]
+    if not isinstance(checkpoint_files, List):
+        # TODO: this can be a function instead of a class
+        formatted_checkpoint_files = FormattedCheckpointFiles.from_dict(
+            checkpoint_files
+        )
+        checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
+
+    # Case 1: no resuming from ckpt
+    if not resume_from_checkpoint:
+        input_dir = checkpoint_dir
+
+    # Case 2: Resuming from ckpt, but its full finetuning (no adapter)
+    elif has_adapter_checkpoint is None:
+        input_dir = output_dir
+
+    # Case 3: Resuming from ckpt and has an adapter.
+    else:
+        # FIXME
+        # TODO: if the model has lora + trained weights, e.g. embeddings,
+        # we will silently not load the trained model, because we load from checkpoint_dir.
+        # We cannot load from output_dir because we always merge the adapter weights into the model
+        input_dir = checkpoint_dir
+
+    checkpoint_paths = validate_checkpoint_files(
+        checkpoint_files,
+        input_dir=checkpoint_dir,
+        missing_ok=False,
+    )
+
+    return checkpoint_paths

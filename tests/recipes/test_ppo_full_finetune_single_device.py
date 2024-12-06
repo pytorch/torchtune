@@ -230,7 +230,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
             checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}\
+            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA2 \
 
@@ -359,7 +359,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{policy_tmpdir}' \
             checkpointer.checkpoint_files=[{os.path.join(policy_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.bin")}\
+            checkpointer.recipe_checkpoint={os.path.join(policy_tmpdir, RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
             checkpointer.model_type=LLAMA2 \
 
