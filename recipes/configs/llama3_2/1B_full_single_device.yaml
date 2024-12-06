@@ -25,7 +25,7 @@ output_dir: /tmp/torchtune/llama3_2_1B/full_single_device # /tmp may be deleted 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Llama-3.2-1B-Instruct/original/tokenizer.model
+  path:  /tmp/Llama-3.2-1B-Instruct/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
@@ -34,10 +34,6 @@ dataset:
   packed: False  # True increases speed
 seed: null
 shuffle: True
-
-# Model Arguments
-model:
-  _component_: torchtune.models.llama3_2.llama3_2_1b
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
