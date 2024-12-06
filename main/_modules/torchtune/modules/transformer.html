@@ -1070,6 +1070,15 @@
                 <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span>
             <span class="p">)</span>
 
+        <span class="c1"># shape: [b, seq_len, out_dim]</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unembed</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+
+        <span class="c1"># Output list if hidden states are requested, otherwise just the output</span>
+        <span class="c1"># TODO: always output a list to have a consistent output type</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">hidden</span> <span class="k">else</span> <span class="p">[</span><span class="o">*</span><span class="n">hidden</span><span class="p">,</span> <span class="n">output</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">output</span></div>
+
+    <span class="k">def</span> <span class="nf">unembed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
@@ -1079,10 +1088,7 @@
             <span class="c1"># shape: [b, seq_len, out_dim]</span>
             <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
 
-        <span class="c1"># Output list if hidden states are requested, otherwise just the output</span>
-        <span class="c1"># TODO: always output a list to have a consistent output type</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">hidden</span> <span class="k">else</span> <span class="p">[</span><span class="o">*</span><span class="n">hidden</span><span class="p">,</span> <span class="n">output</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">output</span></div></div>
+        <span class="k">return</span> <span class="n">output</span></div>
 </pre></div>
 
              </article>

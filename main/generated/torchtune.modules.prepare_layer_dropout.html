@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>CEWithChunkedOutputLoss &mdash; torchtune main documentation</title>
+  <title>prepare_layer_dropout &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ForwardKLLoss" href="torchtune.modules.loss.ForwardKLLoss.html" />
-    <link rel="prev" title="prepare_layer_dropout" href="torchtune.modules.prepare_layer_dropout.html" />
+    <link rel="next" title="CEWithChunkedOutputLoss" href="torchtune.modules.loss.CEWithChunkedOutputLoss.html" />
+    <link rel="prev" title="LayerDropout" href="torchtune.modules.LayerDropout.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -398,13 +398,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>CEWithChunkedOutputLoss</li>
+      <li>prepare_layer_dropout</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.prepare_layer_dropout.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -434,58 +434,66 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="cewithchunkedoutputloss">
-<h1>CEWithChunkedOutputLoss<a class="headerlink" href="#cewithchunkedoutputloss" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.loss.CEWithChunkedOutputLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.loss.</span></span><span class="sig-name descname"><span class="pre">CEWithChunkedOutputLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_output_chunks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/ce_chunked_output_loss.html#CEWithChunkedOutputLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.CEWithChunkedOutputLoss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.</p>
-<p>Whenever the model is trained with bf16, before running CE, we have to upcast
-it to fp32 for better accuracy and stability. When upcasting happens, the memory usage doubles.
-Models like llama3 have large vocabulary size and, therefore, have a large output
-tensor of shape <code class="docutils literal notranslate"><span class="pre">(bsz,</span> <span class="pre">num_tokens,</span> <span class="pre">vocab_size)</span></code>. If we chunk on the token level, you can still compute
-the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.</p>
-<p>The CE and upcasting have to be compiled together for better performance.
-When using this class, we recommend using <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.compile.html#torch.compile" title="(in PyTorch v2.5)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.compile()</span></code></a> only on the method <code class="docutils literal notranslate"><span class="pre">compute_cross_entropy</span></code>.
-The gains from chunking won’t be realized if you compile the entire class.</p>
-<p>For more details, please refer to: <a class="reference external" href="https://github.com/pytorch/torchtune/pull/1390">https://github.com/pytorch/torchtune/pull/1390</a></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy">
-<span class="sig-name descname"><span class="pre">compute_cross_entropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/ce_chunked_output_loss.html#CEWithChunkedOutputLoss.compute_cross_entropy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Upcast logits to fp32 and compute cross entropy loss.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.loss.CEWithChunkedOutputLoss.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/ce_chunked_output_loss.html#CEWithChunkedOutputLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.CEWithChunkedOutputLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+  <section id="prepare-layer-dropout">
+<h1>prepare_layer_dropout<a class="headerlink" href="#prepare-layer-dropout" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.modules.prepare_layer_dropout">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">prepare_layer_dropout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.ModuleList.html#torch.nn.ModuleList" title="(in PyTorch v2.5)"><span class="pre">ModuleList</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.13)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prob_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prob_layer_scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ScaleType</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ScaleType.UNIFORM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disable_on_eval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/layer_dropout.html#prepare_layer_dropout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.prepare_layer_dropout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare a model’s layers for layer dropout by wrapping each layer with a ModuleLayerDropoutWrapper.
+This function takes in a list of layers, the maximum probability of dropping a layer,
+the scaling type for the layer dropout probability, a string specifying which
+layers to apply dropout to, and a boolean indicating whether to disable dropout
+during evaluation. It then wraps each layer of the model inplace with a
+ModuleLayerDropoutWrapper, which applies layer dropout to the input tensor.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>logits</strong> (<em>List</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><em>torch.Tensor</em></a><em>]</em>) – List of chunked logits of length
-<code class="docutils literal notranslate"><span class="pre">self.num_output_chunks</span></code>, where each chunk has shape
-<code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_tokens</span> <span class="pre">/</span> <span class="pre">num_output_chunks,</span> <span class="pre">vocab_size)</span></code>.</p></li>
-<li><p><strong>labels</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)"><em>torch.Tensor</em></a>) – Ground truth labels of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_tokens)</span></code>.</p></li>
+<li><p><strong>layers</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.ModuleList.html#torch.nn.ModuleList" title="(in PyTorch v2.5)"><em>torch.nn.ModuleList</em></a><em>, </em><em>Iterable</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.5)"><em>torch.nn.Module</em></a><em>]</em><em>]</em>) – The list of layers to prepare for layer dropout.</p></li>
+<li><p><strong>prob_max</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – The maximum probability of dropping a layer. Defaults to 0.0.</p></li>
+<li><p><strong>prob_layer_scale</strong> (<em>Optional</em><em>[</em><em>ScaleType</em><em>]</em>) – The scaling type for the dropout probability across layers. Defaults to
+ScaleType.UNIFORM.</p></li>
+<li><p><strong>layers_str</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – A string specifying which layers to apply dropout to. Defaults to None which means
+apply to all layers.</p></li>
+<li><p><strong>disable_on_eval</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>]</em>) – Whether to disable dropout during evaluation. Defaults to True.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Cross entropy loss of shape (1,).</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.5)">torch.Tensor</a></p>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 <p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">loss_fn</span> <span class="o">=</span> <span class="n">ChunkedCrossEntropyLoss</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">bsz</span><span class="p">,</span> <span class="n">num_tokens</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">output_chunks</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">h</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">num_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">bsz</span><span class="p">,</span> <span class="n">num_tokens</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">output_chunks</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Define a simple model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+<span class="gp">... </span>        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+<span class="gp">... </span>            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+<span class="gp">... </span>        <span class="p">])</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+<span class="gp">... </span>            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">x</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Apply layer dropout uniformly to all layers</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prepare_layer_dropout</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">prob_max</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">prob_layer_scale</span><span class="o">=</span><span class="n">ScaleType</span><span class="o">.</span><span class="n">UNIFORM</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Apply layer dropout every other layer, as described in LayerDrop paper</span>
+<span class="go">    (Fan et al., https://arxiv.org/abs/1909.11556v1)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prepare_layer_dropout</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">prob_max</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">prob_layer_scale</span><span class="o">=</span><span class="n">ScaleType</span><span class="o">.</span><span class="n">UNIFORM</span><span class="p">,</span> <span class="n">layers_str</span><span class="o">=</span><span class="s2">&quot;::2&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Apply layer dropout that increases linearly across layers, as described in Progressive Layer</span>
+<span class="go">    Dropout paper (Zhang et al., https://arxiv.org/abs/2010.13369)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prepare_layer_dropout</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">prob_max</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">prob_layer_scale</span><span class="o">=</span><span class="n">ScaleType</span><span class="o">.</span><span class="n">LINEAR</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Apply layer dropout that increases exponentially across layers, as described in</span>
+<span class="go">    LayerSkip paper (Elhoushi et al., https://arxiv.org/abs/2404.16710)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prepare_layer_dropout</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">prob_max</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">prob_layer_scale</span><span class="o">=</span><span class="n">ScaleType</span><span class="o">.</span><span class="n">EXP</span><span class="p">)</span>
 </pre></div>
 </div>
-</dd></dl>
-
 </dd></dl>
 
 </section>
@@ -498,10 +506,10 @@ The gains from chunking won’t be realized if you compile the entire class.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.loss.ForwardKLLoss.html" class="btn btn-neutral float-right" title="ForwardKLLoss" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.loss.CEWithChunkedOutputLoss.html" class="btn btn-neutral float-right" title="CEWithChunkedOutputLoss" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.prepare_layer_dropout.html" class="btn btn-neutral" title="prepare_layer_dropout" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.LayerDropout.html" class="btn btn-neutral" title="LayerDropout" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -533,7 +541,7 @@ The gains from chunking won’t be realized if you compile the entire class.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">CEWithChunkedOutputLoss</a></li>
+<li><a class="reference internal" href="#">prepare_layer_dropout</a></li>
 </ul>
 
             </div>
