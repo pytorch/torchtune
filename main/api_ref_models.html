@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="llama3_2_1b" href="generated/torchtune.models.llama3_2.llama3_2_1b.html" />
+    <link rel="next" title="llama3_3_70b" href="generated/torchtune.models.llama3_3.llama3_3_70b.html" />
     <link rel="prev" title="get_position_ids_from_padding_mask" href="generated/torchtune.generation.get_position_ids_from_padding_mask.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -434,6 +434,32 @@
               
   <section id="torchtune-models">
 <span id="models"></span><h1>torchtune.models<a class="headerlink" href="#torchtune-models" title="Permalink to this heading">¶</a></h1>
+<section id="llama3-3">
+<h2>llama3.3<a class="headerlink" href="#llama3-3" title="Permalink to this heading">¶</a></h2>
+<p>Text-only models from the 3.3 version of <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
+<p>Important: You need to request access on <a class="reference external" href="https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct">Hugging Face</a> before downloading it.</p>
+<p>To download the Llama-3.3-70B-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.3-70B-Instruct<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span><span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_3.llama3_3_70b.html#torchtune.models.llama3_3.llama3_3_70b" title="torchtune.models.llama3_3.llama3_3_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_3.llama3_3_70b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.3 model initialized w/ the default 70B parameter values.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_3.lora_llama3_3_70b.html#torchtune.models.llama3_3.lora_llama3_3_70b" title="torchtune.models.llama3_3.lora_llama3_3_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_3.lora_llama3_3_70b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.3 70B model with LoRA enabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_3.qlora_llama3_3_70b.html#torchtune.models.llama3_3.qlora_llama3_3_70b" title="torchtune.models.llama3_3.qlora_llama3_3_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_3.qlora_llama3_3_70b</span></code></a></p></td>
+<td><p>Builder for creating a Llama3.3 70B model with QLoRA enabled.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Llama3.3 tokenizer reuses the <a class="reference internal" href="generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer" title="torchtune.models.llama3.llama3_tokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">llama3_tokenizer</span></code></a> class.</p>
+</div>
+</section>
 <section id="llama3-2">
 <h2>llama3.2<a class="headerlink" href="#llama3-2" title="Permalink to this heading">¶</a></h2>
 <p>Text-only models from the 3.2 version of <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
@@ -586,13 +612,13 @@
 <td><p>Builder for creating a Llama3.1 8B model with QLoRA enabled.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.llama3_1_70b.html#torchtune.models.llama3_1.llama3_1_70b" title="torchtune.models.llama3_1.llama3_1_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.llama3_1_70b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3.1 model initialized w/ the default 70B parameter values.</p></td>
+<td><p>Builder for creating a Llama3.3 model initialized w/ the default 70B parameter values.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.lora_llama3_1_70b.html#torchtune.models.llama3_1.lora_llama3_1_70b" title="torchtune.models.llama3_1.lora_llama3_1_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.lora_llama3_1_70b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3.1 70B model with LoRA enabled.</p></td>
+<td><p>Builder for creating a Llama3.3 70B model with LoRA enabled.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.qlora_llama3_1_70b.html#torchtune.models.llama3_1.qlora_llama3_1_70b" title="torchtune.models.llama3_1.qlora_llama3_1_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.qlora_llama3_1_70b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3.1 70B model with QLoRA enabled.</p></td>
+<td><p>Builder for creating a Llama3.3 70B model with QLoRA enabled.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3_1.llama3_1_405b.html#torchtune.models.llama3_1.llama3_1_405b" title="torchtune.models.llama3_1.llama3_1_405b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3_1.llama3_1_405b</span></code></a></p></td>
 <td><p>Builder for creating a Llama3.1 model initialized w/ the default 405B parameter values.</p></td>
@@ -1052,7 +1078,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.models.llama3_2.llama3_2_1b.html" class="btn btn-neutral float-right" title="llama3_2_1b" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="generated/torchtune.models.llama3_3.llama3_3_70b.html" class="btn btn-neutral float-right" title="llama3_3_70b" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="generated/torchtune.generation.get_position_ids_from_padding_mask.html" class="btn btn-neutral" title="get_position_ids_from_padding_mask" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -1088,6 +1114,7 @@
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.models</a><ul>
+<li><a class="reference internal" href="#llama3-3">llama3.3</a></li>
 <li><a class="reference internal" href="#llama3-2">llama3.2</a></li>
 <li><a class="reference internal" href="#llama3-2-vision">llama3.2 Vision</a></li>
 <li><a class="reference internal" href="#llama3-llama3-1">llama3 &amp; llama3.1</a></li>
