@@ -508,14 +508,12 @@ def get_model_checkpoint_path(
 
     def validate_checkpoint_files(
         checkpoint_files: Union[List[str]],
-        input_dir: Optional[Path] = None,
+        input_dir: Optional[Path],
         missing_ok=False,
     ) -> List[Path]:
         """
         Validates that the checkpoint files exist and sorts based on ID.
         """
-        if not input_dir:
-            input_dir = self._checkpoint_dir
 
         checkpoint_paths: List[Path] = []
         for f in checkpoint_files:
@@ -543,7 +541,7 @@ def get_model_checkpoint_path(
         input_dir = checkpoint_dir
 
     # Case 2: Resuming from ckpt, but its full finetuning (no adapter)
-    elif has_adapter_checkpoint is None:
+    elif not has_adapter_checkpoint:
         input_dir = output_dir
 
     # Case 3: Resuming from ckpt and has an adapter.
