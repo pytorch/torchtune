@@ -208,7 +208,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        raise NotImplementedError("")
         expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
