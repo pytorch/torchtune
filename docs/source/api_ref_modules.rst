@@ -23,6 +23,8 @@ Modeling Components and Building Blocks
     TransformerCrossAttentionLayer
     TransformerDecoder
     VisionTransformer
+    LayerDropout
+    prepare_layer_dropout
 
 Losses
 ------

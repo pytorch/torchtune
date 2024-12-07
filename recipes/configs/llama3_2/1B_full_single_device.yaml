@@ -20,10 +20,12 @@
 # This config works only for training on single device.
 
 
+output_dir: /tmp/torchtune/llama3_2_1B/full_single_device # /tmp may be deleted by your system. Change it to your preference.
+
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Llama-3.2-1B-Instruct/original/tokenizer.model
+  path:  /tmp/Llama-3.2-1B-Instruct/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
@@ -33,10 +35,6 @@ dataset:
 seed: null
 shuffle: True
 
-# Model Arguments
-model:
-  _component_: torchtune.models.llama3_2.llama3_2_1b
-
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-3.2-1B-Instruct/
@@ -44,7 +42,7 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-3.2-1B-Instruct/
+  output_dir: ${output_dir}
   model_type: LLAMA3_2
 resume_from_checkpoint: False
 
@@ -57,9 +55,9 @@ optimizer:
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1  # Use to increase virtual batch size
+gradient_accumulation_steps: 1  # Use to increase effective batch size
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
-compile: False  # pytorch compile, set to true for better perf/memory
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Training environment
 device: cuda
@@ -74,10 +72,10 @@ dtype: bf16
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
-output_dir: /tmp/full-llama3.2-finetune
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+
 
 # Profiler (disabled)
 profiler:

@@ -17,6 +17,8 @@
 # For single device LoRA finetuning please use mini_lora_single_device.yaml
 # or mini_qlora_single_device.yaml
 
+output_dir: /tmp/torchtune/phi3_mini/lora # /tmp may be deleted by your system. Change it to your preference.
+
 # Model arguments
 model:
   _component_: torchtune.models.phi3.lora_phi3_mini
@@ -42,7 +44,7 @@ checkpointer:
     model-00002-of-00002.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Phi-3-mini-4k-instruct
+  output_dir: ${output_dir}
   model_type: PHI3_MINI
 resume_from_checkpoint: False
 save_adapter_weights_only: False
@@ -58,7 +60,7 @@ shuffle: True
 epochs: 1
 max_steps_per_epoch: null
 batch_size: 2
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+gradient_accumulation_steps: 8  # Use to increase effective batch size
 optimizer:
   _component_: torch.optim.AdamW
   fused: True
@@ -69,7 +71,7 @@ lr_scheduler:
   num_warmup_steps: 100
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
-compile: False  # pytorch compile, set to true for better perf/memory
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Training env
 device: cuda
@@ -80,12 +82,12 @@ enable_activation_offloading: False  # True reduces memory
 dtype: bf16
 
 # Logging
-output_dir: /tmp/phi3_lora_finetune_output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: /tmp/Phi-3-mini-4k-instruct/logs
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+
 
 # Profiler (disabled)
 profiler:

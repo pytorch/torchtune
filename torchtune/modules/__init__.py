@@ -14,6 +14,7 @@ from .common_utils import (
 )
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
+from .layer_dropout import LayerDropout, prepare_layer_dropout  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
 from .low_precision import FrozenNF4Linear  # noqa
 from .position_embeddings import (  # noqa
@@ -30,6 +31,7 @@ from .transformer import (  # noqa
 )
 from .vision_transformer import VisionTransformer
 from .vq_embeddings import VectorQuantizedEmbeddings
+
 
 __all__ = [
     "MultiHeadAttention",
@@ -53,4 +55,6 @@ __all__ = [
     "local_kv_cache",
     "delete_kv_caches",
     "disable_kv_cache",
+    "LayerDropout",
+    "prepare_layer_dropout",
 ]

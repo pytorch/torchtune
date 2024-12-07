@@ -5,13 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+
+import json
 import os
 import textwrap
 import traceback
 
 from http import HTTPStatus
 from pathlib import Path
-from typing import Literal, Union
 from warnings import warn
 
 from huggingface_hub import snapshot_download
@@ -22,6 +23,7 @@ from kagglehub.auth import set_kaggle_credentials
 from kagglehub.exceptions import KaggleApiHTTPError
 from kagglehub.handle import parse_model_handle
 from torchtune._cli.subcommand import Subcommand
+from torchtune.training.checkpointing._utils import REPO_ID_FNAME
 
 
 class Download(Subcommand):
@@ -86,18 +88,6 @@ class Download(Subcommand):
             help="Directory in which to save the model. Defaults to `/tmp/<model_name>`.",
         )
         self._parser.add_argument(
-            "--output-dir-use-symlinks",
-            type=str,
-            required=False,
-            default="auto",
-            help=(
-                "To be used with `output-dir`. If set to 'auto', the cache directory will be used and the file will be"
-                " either duplicated or symlinked to the local directory depending on its size. It set to `True`, a"
-                " symlink will be created, no matter the file size. If set to `False`, the file will either be"
-                " duplicated from cache (if already exists) or downloaded from the Hub and not cached."
-            ),
-        )
-        self._parser.add_argument(
             "--hf-token",
             type=str,
             required=False,
@@ -150,27 +140,11 @@ class Download(Subcommand):
             model_name = args.repo_id.split("/")[-1]
             output_dir = Path("/tmp") / model_name
 
-        # Raise if local_dir_use_symlinks is invalid
-        output_dir_use_symlinks: Union[Literal["auto"], bool]
-        use_symlinks_lowercase = args.output_dir_use_symlinks.lower()
-        if use_symlinks_lowercase == "true":
-            output_dir_use_symlinks = True
-        elif use_symlinks_lowercase == "false":
-            output_dir_use_symlinks = False
-        elif use_symlinks_lowercase == "auto":
-            output_dir_use_symlinks = "auto"
-        else:
-            self._parser.error(
-                f"'{args.output_dir_use_symlinks}' is not a valid value for `--output-dir-use-symlinks`. It must be either"
-                " 'auto', 'True' or 'False'."
-            )
-
         print(f"Ignoring files matching the following patterns: {args.ignore_patterns}")
         try:
             true_output_dir = snapshot_download(
                 args.repo_id,
                 local_dir=output_dir,
-                local_dir_use_symlinks=output_dir_use_symlinks,
                 ignore_patterns=args.ignore_patterns,
                 token=args.hf_token,
             )
@@ -195,6 +169,14 @@ class Download(Subcommand):
             tb = traceback.format_exc()
             msg = f"Failed to download {args.repo_id} with error: '{e}' and traceback: {tb}"
             self._parser.error(msg)
+
+        # save the repo_id. This is necessary because the download step is a separate command
+        # from the rest of the CLI. When saving a model adapter, we have to add the repo_id
+        # to the adapter config.
+        # TODO: this needs to be updated when we start using HF cache
+        file_path = os.path.join(true_output_dir, REPO_ID_FNAME + ".json")
+        with open(file_path, "w") as json_file:
+            json.dump({"repo_id": args.repo_id}, json_file, indent=4)
 
         print(
             "Successfully downloaded model repo and wrote to the following locations:",
@@ -224,6 +206,14 @@ class Download(Subcommand):
 
         try:
             output_dir = model_download(model_handle)
+
+            # save the repo_id. This is necessary because the download step is a separate command
+            # from the rest of the CLI. When saving a model adapter, we have to add the repo_id
+            # to the adapter config.
+            file_path = os.path.join(output_dir, REPO_ID_FNAME + ".json")
+            with open(file_path, "w") as json_file:
+                json.dump({"repo_id": args.repo_id}, json_file, indent=4)
+
             print(
                 "Successfully downloaded model repo and wrote to the following locations:",
                 *list(Path(output_dir).iterdir()),

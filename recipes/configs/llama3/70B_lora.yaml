@@ -9,6 +9,8 @@
 #   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama3/70B_lora
 #
 
+output_dir: /tmp/torchtune/llama3_70B/lora # /tmp may be deleted by your system. Change it to your preference.
+
 # Model Arguments
 model:
   _component_: torchtune.models.llama3.lora_llama3_70b
@@ -60,7 +62,7 @@ checkpointer:
     model-00030-of-00030.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-70B-Instruct
+  output_dir: ${output_dir}
   model_type: LLAMA3
 resume_from_checkpoint: False
 save_adapter_weights_only: False
@@ -89,14 +91,13 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
+gradient_accumulation_steps: 1  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
-output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
@@ -106,6 +107,7 @@ dtype: bf16
 enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 # custom_sharded_layers: ['tok_embeddings', 'output']  # Layers to shard separately (useful for large vocab size models). Lower Memory, but lower speed.
+
 
 # Profiler (disabled)
 profiler:

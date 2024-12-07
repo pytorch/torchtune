@@ -10,18 +10,20 @@
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config qwen2/1.5B_lora
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config qwen2/knowledge_distillation_distributed
+#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config qwen2/1.5_to_0.5B_KD_lora_distributed
 #
 # This config works best for distilling on 2+ devices.
 
 
+output_dir: /tmp/torchtune/qwen2_1_5_to_0_5B/KD_lora_distributed # /tmp may be deleted by your system. Change it to your preference.
+
 # Model Arguments
 model:
   _component_: torchtune.models.qwen2.lora_qwen2_0_5b
-  lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
-  apply_lora_to_mlp: False
-  lora_rank: 32
-  lora_alpha: 64
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  apply_lora_to_mlp: True
+  lora_rank: 32  # higher increases accuracy and memory
+  lora_alpha: 64  # usually alpha=2*rank
 
 teacher_model:
   _component_: torchtune.models.qwen2.qwen2_1_5b
@@ -39,7 +41,7 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-0.5B-Instruct-kd
+  output_dir: ${output_dir}
   model_type: QWEN2
 
 teacher_checkpointer:
@@ -81,14 +83,13 @@ kd_ratio: 0.5
 # Training
 epochs: 1
 max_steps_per_epoch: null
-compile: False  # pytorch compile, set to true for better perf/memory
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+gradient_accumulation_steps: 8  # Use to increase effective batch size
 
 # Logging
-output_dir: /tmp/qwen_kd
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
@@ -96,6 +97,7 @@ log_peak_memory_stats: False
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
