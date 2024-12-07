@@ -31,7 +31,7 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import DummyProfiler, PROFILER_KEY, OffloadActivations, NoOpManager
 
 from tqdm import tqdm
 
@@ -120,6 +120,11 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._enable_activation_offloading=cfg.get("enable_activation_offloading", False)
+
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError("Activation offloading requires a CUDA device.")
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
@@ -235,6 +240,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -244,9 +250,12 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
+
+
         self._teacher_model = self._setup_teacher_model(
             model_cfg=cfg.teacher_model,
             model_state_dict=teacher_checkpoint_dict[training.MODEL_KEY],
+            enable_activation_offloading=self._enable_activation_offloading
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -391,6 +400,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
@@ -443,6 +453,26 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         training.validate_expected_param_dtype(
             self.adapter_params.items(), dtype=self._dtype
         )
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
+        )
+
+        # if enable_activation_offloading:
+        #     self.activations_handling_ctx = OffloadActivations()
+        #
+        #     # Below is our hack to disable offloading the last output Linear in every
+        #     # step, as the cost for offloading the activation and then soon after bringing
+        #     # it back is expensive. Moreover, due to heuristics in our streaming API,
+        #     # we actually use more memory if we offload it as it interferes with chunkedCE.
+        #     if hasattr(model, "output") and isinstance(model.output, nn.Module):
+        #         noop_ctx = NoOpManager()
+        #         model.output.register_forward_pre_hook(
+        #             lambda *args: noop_ctx.__enter__()
+        #         )
+        #         model.output.register_forward_hook(
+        #             lambda *args: noop_ctx.__exit__(), always_call=True
+        #         )
 
         log.info(f"Student model is initialized with precision {self._dtype}.")
 
@@ -457,7 +487,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
     def _setup_teacher_model(
         self,
         model_cfg: DictConfig,
-        model_state_dict: Dict[str, Any],
+        model_state_dict: Dict[str, Any]
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
