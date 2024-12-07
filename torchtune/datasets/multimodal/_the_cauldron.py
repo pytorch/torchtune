@@ -7,7 +7,7 @@
 from typing import Any, Callable, Dict, Mapping, Optional
 
 from torchtune.data._messages import Message
-from torchtune.datasets._sft import SFTDataset
+from torchtune.datasets._sft import SFTDataset, SFTTransform
 from torchtune.modules.transforms import Transform
 
 
@@ -235,3 +235,19 @@ def the_cauldron_dataset(
     )
 
     return ds
+
+
+def the_cauldron_transform(
+    model_transform: Optional[Transform] = None,
+    texts_col: str = "texts",
+    images_col: str = "images",
+    new_system_prompt: Optional[str] = None,
+) -> SFTTransform:
+    column_map = {"texts": texts_col, "images": images_col}
+    return SFTTransform(
+        message_transform=TheCauldronToMessages(
+            column_map=column_map,
+            new_system_prompt=new_system_prompt,
+        ),
+        model_transform=model_transform,
+    )
