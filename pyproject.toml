@@ -15,6 +15,7 @@ dependencies = [
     "datasets",
     "huggingface_hub[hf_transfer]",
     "safetensors",
+    "transformers",
 
     # Kaggle Integrations
     "kagglehub",

@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+import pickle
 from typing import Any, Callable, Dict, Optional, Union
 
 from torchtune.data._messages import OpenAIToMessages, ShareGPTToMessages
@@ -21,6 +23,8 @@ def chat_dataset(
     train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
+    split_across_pack: bool = False,
+    packs_cache_path: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
@@ -155,6 +159,20 @@ def chat_dataset(
     Raises:
         ValueError: if the conversation format is not supported
     """
+
+    if packs_cache_path is not None and not packed:
+        raise ValueError("read_packs_from_path can only be used with packed=True.")
+
+    if packs_cache_path is not None and os.path.exists(packs_cache_path):
+        with open(packs_cache_path, "rb") as f:
+            packed_ds = pickle.load(f)
+            # check instance type
+            if packed_ds.__class__.__name__ != "PackedDataset":
+                raise ValueError(
+                    "PackedDataset cache file is not a PackedDataset instance."
+                )
+            return packed_ds
+
     if conversation_style == "sharegpt":
         message_transform = ShareGPTToMessages(
             train_on_input=train_on_input,
@@ -183,5 +201,12 @@ def chat_dataset(
             raise ValueError(
                 "PackedDataset requires a max_seq_len to be set on the tokenizer."
             )
-        return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+        ds = PackedDataset(
+            ds, max_seq_len=tokenizer.max_seq_len, split_across_pack=split_across_pack
+        )
+
+        if packs_cache_path is not None:
+            with open(packs_cache_path, "wb") as f:
+                pickle.dump(ds, f)
+
     return ds
