@@ -20,6 +20,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
+from torchtune.utils import mfu
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
@@ -163,6 +164,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._model_flops = 0  # Will be set in _setup_model
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -546,6 +548,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # synchronize before training begins
         torch.distributed.barrier()
 
+        # Calculate model FLOPs for MFU tracking
+        if self._is_rank_zero:
+            # Calculate model FLOPs for MFU tracking
+            self._model_flops = mfu.get_transformer_flops(
+                hidden_size=cfg_model.hidden_size,
+                intermediate_size=cfg_model.hidden_size * 4,  # Standard transformer uses 4x
+                num_layers=cfg_model.num_layers,
+                seq_len=cfg_model.seq_length
+            )
+            utils.log_rank_zero(
+                log,
+                f"Model FLOPs per forward pass: {self._model_flops:,}"
+            )
+
         return model
 
     def _setup_optimizer(
@@ -855,11 +871,22 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         and self._is_rank_zero
                     ):
                         time_per_step = time.perf_counter() - t0
+                        tokens_per_second = num_tokens / (time_per_step * world_size)
+                        # Calculate MFU and actual FLOPS
+                        mfu_value, actual_flops = mfu.calculate_mfu_and_flops(
+                            model_flops=self._model_flops,
+                            batch_size=len(batch),
+                            step_time=time_per_step,
+                            world_size=world_size,
+                            device=self._device
+                        )
+                        
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            "tokens_per_second_per_gpu": tokens_per_second,
+                            "mfu": mfu_value,
+                            "tflops": actual_flops / 1e12  # Convert to TFLOPS for readability
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
