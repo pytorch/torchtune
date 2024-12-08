@@ -10,7 +10,6 @@ from typing import Any, Dict, Optional
 
 import torch
 
-
 # state dict key mappings from Meta's format to torchtune's format
 _FROM_META = {
     "tok_embeddings.weight": "tok_embeddings.weight",
@@ -231,6 +230,7 @@ _PEFT_CONFIG_EXPECTED_KEYS = ["target_modules", "r", "lora_alpha"]
 
 def tune_to_peft_adapter_config(
     adapter_config: Dict[str, Any],
+    base_model_name_or_path: Optional[str] = None,
 ):
     if not all([x in adapter_config.keys() for x in _PEFT_CONFIG_EXPECTED_KEYS]):
         raise ValueError(
@@ -243,6 +243,10 @@ def tune_to_peft_adapter_config(
     adapter_config["target_modules"] = list(
         map(_TO_PEFT_TARGET_MODULES.get, adapter_config["target_modules"])
     )
+
+    # needed for PEFT to load the adapter weights
+    if base_model_name_or_path:
+        adapter_config["base_model_name_or_path"] = base_model_name_or_path
 
     return adapter_config
 

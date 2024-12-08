@@ -10,10 +10,12 @@
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config llama3_2/knowledge_distillation_distributed
+#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config llama3_2/8B_to_1B_KD_lora_distributed
 #
 # This config works best for distilling on 2+ devices.
 
+
+output_dir: /tmp/torchtune/llama3_2_8B_to_1B/KD_lora_distributed # /tmp may be deleted by your system. Change it to your preference.
 
 # Model Arguments
 model:
@@ -21,8 +23,8 @@ model:
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
-  lora_rank: 64
-  lora_alpha: 128
+  lora_rank: 64  # higher increases accuracy and memory
+  lora_alpha: 128  # usually alpha=2*rank
   lora_dropout: 0.0
 
 teacher_model:
@@ -41,7 +43,7 @@ checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-3.2-1B-Instruct/
+  output_dir: ${output_dir}
   model_type: LLAMA3
 resume_from_checkpoint: False
 save_adapter_weights_only: False
@@ -88,14 +90,13 @@ kd_ratio: 0.5
 # Training
 epochs: 1
 max_steps_per_epoch: null
-compile: False  # pytorch compile, set to true for better perf/memory
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+gradient_accumulation_steps: 8  # Use to increase effective batch size
 
 # Logging
-output_dir: /tmp/kd_output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
@@ -103,6 +104,7 @@ log_peak_memory_stats: False
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training

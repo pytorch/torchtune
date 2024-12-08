@@ -14,6 +14,8 @@
 #   tune run --nnodes 1 --nproc_per_node 8 lora_finetune_distributed --config qwen2_5/32B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 
 
+output_dir: /tmp/torchtune/qwen2_5_32B/lora # /tmp may be deleted by your system. Change it to your preference.
+
 # Model Arguments
 model:
   _component_: torchtune.models.qwen2_5.lora_qwen2_5_32b_instruct
@@ -53,7 +55,7 @@ checkpointer:
     model-00017-of-00017.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2_5-32B-Instruct-lora-finetune
+  output_dir: ${output_dir}
   model_type: QWEN2
 resume_from_checkpoint: False
 
@@ -81,14 +83,13 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
+gradient_accumulation_steps: 8  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
-output_dir: /tmp/Qwen2_5-32B-Instruct-lora-finetune
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
