@@ -15,10 +15,7 @@ from safetensors.torch import save_file
 
 from torchtune import training
 from torchtune.models import convert_weights
-from torchtune.models.clip._convert_weights import clip_text_hf_to_tune
-from torchtune.models.phi3._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf
-from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune, qwen2_tune_to_hf
-from torchtune.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
+
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG_FNAME,
     ADAPTER_MODEL_FNAME,
@@ -509,10 +506,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 msg="Converting Phi-3 Mini weights from HF format."
                 "Note that conversion of adapter weights into PEFT format is not supported.",
             )
+            from torchtune.models.phi3._convert_weights import phi3_hf_to_tune
+
             converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
                 merged_state_dict
             )
         elif self._model_type == ModelType.REWARD:
+            from torchtune.rlhf.utils import reward_hf_to_tune
+
             converted_state_dict[training.MODEL_KEY] = reward_hf_to_tune(
                 merged_state_dict,
                 num_heads=self._config["num_attention_heads"],
@@ -520,6 +521,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 dim=self._config["hidden_size"],
             )
         elif self._model_type == ModelType.QWEN2:
+            from torchtune.models.qwen2._convert_weights import qwen2_hf_to_tune
+
             converted_state_dict[training.MODEL_KEY] = qwen2_hf_to_tune(
                 merged_state_dict,
                 num_heads=self._config["num_attention_heads"],
@@ -550,6 +553,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 ),
             )
         elif self._model_type == ModelType.CLIP_TEXT:
+            from torchtune.models.clip._convert_weights import clip_text_hf_to_tune
+
             converted_state_dict[training.MODEL_KEY] = clip_text_hf_to_tune(
                 merged_state_dict,
             )
@@ -610,10 +615,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
             if self._model_type == ModelType.PHI3_MINI:
+                from torchtune.models.phi3._convert_weights import phi3_tune_to_hf
+
                 state_dict[training.MODEL_KEY] = phi3_tune_to_hf(
                     state_dict[training.MODEL_KEY]
                 )
             elif self._model_type == ModelType.REWARD:
+                from torchtune.rlhf.utils import reward_tune_to_hf
+
                 state_dict[training.MODEL_KEY] = reward_tune_to_hf(
                     state_dict[training.MODEL_KEY],
                     num_heads=self._config["num_attention_heads"],
@@ -621,6 +630,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     dim=self._config["hidden_size"],
                 )
             elif self._model_type == ModelType.QWEN2:
+                from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
+
                 state_dict[training.MODEL_KEY] = qwen2_tune_to_hf(
                     state_dict[training.MODEL_KEY],
                     num_heads=self._config["num_attention_heads"],
