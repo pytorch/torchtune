@@ -10,3 +10,12 @@ import torch
 _SUPPORTS_FLEX_ATTENTION = (
     torch.cuda.is_available() and torch.cuda.get_device_capability() >= (7, 5)
 )
+
+
+_TORCHDATA_MIN_VERSION = "0.10.0"
+try:
+    from torchdata.nodes import BaseNode, Loader  # noqa
+
+    _TORCHDATA_INSTALLED = True
+except ImportError as e:
+    _TORCHDATA_INSTALLED = False
