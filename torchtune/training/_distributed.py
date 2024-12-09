@@ -17,7 +17,14 @@ from torch import nn
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
-from torch.distributed.checkpoint.state_dict import _init_optim_state
+from torch.distributed.checkpoint.state_dict import (
+    _init_optim_state,
+    get_model_state_dict,
+    get_optimizer_state_dict,
+    set_model_state_dict,
+    set_optimizer_state_dict,
+    StateDictOptions,
+)
 from torch.distributed.fsdp import ShardingStrategy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -168,12 +175,18 @@ def load_from_full_model_state_dict(
     """
     meta_sharded_sd = model.state_dict()
     sharded_sd = {}
-    for param_name, full_tensor in full_sd.items():
+    has_nf4 = any(
+        hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
+        for param in model.parameters()
+    )
+    for param_name in full_sd.keys():
         sharded_meta_param = meta_sharded_sd.get(param_name)
-        full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
-        if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
-            sharded_meta_param._local_tensor, NF4Tensor
-        ):
+        full_sd[param_name] = (
+            full_sd[param_name].to(sharded_meta_param.dtype).to(device)
+        )
+    if has_nf4:
+        for param_name, full_tensor in full_sd.items():
+            sharded_meta_param = meta_sharded_sd.get(param_name)
             block_size = sharded_meta_param._local_tensor.block_size
             scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
             full_tensor = to_nf4(
@@ -209,21 +222,21 @@ def load_from_full_model_state_dict(
                 ),
                 requires_grad=sharded_meta_param.requires_grad,
             )
+            if cpu_offload:
+                sharded_tensor = sharded_tensor.cpu()
+            sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+        return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
-        elif not hasattr(sharded_meta_param, "device_mesh"):
-            # In cases where parts of the model aren't sharded, some parameters will be plain tensors
-            sharded_tensor = full_tensor
-        else:
-            sharded_tensor = distribute_tensor(
-                full_tensor,
-                sharded_meta_param.device_mesh,
-                sharded_meta_param.placements,
-            )
-        if cpu_offload:
-            sharded_tensor = sharded_tensor.cpu()
-        sharded_sd[param_name] = nn.Parameter(sharded_tensor)
-    # choose `assign=True` since we cannot call `copy_` on meta tensor
-    return model.load_state_dict(sharded_sd, strict=strict, assign=True)
+    else:
+        options = StateDictOptions(
+            full_state_dict=True,
+            broadcast_from_rank0=True,
+            strict=strict,
+            cpu_offload=cpu_offload,
+        )
+        set_model_state_dict(model=model, model_state_dict=full_sd, options=options)
+        # if torch.distributed.get_rank() == 1:
+        #    print("state: ", model.state_dict())
 
 
 def _gather_nf4_tensor(sharded_param: nn.Parameter) -> nn.Parameter:
@@ -251,7 +264,7 @@ def _gather_nf4_tensor(sharded_param: nn.Parameter) -> nn.Parameter:
 
 
 def gather_cpu_state_dict(
-    sharded_sd: Dict[str, DTensor],  # noqa
+    model: "FSDPModule",  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
 ) -> Dict[str, Any]:
@@ -267,27 +280,40 @@ def gather_cpu_state_dict(
     Returns:
         Dict[str, Any]: State dict on CPU
     """
-    cpu_state_dict = {}
-    for param_name, param in sharded_sd.items():
-        if param.is_cpu:
-            # Move back to device if offloaded to CPU
-            param = param.to(device)
-        if hasattr(param, "_local_tensor"):
+    has_nf4 = any(
+        hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
+        for param in model.parameters()
+    )
+    if has_nf4:
+        cpu_state_dict = {}
+        for param_name, param in sharded_sd.items():
+            if param.is_cpu:
+                # Move back to device if offloaded to CPU
+                param = param.to(device)
             if isinstance(param._local_tensor, NF4Tensor):
                 param = _gather_nf4_tensor(param)
             else:
                 # Gather DTensor
                 param = param.full_tensor()
-        if isinstance(param, NF4Tensor):
-            # upcasting NF4 to original dtype
-            param = param.to(param.dtype)
+            if is_rank_zero:
+                cpu_state_dict[param_name] = param.cpu()
+            torch.distributed.barrier()
+        return cpu_state_dict
+    else:
+        options = StateDictOptions(
+            full_state_dict=True,
+            broadcast_from_rank0=True,
+            cpu_offload=True,
+        )
+        cpu_state_dict = get_model_state_dict(model=model, options=options)
         if is_rank_zero:
-            cpu_state_dict[param_name] = param.cpu()
-        torch.distributed.barrier()
-    return cpu_state_dict
+            return cpu_state_dict
+        else:
+            return {}
 
 
 def get_full_optimizer_state_dict(
+    model: "FSDPModule",  # noqa
     opt: Optimizer,
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
@@ -298,88 +324,33 @@ def get_full_optimizer_state_dict(
     "exp_avg.full_tensor()" converts it to plain tensor on rank 0
     Returning non-empty cpu state dict on rank 0
     """
-    sharded_sd = opt.state_dict()
-    sharded_state = sharded_sd["state"]
-    full_state = {}
-    for group_id, sharded_group in sharded_state.items():
-        group_state = {}
-        for attr, sharded_tensor in sharded_group.items():
-            # without this, it may hang forever for +70B models.
-            torch.distributed.barrier()
-            # "exp_avg" in AdamW is `DTensor`
-            if isinstance(sharded_tensor, DTensor):
-                if sharded_tensor.is_cpu:
-                    assert device is not None and device.type == "cuda", (
-                        f"Expect cuda but got device={device}. "
-                        "Please call get_full_optimizer_state_dict(..., device=self._device),"
-                        " so DTensor can communicate over NCCL."
-                    )
-                    sharded_tensor = sharded_tensor.to(device)
-                full_tensor = sharded_tensor.full_tensor()
-            else:
-                # "step" in AdamW is plain tensor
-                full_tensor = sharded_tensor
-            if is_rank_zero:
-                group_state[attr] = full_tensor.cpu()
-            else:
-                del full_tensor
-        if is_rank_zero:
-            full_state[group_id] = group_state
-        else:
-            del group_state
+    options = StateDictOptions(
+        full_state_dict=True, broadcast_from_rank0=True, cpu_offload=True
+    )
+    full_state_dict = get_optimizer_state_dict(
+        model=model, optimizers=opt, options=options
+    )
     if is_rank_zero:
-        return {
-            "param_groups": sharded_sd["param_groups"],
-            "state": full_state,
-        }
+        return full_state_dict
     else:
         return {}
 
 
 def load_from_full_optimizer_state_dict(
+    model: "FSDPModule",  # noqa
     opt: Optimizer,
     full_sd: Dict[str, Any],
     device: torch.device,
-) -> Dict[str, Any]:
+) -> None:
     """
     Converting full optimizer state to sharded state dict
     and loading it into optimizer
     """
-    PARAMS = "params"  # noqa: N806
-    _init_optim_state(opt)
-    param_groups = opt.state_dict()["param_groups"]
-    state = opt.state_dict()["state"]
-
-    full_param_groups = full_sd["param_groups"]
-    full_state = full_sd["state"]
-
-    for param_group, full_param_group in zip(param_groups, full_param_groups):
-        for key, value in full_param_group.items():
-            if key == PARAMS:
-                continue
-            param_group[key] = value
-        for pid, full_pid in zip(param_group[PARAMS], full_param_group[PARAMS]):
-            if pid not in state:
-                continue
-            param_state = state[pid]
-            full_param_state = full_state[full_pid]
-            for attr, full_tensor in full_param_state.items():
-                sharded_tensor = param_state[attr]
-                if isinstance(sharded_tensor, DTensor):
-                    # exp_avg is DTensor
-                    param_state[attr] = distribute_tensor(
-                        full_tensor,
-                        sharded_tensor.device_mesh,
-                        sharded_tensor.placements,
-                    )
-                else:
-                    # step is plain tensor
-                    param_state[attr] = full_tensor
-    opt.load_state_dict(
-        {
-            "param_groups": param_groups,
-            "state": state,
-        }
+    options = StateDictOptions(
+        full_state_dict=True, broadcast_from_rank0=True, cpu_offload=True
+    )
+    set_optimizer_state_dict(
+        model=model, optimizers=opt, optim_state_dict=full_sd, options=options
     )
 
 
