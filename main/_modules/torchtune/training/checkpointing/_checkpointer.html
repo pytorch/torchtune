@@ -445,10 +445,7 @@
 
 <span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">training</span>
 <span class="kn">from</span> <span class="nn">torchtune.models</span> <span class="kn">import</span> <span class="n">convert_weights</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.clip._convert_weights</span> <span class="kn">import</span> <span class="n">clip_text_hf_to_tune</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.phi3._convert_weights</span> <span class="kn">import</span> <span class="n">phi3_hf_to_tune</span><span class="p">,</span> <span class="n">phi3_tune_to_hf</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.qwen2._convert_weights</span> <span class="kn">import</span> <span class="n">qwen2_hf_to_tune</span><span class="p">,</span> <span class="n">qwen2_tune_to_hf</span>
-<span class="kn">from</span> <span class="nn">torchtune.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_hf_to_tune</span><span class="p">,</span> <span class="n">reward_tune_to_hf</span>
+
 <span class="kn">from</span> <span class="nn">torchtune.training.checkpointing._utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ADAPTER_CONFIG_FNAME</span><span class="p">,</span>
     <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">,</span>
@@ -939,10 +936,14 @@
                 <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Converting Phi-3 Mini weights from HF format.&quot;</span>
                 <span class="s2">&quot;Note that conversion of adapter weights into PEFT format is not supported.&quot;</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="kn">from</span> <span class="nn">torchtune.models.phi3._convert_weights</span> <span class="kn">import</span> <span class="n">phi3_hf_to_tune</span>
+
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">REWARD</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">torchtune.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_hf_to_tune</span>
+
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">reward_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
                 <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
@@ -950,6 +951,8 @@
                 <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">QWEN2</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">torchtune.models.qwen2._convert_weights</span> <span class="kn">import</span> <span class="n">qwen2_hf_to_tune</span>
+
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">qwen2_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
                 <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
@@ -980,6 +983,8 @@
                 <span class="p">),</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">CLIP_TEXT</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">torchtune.models.clip._convert_weights</span> <span class="kn">import</span> <span class="n">clip_text_hf_to_tune</span>
+
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">clip_text_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
             <span class="p">)</span>
@@ -1040,10 +1045,14 @@
         <span class="c1"># convert the state_dict back to hf format; do this inplace</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">torchtune.models.phi3._convert_weights</span> <span class="kn">import</span> <span class="n">phi3_tune_to_hf</span>
+
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_tune_to_hf</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">REWARD</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">torchtune.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_tune_to_hf</span>
+
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">reward_tune_to_hf</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
                     <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
@@ -1051,6 +1060,8 @@
                     <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">QWEN2</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">torchtune.models.qwen2._convert_weights</span> <span class="kn">import</span> <span class="n">qwen2_tune_to_hf</span>
+
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">qwen2_tune_to_hf</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
                     <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
