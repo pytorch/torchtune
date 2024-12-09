@@ -35,14 +35,15 @@ dataset:
   conversation_style: openai
   conversation_column: messages
   source: json
-  packs_cache_path: /projects/data/mohit_sarvam_ai/torchtune/data/ft_train_cache_phase_1
+  packs_cache_path: /projects/data/mohit_sarvam_ai/torchtune/data/microsoft_agent
   data_files: [
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/sample.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_0.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_1.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_2.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_3.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_4.json,
+    /projects/data/mohit_sarvam_ai/torchtune/data/microsoft-agent.jsonl
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_0.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_1.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_2.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_3.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_4.json,
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_5.json,
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_6.json,
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_7.json,
@@ -62,7 +63,7 @@ dataset:
   split: train
 seed: null
 shuffle: True
-output_dir: /projects/data/mohit_sarvam_ai/torchtune/output-sft/sarvam1-sft-v5-phase-1
+output_dir: /projects/data/mohit_sarvam_ai/torchtune/output-sft/sarvam1-sft-microsft-agent
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -87,10 +88,10 @@ optimizer:
   betas: [0.9, 0.98]
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_linear_schedule_with_warmup
-  min_lr: 7e-6
+  min_lr: 1e6
   max_lr: ${optimizer.lr}
-  num_warmup_steps: 1000
-  constant_steps: 20000
+  num_warmup_steps: 500
+  constant_steps: 500
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

@@ -23,7 +23,7 @@ def sarvam1_tokenizer(
     max_seq_len: Optional[int] = None,
     prompt_template: Optional[
         _TemplateType
-    ] = "torchtune.models.sarvam1.Sarvam1ChatTemplate",
+    ] = None,
 ) -> Sarvam1Tokenizer:
     """
     Tokenizer for Sarvam1.

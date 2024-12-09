@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._model_builders import lora_sarvam1, sarvam1, sarvam1_tokenizer
-from ._prompt_template import Sarvam1ChatTemplate
 from ._tokenizer import Sarvam1Tokenizer
 
 __all__ = [
@@ -13,5 +12,4 @@ __all__ = [
     "lora_sarvam1",
     "Sarvam1Tokenizer",
     "sarvam1_tokenizer",
-    "Sarvam1ChatTemplate",
 ]
