@@ -168,7 +168,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         self._resume_from_checkpoint = resume_from_checkpoint
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
-        self._output_dir.mkdir(exist_ok=True)
+        self._output_dir.mkdir(parents=True, exist_ok=True)
 
         # save all files in input_dir, except model weights and mapping, to output_dir
         # this is useful to preserve the tokenizer, configs, license, etc.
@@ -403,7 +403,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._checkpoint_dir = Path(checkpoint_dir)
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
-        self._output_dir.mkdir(exist_ok=True)
+        self._output_dir.mkdir(parents=True, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -938,7 +938,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         self._resume_from_checkpoint = resume_from_checkpoint
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
-        self._output_dir.mkdir(exist_ok=True)
+        self._output_dir.mkdir(parents=True, exist_ok=True)
 
         # save all files in input_dir, except model weights and mapping, to output_dir
         # this is useful to preserve the tokenizer, configs, license, etc.
