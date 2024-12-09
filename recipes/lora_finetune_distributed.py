@@ -549,6 +549,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             training.load_from_full_optimizer_state_dict(
+                self._model,
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -656,12 +657,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        state_dict = self._model.state_dict()
-        if self._save_adapter_weights_only:
-            state_dict = get_adapter_state_dict(state_dict, device=None)
-
         cpu_state_dict = training.gather_cpu_state_dict(
-            state_dict,
+            self._model,
             self._is_rank_zero,
             device=self._device,
         )
@@ -673,6 +670,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if intermediate_checkpoint:
             utils.log_rank_zero(log, "Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
+                self._model,
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
