@@ -586,7 +586,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># save all files in input_dir, except model weights and mapping, to output_dir</span>
         <span class="c1"># this is useful to preserve the tokenizer, configs, license, etc.</span>
@@ -821,7 +821,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># weight_map contains the state_dict key -&gt; checkpoint file mapping so we can correctly</span>
         <span class="c1"># parition the state dict into output checkpoint files. This is updated during checkpoint</span>
@@ -1354,7 +1354,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># save all files in input_dir, except model weights and mapping, to output_dir</span>
         <span class="c1"># this is useful to preserve the tokenizer, configs, license, etc.</span>
