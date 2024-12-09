@@ -25,10 +25,6 @@ output_dir: /tmp/torchtune/llama3_2_1B/full_single_device # /tmp may be deleted 
 model:
   _component_: torchtune.models.llama3_2.llama3_2_1b
 
-output_dir: /tmp/torchtune/llama3_2_1B/full_single_device # /tmp may be deleted by your system. Change it to your preference.
-
-output_dir: /tmp/torchtune/llama3_2_1B/full_single_device # /tmp may be deleted by your system. Change it to your preference.
-
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
