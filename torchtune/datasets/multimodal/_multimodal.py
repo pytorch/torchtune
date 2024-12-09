@@ -18,6 +18,7 @@ def multimodal_chat_dataset(
     source: str,
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
+    packed: bool = False,
     image_tag: Optional[str] = None,
     image_dir: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
@@ -79,6 +80,7 @@ def multimodal_chat_dataset(
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by dictionaries
             indicating to the tokenizer where to place image tokens. If images are present and this is None,
             then will prepend image tokens to the first user message in the sample by default. If text-only, leave
@@ -119,39 +121,47 @@ def multimodal_chat_dataset(
     ::
 
         >>> from torchtune.datasets.multimodal import multimodal_chat_dataset
-        >>> from torchtune.models.flamingo import FlamingoTransform
-        >>> model_transform = FlamingoTransform(
-        ...     path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
-        ...     tile_size=224,
-        ...     patch_size=14,
-        ... )
-        >>> dataset = multimodal_chat_dataset(
-        ...     model_transform=model_transform,
-        ...     source="json",
-        ...     data_files="my_dataset.json",
-        ...     column_map={
-        ...         "dialogue": "conversations",
-        ...         "image_path": "image",
-        ...     },
-        ...     image_dir="/home/user/dataset/",  # /home/user/dataset/images/clock.jpg
-        ...     image_tag="<image>",
-        ...     split="train",
-        ... )
-        >>> tokens = dataset[0]["tokens"]
-        >>> model_transform.decode(tokens, skip_special_tokens=True)
-        "What time is it on the clock?It is 10:00 AM."
-        >>> print(dataset[0]["encoder_input"]["images"][0].shape)  # (num_tiles, num_channels, tile_height, tile_width)
-        torch.Size([4, 3, 224, 224])
-
+        >>> from torchtune.models.llama3_2_vision import llama3_2_vision_transform
+        >>> from torchtune.datasets.multimodal import multimodal_chat_dataset
+        >>> model_transform = Llama3VisionTransform(
+        >>>     path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
+        >>>     prompt_template="torchtune.data.QuestionAnswerTemplate",
+        >>>     max_seq_len=8192,
+        >>>     image_size=560,
+        >>> )
+        >>> ds = multimodal_chat_dataset(
+        >>>     model_transform=model_transform,
+        >>>     source="json",
+        >>>     data_files="data/my_data.json",
+        >>>     column_map={
+        >>>         "dialogue": "conversations",
+        >>>         "image_path": "image",
+        >>>     },
+        >>>     image_dir="/home/user/dataset/",  # /home/user/dataset/images/clock.jpg
+        >>>     image_tag="<image>",
+        >>>     split="train",
+        >>> )
+        >>> tokenized_dict = ds[0]
+        >>> print(model_transform.decode(tokenized_dict["tokens"], skip_special_tokens=False))
+        >>> # '<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\nQuestion:<|image|>What time is it on the clock?Answer:<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nIt is 10:00AM.<|eot_id|>' # noqa
+        >>> print(tokenized_dict["encoder_input"]["images"][0].shape)  # (num_tiles, num_channels, tile_height, tile_width)
+        >>> # torch.Size([4, 3, 224, 224])
 
     This can also be accomplished via the yaml config:
 
     .. code-block:: yaml
 
+        tokenizer:
+          _component_: torchtune.models.llama3_2_vision_transform
+          path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+          prompt_template: torchtune.data.QuestionAnswerTemplate
+          max_seq_len: 8192
+
         dataset:
           _component_: torchtune.datasets.multimodal.multimodal_chat_dataset
           source: json
-          data_files: my_dataset.json
+          data_files: data/my_data.json
+          split: train
           column_map:
             dialogue: conversations
             image_path: image
@@ -161,7 +171,14 @@ def multimodal_chat_dataset(
 
     Returns:
         SFTDataset: the configured :class:`~torchtune.datasets.SFTDataset`
+
+    Raises:
+        ValueError: If ``packed`` is True, they are not supported for multimodal datasets yet.
+
     """
+    if packed:
+        raise ValueError("Multimodal datasets don't support packing yet.")
+
     message_transform = ShareGPTToMessages(
         train_on_input=False,
         column_map=column_map,
