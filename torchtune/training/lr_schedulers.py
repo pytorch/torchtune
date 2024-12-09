@@ -58,6 +58,37 @@ def get_cosine_schedule_with_warmup(
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 
 
+def get_linear_schedule_with_warmup(
+    optimizer: torch.optim.Optimizer,
+    num_warmup_steps: int,
+    num_training_steps: int,
+    max_lr: float,
+    constant_steps: int = 0,
+    min_lr: float = 0.0,
+    last_epoch: int = -1,
+) -> LambdaLR:
+
+    def lr_lambda(current_step: int) -> float:
+
+        if current_step < num_warmup_steps:
+            return current_step / max(1, num_warmup_steps)
+
+        if current_step < num_warmup_steps + constant_steps:
+            return 1.0
+
+        progress = (current_step - num_warmup_steps - constant_steps) / max(
+            1, num_training_steps - num_warmup_steps - constant_steps
+        )
+
+        progress = progress * (1 - min_lr / max_lr)
+
+        linear_lr_multiple = 1 - progress
+
+        return linear_lr_multiple
+
+    return LambdaLR(optimizer, lr_lambda, last_epoch)
+
+
 def get_lr(
     optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]
 ) -> float:

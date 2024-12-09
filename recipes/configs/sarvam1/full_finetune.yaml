@@ -35,7 +35,7 @@ dataset:
   conversation_style: openai
   conversation_column: messages
   source: json
-  packs_cache_path: /projects/data/mohit_sarvam_ai/torchtune/data/ft_train_cache
+  packs_cache_path: /projects/data/mohit_sarvam_ai/torchtune/data/ft_train_cache_phase_1
   data_files: [
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/sample.json,
     /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_0.json,
@@ -43,26 +43,26 @@ dataset:
     /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_2.json,
     /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_3.json,
     /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_4.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_5.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_6.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_7.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_8.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_9.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_10.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_11.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_12.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_13.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_14.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_15.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_16.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_17.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_18.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_19.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_5.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_6.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_7.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_8.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_9.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_10.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_11.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_12.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_13.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_14.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_15.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_16.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_17.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_18.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_19.json,
   ]
   split: train
 seed: null
 shuffle: True
-output_dir: /projects/data/mohit_sarvam_ai/torchtune/output-sft/sarvam1-sft-v5
+output_dir: /projects/data/mohit_sarvam_ai/torchtune/output-sft/sarvam1-sft-v5-phase-1
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -73,7 +73,7 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3
-save_interval: 1000
+save_interval: 2000
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
@@ -86,8 +86,11 @@ optimizer:
   weight_decay: 0.01
   betas: [0.9, 0.98]
 lr_scheduler:
-  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  _component_: torchtune.training.lr_schedulers.get_linear_schedule_with_warmup
+  min_lr: 7e-6
+  max_lr: ${optimizer.lr}
+  num_warmup_steps: 1000
+  constant_steps: 20000
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

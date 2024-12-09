@@ -6,13 +6,13 @@
 
 from typing import Any, List, Mapping, Optional, Tuple
 
-from transformers import LlamaTokenizer
-
 from torchtune.data import Message, PromptTemplate
-from torchtune.models.sarvam1._prompt_template import Sarvam1ChatTemplate
-from torchtune.models.sarvam1._utils import tokenize_messages_no_special_tokens
+from torchtune.models.llama2._prompt_template import Llama2ChatTemplate
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
+from transformers import LlamaTokenizer
+
+PROMPT_TEMPLATE = "{% if messages[0]['role'] == 'system' %}{% set loop_messages = messages[1:] %}{% set system_message = messages[0]['content'] %}{% else %}{% set loop_messages = messages %}{% set system_message = false %}{% endif %}\n{% for message in loop_messages %}\n{% if message['role'] not in ['user', 'assistant', 'tool_calls'] %}\n{{ raise_exception('Invalid role: ' + message['role'] + '. Must be user, assistant, or tool_calls.') }}\n{% endif %}\n{% if loop.index0 == 0 and system_message != false %}\n{% set content = '<<SYS>>\n' + system_message + '\n<</SYS>>\n\n' + message['content'] %}\n{% else %}\n{% set content = message['content'] %}\n{% endif %}\n{% if message['role'] == 'user' %}\n{{ bos_token + '[INST] ' + content.strip() + ' [/INST]' }}\n{% elif message['role'] == 'assistant' %}\n{{ ' ' + content.strip() + ' ' + eos_token }}\n{% elif message['role'] == 'tool_calls' %}\n{{ ' [TOOL_CALLS] ' + content.strip() + ' [/TOOL_CALLS] ' }}\n{% endif %}\n{% endfor %}"
 
 
 class Sarvam1Tokenizer(ModelTokenizer, Transform):
@@ -45,20 +45,17 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
         self,
         path: str,
         max_seq_len: Optional[int] = None,
-        prompt_template: Optional[PromptTemplate] = Sarvam1ChatTemplate(),
+        prompt_template: Optional[str] = Llama2ChatTemplate(),
     ):
-        if not path.endswith(".model"):
+        if not path.endswith('.model'):
             raise ValueError(f"Tokenizer path must end with '.model', got {path}")
-
         self._tokenizer = LlamaTokenizer(vocab_file=path, legacy=False)
         self._tokenizer.pad_id = self.eos_id if self.pad_id is None else self.pad_id
-
         self.stop_tokens = [self.eos_id]
-
+        self._tokenizer.chat_template = PROMPT_TEMPLATE
         self.max_seq_len = max_seq_len
-
-        self.prompt_template = prompt_template
-
+        self.shown_tokenize_messages_warning = False
+    
     @property
     def eos_id(self):
         return self._tokenizer.eos_token_id
@@ -78,47 +75,48 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
     def encode(
         self,
         text: str,
+        *,
         add_bos: bool = True,
         add_eos: bool = True,
-        trim_leading_whitespace: bool = True,
     ) -> List[int]:
         """
         Encode a string into a list of tokens.
         Note:
             Currently this method does not add eos token, and does not trim leading whitespace.
         """
-
-        if trim_leading_whitespace:
-            # newline is token so it can be used to trim leading whitespace
-            prefix = "\n"
-            encoded_prefix = self._tokenizer.encode(prefix, add_special_tokens=False)
-            start_idx = len(encoded_prefix)
-            tokens = self._tokenizer.encode(prefix + text, add_special_tokens=False)[
-                start_idx:
-            ]
-        else:
-            tokens = self._tokenizer.encode(text, add_special_tokens=False)
-
-        if add_bos:
-            tokens = [self.bos_id] + tokens
-
+        tokens = self._tokenizer.encode(text, add_special_tokens=add_bos)
         if add_eos:
             tokens.append(self.eos_id)
-
         return tokens
-
+    
     def decode(
         self,
         token_ids: List[int],
     ) -> str:
         return self._tokenizer.decode(token_ids)
+    
+    def create_assistant_mask(self, templated_message):
+        tokens = self._tokenizer.tokenize(templated_message)
+        mask = [1] * len(tokens)
+
+        is_assistant = False
+        for i in range(len(tokens)):
+            if tokens[i-1] == '[/INST]' and tokens[i] == '\n':
+                is_assistant = True
+                continue
+            if tokens[i-1] == '</s>' and tokens[i] == '\n':
+                is_assistant = False
+                continue
+            if is_assistant:
+                mask[i] = 0
+        return mask
 
     def tokenize_messages(
         self,
         messages: List[Message],
         *,
-        add_start_tokens: bool = True,
-        add_end_tokens: bool = True,
+        add_bos_tokens: bool = False,
+        add_end_tokens: bool = False,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -130,7 +128,7 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
             beginning off the tokenized s2.
 
         Example:
-            >>> tokenizer = Llama2Tokenizer(tokenizer_path, max_seq_len)
+            >>> tokenizer = Sarvam1Tokenizer(tokenizer_path, max_seq_len)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
@@ -149,28 +147,22 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
-            add_start_tokens (bool): Whether to add BOS token to the beginning of the first message.
-                Default True.
-            add_end_tokens (bool): Whether to add EOS token to the end of the last message. Default True.
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        templated_messages = (
-            self.prompt_template(messages)
-            if self.prompt_template is not None
-            else messages
-        )
-
-        tokenized_messages = tokenize_messages_no_special_tokens(
-            tokenizer=self,
-            messages=templated_messages,
-            bos_id=self.bos_id if add_start_tokens else None,
-            eos_id=self.eos_id if add_end_tokens else None,
-        )
-
-        return tokenized_messages
-
+        # if add_bos_tokens or add_end_tokens and not self.shown_tokenize_messages_warning:
+        #     print("WARNING: You have passed `add_bos_tokens` or `add_end_tokens` to `tokenize_messages`.")
+        #     print("WARNING: This will change the behavior of the tokenizer. Both arguments will be ignored.")
+        #     self.shown_tokenize_messages_warning = True
+        hf_messages = []
+        for message in messages:
+            hf_messages.append({"role": message.role, "content": message.content[0]["content"]})
+        templated_message = self._tokenizer.apply_chat_template(hf_messages, tokenize=False)
+        input_ids = self._tokenizer(templated_message, add_special_tokens=False)["input_ids"]
+        attention_mask = [bool(x) for x in self.create_assistant_mask(templated_message)]
+        return input_ids, attention_mask
+    
     def __call__(
         self, sample: Mapping[str, Any], inference: bool = False
     ) -> Mapping[str, Any]:
