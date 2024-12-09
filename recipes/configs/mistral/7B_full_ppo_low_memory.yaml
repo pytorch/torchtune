@@ -186,7 +186,7 @@ profiler:
   enabled: False
 
   #Output directory of trace artifacts
-  output_dir: ./target/160m/profiling_outputs
+  output_dir: ${output_dir}/profiling_outputs
 
   #`torch.profiler.ProfilerActivity` types to trace
   cpu: True

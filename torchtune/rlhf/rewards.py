@@ -54,7 +54,7 @@ def get_rewards_ppo(
     valid_score_idxs: Optional[torch.Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calculates PPO rewards for the given scores, logprobs, and reference logprobs:
+    Calculates PPO rewards for the given scores, logprobs, and reference logprobs.
 
     Args:
         scores (torch.Tensor): Reward model scores, shape ``(b,)``.

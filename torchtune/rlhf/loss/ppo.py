@@ -104,7 +104,7 @@ class PPOLoss(nn.Module):
             phi_old_values + self.value_clip_range,
         )
         value_loss = torch.maximum(
-            (phi_values - returns).pow(2), (values_clipped - returns).pow(2)
+            (phi_values - returns) ** 2, (values_clipped - returns) ** 2
         )
         value_loss = (
             0.5 * value_loss.mean()
