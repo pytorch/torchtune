@@ -29,7 +29,6 @@ from torchtune.modules.peft import (
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -499,7 +498,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.lora_a.to_empty(device=lora_device)
                     m.lora_b.to_empty(device=lora_device)
                     m.initialize_parameters()
-                # RoPE is not covered in state dict
+
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
@@ -510,13 +509,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._is_rank_zero,
             cpu_offload=fsdp_cpu_offload,
         )
-        is_dora = False
         for m in model.modules():
             if hasattr(m, "initialize_dora_magnitude"):
-                is_dora = True
                 m.initialize_dora_magnitude()
-        if is_dora:
-            load_dora_magnitudes(model)
+
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,

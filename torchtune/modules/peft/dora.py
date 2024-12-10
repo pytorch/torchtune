@@ -104,11 +104,28 @@ class DoRALinear(nn.Module, AdapterModule):
         """
         DoRA initializes the magnitude vector such that its outputs are initially
         identical to standard LoRA's outputs.
+
+        This must be called after loading/initializing base model and LoRA params.
         """
+        if any(
+            [
+                self.weight.is_meta,
+                self.lora_a.weight.is_meta,
+                self.lora_b.weight.is_meta,
+            ]
+        ):
+            raise ValueError(
+                "Cannot initialize DoRA magnitude until after base and LoRA parameters"
+            )
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
-        weight_norm = self._get_weight_norm(base_weight, lora_weight)
-        self.magnitude.copy_(weight_norm)
+
+        magnitude = nn.Parameter(
+            torch.empty_like(self.magnitude, device=self.lora_a.weight.device),
+            requires_grad=self.magnitude.requires_grad,
+        )
+        magnitude = self._get_weight_norm(base_weight, lora_weight)
+        torch.utils.swap_tensors(self.magnitude, magnitude)
 
     def _get_weight_norm(self, weight, lora_weight):
         weight = weight + self.scaling * lora_weight
@@ -117,8 +134,7 @@ class DoRALinear(nn.Module, AdapterModule):
 
     def adapter_params(self) -> List[str]:
         """
-        Return lora_a.weight and lora_b.weight as adapter params.
-        If bias is enabled, also return lora_a.bias and lora_b.bias.
+        Return lora_a.weight, lora_b.weight, and magnitude as adapter params.
         """
         adapter_params = ["lora_a.weight", "lora_b.weight", "magnitude"]
         return adapter_params

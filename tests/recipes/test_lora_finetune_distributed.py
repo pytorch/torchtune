@@ -215,15 +215,15 @@ class TestLoRAFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "recipe_config, model_type, ckpt_type",
+        "recipe_config, model_type, ckpt_type, use_dora",
         [
-            ("llama2/7B_lora", "llama2", "tune"),
-            ("llama3/8B_lora", "llama3", "tune"),
+            ("llama2/7B_lora", "llama2", "tune", True),
+            ("llama3/8B_lora", "llama3", "tune", False),
         ],
     )
     @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(
-        self, recipe_config, model_type, ckpt_type, tmpdir, monkeypatch
+        self, recipe_config, model_type, ckpt_type, use_dora, tmpdir, monkeypatch
     ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
@@ -249,9 +249,9 @@ class TestLoRAFinetuneDistributedRecipe:
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
         """.split()
-
-        model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
-
+        model_config = MODEL_TEST_CONFIGS[
+            model_type + ("_dora" if use_dora else "_lora")
+        ]
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
