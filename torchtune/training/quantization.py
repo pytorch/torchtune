@@ -222,6 +222,27 @@ class Int8MixedPrecisionTrainingQuantizer:
             grad_weight=grad_weight,
         )
 
+    @staticmethod
+    def validate_config(
+        *, compile: bool, dataset_packed: bool, optimizer_path: str
+    ) -> None:
+        if not (compile and dataset_packed):
+            raise ValueError(
+                "Both compile and dataset.packed must be True to use INT8 mixed-precision training."
+            )
+
+        if not optimizer_path.startswith("torch.optim."):
+            warn(
+                "Using low-bit optimizer might have convergence issues with INT8 mixed-precision training. "
+                "If you observe divergence, try again with the standard torch.optim.AdamW instead."
+            )
+
+        warn(
+            "INT8 mixed-precision might not speedup training if model and/or batch size is too small "
+            "for the current GPU(s). If it is the case, try increasing batch size or sequence length. "
+            "On A100, Llama-3-8B only has speedup for batch_size=4, max_seq_len=2048 and above."
+        )
+
     def prepare(self, model: nn.Module) -> nn.Module:
         # we use module-swap implementation so that the state_dict remains plain tensors,
         # as well as better FSDP compatibility in torchtune.

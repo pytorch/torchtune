@@ -24,6 +24,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
+from torchtune.training.quantization import Int8MixedPrecisionTrainingQuantizer
 
 from tqdm import tqdm
 
@@ -183,9 +184,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
 
         if cfg.mixed_precision.enabled:
-            if not cfg.compile or not cfg.dataset.packed:
-                raise ValueError(
-                    "When mixed_precision.enabled is True, both compile and dataset.packed must be True."
+            if (
+                cfg.mixed_precision._component_
+                == "torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer"
+            ):
+                Int8MixedPrecisionTrainingQuantizer.validate_config(
+                    compile=cfg.compile,
+                    dataset_packed=cfg.dataset.packed,
+                    optimizer_path=cfg.optimizer._component_,
                 )
 
         # These are public properties which are updated by the checkpoint loader
@@ -277,7 +283,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_offloading=self._enable_activation_offloading,
             compile_model=self._compile,
             model_state_dict=ckpt_dict[training.MODEL_KEY],
-            mixed_precision_cfg=cfg.get("mixed_precision", None),
+            mixed_precision_cfg=cfg.mixed_precision,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -437,9 +443,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        if mixed_precision_cfg is not None and mixed_precision_cfg.get(
-            "enabled", False
-        ):
+        if mixed_precision_cfg is not None and mixed_precision_cfg.enabled:
             log.info(f"Preparing model with {mixed_precision_cfg._component_}")
             cfg = mixed_precision_cfg.copy()
             cfg.pop("enabled", None)
