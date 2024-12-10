@@ -16,6 +16,8 @@
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # For single device LoRA DPO alignment please use  llama3_1/8B_lora_dpo_single_device
 
+output_dir: /tmp/torchtune/llama3_1_8B/lora_dpo # /tmp may be deleted by your system. Change it to your preference.
+
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_1.lora_llama3_1_8b
@@ -42,7 +44,7 @@ checkpointer:
     model-00004-of-00004.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  output_dir: ${output_dir}
   model_type: LLAMA3
 resume_from_checkpoint: False
 save_adapter_weights_only: False
@@ -72,14 +74,13 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: 1000
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
+gradient_accumulation_steps: 8  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
-output_dir: /tmp/lora_dpo_output/
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
