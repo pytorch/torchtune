@@ -27,7 +27,6 @@ from torchtune.modules.peft import (
     get_adapter_params,
     get_adapter_state_dict,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -420,7 +419,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 is_dora = True
                 m.initialize_dora_magnitude()
         if is_dora:
-            load_dora_magnitudes(model)
+            for m in model.modules():
+                if hasattr(m, "initialize_dora_magnitude"):
+                    m.initialize_dora_magnitude()
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
