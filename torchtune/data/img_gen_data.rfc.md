@@ -6,7 +6,7 @@ A basic data pipeline for this would be:
 1. Load the JSON/CSV/TSV/Parquet/LMDB/etc. file containing the image paths/urls and captions
 2. For each pair:
    - load/download the image
-   - resize the image and optionally randomly augment it (horizontal flip, etc.)
+   - resize the image and optionally randomly augment it (horizontal flip, etc.) and normalize it
    - optionally randomly augment the caption (rearrange caption parts, etc.)
    - tokenize the caption using the model's tokenizer
 3. collate into a batch
@@ -27,7 +27,7 @@ dataset:
         drop: 0.05
         shuffle_parts: 0.1
 tokenizer:
-    _component_: torchtune.models.flux.flux_tokenizer
+    _component_: torchtune.models.flux.FluxTransform
     clip_tokenizer_path: ...
     t5_tokenizer_path: ...
     t5_max_seq_len: 256
@@ -35,7 +35,7 @@ tokenizer:
 
 ```python
 def img_caption_dataset(
-    model_transform: Tokenizer,
+    model_transform: Transform,
     *,
     path: str,
     img_transform: Config,
@@ -113,16 +113,19 @@ class ImgTextDataset(torch.utils.data.Dataset):
         return data_dict
 
 
-class FluxTokenizer(Tokenizer):
+class FluxTransform(Transform):
     def __init__(self, clip_tokenizer_path, t5_tokenizer_path, t5_max_seq_len):
         ...
 
-    def __call__(self, text):
-        ...
-        return {'clip_text_tokens': clip_tokens, 't5_text_tokens': t5_tokens}
+    def __call__(self, img, text):
+        return {
+            'img': (img / 127.5) - 1.0,
+            'clip_text_tokens': self._clip_tokenizer(text),
+            't5_text_tokens': self._t5_tokenizer(text),
+        }
 ```
 
-# Collate
+# TODO: Collate
 
 We'll need to generalize our collate functions such that they can handle data outside of the tokens-and-labels format they currently expect. I will update this section after I've looked into this.
 
@@ -152,8 +155,7 @@ We'll also want to support adding words/phrases to the caption that tell the mod
 - Regarding loading the TSV/Parquet/whatever data file, should we just rely on huggingface's `load_dataset` like we currently do in `SFTDataset`? It keeps the code simpler, but it makes the user leave torchtune and go read the huggingface docs, which is overkill if they just have some simple JSON file we could easily load ourselves.
 - In addition to absolute image paths in the data file, we should probably support image paths relative to the dataset folder, because it would be super annoying if you had to regenerate your data file any time to move the dataset to a new location.
 - There's currently some potentially unnecessary fields in the config. For example with Flux models, the model determines the image size and the T5 tokenizer sequence length. Is it better to pass this information to the image transform and model transform, respectively? Which complicates the code but lowers the chance of user error. Or is it better to have the user define these values in the dataset config and tokenizer config, respectively? Which puts the burden on the user to match what the model expects.
-- Should we add scripts/utilities for inspecting the dataset? It's nice to see a preview of what a batch looks like, especially when you're messing around with like color jitter and other hard-to-configure image augmentations.
-
+- Should we add scripts/utilities for inspecting the dataset? It's nice to see a preview of what a batch looks like, especially when you're messing around with color jitter and other hard-to-configure image augmentations.
 
 # Other
 - Naming of the image-text dataset builders/classes? Maybe the more verbose `image_caption_dataset_for_image_generation` is better to make it clear that this is NOT for something like finetuning a VLM to do image captioning (although maybe it could be generalized to the point where it can also do lists of Message objects and therefore can be used for whatever purpose).
