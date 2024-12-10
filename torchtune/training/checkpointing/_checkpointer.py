@@ -300,7 +300,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             torch.save(state_dict[training.MODEL_KEY], output_path)
             logger.info(
                 "Model checkpoint of size "
-                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
                 f"saved to {output_path}"
             )
 
@@ -819,7 +819,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
                 logger.info(
                     "Adapter checkpoint of size "
-                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                    f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
                     f"saved to {output_path}"
                 )
         elif adapter_only:
