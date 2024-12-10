@@ -1173,10 +1173,8 @@
                 <span class="n">index_file_name</span> <span class="o">=</span> <span class="n">TORCH_INDEX_FNAME</span>
 
             <span class="n">index_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                <span class="n">index_file_name</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index_file_name</span>
+            <span class="p">)</span>
 
             <span class="n">index_data</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;total_size&quot;</span><span class="p">:</span> <span class="n">total_size</span><span class="p">},</span>

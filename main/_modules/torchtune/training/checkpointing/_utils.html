@@ -462,8 +462,8 @@
 <span class="c1"># https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32</span>
 <span class="n">ADAPTER_CONFIG_FNAME</span> <span class="o">=</span> <span class="s2">&quot;adapter_config&quot;</span>
 <span class="n">ADAPTER_MODEL_FNAME</span> <span class="o">=</span> <span class="s2">&quot;adapter_model&quot;</span>
-<span class="n">SAFETENSOR_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;model.safetensors.index&quot;</span>
-<span class="n">TORCH_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;pytorch_model.bin.index&quot;</span>
+<span class="n">SAFETENSOR_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;model.safetensors.index.json&quot;</span>
+<span class="n">TORCH_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;pytorch_model.bin.index.json&quot;</span>
 
 <span class="c1"># standardize checkpointing</span>
 <span class="n">SHARD_FNAME</span> <span class="o">=</span> <span class="s2">&quot;ft-model-</span><span class="si">{cpt_idx}</span><span class="s2">-of-</span><span class="si">{num_shards}</span><span class="s2">&quot;</span>
