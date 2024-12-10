@@ -264,7 +264,6 @@ def _gather_nf4_tensor(sharded_param: nn.Parameter) -> nn.Parameter:
 
 def gather_cpu_state_dict(
     model: "FSDPModule",  # noqa
-    sharded_sd: Dict[str, DTensor],  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
 ) -> Dict[str, Any]:
@@ -274,7 +273,6 @@ def gather_cpu_state_dict(
 
     Args:
         model (FSDPModule): Model to generate fqn for cpu_state_dict
-        sharded_sd (Dict[str, DTensor]): Sharded state dict of DTensors
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
 
@@ -287,6 +285,7 @@ def gather_cpu_state_dict(
     )
     if has_nf4:
         cpu_state_dict = {}
+        sharded_sd = model.state_dict()
         for param_name, param in sharded_sd.items():
             if param.is_cpu:
                 # Move back to device if offloaded to CPU
