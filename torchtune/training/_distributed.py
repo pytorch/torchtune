@@ -15,10 +15,9 @@ import torch.distributed as dist
 from torch import nn
 
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
-from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed._tensor import DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
-    _init_optim_state,
     get_model_state_dict,
     get_optimizer_state_dict,
     set_model_state_dict,
@@ -265,6 +264,7 @@ def _gather_nf4_tensor(sharded_param: nn.Parameter) -> nn.Parameter:
 
 def gather_cpu_state_dict(
     model: "FSDPModule",  # noqa
+    sharded_sd: Dict[str, DTensor],  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
 ) -> Dict[str, Any]:
@@ -273,6 +273,7 @@ def gather_cpu_state_dict(
     Returning non-empty result only on rank0 to avoid peaking CPU memory
 
     Args:
+        model (FSDPModule): Model to generate fqn for cpu_state_dict
         sharded_sd (Dict[str, DTensor]): Sharded state dict of DTensors
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
