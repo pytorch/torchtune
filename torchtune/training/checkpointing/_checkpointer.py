@@ -840,7 +840,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 state_dict[
                     training.ADAPTER_CONFIG
                 ] = convert_weights.tune_to_peft_adapter_config(
-                    state_dict[training.ADAPTER_CONFIG],
+                    adapter_config=state_dict[training.ADAPTER_CONFIG],
                     base_model_name_or_path=self.repo_id,
                 )
 
