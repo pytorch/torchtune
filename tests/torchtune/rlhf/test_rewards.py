@@ -9,7 +9,7 @@ from torchtune import rlhf
 
 
 class TestGetRewards:
-    def test_get_rewards(self):
+    def test_get_rewards_ppo(self):
         scores = torch.tensor([1.0, 2.0, 3.0])
         logprobs = torch.tensor(
             [
@@ -25,7 +25,7 @@ class TestGetRewards:
                 [0.9, 1.0, 1.1],
             ]
         )
-        kl_controller_value = 0.5
+        kl_coeff = 0.5
 
         # expected kl is logprobs - ref_logprobs
         expected_kl = torch.tensor(
@@ -36,7 +36,7 @@ class TestGetRewards:
             ]
         )
 
-        # expected kl_rewards is -kl_controller_value * kl
+        # expected kl_rewards is -kl_coeff * kl
         expected_kl_rewards = torch.tensor(
             [
                 [0.05, 0.05, 0.05],
@@ -55,7 +55,22 @@ class TestGetRewards:
         )
 
         rewards, kl, kl_rewards = rlhf.get_rewards_ppo(
-            scores, logprobs, ref_logprobs, kl_controller_value
+            scores, logprobs, ref_logprobs, kl_coeff
+        )
+
+        torch.testing.assert_close(kl, expected_kl, rtol=1e-4, atol=1e-4)
+        torch.testing.assert_close(
+            kl_rewards, expected_kl_rewards, rtol=1e-4, atol=1e-4
+        )
+        torch.testing.assert_close(rewards, expected_rewards, rtol=1e-4, atol=1e-4)
+
+        # add a test to ensure valid_score_idxs works as expected
+        rewards, kl, kl_rewards = rlhf.get_rewards_ppo(
+            scores,
+            logprobs,
+            ref_logprobs,
+            kl_coeff,
+            valid_score_idxs=torch.tensor([2, 2, 2]),
         )
 
         torch.testing.assert_close(kl, expected_kl, rtol=1e-4, atol=1e-4)
@@ -137,7 +152,7 @@ class TestMaskedVar:
         mask = torch.tensor([True, True, True, False, False])
 
         expected_var = torch.tensor(1.0)
-        output = rlhf.masked_var(x, mask)
+        output = rlhf.masked_var(x - rlhf.masked_mean(x, mask), mask)
 
         torch.testing.assert_close(output, expected_var, rtol=1e-4, atol=1e-4)
 
