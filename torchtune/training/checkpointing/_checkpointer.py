@@ -756,10 +756,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 index_file_name = TORCH_INDEX_FNAME
 
             index_path = Path.joinpath(
-                self._output_dir,
-                f"epoch_{epoch}",
-                index_file_name,
-            ).with_suffix(".json")
+                self._output_dir, f"epoch_{epoch}", index_file_name
+            )
 
             index_data = {
                 "metadata": {"total_size": total_size},

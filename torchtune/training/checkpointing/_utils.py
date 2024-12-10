@@ -32,8 +32,8 @@ ADAPTER_CONFIG = "adapter_config"
 # https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32
 ADAPTER_CONFIG_FNAME = "adapter_config"
 ADAPTER_MODEL_FNAME = "adapter_model"
-SAFETENSOR_INDEX_FNAME = "model.safetensors.index"
-TORCH_INDEX_FNAME = "pytorch_model.bin.index"
+SAFETENSOR_INDEX_FNAME = "model.safetensors.index.json"
+TORCH_INDEX_FNAME = "pytorch_model.bin.index.json"
 
 # standardize checkpointing
 SHARD_FNAME = "ft-model-{cpt_idx}-of-{num_shards}"
