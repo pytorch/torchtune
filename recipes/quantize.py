@@ -107,7 +107,7 @@ class QuantizationRecipe:
         torch.save(ckpt_dict, checkpoint_file)
         logger.info(
             "Model checkpoint of size "
-            f"{os.path.getsize(checkpoint_file) / 1000**3:.2f} GB "
+            f"{os.path.getsize(checkpoint_file) / 1024**3:.2f} GiB "
             f"saved to {checkpoint_file}"
         )
 
