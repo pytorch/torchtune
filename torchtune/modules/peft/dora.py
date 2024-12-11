@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List
+from typing import List, Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -93,6 +93,19 @@ class DoRALinear(nn.Module, AdapterModule):
         self.magnitude = nn.Parameter(torch.empty(out_dim))
         self.initialize_parameters()
 
+    def to_empty(
+        self, *, device: Optional[Union[str, torch.device, int]], recurse: bool = True
+    ):
+        self.lora_a.to_empty(device=device, recurse=recurse)
+        self.lora_b.to_empty(device=device, recurse=recurse)
+
+        magnitude = nn.Parameter(
+            torch.empty_like(self.magnitude, device=device),
+            requires_grad=self.magnitude.requires_grad,
+        )
+        torch.utils.swap_tensors(self.magnitude, magnitude)
+        return self
+
     def initialize_parameters(self):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
@@ -104,11 +117,25 @@ class DoRALinear(nn.Module, AdapterModule):
         """
         DoRA initializes the magnitude vector such that its outputs are initially
         identical to standard LoRA's outputs.
+
+        This must be called after loading/initializing base model and LoRA params.
+
+        Raises:
+            RuntimeError: If base or LoRA parameters are still on meta device.
         """
+        if any(
+            [
+                self.weight.is_meta,
+                self.lora_a.weight.is_meta,
+                self.lora_b.weight.is_meta,
+            ]
+        ):
+            raise RuntimeError(
+                "Cannot initialize DoRA magnitude if base or LoRA parameters are still on meta device."
+            )
         base_weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
-        weight_norm = self._get_weight_norm(base_weight, lora_weight)
-        self.magnitude.copy_(weight_norm)
+        self.magnitude.copy_(self._get_weight_norm(base_weight, lora_weight))
 
     def _get_weight_norm(self, weight, lora_weight):
         weight = weight + self.scaling * lora_weight
@@ -117,8 +144,10 @@ class DoRALinear(nn.Module, AdapterModule):
 
     def adapter_params(self) -> List[str]:
         """
-        Return lora_a.weight and lora_b.weight as adapter params.
-        If bias is enabled, also return lora_a.bias and lora_b.bias.
+        Return a list of strings corresponding to the names of the ``nn.Parameter`` s in
+        the model coming from the adapter.
+
+        For DoRA this means lora_a.weight, lora_b.weight, and magnitude.
         """
         adapter_params = ["lora_a.weight", "lora_b.weight", "magnitude"]
         return adapter_params

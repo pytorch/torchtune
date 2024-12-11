@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import math
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -93,6 +93,12 @@ class LoRALinear(nn.Module, AdapterModule):
         self.merged = False
         self.initialize_parameters()
 
+    def to_empty(
+        self, *, device: Optional[Union[str, torch.device, int]], recurse: bool = True
+    ):
+        self.lora_a.to_empty(device=device, recurse=recurse)
+        self.lora_b.to_empty(device=device, recurse=recurse)
+
     def initialize_parameters(self):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
@@ -101,8 +107,10 @@ class LoRALinear(nn.Module, AdapterModule):
 
     def adapter_params(self) -> List[str]:
         """
-        Return lora_a.weight and lora_b.weight as adapter params.
-        If bias is enabled, also return lora_a.bias and lora_b.bias.
+        Return a list of strings corresponding to the names of the ``nn.Parameter`` s in
+        the model coming from the adapter.
+
+        For LoRA this means lora_a.weight and lora_b.weight.
         """
         # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
         # in this module change.
