@@ -372,20 +372,6 @@ class TestDistributedDoRALinear(FSDPTest):
                 assert not dora_linear.lora_b.weight.is_meta
                 assert not dora_linear.magnitude.is_meta
 
-        # Explicitly calculate magnitude expected values
-        # expected_magnitudes = {}
-        # for layer in layers:
-        #     weight = base_model_state_dict[f"{layer}.weight"]
-        #     if load_dora_weights:
-        #         weight += (
-        #             (ALPHA / RANK)
-        #             * adapter_state_dict[f"{layer}.lora_b.weight"]
-        #             @ adapter_state_dict[f"{layer}.lora_a.weight"]
-        #         )
-        #     expected_magnitudes[layer] = torch.linalg.norm(weight, axis=1).to(
-        #         device=device
-        #     )
-
         # Load base model weights
         training.load_from_full_model_state_dict(
             ffn,
