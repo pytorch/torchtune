@@ -185,42 +185,60 @@ def load_from_full_model_state_dict(
         )
     if has_nf4:
         for param_name, full_tensor in full_sd.items():
-            sharded_meta_param = meta_sharded_sd.get(param_name)
-            block_size = sharded_meta_param._local_tensor.block_size
-            scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
-            full_tensor = to_nf4(
-                full_tensor, block_size=block_size, scaler_block_size=scaler_block_size
-            )
-            # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
-            # otherwise `distribute_tensor(DTensor(local=NF4))`
-            # requires dispatching `c10d.scatter_``
-            # long-term solution is `swap_tensor`
-            mesh = sharded_meta_param.device_mesh
-            if mesh.ndim > 1:
-                raise NotImplementedError(f"only support 1D FSDP but got {mesh.ndim=}")
-            shard_mesh_dim = 0
-            shard_world_size = mesh.size(shard_mesh_dim)
-            shard_rank = cast(
-                torch.distributed.ProcessGroup, mesh.get_group(shard_mesh_dim)
-            ).rank()
-            chunk = list(torch.chunk(full_tensor, shard_world_size, dim=0))[shard_rank]
-            sharded_param = full_tensor.new_zeros(chunk.size())
-            sharded_param[: chunk.size(0)].copy_(chunk)
+            if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
+                sharded_meta_param._local_tensor, NF4Tensor
+            ):
+                sharded_meta_param = meta_sharded_sd.get(param_name)
+                block_size = sharded_meta_param._local_tensor.block_size
+                scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
+                full_tensor = to_nf4(
+                    full_tensor,
+                    block_size=block_size,
+                    scaler_block_size=scaler_block_size,
+                )
+                # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
+                # otherwise `distribute_tensor(DTensor(local=NF4))`
+                # requires dispatching `c10d.scatter_``
+                # long-term solution is `swap_tensor`
+                mesh = sharded_meta_param.device_mesh
+                if mesh.ndim > 1:
+                    raise NotImplementedError(
+                        f"only support 1D FSDP but got {mesh.ndim=}"
+                    )
+                shard_mesh_dim = 0
+                shard_world_size = mesh.size(shard_mesh_dim)
+                shard_rank = cast(
+                    torch.distributed.ProcessGroup, mesh.get_group(shard_mesh_dim)
+                ).rank()
+                chunk = list(torch.chunk(full_tensor, shard_world_size, dim=0))[
+                    shard_rank
+                ]
+                sharded_param = full_tensor.new_zeros(chunk.size())
+                sharded_param[: chunk.size(0)].copy_(chunk)
 
-            # TODO: change to from_local API (need to add view support for NF4)
-            sharded_tensor = DTensor(
-                local_tensor=sharded_param,
-                spec=DTensorSpec(
-                    mesh=sharded_meta_param.device_mesh,
-                    placements=sharded_meta_param.placements,
-                    tensor_meta=TensorMeta(
-                        shape=sharded_meta_param.size(),
-                        dtype=sharded_meta_param.dtype,
-                        stride=sharded_meta_param.stride(),
+                # TODO: change to from_local API (need to add view support for NF4)
+                sharded_tensor = DTensor(
+                    local_tensor=sharded_param,
+                    spec=DTensorSpec(
+                        mesh=sharded_meta_param.device_mesh,
+                        placements=sharded_meta_param.placements,
+                        tensor_meta=TensorMeta(
+                            shape=sharded_meta_param.size(),
+                            dtype=sharded_meta_param.dtype,
+                            stride=sharded_meta_param.stride(),
+                        ),
                     ),
-                ),
-                requires_grad=sharded_meta_param.requires_grad,
-            )
+                    requires_grad=sharded_meta_param.requires_grad,
+                )
+            elif not hasattr(sharded_meta_param, "device_mesh"):
+                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
+                sharded_tensor = full_tensor
+            else:
+                sharded_tensor = distribute_tensor(
+                    full_tensor,
+                    sharded_meta_param.device_mesh,
+                    sharded_meta_param.placements,
+                )
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
             sharded_sd[param_name] = nn.Parameter(sharded_tensor)
