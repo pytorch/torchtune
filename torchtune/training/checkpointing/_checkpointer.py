@@ -110,9 +110,11 @@ class _CheckpointerInterface(Protocol):
 
     """
 
-    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: ...
+    def load_checkpoint(self, **kwargs) -> Dict[str, Any]:
+        ...
 
-    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: ...
+    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None:
+        ...
 
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
@@ -130,13 +132,14 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
-            and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
+            and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
+            and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
             Default is None.
-        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
-            resume training from a previous run. Default is False
+        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
+            the recipe state from a previous run. Default is False. This flag is deprecated. Please use the
+            should_load_recipe_state flag instead.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the recipe state from a previous run. Default is False
 
@@ -152,6 +155,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
+        resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
     ) -> None:
 
@@ -164,8 +168,14 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             )
 
         self._checkpoint_dir = Path(checkpoint_dir)
-        self._resume_from_checkpoint = resume_from_checkpoint
         self._should_load_recipe_state = should_load_recipe_state
+
+        if resume_from_checkpoint:
+            self._should_load_recipe_state = resume_from_checkpoint
+            logger.warning(
+                "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
+            )
+
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
@@ -182,7 +192,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         self._adapter_checkpoint = get_adapter_checkpoint_path(
             output_dir=self._output_dir,
             adapter_checkpoint=adapter_checkpoint,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
             pattern=r"^epoch_(\d+)",
         )
 
@@ -190,7 +200,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         self._recipe_checkpoint = get_recipe_checkpoint_path(
             output_dir=self._output_dir,
             recipe_checkpoint=recipe_checkpoint,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
         )
 
         # get ckpt paths
@@ -198,16 +208,16 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             checkpoint_files=checkpoint_files,
             checkpoint_dir=self._checkpoint_dir,
             output_dir=self._output_dir,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
             has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
 
         # we currently accept only a single file
         self._checkpoint_path = self._checkpoint_paths[0]
 
-        if self._resume_from_checkpoint:
+        if self._should_load_recipe_state:
             logger.info(
-                "Resuming from checkpoint using:"
+                "Loading the recipe state using: "
                 f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
                 f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
@@ -375,13 +385,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
-            and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
+            and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
+            and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
             Default is None.
-        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
-            resume training from a previous run. Default is False
+        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
+            the receipe state from a previous run. Default is False. This flag is deprecated. Please use
+            the should_load_recipe_state flag instead.
         safe_serialization (bool): If True, the checkpointer will save the checkpoint file using `safetensors`.
             Default is True.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
@@ -401,8 +412,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         should_load_recipe_state: bool = False,
     ) -> None:
 
-        self._resume_from_checkpoint = resume_from_checkpoint
         self._should_load_recipe_state = should_load_recipe_state
+        if resume_from_checkpoint:
+            self._should_load_recipe_state = resume_from_checkpoint
+            logger.warning(
+                "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
+            )
+
         self._safe_serialization = safe_serialization
         self._checkpoint_dir = Path(checkpoint_dir)
         self._model_type = ModelType[model_type]
@@ -443,7 +459,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._adapter_checkpoint = get_adapter_checkpoint_path(
             output_dir=self._output_dir,
             adapter_checkpoint=adapter_checkpoint,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
             pattern=r"^epoch_(\d+)",
         )
 
@@ -451,7 +467,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._recipe_checkpoint = get_recipe_checkpoint_path(
             output_dir=self._output_dir,
             recipe_checkpoint=recipe_checkpoint,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
         )
 
         # get ckpt paths
@@ -459,13 +475,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             checkpoint_files=checkpoint_files,
             checkpoint_dir=self._checkpoint_dir,
             output_dir=self._output_dir,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
             has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
 
-        if self._resume_from_checkpoint:
+        if self._should_load_recipe_state:
             logger.info(
-                "Resuming from checkpoint using:"
+                "Loading the recipe state using: "
                 f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
                 f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
@@ -796,14 +812,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
-                state_dict[training.ADAPTER_KEY] = (
-                    convert_weights.tune_to_peft_adapter_weights(
-                        state_dict[training.ADAPTER_KEY],
-                        num_heads=self._config["num_attention_heads"],
-                        num_kv_heads=self._config["num_key_value_heads"],
-                        dim=self._config["hidden_size"],
-                        head_dim=self._config.get("head_dim", None),
-                    )
+                state_dict[
+                    training.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
+                    state_dict[training.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
                 output_path = Path.joinpath(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
@@ -839,11 +855,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
             else:
-                state_dict[training.ADAPTER_CONFIG] = (
-                    convert_weights.tune_to_peft_adapter_config(
-                        adapter_config=state_dict[training.ADAPTER_CONFIG],
-                        base_model_name_or_path=self.repo_id,
-                    )
+                state_dict[
+                    training.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    adapter_config=state_dict[training.ADAPTER_CONFIG],
+                    base_model_name_or_path=self.repo_id,
                 )
 
                 output_path = Path.joinpath(
@@ -903,13 +919,14 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
         output_dir (str): Directory to save the checkpoint files
         adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
-            and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
+            and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
-            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/recipe_state.
+            and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/recipe_state.
             Default is None.
-        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
-            resume training from a previous run. Default is False
+        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
+                the recipe state from a previous run. Default is False. This flag is deprecated. Please use the
+                should_load_recipe_state instead.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
                 the recipe state from a previous run. Default is False
 
@@ -926,6 +943,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
+        resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
     ) -> None:
 
@@ -938,8 +956,12 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             )
 
         self._checkpoint_dir = Path(checkpoint_dir)
-        self._resume_from_checkpoint = resume_from_checkpoint
         self._should_load_recipe_state = should_load_recipe_state
+        if resume_from_checkpoint:
+            self._should_load_recipe_state = resume_from_checkpoint
+            logger.warning(
+                "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
+            )
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
@@ -956,7 +978,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         self._adapter_checkpoint = get_adapter_checkpoint_path(
             output_dir=self._output_dir,
             adapter_checkpoint=adapter_checkpoint,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
             pattern=r"^epoch_(\d+)",
         )
 
@@ -964,7 +986,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         self._recipe_checkpoint = get_recipe_checkpoint_path(
             output_dir=self._output_dir,
             recipe_checkpoint=recipe_checkpoint,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
         )
 
         # get ckpt paths
@@ -972,16 +994,16 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             checkpoint_files=checkpoint_files,
             checkpoint_dir=self._checkpoint_dir,
             output_dir=self._output_dir,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._should_load_recipe_state,
             has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
 
         # we currently accept only a single file
         self._checkpoint_path = self._checkpoint_paths[0]
 
-        if self._resume_from_checkpoint:
+        if self._should_load_recipe_state:
             logger.info(
-                "Resuming from checkpoint using:"
+                "Loading the recipe state using: "
                 f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
                 f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
@@ -1156,7 +1178,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         self._checkpoint_dir = Path(checkpoint_dir)
         self._output_dir = Path(output_dir)
         self._checkpoint_future = None
-        self._checkpoint_dir_prefix = "checkpoint"
+        self._checkpoint_dir_prefix = "dist_epoch"
         self._metadata_file = ".metadata"
         _, self._rank = training.get_world_size_and_rank()
         self._process_group: Optional[dist.ProcessGroup] = process_group
@@ -1182,7 +1204,9 @@ class DistributedCheckpointer(_CheckpointerInterface):
         ]
 
         if checkpoint_paths:
-            latest_checkpoint_dir = sorted(checkpoint_paths)[-1]
+            latest_checkpoint_dir = sorted(
+                checkpoint_paths, key=lambda x: int(x.split("_")[-1])
+            )[-1]
             return os.path.join(self._output_dir, latest_checkpoint_dir)
         return None
 

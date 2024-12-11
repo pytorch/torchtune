@@ -89,7 +89,6 @@ class CheckpointClient:
                 self._cfg.checkpointer,
                 should_load_recipe_state=should_load_recipe_state,
             )
-
         return self._checkpointer
 
     def _get_dcp_checkpointer(self):

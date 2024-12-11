@@ -279,14 +279,21 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Therefore the recipe needs to load the distributed checkpoint to restore the training
             # progress.
             if self._enable_async_checkpointing:
-                checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
-                    self._model,
-                    (
-                        self._optim_ckpt_wrapper
-                        if self._optimizer_in_bwd
-                        else self._optimizer
-                    ),
-                )
+                try:
+                    checkpoint_dict = (
+                        self._checkpoint_client.load_distributed_checkpoint(
+                            self._model,
+                            (
+                                self._optim_ckpt_wrapper
+                                if self._optimizer_in_bwd
+                                else self._optimizer
+                            ),
+                        )
+                    )
+                except Exception as e:
+                    log.warning(
+                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
+                    )
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
