@@ -439,7 +439,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         # LoRA weights + trainable base params
         if self._resume_from_checkpoint:
             for k, v in model.named_parameters():
-                if v.requires_grad() and k not in adapter_params:
+                if v.requires_grad and k not in adapter_params:
                     raise ValueError(
                         f"Found a trainable base param: {k}. This is not allowed when resuming from training b/c we have "
                         "no way to merge the base params with the LoRA weights."
