@@ -434,7 +434,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
@@ -523,6 +523,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">merged</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_parameters</span><span class="p">()</span>
 
+<div class="viewcode-block" id="LoRALinear.to_empty"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.to_empty">[docs]</a>    <span class="k">def</span> <span class="nf">to_empty</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span> <span class="n">recurse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">to_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">to_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">)</span></div>
+
     <span class="k">def</span> <span class="nf">initialize_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Initialize as in</span>
         <span class="c1"># https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119</span>
@@ -531,8 +537,10 @@
 
 <div class="viewcode-block" id="LoRALinear.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.adapter_params">[docs]</a>    <span class="k">def</span> <span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Return lora_a.weight and lora_b.weight as adapter params.</span>
-<span class="sd">        If bias is enabled, also return lora_a.bias and lora_b.bias.</span>
+<span class="sd">        Return a list of strings corresponding to the names of the ``nn.Parameter`` s in</span>
+<span class="sd">        the model coming from the adapter.</span>
+
+<span class="sd">        For LoRA this means lora_a.weight and lora_b.weight.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># NOTE: this function has to be updated if the names of &quot;lora_a&quot; and &quot;lora_b&quot;</span>
         <span class="c1"># in this module change.</span>

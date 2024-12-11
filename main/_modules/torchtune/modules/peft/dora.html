@@ -435,7 +435,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
@@ -523,6 +523,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">out_dim</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_parameters</span><span class="p">()</span>
 
+<div class="viewcode-block" id="DoRALinear.to_empty"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.to_empty">[docs]</a>    <span class="k">def</span> <span class="nf">to_empty</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span> <span class="n">recurse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">to_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">to_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">)</span>
+
+        <span class="n">magnitude</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">requires_grad</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">swap_tensors</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="p">,</span> <span class="n">magnitude</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
     <span class="k">def</span> <span class="nf">initialize_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Initialize as in</span>
         <span class="c1"># https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119</span>
@@ -534,11 +547,25 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        DoRA initializes the magnitude vector such that its outputs are initially</span>
 <span class="sd">        identical to standard LoRA&#39;s outputs.</span>
+
+<span class="sd">        This must be called after loading/initializing base model and LoRA params.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If base or LoRA parameters are still on meta device.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">is_meta</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">is_meta</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">is_meta</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot initialize DoRA magnitude if base or LoRA parameters are still on meta device.&quot;</span>
+            <span class="p">)</span>
         <span class="n">base_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">lora_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span>
-        <span class="n">weight_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_weight_norm</span><span class="p">(</span><span class="n">base_weight</span><span class="p">,</span> <span class="n">lora_weight</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_weight_norm</span><span class="p">(</span><span class="n">base_weight</span><span class="p">,</span> <span class="n">lora_weight</span><span class="p">))</span></div>
 
     <span class="k">def</span> <span class="nf">_get_weight_norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">lora_weight</span><span class="p">):</span>
         <span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">*</span> <span class="n">lora_weight</span>
@@ -547,8 +574,10 @@
 
 <div class="viewcode-block" id="DoRALinear.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.adapter_params">[docs]</a>    <span class="k">def</span> <span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Return lora_a.weight and lora_b.weight as adapter params.</span>
-<span class="sd">        If bias is enabled, also return lora_a.bias and lora_b.bias.</span>
+<span class="sd">        Return a list of strings corresponding to the names of the ``nn.Parameter`` s in</span>
+<span class="sd">        the model coming from the adapter.</span>
+
+<span class="sd">        For DoRA this means lora_a.weight, lora_b.weight, and magnitude.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">adapter_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;lora_a.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;lora_b.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;magnitude&quot;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">adapter_params</span></div>
