@@ -255,6 +255,19 @@ class TestDoRALinear:
         dora_linear.initialize_dora_magnitude()
         assert torch.allclose(dora_linear.magnitude, expected_magnitude)
 
+    def test_dora_meta_device_init_error(self):
+        with torch.device("meta"):
+            dora_linear = DoRALinear(
+                in_dim=512,
+                out_dim=512,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=False,
+                quantize_base=False,
+            )
+        with pytest.raises(RuntimeError, match="Cannot initialize DoRA magnitude"):
+            dora_linear.initialize_dora_magnitude()
+
 
 class TestDistributedDoRALinear(FSDPTest):
     @property
@@ -278,6 +291,7 @@ class TestDistributedDoRALinear(FSDPTest):
         rank = self.rank
         is_rank_zero = rank == 0
         device = f"cuda:{rank}"
+        layers = ["w1", "w2", "w3"]
         base_model_state_dict = {
             "w1.weight": torch.randn(self.embed_dim, self.embed_dim),
             "w2.weight": torch.randn(self.embed_dim, self.embed_dim),
@@ -346,36 +360,52 @@ class TestDistributedDoRALinear(FSDPTest):
         if not load_dora_weights:
             for m in ffn.modules():
                 if isinstance(m, DoRALinear):
-                    m.lora_a.to_empty(device=device)
-                    m.lora_b.to_empty(device=device)
+                    m.to_empty(device=device)
                     m.initialize_parameters()
 
         # At this point (assuming load_dora_weights=False) we should have
-        # zero-initialized LoRA B, Kaiming-uniform initialized LoRA A, and magnitude on meta device
+        # zero-initialized LoRA B, Kaiming-uniform initialized LoRA A, and magnitude off meta device
         if is_rank_zero:
             for dora_linear in [ffn.w1, ffn.w2, ffn.w3]:
                 assert dora_linear.weight.is_meta
                 assert not dora_linear.lora_a.weight.is_meta
                 assert not dora_linear.lora_b.weight.is_meta
-                # assert not dora_linear.magnitude.is_meta
+                assert not dora_linear.magnitude.is_meta
+
+        # Explicitly calculate magnitude expected values
+        expected_magnitudes = {}
+        for layer in layers:
+            weight = base_model_state_dict[f"{layer}.weight"]
+            if load_dora_weights:
+                weight += (
+                    (ALPHA / RANK)
+                    * adapter_state_dict[f"{layer}.lora_b.weight"]
+                    @ adapter_state_dict[f"{layer}.lora_a.weight"]
+                )
+            expected_magnitudes[layer] = torch.linalg.norm(weight, axis=1).to(
+                device=device
+            )
 
         # Load base model weights
-        # After this, everything but magnitude should be initialized no matter what
         training.load_from_full_model_state_dict(
             ffn,
             base_model_state_dict,
             device,
             is_rank_zero,
         )
+
+        # After this, everything should be off meta device
         if is_rank_zero:
             for dora_linear in [ffn.w1, ffn.w2, ffn.w3]:
                 assert not dora_linear.weight.is_meta
                 assert not dora_linear.lora_a.weight.is_meta
                 assert not dora_linear.lora_b.weight.is_meta
-                if load_dora_weights:
-                    assert not dora_linear.magnitude.is_meta
-                else:
-                    assert dora_linear.magnitude.is_meta
+                assert not dora_linear.magnitude.is_meta
+
+        # Before initializing the magnitudes, the values should not match
+        for layer in layers:
+            actual_magnitude = getattr(ffn, layer).magnitude.full_tensor()
+            assert not torch.allclose(expected_magnitudes[layer], actual_magnitude)
 
         # Finally, initialize the magnitudes
         for m in ffn.modules():
@@ -390,15 +420,7 @@ class TestDistributedDoRALinear(FSDPTest):
                 assert not dora_linear.lora_b.weight.is_meta
                 assert not dora_linear.magnitude.is_meta
 
-        # Explicitly check that the magnitudes match their expected value
-        for layer in ["w1", "w2", "w3"]:
-            weight = base_model_state_dict[f"{layer}.weight"]
-            if load_dora_weights:
-                weight += (
-                    (ALPHA / RANK)
-                    * adapter_state_dict[f"{layer}.lora_b.weight"]
-                    @ adapter_state_dict[f"{layer}.lora_a.weight"]
-                )
-            expected_magnitude = torch.linalg.norm(weight, axis=1).to(device=device)
+        # And the magnitudes should match
+        for layer in layers:
             actual_magnitude = getattr(ffn, layer).magnitude.full_tensor()
-            torch.testing.assert_close(expected_magnitude, actual_magnitude)
+            torch.testing.assert_close(expected_magnitudes[layer], actual_magnitude)
