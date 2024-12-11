@@ -169,7 +169,7 @@ def lora_llama3_2_vision_11b(
     fusion_type = LoRATrainable(fusion_trainable.lower())
     assert LoRATrainable.FULL not in [
         decoder_type,
-        decoder_type,
+        encoder_type,
         fusion_type,
     ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama3_2_vision_11b if you need full finetuning"
     encoder = lora_llama3_2_vision_encoder(
@@ -332,7 +332,7 @@ def lora_llama3_2_vision_90b(
     fusion_type = LoRATrainable(fusion_trainable.lower())
     assert LoRATrainable.FULL not in [
         decoder_type,
-        decoder_type,
+        encoder_type,
         fusion_type,
     ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama3_2_vision_90b if you need full finetuning"
     encoder = lora_llama3_2_vision_encoder(
