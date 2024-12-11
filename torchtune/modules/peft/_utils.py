@@ -9,6 +9,7 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set,
 
 import torch
 from torch import nn
+from torchtune.utils._logging import deprecated
 
 # Modules from MultiHeadAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -313,6 +314,9 @@ def validate_missing_and_unexpected_for_lora(
         raise AssertionError("Unexpected key loading adapter")
 
 
+@deprecated(
+    msg="load_dora_magnitudes will be deprecated in 0.6.0. Please use DoRALinear.initialize_dora_magnitude instead."
+)
 def load_dora_magnitudes(model: nn.Module) -> None:
     """
     For DoRA magnitude we use setattr to move from meta device

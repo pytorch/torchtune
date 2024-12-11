@@ -13,12 +13,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune import training
-from torchtune.modules.peft import (
-    DoRALinear,
-    get_merged_lora_ckpt,
-    load_dora_magnitudes,
-    LoRALinear,
-)
+from torchtune.modules.peft import DoRALinear, get_merged_lora_ckpt, LoRALinear
 from torchtune.training.seed import set_seed
 
 
@@ -91,7 +86,7 @@ def compare_dora(self, dtype, use_bias, quantize_base):
     # Verify that this is true.
     assert not _dora_is_the_same_as_lora()
     module.initialize_dora_magnitude()
-    load_dora_magnitudes(module)
+
     assert _dora_is_the_same_as_lora()
 
     def _compare_params():
