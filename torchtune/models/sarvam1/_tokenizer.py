@@ -12,7 +12,7 @@ from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 from transformers import LlamaTokenizer
 
-PROMPT_TEMPLATE = "{% if messages[0]['role'] == 'system' %}{% set loop_messages = messages[1:] %}{% set system_message = messages[0]['content'] %}{% else %}{% set loop_messages = messages %}{% set system_message = false %}{% endif %}\n{% for message in loop_messages %}\n{% if message['role'] not in ['user', 'assistant', 'tool_calls'] %}\n{{ raise_exception('Invalid role: ' + message['role'] + '. Must be user, assistant, or tool_calls.') }}\n{% endif %}\n{% if loop.index0 == 0 and system_message != false %}\n{% set content = '<<SYS>>\n' + system_message + '\n<</SYS>>\n\n' + message['content'] %}\n{% else %}\n{% set content = message['content'] %}\n{% endif %}\n{% if message['role'] == 'user' %}\n{{ bos_token + '[INST] ' + content.strip() + ' [/INST]' }}\n{% elif message['role'] == 'assistant' %}\n{{ ' ' + content.strip() + ' ' + eos_token }}\n{% elif message['role'] == 'tool_calls' %}\n{{ ' [TOOL_CALLS] ' + content.strip() + ' [/TOOL_CALLS] ' }}\n{% endif %}\n{% endfor %}"
+PROMPT_TEMPLATE = "{% if messages[0]['role'] == 'system' %}{% set loop_messages = messages[1:] %}{% set system_message = messages[0]['content'] %}{% else %}{% set loop_messages = messages %}{% set system_message = false %}{% endif %}\n{% for message in loop_messages %}\n{% if message['role'] not in ['user', 'assistant', 'tool_calls'] %}\n{{ raise_exception('Invalid role: ' + message['role'] + '. Must be user, assistant, or tool_calls.') }}\n{% endif %}\n{% if loop.index0 == 0 and system_message != false %}\n{% set content = '<<SYS>>\n' + system_message + '\n<</SYS>>\n\n' + message['content'] %}\n{% else %}\n{% set content = message['content'] %}\n{% endif %}\n{% if message['role'] == 'user' %}\n{{ '<s>[INST] ' + content.strip() + ' [/INST]' }}\n{% elif message['role'] == 'assistant' %}\n{{ ' ' + content.strip() + ' </s>' }}\n{% elif message['role'] == 'tool_calls' %}\n{{ ' [TOOL_CALLS] ' + content.strip() + ' [/TOOL_CALLS] ' }}\n{% endif %}\n{% endfor %}"
 
 
 class Sarvam1Tokenizer(ModelTokenizer, Transform):
@@ -49,7 +49,7 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
     ):
         if not path.endswith('.model'):
             raise ValueError(f"Tokenizer path must end with '.model', got {path}")
-        self._tokenizer = LlamaTokenizer(vocab_file=path, legacy=False)
+        self._tokenizer = LlamaTokenizer(vocab_file=path, legacy=False, split_special_tokens=True)
         self._tokenizer.pad_id = self.eos_id if self.pad_id is None else self.pad_id
         self.stop_tokens = [self.eos_id]
         self._tokenizer.chat_template = PROMPT_TEMPLATE
@@ -76,8 +76,8 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
         self,
         text: str,
         *,
-        add_bos: bool = True,
-        add_eos: bool = True,
+        add_bos: bool = False,
+        add_eos: bool = False,
     ) -> List[int]:
         """
         Encode a string into a list of tokens.
@@ -151,10 +151,10 @@ class Sarvam1Tokenizer(ModelTokenizer, Transform):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        # if add_bos_tokens or add_end_tokens and not self.shown_tokenize_messages_warning:
-        #     print("WARNING: You have passed `add_bos_tokens` or `add_end_tokens` to `tokenize_messages`.")
-        #     print("WARNING: This will change the behavior of the tokenizer. Both arguments will be ignored.")
-        #     self.shown_tokenize_messages_warning = True
+        if add_bos_tokens or add_end_tokens and not self.shown_tokenize_messages_warning:
+            print("WARNING: You have passed `add_bos_tokens` or `add_end_tokens` to `tokenize_messages`.")
+            print("WARNING: This will change the behavior of the tokenizer. Both arguments will be ignored.")
+            self.shown_tokenize_messages_warning = True
         hf_messages = []
         for message in messages:
             hf_messages.append({"role": message.role, "content": message.content[0]["content"]})

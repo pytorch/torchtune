@@ -43,7 +43,6 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: /home/rahul_sarvam_ai/torchtune_models/test_run
-  save_interval: 1000 # save every 1000 steps
   model_type: LLAMA3
 resume_from_checkpoint: False
 
