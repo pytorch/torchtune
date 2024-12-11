@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List, Union
+from typing import List, Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -93,7 +93,9 @@ class DoRALinear(nn.Module, AdapterModule):
         self.magnitude = nn.Parameter(torch.empty(out_dim))
         self.initialize_parameters()
 
-    def to_empty(self, *, device: Union[str, torch.device, int], recurse: bool = True):
+    def to_empty(
+        self, *, device: Optional[Union[str, torch.device, int]], recurse: bool = True
+    ):
         self.lora_a.to_empty(device=device, recurse=recurse)
         self.lora_b.to_empty(device=device, recurse=recurse)
 

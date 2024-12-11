@@ -93,7 +93,9 @@ class LoRALinear(nn.Module, AdapterModule):
         self.merged = False
         self.initialize_parameters()
 
-    def to_empty(self, *, device: Union[str, torch.device, int], recurse: bool = True):
+    def to_empty(
+        self, *, device: Optional[Union[str, torch.device, int]], recurse: bool = True
+    ):
         self.lora_a.to_empty(device=device, recurse=recurse)
         self.lora_b.to_empty(device=device, recurse=recurse)
 
