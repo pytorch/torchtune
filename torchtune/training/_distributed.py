@@ -270,6 +270,7 @@ def gather_cpu_state_dict(
     """
     Converting sharded state dict into a full state dict on CPU
     Returning non-empty result only on rank0 to avoid peaking CPU memory
+    TODO: add support for NF4Tensor
 
     Args:
         model (FSDPModule): Model to generate fqn for cpu_state_dict
@@ -290,11 +291,14 @@ def gather_cpu_state_dict(
             if param.is_cpu:
                 # Move back to device if offloaded to CPU
                 param = param.to(device)
-            if isinstance(param._local_tensor, NF4Tensor):
-                param = _gather_nf4_tensor(param)
-            else:
-                # Gather DTensor
-                param = param.full_tensor()
+            if hasattr(param, "_local_tensor"):
+                if isinstance(param._local_tensor, NF4Tensor):
+                    param = _gather_nf4_tensor(param)
+                else:
+                    # Gather DTensor
+                    param = param.full_tensor()
+            if isinstance(param, NF4Tensor):
+                param = param.to(param.dtype)
             if is_rank_zero:
                 cpu_state_dict[param_name] = param.cpu()
             torch.distributed.barrier()
