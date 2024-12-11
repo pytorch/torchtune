@@ -185,10 +185,10 @@ def load_from_full_model_state_dict(
         )
     if has_nf4:
         for param_name, full_tensor in full_sd.items():
+            sharded_meta_param = meta_sharded_sd.get(param_name)
             if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
                 sharded_meta_param._local_tensor, NF4Tensor
             ):
-                sharded_meta_param = meta_sharded_sd.get(param_name)
                 block_size = sharded_meta_param._local_tensor.block_size
                 scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
                 full_tensor = to_nf4(
