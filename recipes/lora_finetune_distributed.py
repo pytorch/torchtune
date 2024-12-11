@@ -452,7 +452,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        set_trainable_params(model, get_adapter_params(model))
+        adapter_params = get_adapter_params(model)
+        set_trainable_params(model, adapter_params)
+
+        # TODO: Remove this when we have a better way to handle saving/loading of
+        # LoRA weights + trainable base params
+        if self._resume_from_checkpoint:
+            for k, v in model.named_parameters():
+                if v.requires_grad() and k not in adapter_params:
+                    raise ValueError(
+                        f"Found a trainable base param: {k}. This is not allowed when resuming from training b/c we have "
+                        "no way to merge the base params with the LoRA weights."
+                    )
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)

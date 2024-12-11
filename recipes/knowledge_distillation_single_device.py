@@ -405,7 +405,18 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
         self.adapter_params = get_adapter_params(model)
         self._is_dora = any(["magnitude" in k for k in self.adapter_params.keys()])
-        set_trainable_params(model, self.adapter_params)
+        adapter_params = get_adapter_params(model)
+        set_trainable_params(model, adapter_params)
+
+        # TODO: Remove this when we have a better way to handle saving/loading of
+        # LoRA weights + trainable base params
+        if self._resume_from_checkpoint:
+            for k, v in model.named_parameters():
+                if v.requires_grad() and k not in adapter_params:
+                    raise ValueError(
+                        f"Found a trainable base param: {k}. This is not allowed when resuming from training b/c we have "
+                        "no way to merge the base params with the LoRA weights."
+                    )
 
         if compile_model:
             training.compile_model(model)
