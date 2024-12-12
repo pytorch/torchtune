@@ -14,7 +14,10 @@ _SUPPORTS_FLEX_ATTENTION = (
 )
 
 _TORCHDATA_MIN_VERSION = "0.10.0"
-if importlib.util.find_spec("torchdata.nodes") is not None:
+if (
+    importlib.util.find_spec("torchdata") is not None
+    and importlib.util.find_spec("torchdata.nodes") is not None
+):
     _TORCHDATA_INSTALLED = True
 else:
     _TORCHDATA_INSTALLED = False
