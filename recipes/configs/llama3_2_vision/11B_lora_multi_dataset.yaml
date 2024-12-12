@@ -88,6 +88,7 @@ datasets:
 
 # Fine-tuning arguments
 epochs: 1
+# max_steps_per_epoch is required for progress bar
 max_steps_per_epoch: 50
 batch_size: 4
 gradient_accumulation_steps: 1
@@ -114,12 +115,8 @@ dtype: bf16
 
 # Logging
 output_dir: /tmp/lora-llama3.2-vision-finetune
-# metric_logger:
-#   _component_: torchtune.training.metric_logging.DiskLogger
-#   log_dir: /tmp/Llama-3.2-11B-Vision-Instruct/logs
 metric_logger:
-  _component_: torchtune.training.metric_logging.StdoutLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: /tmp/Llama-3.2-11B-Vision-Instruct/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
-
-profile_mode: null  # dataloader_only | model_only

@@ -152,7 +152,7 @@ def format_content_with_images(
     return final_content_list
 
 
-def chain(*funcs: Callable):
+def chain(*funcs: Callable) -> Callable:
     """
     Chain a list of functions together into a single function.
 
@@ -180,6 +180,7 @@ def load_hf_dataset(
     seed: int = 0,
     num_workers: int = 0,
     parallel_method: Literal["process", "thread"] = "thread",
+    streaming: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> DatasetType:
     """
@@ -201,10 +202,10 @@ def load_hf_dataset(
     """
     from torchdata.nodes import IterableWrapper, ParallelMapper, SamplerWrapper
 
-    # Need to lazy import to avoid circular dependency
+    # TODO: Remove lazy import when we can
+    # see: https://github.com/pytorch/torchtune/issues/2151
     from torchtune.training._distributed import get_world_size_and_rank
 
-    streaming = load_dataset_kwargs.get("streaming", False)
     if "subset" in load_dataset_kwargs:
         assert (
             "name" not in load_dataset_kwargs
@@ -228,6 +229,8 @@ def load_hf_dataset(
             shuffle=shuffle,
             seed=seed,
         )
+        # Note: SamplerWrapper will call set_epoch on the sampler (if defined),
+        # and auto-increment the epoch each time the node is reset.
         node = SamplerWrapper(sampler)
         transform = chain(dataset.__getitem__, transform)  # type: ignore
 
@@ -255,7 +258,6 @@ def get_multi_dataset(
         stop_criteria (str): stop criteria for the sampler. Default "CYCLE_UNTIL_ALL_DATASETS_EXHASTED".
             see also: torchdata.nodes.StopCriteria
         seed: (int): seed for the random number generator. Default 0.
-
     """
     from torchdata.nodes import MultiNodeWeightedSampler
 
@@ -273,7 +275,6 @@ def get_dataloader(
     model_transform: Transform,
     batch_size: int,
     collate_fn: Optional[Callable[[Any], Any]] = None,
-    packed: bool = False,
     drop_last: bool = True,
     num_workers: int = 0,
     parallel_method: Literal["process", "thread"] = "thread",
@@ -297,8 +298,6 @@ def get_dataloader(
         prefetch_factor (Optional[int]): number of batches to prefetch. Default is 4.
         pin_memory (bool): whether to pin memory. Default is False.
     """
-    if packed:
-        raise ValueError("Multimodal datasets don't support packing yet.")
 
     from torchdata.nodes import Batcher, ParallelMapper, PinMemory, Prefetcher
 

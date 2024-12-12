@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
@@ -19,11 +19,10 @@ from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
 
-from torchdata.nodes import Loader, StopCriteria, T
+from torchdata.nodes import Loader, StopCriteria
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
-from torchtune.data._torchdata import DatasetType
 from torchtune.data._utils import get_dataloader, get_multi_dataset, load_hf_dataset
 from torchtune.datasets._sft import SFTTransform
 from torchtune.modules.peft import (
@@ -592,6 +591,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = cfg_dataloader.collate_fn
         prefetch_factor = cfg_dataloader.get("prefetch_factor", 6)
 
+        if packed:
+            raise ValueError("Packing not yet supported")
+
         # Multi-Dataset Stop Criteria
         stop_criteria = cfg_dataloader.get(
             "stop_criteria", StopCriteria.CYCLE_UNTIL_ALL_DATASETS_EXHAUSTED
@@ -602,7 +604,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             if dataset_name is None:
                 dataset_name = cfg_dataset.get("subset", None)
             key = f"{idx}" + (f"_{dataset_name}" if dataset_name else "")
-            assert key not in weights, f"Duplicate dataset name {key}"
 
             utils.log_rank_zero(log, f"Instantiating dataset {cfg_dataset}")
             # Handle dataset-specific overrides, fallback to cfg_dataloader settings
@@ -652,7 +653,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             model_transform=SFTTransform(model_transform=self._tokenizer),
             batch_size=batch_size,
             collate_fn=collate_fn,
-            packed=packed,
             drop_last=True,
             num_workers=num_workers,
             parallel_method=parallel_method,
