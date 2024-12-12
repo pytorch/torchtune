@@ -252,8 +252,6 @@ def load_from_full_model_state_dict(
             cpu_offload=cpu_offload,
         )
         set_model_state_dict(model=model, model_state_dict=full_sd, options=options)
-        # if torch.distributed.get_rank() == 1:
-        #    print("state: ", model.state_dict())
 
 
 def _gather_nf4_tensor(sharded_param: nn.Parameter) -> nn.Parameter:
