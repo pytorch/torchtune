@@ -258,10 +258,10 @@ def the_cauldron_transform(
     image and process it in accordance to the model's requirements.
 
     Args:
-        model_transform (Transform): model-specific transform class that takes in a sample dict and applies custom
+        model_transform (Optional[Transform]): model-specific transform class that takes in a sample dict and applies custom
             transforms on the keys. It should consist of at minimum two components: text tokenization (called
             on the "messages" field) and image transform (called on the "images" field). The keys returned by
-            the model transform should be aligned with the expected inputs into the model.
+            the model transform should be aligned with the expected inputs into the model. Default is None.
         texts_col (str): name of the column containing the text data. Default is "texts".
         images_col (str): name of the column containing the image data. Default is "images".
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
