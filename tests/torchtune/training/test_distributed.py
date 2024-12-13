@@ -56,15 +56,6 @@ class TestDistributed:
             pg_backend == "gloo"
         ), f"Expected 'gloo' backend, but received {pg_backend}"
 
-    @staticmethod
-    def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
-        training.init_distributed(backend="gloo")
-        world_size, _ = training.get_world_size_and_rank()
-        if world_size != expected_world_size:
-            raise AssertionError(
-                f"Expected different world size: received {world_size}, expected {expected_world_size}"
-            )
-
     def _test_launch_worker(
         self,
         get_pet_launch_config,
@@ -83,13 +74,6 @@ class TestDistributed:
         self._test_launch_worker(get_pet_launch_config, 2, init_pg_explicit=True)
         # trivial test case to ensure test passes with no exceptions
         assert True
-
-    def test_world_size_with_cpu(self, get_pet_launch_config) -> None:
-        desired_world_size = 4
-        lc = get_pet_launch_config(desired_world_size)
-        launcher.elastic_launch(lc, entrypoint=self._test_world_size_with_cpu_device)(
-            desired_world_size
-        )
 
     def test_validate_no_params_on_meta_device(self) -> None:
         with torch.device("meta"):

@@ -22,9 +22,8 @@ from torch.distributed.fsdp import ShardingStrategy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
-from torchtune.utils import get_logger
-
-from torchtune.utils._device import get_device
+from torchtune.utils import get_device, get_logger
+from torchtune.utils._logging import deprecated
 
 _log: logging.Logger = get_logger()
 
@@ -117,6 +116,10 @@ def set_torch_num_threads() -> None:
     _log.info(f"Set intra op parallelism no. of threads to {num_threads}")
 
 
+@deprecated(
+    msg="`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. "
+    "Please use `torchtune.utils.get_world_size_and_rank` instead."
+)
 def get_world_size_and_rank() -> Tuple[int, int]:
     """Function that gets the current world size (aka total number
     of ranks) and rank number of the current process in the default process group.
