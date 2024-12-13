@@ -36,7 +36,7 @@ checkpointer:
   checkpoint_dir:  /tmp/Llama-2-70b-hf
   checkpoint_files:
     filename_format: pytorch_model-{}-of-{}.bin
-    max_filename: "00015"
+    max_filename: 00015
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA2
