@@ -1,6 +1,6 @@
 ﻿.. role:: hidden
     :class: hidden-section
-.. currentmodule:: torchtune.training
+.. currentmodule:: torchtune.utils
 
 
 get_world_size_and_rank

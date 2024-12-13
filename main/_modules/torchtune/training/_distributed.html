@@ -452,9 +452,8 @@
 <span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Optimizer</span>
 <span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span>
-
-<span class="kn">from</span> <span class="nn">torchtune.utils._device</span> <span class="kn">import</span> <span class="n">get_device</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_device</span><span class="p">,</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">deprecated</span>
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
@@ -547,7 +546,11 @@
     <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set intra op parallelism no. of threads to </span><span class="si">{</span><span class="n">num_threads</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_world_size_and_rank"><a class="viewcode-back" href="../../../generated/torchtune.training.get_world_size_and_rank.html#torchtune.training.get_world_size_and_rank">[docs]</a><span class="k">def</span> <span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. &quot;</span>
+    <span class="s2">&quot;Please use `torchtune.utils.get_world_size_and_rank` instead.&quot;</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that gets the current world size (aka total number</span>
 <span class="sd">    of ranks) and rank number of the current process in the default process group.</span>
 
@@ -557,7 +560,7 @@
     <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span></div>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
 
 
 <span class="k">def</span> <span class="nf">validate_no_params_on_meta_device</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
