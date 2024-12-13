@@ -10,11 +10,12 @@ from urllib import request
 
 from datasets import load_dataset
 from datasets.distributed import split_dataset_by_node
-
 from torch.utils.data import default_collate, DistributedSampler
 
 from torchtune.data._torchdata import DatasetType, Loader, requires_torchdata
 from torchtune.modules.transforms import Transform
+
+from torchtune.utils import get_world_size_and_rank
 
 T = TypeVar("T", bound=type)
 
@@ -206,10 +207,6 @@ def load_hf_dataset(
         sampler.
     """
     from torchdata.nodes import IterableWrapper, ParallelMapper, SamplerWrapper
-
-    # TODO: Remove lazy import when we can
-    # see: https://github.com/pytorch/torchtune/issues/2151
-    from torchtune.training._distributed import get_world_size_and_rank
 
     if "subset" in load_dataset_kwargs:
         assert (
