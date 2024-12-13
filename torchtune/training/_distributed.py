@@ -28,6 +28,7 @@ from torch.distributed.fsdp import ShardingStrategy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 
@@ -245,9 +246,7 @@ def load_from_full_model_state_dict(
     else:
         for param_name in full_sd.keys():
             sharded_meta_param = meta_sharded_sd.get(param_name)
-            full_sd[param_name] = (
-                full_sd[param_name].to(sharded_meta_param.dtype).to(device)
-            )
+            full_sd[param_name] = full_sd[param_name].to(sharded_meta_param.dtype)
         options = StateDictOptions(
             full_state_dict=True,
             broadcast_from_rank0=True,
@@ -303,9 +302,11 @@ def gather_cpu_state_dict(
     Returns:
         Dict[str, Any]: State dict on CPU
     """
+    cpu_state_dict = {}
+    sharded_sd = model.state_dict()
     has_nf4 = any(
         hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
-        for param in model.parameters()
+        for param in sharded_sd.values()
     )
     if has_nf4:
         cpu_state_dict = {}
