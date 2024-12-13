@@ -437,11 +437,22 @@
 <span class="kn">import</span> <span class="nn">gc</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">Future</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
 <span class="kn">from</span> <span class="nn">safetensors.torch</span> <span class="kn">import</span> <span class="n">save_file</span>
+<span class="kn">from</span> <span class="nn">torch.distributed.checkpoint</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">async_save</span><span class="p">,</span>
+    <span class="n">FileSystemReader</span><span class="p">,</span>
+    <span class="n">FileSystemWriter</span><span class="p">,</span>
+    <span class="n">load</span><span class="p">,</span>
+    <span class="n">save</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">training</span>
 <span class="kn">from</span> <span class="nn">torchtune.models</span> <span class="kn">import</span> <span class="n">convert_weights</span>
@@ -551,13 +562,16 @@
 <span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,</span>
-<span class="sd">            and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.</span>
+<span class="sd">            and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.</span>
 <span class="sd">            Default is None.</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,</span>
-<span class="sd">            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.</span>
+<span class="sd">            and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to</span>
-<span class="sd">            resume training from a previous run. Default is False</span>
+<span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
+<span class="sd">            the recipe state from a previous run. Default is False. This flag is deprecated. Please use the</span>
+<span class="sd">            should_load_recipe_state flag instead.</span>
+<span class="sd">        should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
+<span class="sd">            the recipe state from a previous run. Default is False</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If more than one checkpoint file is provided</span>
@@ -572,6 +586,7 @@
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
         <span class="c1"># Fail fast if ``checkpoint_files`` is invalid</span>
@@ -583,7 +598,14 @@
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">should_load_recipe_state</span>
+
+        <span class="k">if</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;*resume_from_checkpoint is deprecated. Please use the &#39;should_load_recipe_state&#39; instead&quot;</span>
+            <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -600,7 +622,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="n">get_adapter_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
             <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -608,7 +630,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">get_recipe_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">recipe_checkpoint</span><span class="o">=</span><span class="n">recipe_checkpoint</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># get ckpt paths</span>
@@ -616,16 +638,16 @@
             <span class="n">checkpoint_files</span><span class="o">=</span><span class="n">checkpoint_files</span><span class="p">,</span>
             <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
             <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># we currently accept only a single file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Resuming from checkpoint using:&quot;</span>
+                <span class="s2">&quot;Loading the recipe state using: &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">checkpoint_paths: </span><span class="si">{</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">recipe_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -636,7 +658,7 @@
 <span class="sd">        Load torchtune checkpoint from file. Currently only loading from a single file is supported.</span>
 
 <span class="sd">        The output state_dict has the following format, with keys other than &quot;model&quot; only present if</span>
-<span class="sd">        ``resume_from_checkpoint`` is True:</span>
+<span class="sd">        ``should_load_recipe_state`` is True:</span>
 
 <span class="sd">        &gt;&gt;&gt;     {</span>
 <span class="sd">        &gt;&gt;&gt;         &quot;model&quot;: {</span>
@@ -663,7 +685,7 @@
             <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
             <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">state_dict</span></div>
@@ -793,15 +815,18 @@
 <span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,</span>
-<span class="sd">            and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.</span>
+<span class="sd">            and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.</span>
 <span class="sd">            Default is None.</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,</span>
-<span class="sd">            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.</span>
+<span class="sd">            and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to</span>
-<span class="sd">            resume training from a previous run. Default is False</span>
+<span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
+<span class="sd">            the receipe state from a previous run. Default is False. This flag is deprecated. Please use</span>
+<span class="sd">            the should_load_recipe_state flag instead.</span>
 <span class="sd">        safe_serialization (bool): If True, the checkpointer will save the checkpoint file using `safetensors`.</span>
 <span class="sd">            Default is True.</span>
+<span class="sd">        should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
+<span class="sd">            the receipe state from a previous run. Default is False</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -814,9 +839,16 @@
         <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">safe_serialization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">should_load_recipe_state</span>
+        <span class="k">if</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;*resume_from_checkpoint is deprecated. Please use the &#39;should_load_recipe_state&#39; instead&quot;</span>
+            <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span> <span class="o">=</span> <span class="n">safe_serialization</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
@@ -857,7 +889,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="n">get_adapter_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
             <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -865,7 +897,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">get_recipe_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">recipe_checkpoint</span><span class="o">=</span><span class="n">recipe_checkpoint</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># get ckpt paths</span>
@@ -873,13 +905,13 @@
             <span class="n">checkpoint_files</span><span class="o">=</span><span class="n">checkpoint_files</span><span class="p">,</span>
             <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
             <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Resuming from checkpoint using:&quot;</span>
+                <span class="s2">&quot;Loading the recipe state using: &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">checkpoint_paths: </span><span class="si">{</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">recipe_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -902,6 +934,7 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the values in the input state_dict are not Tensors</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="c1"># merged state_dict contains keys and weights from all the checkpoint files</span>
@@ -1011,7 +1044,7 @@
             <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
             <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">converted_state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
 
@@ -1316,17 +1349,20 @@
 <span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,</span>
-<span class="sd">            and `resume_from_checkpoint=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.</span>
+<span class="sd">            and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.</span>
 <span class="sd">            Default is None.</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,</span>
-<span class="sd">            and `resume_from_checkpoint=True`, then look for recipe_state.pt in output_dir/recipe_state.</span>
+<span class="sd">            and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/recipe_state.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to</span>
-<span class="sd">            resume training from a previous run. Default is False</span>
+<span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
+<span class="sd">                the recipe state from a previous run. Default is False. This flag is deprecated. Please use the</span>
+<span class="sd">                should_load_recipe_state instead.</span>
+<span class="sd">        should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
+<span class="sd">                the recipe state from a previous run. Default is False</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``checkpoint_files`` is not a list of length 1</span>
-<span class="sd">        ValueError: If ``resume_from_checkpoint`` is True but ``recipe_checkpoint`` is None</span>
+<span class="sd">        ValueError: If ``should_load_recipe_state`` is True but ``recipe_checkpoint`` is None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -1338,6 +1374,7 @@
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 
         <span class="c1"># Fail fast if ``checkpoint_files`` is invalid</span>
@@ -1349,7 +1386,12 @@
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">should_load_recipe_state</span>
+        <span class="k">if</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;*resume_from_checkpoint is deprecated. Please use the &#39;should_load_recipe_state&#39; instead&quot;</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1366,7 +1408,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="n">get_adapter_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">adapter_checkpoint</span><span class="o">=</span><span class="n">adapter_checkpoint</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
             <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -1374,7 +1416,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">get_recipe_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
             <span class="n">recipe_checkpoint</span><span class="o">=</span><span class="n">recipe_checkpoint</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># get ckpt paths</span>
@@ -1382,16 +1424,16 @@
             <span class="n">checkpoint_files</span><span class="o">=</span><span class="n">checkpoint_files</span><span class="p">,</span>
             <span class="n">checkpoint_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-            <span class="n">resume_from_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">,</span>
+            <span class="n">should_load_recipe_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">,</span>
             <span class="n">has_adapter_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># we currently accept only a single file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Resuming from checkpoint using:&quot;</span>
+                <span class="s2">&quot;Loading the recipe state using: &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">checkpoint_paths: </span><span class="si">{</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">recipe_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -1429,7 +1471,7 @@
             <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span><span class="p">:</span>
             <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">state_dict</span></div>
@@ -1543,6 +1585,193 @@
                     <span class="s2">&quot;The full model checkpoint, including all weights and configurations, has been saved successfully.&quot;</span>
                     <span class="s2">&quot;You can now use this checkpoint for further training or inference.&quot;</span>
                 <span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">DistributedCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checkpointer which reads and writes checkpoints in the DistributedCheckpointing format.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
+<span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
+<span class="sd">        process_group (Optional[dist.ProcessGroup]): Optional process group to use</span>
+<span class="sd">            for distributed saving/loading. If None, the default process group will be used.</span>
+<span class="sd">            For checkpointing, gloo CPU-based backend is needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">process_group</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">dist</span><span class="o">.</span><span class="n">ProcessGroup</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span> <span class="o">=</span> <span class="s2">&quot;dist_epoch&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_file</span> <span class="o">=</span> <span class="s2">&quot;.metadata&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">get_world_size_and_rank</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">dist</span><span class="o">.</span><span class="n">ProcessGroup</span><span class="p">]</span> <span class="o">=</span> <span class="n">process_group</span>
+
+    <span class="k">def</span> <span class="nf">_get_latest_intermediate_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method iterates over the available intermediate distributed checkpoints and</span>
+<span class="sd">        finds the latest checkpoint to load.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: The fully qualified path of the checkpoint directory containing the latest and valid</span>
+<span class="sd">            intermediate checkpoint. A valid checkpoint needs to have the metadata file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">checkpoint_dir_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span><span class="si">}</span><span class="s2">_(</span><span class="se">\\</span><span class="s2">d+)&quot;</span><span class="p">)</span>
+        <span class="n">checkpoint_paths</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">name</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">checkpoint_dir_pattern</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_file</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">checkpoint_paths</span><span class="p">:</span>
+            <span class="n">latest_checkpoint_dir</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">checkpoint_paths</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">latest_checkpoint_dir</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load a Distributed checkpoint saved at the &lt;checkpoint_path&gt;</span>
+<span class="sd">        If no path is provided, latest intermediate checkpoint is loaded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">state_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;State dict must be provided to load a distributed checkpoint.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># If no checkpoint path is provided, load the latest intermediate checkpoint.</span>
+        <span class="k">if</span> <span class="n">checkpoint_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_latest_intermediate_checkpoint</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">checkpoint_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;No checkpoint path was provided.&quot;</span>
+                    <span class="s2">&quot;Also, No intermediate checkpoint was found in the output directory.&quot;</span>
+                    <span class="s2">&quot;Please ensure that a checkpoint exists to load.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">log_rank_zero</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Loading checkpoint from </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">load</span><span class="p">(</span>
+            <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">,</span>
+            <span class="n">storage_reader</span><span class="o">=</span><span class="n">FileSystemReader</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">),</span>
+            <span class="n">process_group</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">state_dict</span>
+
+    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">save_async</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save a distributed checkpoint to storage.</span>
+<span class="sd">        If ``save_async`` is True, the save happens asynchronously unblocking the GPUs sooner. This</span>
+<span class="sd">        should only be used for the intermediate checkpoints. Final checkpoint has to be a synchronous</span>
+<span class="sd">        one as the finetuning job can not terminate until the checkpoint gets persisted.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file</span>
+<span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
+<span class="sd">            save_async (bool): If True, save the checkpoint asynchronously</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">log_rank_zero</span><span class="p">(</span>
+            <span class="n">logger</span><span class="p">,</span>
+            <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;DistributedCheckpointer is saving a checkpoint for the epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span><span class="o">.</span><span class="n">done</span><span class="p">():</span>
+            <span class="c1"># Previous checkpoint needs to finish before saving the next one.</span>
+            <span class="n">wait_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Rank </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_rank</span><span class="si">}</span><span class="s2">: previous checkpoint has not finished. Checkpointing frequency is too high. Waiting...&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Rank </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_rank</span><span class="si">}</span><span class="s2">: waited </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">wait_start</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds for previous checkpoint to finish&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">cp_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">save_async</span><span class="p">:</span>
+
+            <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">:</span> <span class="n">Future</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">exception</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Rank </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_rank</span><span class="si">}</span><span class="s2">: Checkpoint is saved asynchronously to </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2"> successfully.&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Rank </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_rank</span><span class="si">}</span><span class="s2">: Checkpoint failed to save asynchronously to </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2"> &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;with the exception </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">exception</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span> <span class="o">=</span> <span class="n">async_save</span><span class="p">(</span>
+                <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">,</span>
+                <span class="n">storage_writer</span><span class="o">=</span><span class="n">FileSystemWriter</span><span class="p">(</span>
+                    <span class="n">checkpoint_path</span><span class="p">,</span>
+                    <span class="n">thread_count</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+                    <span class="n">single_file_per_rank</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">sync_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">process_group</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Rank </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_rank</span><span class="si">}</span><span class="s2">: Trainer was blocked for </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">cp_start</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds &quot;</span>
+                <span class="s2">&quot;for checkpointing to finish...&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span><span class="o">.</span><span class="n">add_done_callback</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">log_rank_zero</span><span class="p">(</span>
+                <span class="n">logger</span><span class="p">,</span>
+                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Saving model checkpoint synchronously to </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">save</span><span class="p">(</span>
+                <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">,</span>
+                <span class="n">storage_writer</span><span class="o">=</span><span class="n">FileSystemWriter</span><span class="p">(</span>
+                    <span class="n">checkpoint_path</span><span class="p">,</span>
+                    <span class="n">thread_count</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+                    <span class="n">single_file_per_rank</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">sync_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">process_group</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">log_rank_zero</span><span class="p">(</span>
+            <span class="n">logger</span><span class="p">,</span>
+            <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;The full model checkpoint, including all the weights and configurations, has been saved successfully &quot;</span>
+            <span class="s2">&quot;by the DistributedCheckpointer. You can now use this checkpoint for further training.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 </pre></div>
 
              </article>

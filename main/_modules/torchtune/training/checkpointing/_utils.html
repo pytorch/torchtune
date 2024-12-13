@@ -817,7 +817,7 @@
 <span class="k">def</span> <span class="nf">get_recipe_checkpoint_path</span><span class="p">(</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.</span>
@@ -826,13 +826,13 @@
 <span class="sd">    Args:</span>
 <span class="sd">        output_dir (Path): Directory containing the recipe checkpoint.</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.</span>
-<span class="sd">        resume_from_checkpoint (bool): Whether to resume from a checkpoint.</span>
+<span class="sd">        should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Optional[Path]: Path to the recipe checkpoint file if resume_from_checkpoint is True, otherwise None.</span>
+<span class="sd">        Optional[Path]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.</span>
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If resume_from_checkpoint is True and the recipe checkpoint file is missing.</span>
+<span class="sd">        ValueError: If should_load_recipe_state is True and the recipe checkpoint file is missing.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">should_load_recipe_state</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="kc">None</span>
@@ -846,7 +846,7 @@
     <span class="c1"># TODO: improve this msg</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">recipe_checkpoint_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;If resume_from_checkpoint is True, recipe_checkpoint file must be provided.&quot;</span>
+            <span class="s2">&quot;If should_load_recipe_state is True, recipe_checkpoint file must be provided.&quot;</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">)</span>
@@ -855,7 +855,7 @@
 <span class="k">def</span> <span class="nf">get_adapter_checkpoint_path</span><span class="p">(</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
@@ -865,13 +865,13 @@
 <span class="sd">    Args:</span>
 <span class="sd">        output_dir (Path): Directory containing the adapter checkpoint.</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.</span>
-<span class="sd">        resume_from_checkpoint (bool): Whether to resume from a checkpoint.</span>
+<span class="sd">        should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.</span>
 <span class="sd">        pattern (str): Regex pattern to match the epoch folder. Defaults to &quot;epoch_(\d+)&quot;.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">should_load_recipe_state</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="kc">None</span>
@@ -896,7 +896,7 @@
     <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
-    <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">has_adapter_checkpoint</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -914,7 +914,7 @@
 <span class="sd">            it is converted to a list of formatted checkpoint filenames.</span>
 <span class="sd">        checkpoint_dir (Union[str, Path]): Directory containing the checkpoint files.</span>
 <span class="sd">        output_dir (Union[str, Path]): Directory to use when resuming from a checkpoint.</span>
-<span class="sd">        resume_from_checkpoint (bool): Whether to resume from a checkpoint.</span>
+<span class="sd">        should_load_recipe_state (bool): Whether to resume from a checkpoint.</span>
 <span class="sd">        has_adapter_checkpoint (bool): Indicates if there is an adapter checkpoint.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        list[Path]: Sorted list of paths to the checkpoint files.</span>
@@ -922,13 +922,13 @@
 <span class="sd">        &gt;&gt;&gt; checkpoint_files = [&quot;model-00001-of-00002.safetensors&quot;, &quot;model-00002-of-00002.safetensors&quot;]</span>
 <span class="sd">        &gt;&gt;&gt; checkpoint_dir = &quot;/path/to/checkpoints&quot;</span>
 <span class="sd">        &gt;&gt;&gt; output_dir = &quot;/path/to/output&quot;</span>
-<span class="sd">        &gt;&gt;&gt; resume_from_checkpoint = True</span>
+<span class="sd">        &gt;&gt;&gt; should_load_recipe_state = True</span>
 <span class="sd">        &gt;&gt;&gt; has_adapter_checkpoint = False</span>
 <span class="sd">        &gt;&gt;&gt; paths = get_model_checkpoint_path(</span>
 <span class="sd">        ...     checkpoint_files,</span>
 <span class="sd">        ...     checkpoint_dir,</span>
 <span class="sd">        ...     output_dir,</span>
-<span class="sd">        ...     resume_from_checkpoint,</span>
+<span class="sd">        ...     should_load_recipe_state,</span>
 <span class="sd">        ...     has_adapter_checkpoint</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; print(paths)</span>
@@ -966,15 +966,15 @@
         <span class="p">)</span>
         <span class="n">checkpoint_files</span> <span class="o">=</span> <span class="n">formatted_checkpoint_files</span><span class="o">.</span><span class="n">build_checkpoint_filenames</span><span class="p">()</span>
 
-    <span class="c1"># Case 1: no resuming from ckpt</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
+    <span class="c1"># Case 1: not loading the recipe state</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">should_load_recipe_state</span><span class="p">:</span>
         <span class="n">input_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
 
-    <span class="c1"># Case 2: Resuming from ckpt, but its full finetuning (no adapter)</span>
+    <span class="c1"># Case 2: Loading the recipe state, but its full finetuning (no adapter)</span>
     <span class="k">elif</span> <span class="ow">not</span> <span class="n">has_adapter_checkpoint</span><span class="p">:</span>
         <span class="n">input_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
 
-    <span class="c1"># Case 3: Resuming from ckpt and has an adapter.</span>
+    <span class="c1"># Case 3: Loading the recipe state and has an adapter.</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># FIXME</span>
         <span class="c1"># TODO: if the model has lora + trained weights, e.g. embeddings,</span>
