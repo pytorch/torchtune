@@ -551,6 +551,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             self._model,
             self._is_rank_zero,
             device=self._device,
+            trainable_only=self._save_adapter_weights_only,
         )
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
