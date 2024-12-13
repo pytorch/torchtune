@@ -287,6 +287,7 @@ def gather_cpu_state_dict(
     model: "FSDPModule",  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
+    trainable_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
@@ -297,6 +298,7 @@ def gather_cpu_state_dict(
         model (FSDPModule): Model to generate fqn for cpu_state_dict
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
+        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
 
     Returns:
         Dict[str, Any]: State dict on CPU
@@ -331,6 +333,8 @@ def gather_cpu_state_dict(
             cpu_offload=True,
         )
         cpu_state_dict = get_model_state_dict(model=model, options=options)
+        if trainable_only:
+            cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
         if is_rank_zero:
             return cpu_state_dict
         else:
