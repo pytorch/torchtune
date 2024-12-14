@@ -377,22 +377,22 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         policy_checkpointer = config.instantiate(
             policy_cfg,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
 
         ref_policy_checkpointer = config.instantiate(
             ref_policy_cfg,
-            resume_from_checkpoint=False,
+            should_load_recipe_state=False,
         )
 
         value_checkpointer = config.instantiate(
             value_cfg,
-            resume_from_checkpoint=False,
+            should_load_recipe_state=False,
         )
 
         reward_checkpointer = config.instantiate(
             reward_cfg,
-            resume_from_checkpoint=False,
+            should_load_recipe_state=False,
         )
 
         return (
