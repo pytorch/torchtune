@@ -24,6 +24,7 @@ from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
     get_adapter_state_dict,
+    get_lora_module_names,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -447,6 +448,18 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             )
 
             ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+
+        adapter_config = {
+            "r": self._lora_rank,
+            "lora_alpha": self._lora_alpha,
+            "target_modules": get_lora_module_names(
+                self._lora_attn_modules,
+                self._apply_lora_to_mlp,
+                self._apply_lora_to_output,
+            ),
+            "peft_type": "LORA",
+        }
+        ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
         self._checkpointer.save_checkpoint(
             ckpt_dict,
