@@ -435,8 +435,17 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">request</span>
+
+<span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
+<span class="kn">from</span> <span class="nn">datasets.distributed</span> <span class="kn">import</span> <span class="n">split_dataset_by_node</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">default_collate</span><span class="p">,</span> <span class="n">DistributedSampler</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.data._torchdata</span> <span class="kn">import</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Loader</span><span class="p">,</span> <span class="n">requires_torchdata</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_world_size_and_rank</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="nb">type</span><span class="p">)</span>
 
@@ -572,6 +581,180 @@
             <span class="n">final_content_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">images</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)})</span>
 
     <span class="k">return</span> <span class="n">final_content_list</span></div>
+
+
+<span class="k">def</span> <span class="nf">chain</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Chain a list of functions together into a single function.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        *funcs (List[Callable]): list of functions to chain together</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: chained function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">chained_fn</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">funcs</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">return</span> <span class="n">chained_fn</span>
+
+
+<span class="nd">@requires_torchdata</span>
+<span class="k">def</span> <span class="nf">load_hf_dataset</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
+    <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">parallel_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;thread&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span><span class="p">,</span>
+    <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DatasetType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load a HuggingFace dataset (Map or Streaming) and apply a Transform to it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source (str): HuggingFace dataset source.</span>
+<span class="sd">        transform (Transform): Transform to apply to the samples of the dataset.</span>
+<span class="sd">        filter_fn (Optional[Callable]): Filter function to pass to HuggingFace dataset.</span>
+<span class="sd">        shuffle (bool): Whether to shuffle the dataset. Default is True. For streaming datasets, this is passed to</span>
+<span class="sd">            HuggingFace dataset as .shuffle(). For map datasets, a DistributedSampler is used.</span>
+<span class="sd">        seed (int): Seed for the random number generator in the case of Map style dataset shuffling. Default is 0.</span>
+<span class="sd">        num_workers (int): Number of workers to use for loading the dataset. Default is 0 (no parallelism). Setting this</span>
+<span class="sd">            greater than 0 will create `parallel_method` workers to perform transforms to the dataset.</span>
+<span class="sd">        parallel_method (Literal[&quot;process&quot;, &quot;thread&quot;]): Method to use for parallelism. Default is &quot;thread&quot;. No effect if</span>
+<span class="sd">            num_workers is 0.</span>
+<span class="sd">        streaming (bool): whether to load a streaming vs map-style dataset. Default False.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): Additional Keyword arguments to pass to HuggingFace dataset. See Hugging Face&#39;s</span>
+<span class="sd">            documentation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``torchdata.nodes`` iterator that can be passed directly to a Loader, or combined with other-datasets in a multi-dataset</span>
+<span class="sd">        sampler.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">torchdata.nodes</span> <span class="kn">import</span> <span class="n">IterableWrapper</span><span class="p">,</span> <span class="n">ParallelMapper</span><span class="p">,</span> <span class="n">SamplerWrapper</span>
+
+    <span class="k">if</span> <span class="s2">&quot;subset&quot;</span> <span class="ow">in</span> <span class="n">load_dataset_kwargs</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="s2">&quot;name&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">load_dataset_kwargs</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;found both &#39;subset&#39; and &#39;name&#39; found, you may only specify one, </span><span class="si">{</span><span class="n">load_dataset_kwargs</span><span class="si">=}</span><span class="s2">&quot;</span>
+        <span class="n">load_dataset_kwargs</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">load_dataset_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;subset&quot;</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">filter_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">filter_fn</span><span class="p">)</span>
+
+    <span class="n">world_size</span><span class="p">,</span> <span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">split_dataset_by_node</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="n">world_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">shuffle</span><span class="p">:</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">IterableWrapper</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sampler</span> <span class="o">=</span> <span class="n">DistributedSampler</span><span class="p">(</span>
+            <span class="n">dataset</span><span class="p">,</span>
+            <span class="n">num_replicas</span><span class="o">=</span><span class="n">world_size</span><span class="p">,</span>
+            <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span>
+            <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Note: SamplerWrapper will call set_epoch on the sampler (if defined),</span>
+        <span class="c1"># and auto-increment the epoch each time the node is reset.</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">SamplerWrapper</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+
+    <span class="n">node</span> <span class="o">=</span> <span class="n">ParallelMapper</span><span class="p">(</span>
+        <span class="n">node</span><span class="p">,</span> <span class="n">map_fn</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">parallel_method</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">node</span>
+
+
+<span class="nd">@requires_torchdata</span>
+<span class="k">def</span> <span class="nf">get_multi_dataset</span><span class="p">(</span>
+    <span class="n">datasets</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">],</span>
+    <span class="n">weights</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+    <span class="n">stop_criteria</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CYCLE_UNTIL_ALL_DATASETS_EXHASTED&quot;</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DatasetType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a dictionary of datasets and their corresponding weights, return a dataset that</span>
+<span class="sd">    samples from the given datasets according to the specified weights.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        datasets (Dict[str, DatasetType]): dictionary of datasets</span>
+<span class="sd">        weights (Dict[str, float]): dictionary of weights for each dataset. If not</span>
+<span class="sd">        stop_criteria (str): stop criteria for the sampler. Default &quot;CYCLE_UNTIL_ALL_DATASETS_EXHASTED&quot;.</span>
+<span class="sd">            See also: torchdata.nodes.StopCriteria</span>
+<span class="sd">        seed (int): seed for the random number generator. Default 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``torchdata.nodes`` iterator which can be passed to Loader, or further composed with other Nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">torchdata.nodes</span> <span class="kn">import</span> <span class="n">MultiNodeWeightedSampler</span>
+
+    <span class="k">return</span> <span class="n">MultiNodeWeightedSampler</span><span class="p">(</span>
+        <span class="n">source_nodes</span><span class="o">=</span><span class="n">datasets</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+        <span class="n">stop_criteria</span><span class="o">=</span><span class="n">stop_criteria</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@requires_torchdata</span>
+<span class="k">def</span> <span class="nf">get_dataloader</span><span class="p">(</span>
+    <span class="n">dataset</span><span class="p">:</span> <span class="n">DatasetType</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">collate_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">drop_last</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">parallel_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;thread&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span><span class="p">,</span>
+    <span class="n">prefetch_factor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">pin_memory</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Loader</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This will configure TorchData Nodes to approximate torch.utils.data.DataLoader.</span>
+<span class="sd">    Given a dataset, apply model_transform (eg tokenization), batching, collation,</span>
+<span class="sd">    memory pinning, and pre-fetching.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dataset (DatasetType): dataset to load. May be a MultiNodeWeightedSampler</span>
+<span class="sd">        model_transform (Transform): model transform to apply to the samples of the dataset</span>
+<span class="sd">        batch_size (int): batch size</span>
+<span class="sd">        collate_fn (Optional[Callable[[Any], Any]]): collate function to apply to the samples of the dataset. If None, use</span>
+<span class="sd">            torch.utils.data.default_collate. Default None.</span>
+<span class="sd">        drop_last (bool): whether to drop the last batch. Default is True.</span>
+<span class="sd">        num_workers (int): number of workers to use for loading the dataset. Default is 0 (no parallelism</span>
+<span class="sd">        parallel_method (Literal[&quot;process&quot;, &quot;thread&quot;]): method to use for parallelism. Default is &quot;thread&quot;.</span>
+<span class="sd">        prefetch_factor (Optional[int]): number of batches to prefetch. Default is 4.</span>
+<span class="sd">        pin_memory (bool): whether to pin memory. Default is False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A ``torchdata.nodes`` Loader, an Iterable that returns batches.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">torchdata.nodes</span> <span class="kn">import</span> <span class="n">Batcher</span><span class="p">,</span> <span class="n">ParallelMapper</span><span class="p">,</span> <span class="n">PinMemory</span><span class="p">,</span> <span class="n">Prefetcher</span>
+
+    <span class="k">if</span> <span class="n">collate_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">collate_fn</span> <span class="o">=</span> <span class="n">default_collate</span>
+
+    <span class="n">node</span> <span class="o">=</span> <span class="n">ParallelMapper</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">,</span> <span class="n">map_fn</span><span class="o">=</span><span class="n">model_transform</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">parallel_method</span>
+    <span class="p">)</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="n">Batcher</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">)</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="n">ParallelMapper</span><span class="p">(</span>
+        <span class="n">node</span><span class="p">,</span> <span class="n">map_fn</span><span class="o">=</span><span class="n">collate_fn</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">parallel_method</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">pin_memory</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">PinMemory</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">prefetch_factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">Prefetcher</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">prefetch_factor</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Loader</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 </pre></div>
 
              </article>

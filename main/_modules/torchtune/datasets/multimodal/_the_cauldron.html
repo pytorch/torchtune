@@ -437,7 +437,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span><span class="p">,</span> <span class="n">SFTTransform</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
 
 
@@ -665,6 +665,50 @@
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ds</span></div>
+
+
+<span class="k">def</span> <span class="nf">the_cauldron_transform</span><span class="p">(</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Transform</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">texts_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;texts&quot;</span><span class="p">,</span>
+    <span class="n">images_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span>
+    <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SFTTransform</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Support for family of image + text datasets similar to</span>
+<span class="sd">    `The Cauldron &lt;https://huggingface.co/datasets/HuggingFaceM4/the_cauldron&gt;`_</span>
+<span class="sd">    from Hugging Face Datasets.</span>
+
+<span class="sd">    This function instantiates a :class:`~torchtune.datasets.SFTTransform` only (not the dataset).</span>
+<span class="sd">    See :func:`~torchtune.datasets.the_cauldron_dataset` for more details.</span>
+
+<span class="sd">    The model transform is expected to be a callable that applies pre-processing steps specific</span>
+<span class="sd">    to a model. For multimodal datasets, this is expected to be at minimum a tokenizer and</span>
+<span class="sd">    an image transform. The tokenizer will convert text sequences into token IDs after the dataset</span>
+<span class="sd">    is converted to a list of :class:`~torchtune.data.Message`. The image transform will load the</span>
+<span class="sd">    image and process it in accordance to the model&#39;s requirements.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model_transform (Optional[Transform]): model-specific transform class that takes in a sample dict and applies custom</span>
+<span class="sd">            transforms on the keys. It should consist of at minimum two components: text tokenization (called</span>
+<span class="sd">            on the &quot;messages&quot; field) and image transform (called on the &quot;images&quot; field). The keys returned by</span>
+<span class="sd">            the model transform should be aligned with the expected inputs into the model. Default is None.</span>
+<span class="sd">        texts_col (str): name of the column containing the text data. Default is &quot;texts&quot;.</span>
+<span class="sd">        images_col (str): name of the column containing the image data. Default is &quot;images&quot;.</span>
+<span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
+<span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
+<span class="sd">            messages already present in the dataset. Default is None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        :class:`~torchtune.datasets.SFTTransform` - Callable that transforms samples into The Cauldron format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;texts&quot;</span><span class="p">:</span> <span class="n">texts_col</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="n">images_col</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">SFTTransform</span><span class="p">(</span>
+        <span class="n">message_transform</span><span class="o">=</span><span class="n">TheCauldronToMessages</span><span class="p">(</span>
+            <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
+            <span class="n">new_system_prompt</span><span class="o">=</span><span class="n">new_system_prompt</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">model_transform</span><span class="o">=</span><span class="n">model_transform</span><span class="p">,</span>
+    <span class="p">)</span>
 </pre></div>
 
              </article>
