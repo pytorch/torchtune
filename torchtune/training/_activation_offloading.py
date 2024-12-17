@@ -133,10 +133,9 @@ class OffloadActivations(saved_tensors_hooks):
         def pack_tensor(activation: torch.Tensor) -> int:
             # activations are passed in during forward pass - from here we take over and return a unique id
             if self.is_first_forward_call:
-                if len(self.tracker) == 0:
-                    raise AssertionError(
-                        "backward pass should have cleared tracker of all tensors"
-                    )
+                assert (
+                    len(self.tracker) == 0
+                ), "backward pass should have cleared tracker of all tensors"
 
                 # set training phase trackers
                 self.is_first_forward_call = False
