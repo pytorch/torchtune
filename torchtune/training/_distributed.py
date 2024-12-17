@@ -376,7 +376,11 @@ def load_from_full_optimizer_state_dict(
     Converting full optimizer state to sharded state dict
     and loading it into optimizer
     """
-    options = StateDictOptions(full_state_dict=True, broadcast_from_rank0=True)
+    options = StateDictOptions(
+        full_state_dict=True,
+        broadcast_from_rank0=True,
+        cpu_offload=device is torch.device("cpu"),
+    )
     set_optimizer_state_dict(
         model=model, optimizers=opt, optim_state_dict=full_sd, options=options
     )
