@@ -7,11 +7,12 @@
 from typing import Any, Callable, Dict, Mapping, Optional
 
 import numpy as np
-
 from datasets import load_dataset
 from torch.utils.data import Dataset
+
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
+
 from torchtune.modules.transforms import Transform
 
 
@@ -110,6 +111,11 @@ class SFTDataset(Dataset):
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
 
+        self._prepare_sample = SFTTransform(
+            message_transform=self._message_transform,
+            model_transform=self._model_transform,
+        )
+
     def __len__(self):
         return len(self._data)
 
@@ -117,29 +123,49 @@ class SFTDataset(Dataset):
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
-        transformed_sample = self._message_transform(sample)
-        if "messages" in transformed_sample:
-            validate_messages(transformed_sample["messages"])
 
-        tokenized_dict = self._model_transform(transformed_sample)
-
-        if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
-            keys_str = ", ".join(tokenized_dict.keys())
-            error_message = (
-                "model_transform returned the following keys: "
-                f"{keys_str}. Must return 'tokens' and 'mask' as keys."
+class SFTTransform(Transform):
+    def __init__(
+        self,
+        message_transform: Optional[Transform] = None,
+        model_transform: Optional[Transform] = None,
+    ):
+        if message_transform is None and model_transform is None:
+            raise ValueError(
+                "At least one of message_transform or model_transform must be provided."
             )
-            raise ValueError(error_message)
+        self._message_transform = message_transform
+        self._model_transform = model_transform
 
-        # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
-        tokenized_dict["labels"] = list(
-            np.where(
-                tokenized_dict["mask"],
-                CROSS_ENTROPY_IGNORE_IDX,
-                tokenized_dict["tokens"],
+    def __call__(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
+        if self._message_transform is not None:
+            transformed_sample = self._message_transform(sample)
+            if "messages" in transformed_sample:
+                validate_messages(transformed_sample["messages"])
+        else:
+            transformed_sample = sample
+
+        if self._model_transform is not None:
+            tokenized_dict = self._model_transform(transformed_sample)
+
+            if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
+                keys_str = ", ".join(tokenized_dict.keys())
+                error_message = (
+                    "model_transform returned the following keys: "
+                    f"{keys_str}. Must return 'tokens' and 'mask' as keys."
+                )
+                raise ValueError(error_message)
+
+            # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
+            tokenized_dict["labels"] = list(
+                np.where(
+                    tokenized_dict["mask"],
+                    CROSS_ENTROPY_IGNORE_IDX,
+                    tokenized_dict["tokens"],
+                )
             )
-        )
-        assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
+            assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
+        else:
+            tokenized_dict = transformed_sample
 
         return tokenized_dict
