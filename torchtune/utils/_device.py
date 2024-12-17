@@ -180,7 +180,7 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
         device (torch.device): torch device to move the tensor's too
 
     Raises:
-        AttributeError: if batch dict contains anything other than tensors
+        ValueError: if batch dict contains anything other than ``torch.Tensors``s.
     """
     for k, v in batch.items():
         if isinstance(v, dict):

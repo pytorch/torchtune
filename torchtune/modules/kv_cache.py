@@ -84,9 +84,13 @@ class KVCache(nn.Module):
             Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
 
         Raises:
-            AssertionError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.
             ValueError: if the batch size of the new key (or value) tensor is greater than the batch size
                 used during cache setup.
+
+        Note:
+            This function will raise an ``AssertionError`` if the sequence length of ``k_val``
+                is longer than the maximum cache sequence length.
+
         """
         bsz, _, seq_len, _ = k_val.shape
         if bsz > self.k_cache.shape[0]:

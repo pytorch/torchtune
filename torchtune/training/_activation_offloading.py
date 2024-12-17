@@ -55,7 +55,6 @@ class OffloadActivations(saved_tensors_hooks):
 
     Raises:
         ValueError: if max_fwd_stash_size is not at least 1.
-        RuntimeError: if use_streams but torch installation is earlier than torch-2.5.0.dev20240907
 
     Example:
         >>> with OffloadActivations():
@@ -134,9 +133,10 @@ class OffloadActivations(saved_tensors_hooks):
         def pack_tensor(activation: torch.Tensor) -> int:
             # activations are passed in during forward pass - from here we take over and return a unique id
             if self.is_first_forward_call:
-                assert (
-                    len(self.tracker) == 0
-                ), "backward pass should have cleared tracker of all tensors"
+                if len(self.tracker) == 0:
+                    raise AssertionError(
+                        "backward pass should have cleared tracker of all tensors"
+                    )
 
                 # set training phase trackers
                 self.is_first_forward_call = False
