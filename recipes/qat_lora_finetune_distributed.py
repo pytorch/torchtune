@@ -869,6 +869,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # This will ensure that the logged loss matches what we're optimizing
                     torch.distributed.all_reduce(running_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
+                    # We multiply by world_size to undo FSDP2 gradient normalization.
                     training.scale_grads(self._model, world_size / num_tokens)
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
