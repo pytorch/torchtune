@@ -273,12 +273,13 @@ Congrats for getting this far! You have loaded your weights, trained your model,
 the outputs. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
 There are 4 types of folders:
 
-1) recipe_state: Save recipe_state.pt with the information necessary to restart the last intermediate epoch;
-2) logs: Defined in your config in metric_logger;
-3) epoch_{}: Contains the model weights and the index.json used by HF to load the model;
-4) base_model: The files in the original checkpoint_dir, with the exception of model weights;
+1) **recipe_state**: Save recipe_state.pt with the information necessary to restart the last intermediate epoch;
+2) **logs**: Defined in your config in metric_logger;
+3) **epoch_{}**: Contains the model weights and the index.json used by HF to load the model;
+4) **base_model**: The files in the original checkpoint_dir, with the exception of model weights;
 
-We keep the folder base_model so that it is easier for the user to copy their checkpoints from /epoch_{} to /base_model,
+
+We keep a copy of the base_model folder so that it is easier for the user to copy their checkpoints from /epoch_{} to /base_model,
 and have this folder ready for inference or being uploaded to a model hub.
 
     .. code-block::
@@ -366,11 +367,12 @@ The output state dicts have the following formats:
 
 To restart from a previous checkpoint file, you'll need to **update** the following fields in your configs:
 
-resume_from_checkpoint: Set it to True
-checkpoint_files: change the path to epoch_{YOUR_EPOCH}/updated_file_name.
+**resume_from_checkpoint**: Set it to True;
+**checkpoint_files**: change the path to epoch_{YOUR_EPOCH}/updated_file_name;
 
-Notice that we do not change our checkpoint_dir or output_dir. When **resuming** from checkpoint for a full model,
-we will always look for checkpoint_files at the output_dir.
+
+Notice that we do not change our checkpoint_dir or output_dir. When resuming from checkpoint for a full model,
+we will always look for checkpoint_files in the *output_dir*.
 
 .. code-block:: yaml
 
@@ -398,7 +400,7 @@ Additionally, by setting the option "save_adapter_weights_only" to True when sav
 you can choose to save **only** the adapter weights. This reduces the amount of storage and time needed
 to save the checkpoint.
 
-The config **changes** for this scenario looks something like this:
+The config **updates** for resuming from a LoRA adapter looks something like this:
 
 
 .. code-block:: yaml
