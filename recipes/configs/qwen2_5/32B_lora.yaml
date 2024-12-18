@@ -37,7 +37,7 @@ checkpointer:
   checkpoint_dir: /tmp/Qwen2_5-32B-Instruct
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: 00017
+    max_filename: "00017"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: QWEN2

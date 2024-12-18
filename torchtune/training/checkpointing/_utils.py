@@ -531,7 +531,7 @@ def get_model_checkpoint_path(
     # e.g.
     # checkpoint_files:
     #   filename_format: model-{}-of-{}.safetensors
-    #   max_filename: 00191
+    #   max_filename: "00191"
     # becomes checkpoint_files = [model-00001-of-00191.safetensors, model-00002-of-00191,..]
     if not isinstance(checkpoint_files, List):
         # TODO: this can be a function instead of a class

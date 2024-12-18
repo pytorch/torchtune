@@ -41,7 +41,7 @@ checkpointer:
   checkpoint_dir: /tmp/Meta-Llama-3-70B-Instruct
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: 00030
+    max_filename: "00030"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3
