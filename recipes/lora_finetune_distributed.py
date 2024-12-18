@@ -759,7 +759,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
@@ -825,7 +824,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # This will ensure that the logged loss matches what we're optimizing
                     torch.distributed.all_reduce(running_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
-                    training.scale_grads(self._model, 1 / num_tokens)
+                    training.scale_grads(self._model, world_size / num_tokens)
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
