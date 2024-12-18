@@ -273,12 +273,13 @@ Congrats for getting this far! You have loaded your weights, trained your model,
 the outputs. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
 There are 4 types of folders:
 
-1) recipe_state state: Where we save the information necessary to restart a run from the last epoch;
-2) logs: Defined in your config in metric_logger.log_dir;
-3) epoch_{}: Contains the model wieghts and the index used by HF when loading the model;
-4) base_model: The original checkpoint_dir files, with the exception of model weights. We copy these files here
-so that it is easier for our user to copy their checkpoints from /epoch_{} to /base_model, and have this folder
-ready for inference or being uploaded to a model hub.
+1) recipe_state: Save recipe_state.pt with the information necessary to restart the last intermediate epoch;
+2) logs: Defined in your config in metric_logger;
+3) epoch_{}: Contains the model weights and the index.json used by HF to load the model;
+4) base_model: The files in the original checkpoint_dir, with the exception of model weights;
+
+We keep the folder base_model so that it is easier for the user to copy their checkpoints from /epoch_{} to /base_model,
+and have this folder ready for inference or being uploaded to a model hub.
 
     >>>> tree -a /tmp/torchtune/llama3_2_3B/full_single_device
     /tmp/torchtune/llama3_2_3B/full_single_device
@@ -361,13 +362,13 @@ The output state dicts have the following formats:
                 ...
             }
 
-To restart from a previous checkpoint file, you'll need to change the following fields in your config:
+To restart from a previous checkpoint file, you'll need to **update** the following fields in your configs:
 
 resume_from_checkpoint: Set it to True
-checkpoint_files: add the epoch_{YOUR_EPOCH} and update the file name.
+checkpoint_files: change the path to epoch_{YOUR_EPOCH}/updated_file_name.
 
-Notice that we do not change our checkpoint_dir or output_dir. When resuming from checkpoint for a full model,
-we will always look at '{output_dir}/{checkpoint_file_path}'.
+Notice that we do not change our checkpoint_dir or output_dir. When **resuming** from checkpoint for a full model,
+we will always look for checkpoint_files at the output_dir.
 
 .. code-block:: yaml
 
@@ -408,6 +409,9 @@ The config **changes** for this scenario looks something like this:
 
     # set to True if restarting training
     resume_from_checkpoint: True
+
+    # set to True to save only the adapter weights
+    save_adapter_weights_only: False # it does not influence resuming_from_checkpointing
 
 |
 
