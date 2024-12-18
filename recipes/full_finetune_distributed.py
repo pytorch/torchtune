@@ -765,7 +765,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if self._optimizer_in_bwd:
                     torch.distributed.all_reduce(num_tokens)
                     torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss / num_tokens
+
+                    # We multiply by world_size to undo FSDP2 gradient normalization.
+                    current_loss = current_loss * (world_size / num_tokens)
 
                 current_loss.backward()
 
@@ -777,6 +779,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
+                        # We multiply by world_size to undo FSDP2 gradient normalization.
                         training.scale_grads(self._model, world_size / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
