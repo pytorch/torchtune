@@ -196,9 +196,17 @@ class TestFormattedCheckpointFiles:
             "model_0012_of_0012.pt",
         ]
 
-    def test_invalid_to_dict(self):
+    def test_invalid_from_dict_no_filename_format(self):
         invalid_dict = {"bad_key": "model_{}_of_{}.pt", "max_filename": "0005"}
         with pytest.raises(ValueError, match="Must pass 'filename_format'"):
+            _ = FormattedCheckpointFiles.from_dict(invalid_dict)
+
+    def test_invalid_from_dict_int_max_filename(self):
+        # the 0o0005 is an octal number. we use this insane value in this test
+        # as YAML treats numbers with a leading 0 as an octal number, so this
+        # may be a good example of `from_dict` being called with an invalid config
+        invalid_dict = {"filename_format": "model_{}_of_{}.pt", "max_filename": 0o00025}
+        with pytest.raises(ValueError, match="`max_filename` must be a string"):
             _ = FormattedCheckpointFiles.from_dict(invalid_dict)
 
     def test_invalid_filename_format(self):

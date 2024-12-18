@@ -3,8 +3,8 @@
 # This config assumes that you've run the following command before launching:
 #   tune download meta-llama/Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Llama-3.2-11B-Vision-Instruct --ignore-patterns "original/consolidated*"
 #
-# It also assumes that you've downloaded the EleutherAI Eval Harness (v0.4.5):
-#   pip install lm_eval==0.4.5
+# It also assumes that you've downloaded the EleutherAI Eval Harness (v0.4.5 or higher):
+#   pip install lm_eval
 #
 # To launch, run the following command from root torchtune directory:
 #    tune run eleuther_eval --config llama3_2_vision/11B_evaluation
