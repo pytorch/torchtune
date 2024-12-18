@@ -73,7 +73,7 @@ embedding with dim of ``3072``.
 
 This is the most popular format within the Hugging Face Model Hub and is
 the default format in every torchtune config. This is also the format you get when you download the
-llama2 model from the `Llama-3.2-3B-Instruct <https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct>`_ repo.
+llama3.2 model from the `Llama-3.2-3B-Instruct <https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct>`_ repo.
 
 The first big difference is that the state_dict is split across two ``.safetensors`` files. To correctly
 load the checkpoint, you'll need to piece these files together. Let's inspect one of the files.
@@ -241,7 +241,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
         # this should match the output_dir above
         checkpoint_dir: <checkpoint_dir>
 
-        # checkpoint files. For the llama2-7b model we have
+        # checkpoint files. For the llama3.2 3B model we have
         # a single .pth file
         checkpoint_files: [consolidated.00.pth]
 
