@@ -572,6 +572,10 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Must pass &#39;filename_format&#39; and &#39;max_filename&#39; keys to generate checkpoint filenames&quot;</span>
             <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;max_filename&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;`max_filename` must be a string, but found </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;max_filename&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">filename_format</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;filename_format&quot;</span><span class="p">],</span>
             <span class="n">max_filename</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;max_filename&quot;</span><span class="p">],</span>
@@ -957,7 +961,7 @@
     <span class="c1"># e.g.</span>
     <span class="c1"># checkpoint_files:</span>
     <span class="c1">#   filename_format: model-{}-of-{}.safetensors</span>
-    <span class="c1">#   max_filename: 00191</span>
+    <span class="c1">#   max_filename: &quot;00191&quot;</span>
     <span class="c1"># becomes checkpoint_files = [model-00001-of-00191.safetensors, model-00002-of-00191,..]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
         <span class="c1"># TODO: this can be a function instead of a class</span>
