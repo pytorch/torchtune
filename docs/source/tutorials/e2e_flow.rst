@@ -49,7 +49,7 @@ by torchtune `here <https://github.com/pytorch/torchtune/blob/main/README.md#int
 |
 
 Download Llama-3.2-3B-Instruct
-------------------
+------------------------------
 
 For more information on checkpoint formats and how these are handled in torchtune, take a look at
 this tutorial on :ref:`checkpoints <understand_checkpointer>`.
