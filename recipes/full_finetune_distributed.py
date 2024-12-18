@@ -25,9 +25,12 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import PROFILER_KEY, DummyProfiler
-from torchtune.training.activations import \
-    apply_selective_activation_checkpointing
+from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.training.checkpointing._checkpoint_client import (
+    CheckpointClient,
+    TrainingProgress,
+)
 from torchtune.training.lr_schedulers import get_lr
 
 log = utils.get_logger("DEBUG")
@@ -134,14 +137,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = training.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self._checkpoint_client = CheckpointClient(cfg)
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
@@ -189,21 +194,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
-        """
-        self._checkpointer = config.instantiate(
-            cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -256,7 +246,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        # Load the base model
+        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
@@ -277,10 +268,35 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
+                if training.OPT_KEY in checkpoint_dict
                 else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                try:
+                    checkpoint_dict = (
+                        self._checkpoint_client.load_distributed_checkpoint(
+                            self._model,
+                            (
+                                self._optim_ckpt_wrapper
+                                if self._optimizer_in_bwd
+                                else self._optimizer
+                            ),
+                        )
+                    )
+                except Exception as e:
+                    log.warning(
+                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
+                    )
+
+            # Update the recipe state from the checkpoint state dict.
+            self._update_recipe_state(checkpoint_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -548,6 +564,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             log,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
+
         if self._is_rank_zero:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
@@ -620,7 +637,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -662,101 +679,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(
-        self,
-        epoch: int,
-        step: Optional[int] = None,
-    ) -> None:
-        """
-        Checkpoint the state of the recipe. The constructed checkpoint state dict
-        contains the following information:
-        - Model weights with key training.MODEL_KEY
-        - Relevant recipe state if training is not complete
-
-        Checkpointer will save the model weights and recipe state in
-        different checkpoint files. To correctly resume training from an intermediate checkpoint,
-        the model weights and recipe state must be provided.
-        """
-        # final dict passed onto the checkpointer
-        checkpoint_dict = {}
-
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
-
-        utils.log_rank_zero(
-            log,
-            "Saving checkpoint. This may take some time. Retrieving full model state dict...",
-        )
-        start = time.perf_counter()
-
-        # To prevent GPU memory from spiking during checkpoint save,
-        # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
-            self._is_rank_zero,
-            device=self._device,
-        )
-
-        utils.log_rank_zero(
-            log,
-            f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
-        )
-
-        if intermediate_checkpoint:
-            start = time.perf_counter()
-            utils.log_rank_zero(log, "Getting optimizer state dict...")
-            if not self._optimizer_in_bwd:
-                opt_state_dict = training.get_full_optimizer_state_dict(
-                    self._optimizer,
-                    self._is_rank_zero,
-                    device=self._device,
-                )
-            else:
-                opt_state_dict = {}
-                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
-                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
-                    )
-            utils.log_rank_zero(
-                log,
-                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
-            )
-        else:
-            opt_state_dict = None
-
-        # Now that we have the model and opt state dict, create the actual checkpoint dict
-        # to be sent to the checkpointer and ultimately written to file
-
-        if self._is_rank_zero:
-            start = time.perf_counter()
-            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
-
-            # if training is in-progress, checkpoint the optimizer state and recipe state
-            # as well.
-            if intermediate_checkpoint:
-                checkpoint_dict.update(
-                    {
-                        training.OPT_KEY: opt_state_dict,
-                        training.SEED_KEY: self.seed,
-                        training.EPOCHS_KEY: self.epochs_run,
-                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    }
-                )
-            
-            ckpt_path = f"epoch_{epoch}"
-            if step is not None:
-                ckpt_path = f"{ckpt_path}_step_{step}"
-            self._checkpointer._output_dir = Path(os.path.join(self._output_dir, ckpt_path))
-
-            self._checkpointer.save_checkpoint(
-                checkpoint_dict,
-                epoch=epoch,
-                intermediate_checkpoint=intermediate_checkpoint,
-            )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
-
-        torch.distributed.barrier()
-
     def train(self) -> None:
         """
         The core training loop.
@@ -764,7 +686,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -932,7 +854,21 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         self.save_checkpoint(epoch=curr_epoch, step=int((idx + 1) / self._gradient_accumulation_steps))
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch, step=None)
+            self._checkpoint_client.save_checkpoint(
+                model=self._model,
+                optimizer=(
+                    self._optimizer
+                    if not self._optimizer_in_bwd
+                    else self._optim_ckpt_wrapper
+                ),
+                training_progress=TrainingProgress(
+                    seed=self.seed,
+                    epochs_run=self.epochs_run,
+                    total_epochs=self.total_epochs,
+                    max_steps_per_epoch=self.max_steps_per_epoch,
+                ),
+                epoch=curr_epoch,
+            )
 
         self._profiler.stop()
 

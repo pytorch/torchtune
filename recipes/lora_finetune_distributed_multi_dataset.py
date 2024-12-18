@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
@@ -18,75 +18,38 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+
+from torchdata.nodes import Loader, StopCriteria
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
-from torchtune.datasets import ConcatDataset
-from torchtune.modules.common_utils import slice_str_to_array
-
-from torchtune.modules.early_exit_loss import early_exit_loss, EarlyExitCurriculum
-from torchtune.modules.layer_dropout import prepare_layer_dropout
+from torchtune.data._utils import get_dataloader, get_multi_dataset, load_hf_dataset
+from torchtune.datasets._sft import SFTTransform
+from torchtune.modules.peft import (
+    DoRALinear,
+    get_adapter_params,
+    get_adapter_state_dict,
+    get_lora_module_names,
+    get_merged_lora_ckpt,
+    LoRALinear,
+    set_trainable_params,
+    validate_missing_and_unexpected_for_lora,
+)
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.training.activations import apply_selective_activation_checkpointing
-from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
 
-class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
+class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
-    Early exit and layer dropout full finetuning to make the model more robust to early exit and skipping
-    intermediate layers for dense transformer-based LLMs such as Llama2. This recipe supports distributed
-    training and can be run on a single node (1 to 8 GPUs).
+    Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
+    distributed training and can be run on a single node (1 to 8 GPUs).
 
     Features:
-        - Early Exit Loss. This makes the model more robust to exiting early by applying the outputs of intermediate
-            layers on the model's language model head (a.k.a. unembedding operation) to obtain outputs of earlier
-            layers, then obtain the losses at such earlier layers. Then the loss of the model during training
-            would be a weighted average of the losses at different layers. The different arguments you can
-            configure are:
-                - ``early_exit_loss.layers`` is a string, whose format mimics indexing in numpy arrays (e.g., `:`
-                depicts all layers, `0:10:3` depicts layers 0, 3, 6, 9, and `1,5,11` depicts layers 1,5,11), to
-                represent which layers to apply early exit loss at,
-                - ``early_exit_loss.scale_fn`` and ``early_exit_loss.scale`` determine how we calculate the
-                weights of losses at different  layers when calculating total loss, and
-                - ``early_exit_loss.curriculum`` depicts how the early exit loss layers change across training
-                iterations.
-            See ``torchtune/modules/early_exit_loss.py` for more details of each argument.
-            To reproduce experiments of different papers that use early exit loss:
-                - LayerSkip (https://arxiv.org/abs/2404.16710) for finetuning on TOPv2: set
-                ``early_exit_loss.scale=1.0,
-                    early_exit_loss.curriculum=torchtune.modules.early_exit_loss.GradualEarlyExitCurriculum
-                    early_exit_loss.scale_fn=torchtune.modules.early_exit_loss.linear_l_loss_scale``,
-                - LITE (https://arxiv.org/abs/2310.18581) for finetuning Llama2 7B on Alpaca you can set
-                ``early_exit_loss.layers=8,12,16,20,24,28
-                    early_exit_loss.scale_fn=torchtune.modules.early_exit_loss.uniform_loss_scale``.
-
-        - Layer Dropout. (a.k.a. Stochastic Depth) This drops samples stochastically for each layer during training.
-            "Dropping" a sample at a layer in this context means a sample will pass through the layer without modification.
-            The different arguments you can configure are:
-                - ``layer_dropout.prob``: is the (maximum) probability of a sample being dropped at each layer.
-                - ``layer_dropout.layers``: is a string, whose format mimics indexing in numpy arrays
-                    (same as ``early_exit_loss.layers``), that determines which layers will have layer dropout applied.
-                - ``layer_dropout.layers_scale``: determines how probability changes across layers from
-                    probability 0 at first layer, to probability ``layer_dropout.prob`` at last layer.
-                    You can choose from ``one`` (all layers have ``layer_dropout.prob``), ``linear``,
-                    ``exp``, ``log``, ``sqrt``.
-                - ``disable_on_eval``: if True, will only apply layer dropout during training. If False, will
-                    apply to both training and evaluation.
-            To reproduce results of different papers that use layer dropout:
-                - LayerDrop (https://arxiv.org/abs/1909.11556) that applies dropout on every other layer, set
-                    ``layer_dropout.prob=0.2 layer_dropout.layers=1::2``.
-                - Progressive Layer Dropping (https://arxiv.org/abs/2010.13369) that increases dropout linearly
-                    across layers, set ``layer_dropout.prob=0.5 layer_dropout.layers_scale=linear``.
-                    The paper also implements a curriculum for layer drop probability which is not yet implemented.
-                - LayerSkip (https://arxiv.org/abs/2404.16710) for finetuning on TOPv2: (in addition to early exit loss
-                    arguments above) set ``layer_dropout.prob=0.2 layer_dropout.scale=exp``.
-
+        - TorchData. Map and Streaming HuggingFace datasets, and multi-dataset mixing.
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
             is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
             done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
@@ -108,9 +71,9 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             back during the backward pass. As always, there is a tradeoff--these savings in memory can
             come at the cost of training performance and CPU resources. To recover some runtime cost,
             we've added an option to enable offloading on a different stream to permit overlapping with
-            the computation. This option is currently only available on PyTorch 2.5 or later and will
-            be enabled by default if an acceptable torch version is found. Activation offloading can be
-            used in conjunction with activation checkpointing.
+            the computation. This option is currently only available on PyTorch 2.5.0 or later and will be
+            enabled by default if an acceptable torch version is found. Activation offloading can be used in
+            conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -132,14 +95,18 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             checkpointing.
 
         - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-            training. Optimizer state and recipe state (seed, total_epochs, number of epochs run etc) are
-            only saved at the end of a given epoch and used in case of resuming training.
+            training. Currently we checkpoint both the adapter weights (trainable params only) and the
+            complete merged weights (adapter weights added back to the base model). For more details
+            please take a look at our LoRA tutorial
+            (https://pytorch.org/torchtune/main/tutorials/lora_finetune.html).
 
-            Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
+            Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
+            only saved at the end of a given epoch and used in case of resuming training. Resuming
+            training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
             currently not supported.
 
             For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
@@ -155,6 +122,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
+        ValueError: If world_size is 1
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
@@ -170,6 +138,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
+        _, rank = training.get_world_size_and_rank()
+
+        self._is_rank_zero = rank == 0
+
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -181,29 +153,18 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
-        _, rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
-
-        # Training cfg
-        self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+        # These attributes constitute the recipe state and are updated by ``load_checkpoint``
+        # when ``resume_from_checkpoint`` is ``True``
+        self.seed = training.set_seed(seed=cfg.seed)
+        self.epochs_run = 0
+        self.total_epochs = cfg.epochs
+        self.max_steps_per_epoch = cfg.max_steps_per_epoch
+        self.global_step = 0
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
-        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
-        if self._optimizer_in_bwd:
-            if self._clip_grad_norm is not None:
-                raise RuntimeError(
-                    "Gradient clipping is not supported with optimizer in bwd."
-                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
-                )
-            if self._gradient_accumulation_steps > 1:
-                raise RuntimeError(
-                    "Gradient accumulation is not supported with optimizer in bwd."
-                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
-                )
+        self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
+        self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -231,41 +192,28 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
-        # These are public properties which are updated by the checkpoint loader
-        # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(seed=cfg.seed)
-        self.epochs_run = 0
-        self.total_epochs = cfg.epochs
-        self.max_steps_per_epoch = cfg.max_steps_per_epoch
-        self.global_step = 0
-
-        # Early Exit Properties
-        cfg_early_exit_loss = cfg.get("early_exit_loss", None)
-        if cfg_early_exit_loss:
-            self._do_early_exit_loss = True
-            self._early_exit_loss_scale = cfg_early_exit_loss.get("scale", 1.0)
-            self._early_exit_loss_scale_type = _get_component_from_path(
-                cfg_early_exit_loss.get(
-                    "scale_fn", "torchtune.modules.early_exit_loss.sum_l_loss_scale"
-                )
-            )
-        else:
-            self._do_early_exit_loss = False
-            self._early_exit_loss_scale = None
-            self._early_exit_loss_scale_type = None
-
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
+        Extract the checkpoint state from file and validate. This includes the
+        base model weights. If resume_from_checkpoint is True, this also includes
+        the adapter weights and recipe state
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
+        # When resuming from checkpoint for LoRA, the recipe expects the adapter weights
+        # and recipe state to be present. The keys should match up with what ``save_checkpoint``
+        # used to create these intermediate checkpoints
         if self._resume_from_checkpoint:
+            if training.ADAPTER_KEY not in checkpoint_dict:
+                raise ValueError(
+                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
+                )
+            # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
+            # no need to check here
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
@@ -311,8 +259,8 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
 
     def setup(self, cfg: DictConfig) -> None:
         """
-        Setup the recipe. This includes training state (if resume_from_checkpoint is True),
-        model, tokenizer, loss, optimizer, sampler, and dataloader.
+        Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
+        model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
@@ -321,24 +269,25 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-
         self._compile = cfg.get("compile", False)
+
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
-            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            ac_mode=cfg.get("ac_mode", None),
-            ac_option=cfg.get("ac_option", None),
+            base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
+            lora_weights_state_dict=(
+                checkpoint_dict[training.ADAPTER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
                 if self._resume_from_checkpoint
@@ -355,36 +304,33 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
-        # setup after both of these are initialized
-        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
-            cfg_dataset=cfg.dataset,
-            shuffle=cfg.shuffle,
+        # setup after all of these are setup
+        self._dataloader = self._setup_data(
+            cfg_dataloader=cfg.dataloader,
+            cfg_datasets=cfg.datasets,
             batch_size=cfg.batch_size,
-            collate_fn=collate_name,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
-        #
+
         # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader, the max_steps_per_epoch param set by the user and the
-        # gradient_accumulation_steps param. This value is used for logging and tracking
-        # training state. The computation should happen after the dataloader has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
-            self._steps_per_epoch = self.max_steps_per_epoch
+        # by the dataloader and the max_steps_per_epoch param set by the user and is used
+        # for logging and tracking training state. This should be computed after the dataloader
+        # has been setup
+        self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
+        # Learning rate scheduler can only be set up after number of steps
+        # has been computed
+        self._lr_scheduler = self._setup_lr_scheduler(
+            cfg_lr_scheduler=cfg.lr_scheduler,
+            num_training_steps=self.total_epochs * self._steps_per_epoch,
+            last_epoch=self.global_step - 1,
+        )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
@@ -394,23 +340,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         self.ignore_labels_cache = torch.full(
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
-
-        # Setup early exit loss
-        (
-            self._do_output_hidden_states,
-            self._early_exit_loss_curriculum,
-        ) = self._setup_early_exit_loss(cfg.get("early_exit_loss", None))
-
-        # Layer Dropout Setup
-        cfg_layer_dropout = cfg.get("layer_dropout", None)
-        if cfg_layer_dropout:
-            prepare_layer_dropout(
-                self._model.layers,
-                prob_max=cfg_layer_dropout.get("prob", 0.0),
-                prob_layer_scale=cfg_layer_dropout.get("layers_scale", "uniform"),
-                layers_str=cfg_layer_dropout.get("layers", ":"),
-                disable_on_eval=cfg_layer_dropout.get("disable_on_eval", True),
-            )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -468,9 +397,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
+        utils.log_rank_zero(
+            log, f" Profiler config after instantiation: {profiler_cfg}"
+        )
         if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
-
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
             if profiler_cfg["enabled"]:
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
@@ -486,10 +416,9 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
+        base_model_state_dict: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
-        ac_mode: Optional[str] = None,
-        ac_option: Optional[int] = None,
+        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -497,35 +426,30 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
               the right dtype
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
+           c. We register (pre-)forward hooks with ``fully_shard`` instead of wrapping `nn.Module`
         """
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        self._lora_rank = cfg_model.lora_rank
+        self._lora_alpha = cfg_model.lora_alpha
+        self._lora_attn_modules = list(cfg_model.lora_attn_modules)
+        self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
+        self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
+
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
+        set_trainable_params(model, get_adapter_params(model))
+
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        # We currently have two versions of activation checkpointing in this recipe
-        # for testing and BC purposes. ``enable_activation_checkpointing`` controls
-        # the older version of AC and this behavior is unchanged
-        # ac_mode and ac_option together control selective AC. This is only enabled
-        # when these are set AND ``enable_activation_checkpointing`` is set to False
-        # We'll clean this up as soon as testing of AC is complete
-        if (not enable_activation_checkpointing) and (ac_mode is not None):
-            apply_selective_activation_checkpointing(
-                model,
-                ac_mode,
-                ac_option,
-            )
-
-        # original activation checkpointing (full) - flip the condition above
-        if enable_activation_checkpointing and ac_mode is None:
+        if enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
@@ -544,35 +468,67 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             reshard_after_forward=reshard_after_forward,
         )
 
+        if lora_weights_state_dict:
+            lora_missing, lora_unexpected = training.load_from_full_model_state_dict(
+                model,
+                lora_weights_state_dict,
+                self._device,
+                self._is_rank_zero,
+                cpu_offload=fsdp_cpu_offload,
+            )
+        else:
+            lora_missing, lora_unexpected = None, None
+
+        # Initialize LoRA params and RoPE buffers
         with training.set_default_dtype(self._dtype), self._device:
+            lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
+                if (
+                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
+                ) and not lora_weights_state_dict:
+                    # lora may not be covered in state dict
+                    # if finetune for the 1st time
+                    m.lora_a.to_empty(device=lora_device)
+                    m.lora_b.to_empty(device=lora_device)
+                    m.to_empty(device=lora_device)
+                    m.initialize_parameters()
                 # RoPE is not covered in state dict
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
-        # This method will convert the full model state dict into a sharded state
-        # dict and load into the model
-        training.load_from_full_model_state_dict(
+        base_missing, base_unexpected = training.load_from_full_model_state_dict(
             model,
-            model_state_dict,
+            base_model_state_dict,
             self._device,
             self._is_rank_zero,
-            strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
+        for m in model.modules():
+            if hasattr(m, "initialize_dora_magnitude"):
+                m.initialize_dora_magnitude()
+        validate_missing_and_unexpected_for_lora(
+            lora_attn_modules=self._lora_attn_modules,
+            apply_lora_to_mlp=self._apply_lora_to_mlp,
+            apply_lora_to_output=self._apply_lora_to_output,
+            base_missing=base_missing,
+            base_unexpected=base_unexpected,
+            lora_missing=lora_missing,
+            lora_unexpected=lora_unexpected,
+        )
+        # Ensure no params and buffers are on meta device
+        training.validate_no_params_on_meta_device(model)
 
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
 
-        # Ensure no params and buffers are on meta device
-        training.validate_no_params_on_meta_device(model)
-
+        # log
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -582,152 +538,127 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+    ) -> Optimizer:
+        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+        if opt_state_dict:
+            training.load_from_full_optimizer_state_dict(
+                optimizer,
+                opt_state_dict,
+                self._device,
+            )
+
+        utils.log_rank_zero(log, "Optimizer is initialized.")
+        return optimizer
+
+    def _setup_lr_scheduler(
         self,
-        cfg_optimizer: DictConfig,
-        optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Optimizer]:
-        if optimizer_in_bwd:
-            # Maintain a dict of optims for every parameter.
-            optim_dict = {
-                param: config.instantiate(cfg_optimizer, [param])
-                for param in self._model.parameters()
-            }
-
-            # Register optimizer step hooks on the model to run optimizer in backward.
-            training.register_optim_in_bwd_hooks(
-                model=self._model, optim_dict=optim_dict
-            )
-            # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
-                model=self._model, optim_dict=optim_dict
-            )
-            # Load optimizer states for each param. If optimizer states are being restored in an optimizer in
-            # backward run, these need to have been saved with the same setting. Cannot restore from runs that
-            # did not use optimizer in backward.
-            if opt_state_dict is not None:
-                for param in opt_state_dict.keys():
-                    try:
-                        training.load_from_full_optimizer_state_dict(
-                            self._optim_ckpt_wrapper.state_dict()[param],
-                            opt_state_dict[param],
-                            self._device,
-                        )
-                    except BaseException as e:
-                        raise RuntimeError(
-                            "Failed loading in-backward optimizer checkpoints."
-                            "Please make sure run being restored from was using in-backward optimizer."
-                        ) from e
-            if self._is_rank_zero:
-                log.info("In-backward optimizers are set up.")
-            return None
-        else:
-            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-            if opt_state_dict:
-                training.load_from_full_optimizer_state_dict(
-                    optimizer,
-                    opt_state_dict,
-                    self._device,
-                )
-
-            if self._is_rank_zero:
-                log.info("Optimizer is initialized.")
-            return optimizer
+        cfg_lr_scheduler: DictConfig,
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optimizer:
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            self._optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
+        return lr_scheduler
 
     def _setup_data(
         self,
-        cfg_dataset: DictConfig,
-        shuffle: bool,
+        cfg_dataloader: DictConfig,
+        cfg_datasets: ListConfig,
         batch_size: int,
-        collate_fn: str,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> Loader:
         """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
+        Torchdata related setup happens here. Currently this recipe supports
+        both Map and Streaming datasets (from HuggingFace datasets), and mixing multiple
+        datasets (can be mix of Map and Streaming).
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        # Get global settings
+        shuffle = cfg_dataloader.shuffle
+        parallel_method = cfg_dataloader.get("parallel_method", "thread")
+        packed = cfg_dataloader.get("packed", False)
+        streaming = cfg_dataloader.get("streaming", False)
+        num_workers = cfg_dataloader.get("num_workers", 0)
+        pin_memory = cfg_dataloader.get("pin_memory", True)
+        collate_fn = cfg_dataloader.collate_fn
+        prefetch_factor = cfg_dataloader.get("prefetch_factor", 6)
 
-        if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
-            ds = ConcatDataset(datasets=datasets)
-            packed = False
-        else:
-            ds = config.instantiate(cfg_dataset, self._tokenizer)
-            packed = cfg_dataset.get("packed", False)
+        if packed:
+            raise ValueError("Packing not yet supported")
+
+        # Multi-Dataset Stop Criteria
+        stop_criteria = cfg_dataloader.get(
+            "stop_criteria", StopCriteria.CYCLE_UNTIL_ALL_DATASETS_EXHAUSTED
+        )
+        weights, datasets = {}, {}
+        for idx, cfg_dataset in enumerate(cfg_datasets):
+            dataset_name = cfg_dataset.pop("name", None)
+            if dataset_name is None:
+                dataset_name = cfg_dataset.get("subset", None)
+            key = f"{idx}" + (f"_{dataset_name}" if dataset_name else "")
+
+            utils.log_rank_zero(log, f"Instantiating dataset {cfg_dataset}")
+            # Handle dataset-specific overrides, fallback to cfg_dataloader settings
+            ds_streaming = cfg_dataset.pop("streaming", streaming)
+            ds_shuffle = cfg_dataset.pop("shuffle", shuffle)
+            ds_parallel_method = cfg_dataset.pop("parallel_method", parallel_method)
+            ds_num_workers = cfg_dataset.pop("num_workers", num_workers)
+
+            # Instantiate dataset transform
+            assert "transform" in cfg_dataset, "transform must be specified in dataset"
+            transform = config.instantiate(cfg_dataset.pop("transform"))
+
+            weights[key] = float(cfg_dataset.pop("weight"))
+            datasets[key] = load_hf_dataset(
+                **cfg_dataset,
+                transform=transform,
+                streaming=ds_streaming,
+                shuffle=ds_shuffle,
+                parallel_method=ds_parallel_method,
+                num_workers=ds_num_workers,
+            )
 
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
             raise RuntimeError("left_pad_sequence collator is only for inference.")
-        collate_fn = _get_component_from_path(collate_fn)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
-        )
-        dataloader = DataLoader(
-            dataset=ds,
-            batch_size=batch_size,
-            sampler=sampler,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
-            collate_fn=(
-                partial(
-                    collate_fn,
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                )
-                if not packed
-                else padded_collate_packed
-            ),
-        )
-
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
-
-        return sampler, dataloader
-
-    def _setup_early_exit_loss(
-        self,
-        cfg_early_exit_loss: DictConfig,
-    ) -> Tuple[List[bool], EarlyExitCurriculum]:
-        """
-        All early exit loss related setup happens here.
-        """
-        do_output_hidden_states = None
-        early_exit_loss_curriculum = None
-
-        if cfg_early_exit_loss:
-            assert (
-                hasattr(self._loss_fn, "reduction")
-                and self._loss_fn.reduction == "mean"
-            ), "Currently early exit loss is only implemented for loss functions that apply a mean reduction."
-
-            do_output_hidden_states = slice_str_to_array(
-                cfg_early_exit_loss.get("layers", ":"), len(self._model.layers)
+        collate_fn = (
+            partial(
+                _get_component_from_path(collate_fn),
+                padding_idx=self._tokenizer.pad_id,
+                ignore_idx=self._loss_fn.ignore_index,
             )
-            train_last_layer = cfg_early_exit_loss.get("include_last_layer", True)
-            verbose = cfg_early_exit_loss.get("verbose", False)
+            if not packed
+            else padded_collate_packed
+        )
+        if len(datasets) > 1:
+            dataset = get_multi_dataset(
+                datasets=datasets,
+                weights=weights,
+                stop_criteria=stop_criteria,
+            )
+        else:
+            dataset = next(iter(datasets.values()))
 
-            early_exit_loss_curriculum = cfg_early_exit_loss.get("curriculum", None)
-            if early_exit_loss_curriculum:
-                early_exit_loss_curriculum = _get_component_from_path(
-                    early_exit_loss_curriculum
-                )(
-                    do_output_hidden_states=do_output_hidden_states,
-                    max_steps=self.total_epochs * self._steps_per_epoch,
-                    train_last_layer=train_last_layer,
-                    last_step=self.global_step,
-                    verbose=verbose,
-                )
-                do_output_hidden_states = early_exit_loss_curriculum.get()
-            else:
-                if train_last_layer:
-                    do_output_hidden_states[len(self._model.layers) - 1] = True
+        loader = get_dataloader(
+            dataset=dataset,
+            model_transform=SFTTransform(model_transform=self._tokenizer),
+            batch_size=batch_size,
+            collate_fn=collate_fn,
+            drop_last=True,
+            num_workers=num_workers,
+            parallel_method=parallel_method,
+            prefetch_factor=prefetch_factor,
+            pin_memory=pin_memory,
+        )
 
-        return do_output_hidden_states, early_exit_loss_curriculum
+        utils.log_rank_zero(log, "TorchData nodes are initialized")
+
+        return loader
 
     def save_checkpoint(
         self,
@@ -736,66 +667,76 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
         contains the following information:
-        - Model weights with key training.MODEL_KEY
+        - Merged weights with key MODEL_KEY
+        - Adapter weights with key ADAPTER_KEY
         - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
-        Checkpointer will save the model weights and recipe state in
-        different checkpoint files. To correctly resume training from an intermediate checkpoint,
-        the model weights and recipe state must be provided.
+        Checkpointer will save the merged weights, adapter weights and recipe state in
+        different checkpoint files. To correctly resume from training, the adapter weights
+        and recipe state must be provided along with the base model weights.
         """
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
-        if self._is_rank_zero:
-            log.info(
-                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
-            )
-            start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "Saving checkpoint. This may take some time. Retrieving full model state dict...",
+        )
+        start = time.perf_counter()
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
+        state_dict = self._model.state_dict()
+        if self._save_adapter_weights_only:
+            state_dict = get_adapter_state_dict(state_dict, device=None)
+
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            state_dict,
             self._is_rank_zero,
             device=self._device,
         )
-
-        if self._is_rank_zero:
-            log.info(
-                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
-            )
+        utils.log_rank_zero(
+            log,
+            f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
+        )
 
         if intermediate_checkpoint:
-            start = time.perf_counter()
-            if self._is_rank_zero:
-                log.info("Getting optimizer state dict...")
-            if not self._optimizer_in_bwd:
-                opt_state_dict = training.get_full_optimizer_state_dict(
-                    self._optimizer,
-                    self._is_rank_zero,
-                    device=self._device,
-                )
-            else:
-                opt_state_dict = {}
-                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
-                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
-                    )
-            if self._is_rank_zero:
-                log.info(
-                    f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
-                )
+            utils.log_rank_zero(log, "Retrieving optimizer state dict...")
+            opt_state_dict = training.get_full_optimizer_state_dict(
+                self._optimizer,
+                self._is_rank_zero,
+                device=self._device,
+            )
+            utils.log_rank_zero(
+                log,
+                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
+            )
         else:
             opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
-
         if self._is_rank_zero:
             start = time.perf_counter()
-            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
+
+            if self._save_adapter_weights_only:
+                adapter_state_dict = cpu_state_dict
+            else:
+                # Filter out the adapter keys and weights from the model state dict. These will
+                # be saved separately
+                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
+
+                # merge the adapter weights and base weights to create the model checkpoint
+                merged_state_dict = get_merged_lora_ckpt(
+                    cpu_state_dict,
+                    rank=self._lora_rank,
+                    alpha=self._lora_alpha,
+                )
+                checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
@@ -810,10 +751,22 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     }
                 )
 
+            adapter_config = {
+                "r": self._lora_rank,
+                "lora_alpha": self._lora_alpha,
+                "target_modules": get_lora_module_names(
+                    self._lora_attn_modules,
+                    self._apply_lora_to_mlp,
+                    self._apply_lora_to_output,
+                ),
+                "peft_type": "LORA",
+            }
+            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
+                adapter_only=self._save_adapter_weights_only,
             )
             log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
 
@@ -829,32 +782,16 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         world_size, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
-        if not self._optimizer_in_bwd:
-            self._optimizer.zero_grad()
-        else:
-            for opt in self._optim_ckpt_wrapper.optim_map.values():
-                opt.zero_grad()
+        self._optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
         running_loss = 0
         num_tokens = 0
 
-        # Initialize output hidden states
-        if self._do_output_hidden_states is not None:
-            self._model.output_hidden_states = [
-                i
-                for i in range(len(self._do_output_hidden_states))
-                if self._do_output_hidden_states[i]
-            ]
-
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
             pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
@@ -886,15 +823,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 labels = batch.pop("labels")
 
                 with self.activations_handling_ctx:
-                    outputs = self._model(**batch)
-                    if self._model.output_hidden_states:
-                        logits = outputs.pop(-1)
-                        hidden_states = {
-                            i: h
-                            for i, h in zip(self._model.output_hidden_states, outputs)
-                        }
-                    else:
-                        logits = outputs
+                    logits = self._model(**batch)
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -909,51 +838,30 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                if self._model.output_hidden_states:
-                    current_loss = (
-                        early_exit_loss(
-                            self._model,
-                            hidden_states,
-                            labels,
-                            self._loss_fn,
-                            self._early_exit_loss_scale,
-                            self._early_exit_loss_scale_type,
-                        )
-                        * current_num_tokens
-                    )
-                else:
-                    current_loss = self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = self._loss_fn(logits, labels) * current_num_tokens
 
                 # free logits otherwise it peaks backward memory
                 del logits
 
                 running_loss += current_loss
-
-                # For optimizer in backward, we need to normalize before calling backward
-                # This case and gradient accumulation are mutually exclusive
-                if self._optimizer_in_bwd:
-                    torch.distributed.all_reduce(num_tokens)
-                    torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss / num_tokens
-
                 current_loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    if not self._optimizer_in_bwd:
-                        # Get total number of tokens across all ranks to normalize gradients
-                        torch.distributed.all_reduce(num_tokens)
-                        # This will ensure that the logged loss matches what we're optimizing
-                        torch.distributed.all_reduce(running_loss)
-                        # Manually scale the gradients from unnormalized loss by total # of tokens
-                        training.scale_grads(self._model, 1 / num_tokens)
-                        if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
-                            )
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
+                    # Get total number of tokens across all ranks to normalize gradients
+                    torch.distributed.all_reduce(num_tokens)
+                    # This will ensure that the logged loss matches what we're optimizing
+                    torch.distributed.all_reduce(running_loss)
+                    # Manually scale the gradients from unnormalized loss by total # of tokens
+                    training.scale_grads(self._model, 1 / num_tokens)
+                    if self._clip_grad_norm is not None:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=float(self._clip_grad_norm),
+                        )
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
@@ -972,13 +880,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": get_lr(
-                                (
-                                    self._optimizer
-                                    if not self._optimizer_in_bwd
-                                    else self._optim_ckpt_wrapper
-                                ),
-                            ),
+                            "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens
                             / (time_per_step * world_size),
                         }
@@ -986,6 +888,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
+
                         if self._clip_grad_norm is not None:
                             log_dict.update({"grad_norm": grad_norm})
                         self._metric_logger.log_dict(
@@ -997,18 +900,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
-
-                    # Update Early Exit Layers/Scales
-                    if self._early_exit_loss_curriculum:
-                        self._early_exit_loss_curriculum.step()
-                        self._do_output_hidden_states = (
-                            self._early_exit_loss_curriculum.get()
-                        )
-                        self._model.output_hidden_states = [
-                            i
-                            for i in range(len(self._do_output_hidden_states))
-                            if self._do_output_hidden_states[i]
-                        ]
 
                     # Stop tracking CUDA memory now that active steps are complete
                     if (
@@ -1027,6 +918,8 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
+            if self._is_rank_zero:
+                log.info(f"End of epoch {self.epochs_run}!")
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
@@ -1052,15 +945,15 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
 
-    config.log_config(recipe_name="EarlyExitFinetuneRecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
 
-    recipe = EarlyExitFinetuneRecipeDistributed(cfg=cfg)
+    recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

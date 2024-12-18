@@ -454,7 +454,7 @@ def lora_llama3_2_vision_encoder(
             **lora_options,
         )
     else:
-        projection_head = lora_llama3_2_vision_projection_head(**projection_options)
+        projection_head = llama3_2_vision_projection_head(**projection_options)
 
     encoder = Llama3VisionEncoder(clip=clip, projection_head=projection_head)
 
@@ -549,22 +549,37 @@ def lora_llama3_2_vision_decoder(
     for idx in range(1, num_layers + 1):
 
         # Self attention layers for text decoder
-        self_attn = lora_llama3_attention(
-            lora_modules=lora_attn_modules,
-            pos_embeddings=rope,
-            head_dim=head_dim,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            max_seq_len=max_seq_len,
-            attn_dropout=0.0,
-            lora_rank=lora_rank,
-            lora_alpha=lora_alpha,
-            lora_dropout=lora_dropout,
-            use_dora=use_dora,
-            quantize_base=quantize_base,
-        )
-        if apply_lora_to_mlp:
+        if decoder_lora:
+            self_attn = lora_llama3_attention(
+                lora_modules=lora_attn_modules,
+                pos_embeddings=rope,
+                head_dim=head_dim,
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                num_kv_heads=num_kv_heads,
+                max_seq_len=max_seq_len,
+                attn_dropout=0.0,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+                quantize_base=quantize_base,
+            )
+        else:
+            self_attn = MultiHeadAttention(
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                num_kv_heads=num_kv_heads,
+                head_dim=head_dim,
+                q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+                k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+                pos_embeddings=rope,
+                max_seq_len=max_seq_len,
+                attn_dropout=0.0,
+            )
+        if apply_lora_to_mlp and decoder_lora:
             mlp = lora_llama3_mlp(
                 dim=embed_dim,
                 hidden_dim=hidden_dim,
@@ -588,25 +603,43 @@ def lora_llama3_2_vision_decoder(
         # cross attention layers, mixing text and vision,
         # placed every `fusion_interval` layers
         if idx % fusion_interval == 0:
-            attn = lora_llama3_attention(
-                lora_modules=lora_attn_modules,
-                pos_embeddings=None,
-                head_dim=head_dim,
-                embed_dim=embed_dim,
-                num_heads=num_heads,
-                num_kv_heads=num_kv_heads,
-                q_norm=RMSNorm(dim=head_dim, eps=1e-05),
-                k_norm=RMSNorm(dim=head_dim, eps=1e-05),
-                max_seq_len=encoder_max_seq_len,
-                is_causal=False,
-                attn_dropout=0.0,
-                lora_rank=lora_rank,
-                lora_alpha=lora_alpha,
-                lora_dropout=lora_dropout,
-                use_dora=use_dora,
-                quantize_base=quantize_base,
-            )
-            if apply_lora_to_mlp:
+            if fusion_lora:
+                attn = lora_llama3_attention(
+                    lora_modules=lora_attn_modules,
+                    pos_embeddings=None,
+                    head_dim=head_dim,
+                    embed_dim=embed_dim,
+                    num_heads=num_heads,
+                    num_kv_heads=num_kv_heads,
+                    q_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    k_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    max_seq_len=encoder_max_seq_len,
+                    is_causal=False,
+                    attn_dropout=0.0,
+                    lora_rank=lora_rank,
+                    lora_alpha=lora_alpha,
+                    lora_dropout=lora_dropout,
+                    use_dora=use_dora,
+                    quantize_base=quantize_base,
+                )
+            else:
+                attn = MultiHeadAttention(
+                    embed_dim=embed_dim,
+                    num_heads=num_heads,
+                    num_kv_heads=num_kv_heads,
+                    head_dim=head_dim,
+                    q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+                    k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                    v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                    output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+                    q_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    k_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    pos_embeddings=None,
+                    max_seq_len=encoder_max_seq_len,
+                    is_causal=False,
+                    attn_dropout=0.0,
+                )
+            if apply_lora_to_mlp and fusion_lora:
                 mlp = lora_llama3_mlp(
                     dim=embed_dim,
                     hidden_dim=hidden_dim,
@@ -645,7 +678,7 @@ def lora_llama3_2_vision_decoder(
             alpha=lora_alpha,
             dropout=lora_dropout,
         )
-        if apply_lora_to_output
+        if apply_lora_to_output and decoder_lora
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
 

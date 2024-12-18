@@ -6,7 +6,7 @@
 
 import os
 from enum import Enum
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 
@@ -19,6 +19,19 @@ if _SUPPORTS_FLEX_ATTENTION:
     from torch.nn.attention.flex_attention import BlockMask
 else:
     BlockMask = torch.Tensor
+
+
+def get_world_size_and_rank() -> Tuple[int, int]:
+    """Function that gets the current world size (aka total number
+    of ranks) and rank number of the current process in the default process group.
+
+    Returns:
+        Tuple[int, int]: world size, rank
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return torch.distributed.get_world_size(), torch.distributed.get_rank()
+    else:
+        return 1, 0
 
 
 def is_torch_npu_available() -> bool:

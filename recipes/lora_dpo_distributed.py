@@ -27,7 +27,6 @@ from torchtune.modules.peft import (
     get_adapter_params,
     get_adapter_state_dict,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -132,7 +131,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = training.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
 
         self._is_rank_zero = rank == 0
 
@@ -189,7 +188,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -400,8 +399,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 ) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
-                    m.lora_a.to_empty(device=lora_device)
-                    m.lora_b.to_empty(device=lora_device)
+                    m.to_empty(device=lora_device)
                     m.initialize_parameters()
                 # RoPE is not covered in state dict
                 if hasattr(m, "rope_init"):
@@ -420,7 +418,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 is_dora = True
                 m.initialize_dora_magnitude()
         if is_dora:
-            load_dora_magnitudes(model)
+            for m in model.modules():
+                if hasattr(m, "initialize_dora_magnitude"):
+                    m.initialize_dora_magnitude()
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
@@ -492,7 +492,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -642,7 +642,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = training.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()

@@ -408,6 +408,17 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="lora_finetune_distributed_multi_dataset",
+        file_path="lora_finetune_distributed_multi_dataset.py",
+        configs=[
+            Config(
+                name="llama3_2_vision/11B_lora_multi_dataset",
+                file_path="llama3_2_vision/11B_lora_multi_dataset.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="generate",
         file_path="generate.py",
         configs=[

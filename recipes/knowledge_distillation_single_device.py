@@ -26,7 +26,6 @@ from torchtune.modules.peft import (
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -148,7 +147,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -421,7 +420,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # This is for any adapters that need to be initialized after base weights
         # have been loaded (e.g. DoRA).
         if self._is_dora:
-            load_dora_magnitudes(model)
+            for m in model.modules():
+                if hasattr(m, "initialize_dora_magnitude"):
+                    m.initialize_dora_magnitude()
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = model.load_state_dict(
                 lora_weights_state_dict, strict=False

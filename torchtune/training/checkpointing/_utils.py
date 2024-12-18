@@ -32,8 +32,8 @@ ADAPTER_CONFIG = "adapter_config"
 # https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32
 ADAPTER_CONFIG_FNAME = "adapter_config"
 ADAPTER_MODEL_FNAME = "adapter_model"
-SAFETENSOR_INDEX_FNAME = "model.safetensors.index"
-TORCH_INDEX_FNAME = "pytorch_model.bin.index"
+SAFETENSOR_INDEX_FNAME = "model.safetensors.index.json"
+TORCH_INDEX_FNAME = "pytorch_model.bin.index.json"
 
 # standardize checkpointing
 SHARD_FNAME = "ft-model-{cpt_idx}-of-{num_shards}"
@@ -141,6 +141,10 @@ class FormattedCheckpointFiles:
         if "filename_format" not in d or "max_filename" not in d:
             raise ValueError(
                 "Must pass 'filename_format' and 'max_filename' keys to generate checkpoint filenames"
+            )
+        if not isinstance(d["max_filename"], str):
+            raise ValueError(
+                f"`max_filename` must be a string, but found {type(d['max_filename'])} instead."
             )
         return cls(
             filename_format=d["filename_format"],
@@ -387,7 +391,7 @@ def copy_files(
 def get_recipe_checkpoint_path(
     output_dir: Path,
     recipe_checkpoint: Optional[str] = None,
-    resume_from_checkpoint: bool = False,
+    should_load_recipe_state: bool = False,
 ) -> Optional[Path]:
     """
     If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
@@ -396,13 +400,13 @@ def get_recipe_checkpoint_path(
     Args:
         output_dir (Path): Directory containing the recipe checkpoint.
         recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
-        resume_from_checkpoint (bool): Whether to resume from a checkpoint.
+        should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.
     Returns:
-        Optional[Path]: Path to the recipe checkpoint file if resume_from_checkpoint is True, otherwise None.
+        Optional[Path]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.
     Raises:
-        ValueError: If resume_from_checkpoint is True and the recipe checkpoint file is missing.
+        ValueError: If should_load_recipe_state is True and the recipe checkpoint file is missing.
     """
-    if not resume_from_checkpoint:
+    if not should_load_recipe_state:
         return None
 
     recipe_checkpoint_path = None
@@ -416,7 +420,7 @@ def get_recipe_checkpoint_path(
     # TODO: improve this msg
     if not recipe_checkpoint_path or not os.path.exists(recipe_checkpoint_path):
         raise ValueError(
-            "If resume_from_checkpoint is True, recipe_checkpoint file must be provided."
+            "If should_load_recipe_state is True, recipe_checkpoint file must be provided."
         )
 
     return Path(recipe_checkpoint_path)
@@ -425,7 +429,7 @@ def get_recipe_checkpoint_path(
 def get_adapter_checkpoint_path(
     output_dir: Path,
     adapter_checkpoint: Optional[str] = None,
-    resume_from_checkpoint: bool = False,
+    should_load_recipe_state: bool = False,
     pattern: str = r"^epoch_(\d+)",
 ) -> Optional[Path]:
     r"""
@@ -435,13 +439,13 @@ def get_adapter_checkpoint_path(
     Args:
         output_dir (Path): Directory containing the adapter checkpoint.
         adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.
-        resume_from_checkpoint (bool): Whether to resume from a checkpoint.
+        should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.
         pattern (str): Regex pattern to match the epoch folder. Defaults to "epoch_(\d+)".
 
     Returns:
         Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
     """
-    if not resume_from_checkpoint:
+    if not should_load_recipe_state:
         return None
 
     adapter_checkpoint_path = None
@@ -466,7 +470,7 @@ def get_model_checkpoint_path(
     checkpoint_files: Union[List[str], Dict[str, str]],
     checkpoint_dir: Union[str, Path],
     output_dir: Union[str, Path],
-    resume_from_checkpoint: bool,
+    should_load_recipe_state: bool,
     has_adapter_checkpoint: bool,
 ) -> list[Path]:
     """
@@ -484,7 +488,7 @@ def get_model_checkpoint_path(
             it is converted to a list of formatted checkpoint filenames.
         checkpoint_dir (Union[str, Path]): Directory containing the checkpoint files.
         output_dir (Union[str, Path]): Directory to use when resuming from a checkpoint.
-        resume_from_checkpoint (bool): Whether to resume from a checkpoint.
+        should_load_recipe_state (bool): Whether to resume from a checkpoint.
         has_adapter_checkpoint (bool): Indicates if there is an adapter checkpoint.
     Returns:
         list[Path]: Sorted list of paths to the checkpoint files.
@@ -492,13 +496,13 @@ def get_model_checkpoint_path(
         >>> checkpoint_files = ["model-00001-of-00002.safetensors", "model-00002-of-00002.safetensors"]
         >>> checkpoint_dir = "/path/to/checkpoints"
         >>> output_dir = "/path/to/output"
-        >>> resume_from_checkpoint = True
+        >>> should_load_recipe_state = True
         >>> has_adapter_checkpoint = False
         >>> paths = get_model_checkpoint_path(
         ...     checkpoint_files,
         ...     checkpoint_dir,
         ...     output_dir,
-        ...     resume_from_checkpoint,
+        ...     should_load_recipe_state,
         ...     has_adapter_checkpoint
         ... )
         >>> print(paths)
@@ -527,7 +531,7 @@ def get_model_checkpoint_path(
     # e.g.
     # checkpoint_files:
     #   filename_format: model-{}-of-{}.safetensors
-    #   max_filename: 00191
+    #   max_filename: "00191"
     # becomes checkpoint_files = [model-00001-of-00191.safetensors, model-00002-of-00191,..]
     if not isinstance(checkpoint_files, List):
         # TODO: this can be a function instead of a class
@@ -536,15 +540,15 @@ def get_model_checkpoint_path(
         )
         checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
 
-    # Case 1: no resuming from ckpt
-    if not resume_from_checkpoint:
+    # Case 1: not loading the recipe state
+    if not should_load_recipe_state:
         input_dir = checkpoint_dir
 
-    # Case 2: Resuming from ckpt, but its full finetuning (no adapter)
+    # Case 2: Loading the recipe state, but its full finetuning (no adapter)
     elif not has_adapter_checkpoint:
         input_dir = output_dir
 
-    # Case 3: Resuming from ckpt and has an adapter.
+    # Case 3: Loading the recipe state and has an adapter.
     else:
         # FIXME
         # TODO: if the model has lora + trained weights, e.g. embeddings,
