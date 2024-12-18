@@ -10,7 +10,7 @@ from typing import Generator, Iterable, Optional
 import torch
 
 from torchtune.utils import get_logger
-from torchtune.utils._device import is_npu_available
+from torchtune.utils._device import is_hpu_available, is_npu_available
 
 log = get_logger()
 
@@ -69,7 +69,8 @@ def verify_bf16_support() -> bool:
     mps_support = torch.backends.mps.is_available() and torch.backends.mps.is_built()
     npu_support = is_npu_available and torch.npu.is_bf16_supported()
     xpu_support = torch.xpu.is_available() and torch.xpu.is_bf16_supported()
-    return cuda_support or mps_support or npu_support or xpu_support
+    hpu_support = is_hpu_available and torch.hpu.is_bf16_supported()
+    return cuda_support or mps_support or npu_support or xpu_support or hpu_support
 
 
 def get_dtype(

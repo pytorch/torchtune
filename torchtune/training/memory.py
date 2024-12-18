@@ -48,7 +48,10 @@ def cleanup_before_training() -> None:
     Call gc collect, empty device cache, and reset peak memory stats.
     """
     gc.collect()
-    get_torch_device_namespace().empty_cache()
+    from torchtune.utils._device import is_hpu_available
+
+    if not is_hpu_available:
+        get_torch_device_namespace().empty_cache()
     get_torch_device_namespace().reset_peak_memory_stats()
 
 
