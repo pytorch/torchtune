@@ -281,34 +281,36 @@ There are 4 types of folders:
 We keep the folder base_model so that it is easier for the user to copy their checkpoints from /epoch_{} to /base_model,
 and have this folder ready for inference or being uploaded to a model hub.
 
-    >>>> tree -a /tmp/torchtune/llama3_2_3B/full_single_device
-    /tmp/torchtune/llama3_2_3B/full_single_device
-    ├── base_model
-    │   ├── config.json
-    │   ├── generation_config.json
-    │   ├── LICENSE.txt
-    │   ├── original
-    │   │   ├── orig_params.json
-    │   │   ├── params.json
-    │   │   └── tokenizer.model
-    │   ├── original_repo_id.json
-    │   ├── README.md
-    │   ├── special_tokens_map.json
-    │   ├── tokenizer_config.json
-    │   ├── tokenizer.json
-    │   └── USE_POLICY.md
-    ├── epoch_0
-    │   ├── ft-model-00001-of-00002.safetensors
-    │   ├── ft-model-00002-of-00002.safetensors
-    │   └── model.safetensors.index.json
-    ├── epoch_1
-    │   ├── ft-model-00001-of-00002.safetensors
-    │   ├── ft-model-00002-of-00002.safetensors
-    │   └── model.safetensors.index.json
-    ├── logs
-    │   └── log_1734548357.txt
-    └── recipe_state
-        └── recipe_state.pt
+    .. code-block::
+
+        >>>> tree -a /tmp/torchtune/llama3_2_3B/full_single_device
+        /tmp/torchtune/llama3_2_3B/full_single_device
+        ├── base_model
+        │   ├── config.json
+        │   ├── generation_config.json
+        │   ├── LICENSE.txt
+        │   ├── original
+        │   │   ├── orig_params.json
+        │   │   ├── params.json
+        │   │   └── tokenizer.model
+        │   ├── original_repo_id.json
+        │   ├── README.md
+        │   ├── special_tokens_map.json
+        │   ├── tokenizer_config.json
+        │   ├── tokenizer.json
+        │   └── USE_POLICY.md
+        ├── epoch_0
+        │   ├── ft-model-00001-of-00002.safetensors
+        │   ├── ft-model-00002-of-00002.safetensors
+        │   └── model.safetensors.index.json
+        ├── epoch_1
+        │   ├── ft-model-00001-of-00002.safetensors
+        │   ├── ft-model-00002-of-00002.safetensors
+        │   └── model.safetensors.index.json
+        ├── logs
+        │   └── log_1734548357.txt
+        └── recipe_state
+            └── recipe_state.pt
 
 Intermediate vs Final Checkpoints
 ---------------------------------
