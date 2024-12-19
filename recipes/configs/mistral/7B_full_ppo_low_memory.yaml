@@ -124,10 +124,10 @@ shuffle: True
 device: cuda
 
 # Training arguments
-batch_size: 64
+batch_size: 128
 num_steps: 10000
-ppo_epochs: 2
-ppo_batch_size: 32
+ppo_epochs: 1
+ppo_batch_size: 128
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 
 # Memory management and performance
@@ -137,13 +137,14 @@ optimizer:
   lr: 3e-6
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 log_peak_memory_stats: True
-enable_activation_checkpointing: True  # True reduces memory
+enable_activation_checkpointing: True # True reduces memory
+enable_kv_cache: True
 
 # Reduced precision
 dtype: bf16
 
 # batch size for forward pass during generation
-forward_batch_size: 16
+forward_batch_size: 128
 max_generated_tokens: 58
 temperature: 0.7
 top_k: null
@@ -180,3 +181,27 @@ metric_logger:
   log_dir: ${output_dir}/logs
 
 log_every_n_steps: 1
+
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: True
+  with_stack: False
+  record_shapes: False
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 3
+  num_cycles: 1
