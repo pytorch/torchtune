@@ -1002,6 +1002,26 @@
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">checkpoint_paths</span>
+
+
+<span class="k">def</span> <span class="nf">check_outdir_not_in_ckptdir</span><span class="p">(</span><span class="n">ckpt_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.</span>
+<span class="sd">    This is necessary to avoid making copies of copies when geting config files from ckpt_dir.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Resolve the absolute paths to avoid issues with relative paths</span>
+    <span class="n">_ckpt_dir</span> <span class="o">=</span> <span class="n">ckpt_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">_out_dir</span> <span class="o">=</span> <span class="n">out_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+    <span class="c1"># Check if out_dir is the same as ckpt_dir or a subdirectory of it</span>
+    <span class="k">if</span> <span class="n">_out_dir</span> <span class="o">==</span> <span class="n">_ckpt_dir</span> <span class="ow">or</span> <span class="n">_ckpt_dir</span> <span class="ow">in</span> <span class="n">_out_dir</span><span class="o">.</span><span class="n">parents</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;The output directory cannot be the same as or a subdirectory of the checkpoint directory. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="n">ckpt_dir</span><span class="si">=}</span><span class="s2"> and </span><span class="si">{</span><span class="n">out_dir</span><span class="si">=}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">True</span>
 </pre></div>
 
              </article>
