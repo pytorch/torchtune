@@ -419,8 +419,8 @@ Case 1: HF using BASE MODEL + trained adapter
 
 Here we load the base model from HF model hub. Then we load the adapters on top of it using PeftModel.
 It will look for the files adapter_model.safetensors for the weights and adapter_config.json for where to insert them.
-.. code-block:: python
 
+.. code-block:: python
     from peft import PeftModel
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
