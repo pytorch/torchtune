@@ -118,10 +118,12 @@ class QATRecipeDistributed(FTRecipeInterface):
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
+        ValueError: If ``compile`` is set to True.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
+
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -131,6 +133,11 @@ class QATRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.float16:
             raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
+
+        if cfg.get("compile", False):
+            raise ValueError(
+                "Compile is not yet supported for QAT. Please set compile=False."
             )
 
         # logging attributes
