@@ -29,23 +29,9 @@ tokenizer:
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir:  /tmp/Llama-2-70b-hf
-  checkpoint_files: [
-    pytorch_model-00001-of-00015.bin,
-    pytorch_model-00002-of-00015.bin,
-    pytorch_model-00003-of-00015.bin,
-    pytorch_model-00004-of-00015.bin,
-    pytorch_model-00005-of-00015.bin,
-    pytorch_model-00006-of-00015.bin,
-    pytorch_model-00007-of-00015.bin,
-    pytorch_model-00008-of-00015.bin,
-    pytorch_model-00009-of-00015.bin,
-    pytorch_model-00010-of-00015.bin,
-    pytorch_model-00011-of-00015.bin,
-    pytorch_model-00012-of-00015.bin,
-    pytorch_model-00013-of-00015.bin,
-    pytorch_model-00014-of-00015.bin,
-    pytorch_model-00015-of-00015.bin,
-  ]
+  checkpoint_files:
+    filename_format: pytorch_model-{}-of-{}.bin
+    max_filename: "00015"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA2

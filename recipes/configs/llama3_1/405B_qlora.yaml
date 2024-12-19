@@ -34,7 +34,7 @@ checkpointer:
   checkpoint_dir: /tmp/Meta-Llama-3.1-405B-Instruct/
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: 00191
+    max_filename: "00191"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3
@@ -61,7 +61,7 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 fsdp:
   cpu_offload: False
