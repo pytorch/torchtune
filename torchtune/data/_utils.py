@@ -57,8 +57,9 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
         to start with "http" or "https" e.g. "https://www.wikipedia.org/en/bird.jpg".
 
     Raises:
-        ValueError: If the image cannot be loaded from remote source.
-        ValueError: If the image cannot be opened as a :class:`~PIL.Image.Image`.
+        ValueError:
+            If the image cannot be loaded from remote source, **or**
+            if the image cannot be opened as a :class:`~PIL.Image.Image`.
 
     Examples:
         >>> # Load from remote source

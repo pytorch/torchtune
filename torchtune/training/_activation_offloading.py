@@ -55,7 +55,6 @@ class OffloadActivations(saved_tensors_hooks):
 
     Raises:
         ValueError: if max_fwd_stash_size is not at least 1.
-        RuntimeError: if use_streams but torch installation is earlier than torch-2.5.0.dev20240907
 
     Example:
         >>> with OffloadActivations():
