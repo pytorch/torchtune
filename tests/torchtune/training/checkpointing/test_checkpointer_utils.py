@@ -11,6 +11,7 @@ import pytest
 import torch
 from torchtune.models.llama2 import llama2, llama2_classifier
 from torchtune.training.checkpointing._utils import (
+    check_outdir_not_in_ckptdir,
     FormattedCheckpointFiles,
     safe_torch_load,
     update_state_dict_for_classifier,
@@ -226,3 +227,47 @@ class TestFormattedCheckpointFiles:
         formatted_files = FormattedCheckpointFiles.from_dict(formatted_file_dict)
         actual_filenames = formatted_files.build_checkpoint_filenames()
         assert actual_filenames == expected_filenames
+
+
+class TestCheckOutdirNotInCkptdir:
+    def test_sibling_directories(self):
+        # Sibling directories should pass without raising an error
+        ckpt_dir = Path("/path/to/ckpt")
+        out_dir = Path("/path/to/output")
+        check_outdir_not_in_ckptdir(ckpt_dir, out_dir)
+
+    def test_ckpt_dir_in_output_dir(self):
+        # out_dir is a parent of ckpt_dir, should pass without raising an error
+        ckpt_dir = Path("/path/to/output/ckpt_dir")
+        out_dir = Path("/path/to/output")
+        check_outdir_not_in_ckptdir(ckpt_dir, out_dir)
+
+    def test_equal_directories(self):
+        # Equal directories should raise a ValueError
+        ckpt_dir = Path("/path/to/ckpt")
+        out_dir = Path("/path/to/ckpt")
+        with pytest.raises(
+            ValueError,
+            match="The output directory cannot be the same as or a subdirectory of the checkpoint directory.",
+        ):
+            check_outdir_not_in_ckptdir(ckpt_dir, out_dir)
+
+    def test_output_dir_in_ckpt_dir(self):
+        # out_dir is a subdirectory of ckpt_dir, should raise a ValueError
+        ckpt_dir = Path("/path/to/ckpt")
+        out_dir = Path("/path/to/ckpt/subdir")
+        with pytest.raises(
+            ValueError,
+            match="The output directory cannot be the same as or a subdirectory of the checkpoint directory.",
+        ):
+            check_outdir_not_in_ckptdir(ckpt_dir, out_dir)
+
+    def test_output_dir_ckpt_dir_few_levels_down(self):
+        # out_dir is a few levels down in ckpt_dir, should raise a ValueError
+        ckpt_dir = Path("/path/to/ckpt")
+        out_dir = Path("/path/to/ckpt/subdir/another_subdir")
+        with pytest.raises(
+            ValueError,
+            match="The output directory cannot be the same as or a subdirectory of the checkpoint directory.",
+        ):
+            check_outdir_not_in_ckptdir(ckpt_dir, out_dir)
