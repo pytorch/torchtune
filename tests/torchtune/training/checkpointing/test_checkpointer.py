@@ -750,7 +750,6 @@ class TestHFGemmaFullModelCheckpointer:
     def single_file_checkpointer(
         self, gemma_hf_checkpoint, tmp_path
     ) -> FullModelHFCheckpointer:
-        print("MY tmp_path single_file_checkpointer", tmp_path)
         checkpoint_file = gemma_hf_checkpoint
         checkpoint_dir = str(Path.joinpath(tmp_path, "checkpoint_dir"))
         output_dir = str(Path.joinpath(tmp_path, "output_dir"))
