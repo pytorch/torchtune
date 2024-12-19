@@ -103,6 +103,7 @@ class ModelType(Enum):
         >>>         state_dict = my_custom_state_dict_mapping(state_dict)
     """
 
+    FALCON3: str = "falcon3"
     GEMMA: str = "gemma"
     GEMMA2: str = "gemma2"
     LLAMA2: str = "llama2"

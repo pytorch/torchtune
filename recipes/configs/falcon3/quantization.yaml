@@ -1,0 +1,30 @@
+# Config for QuantizationRecipe in quantize.py
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run quantize --config quantization
+
+#
+# Model arguments
+model:
+  _component_: torchtune.models.falcon3.falcon3_7b
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Falcon3-7B-Base/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Falcon3-7B-Base/
+  model_type: FALCON3
+
+device: cuda
+dtype: bf16
+seed: 1234
+
+quantizer:
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
+  groupsize: 256
