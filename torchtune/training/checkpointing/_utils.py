@@ -563,7 +563,7 @@ def get_model_checkpoint_path(
 
 def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
     """
-    Checks that the output directory is not a subdirectory of the checkpoint directory.
+    Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.
     This is necessary to avoid making copies of copies when geting config files from ckpt_dir.
     """
 
