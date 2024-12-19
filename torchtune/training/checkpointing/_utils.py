@@ -572,3 +572,23 @@ def get_model_checkpoint_path(
     )
 
     return checkpoint_paths
+
+
+def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
+    """
+    Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.
+    This is necessary to avoid making copies of copies when geting config files from ckpt_dir.
+    """
+
+    # Resolve the absolute paths to avoid issues with relative paths
+    _ckpt_dir = ckpt_dir.resolve()
+    _out_dir = out_dir.resolve()
+
+    # Check if out_dir is the same as ckpt_dir or a subdirectory of it
+    if _out_dir == _ckpt_dir or _ckpt_dir in _out_dir.parents:
+        raise ValueError(
+            "The output directory cannot be the same as or a subdirectory of the checkpoint directory. "
+            f"Found {ckpt_dir=} and {out_dir=}."
+        )
+
+    return True
