@@ -159,6 +159,7 @@ class AttentionTest(unittest.TestCase):
                 (self.x, self.x),
                 kwargs={"input_pos": self.input_pos},
                 dynamic_shapes=self.dynamic_shapes,
+                strict=True,
             )
         et_res = et_mha_ep.module()(self.x, self.x, input_pos=self.input_pos)
         tt_res = self.tt_mha(self.x, self.x, input_pos=self.input_pos)
