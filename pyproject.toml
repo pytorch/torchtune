@@ -87,7 +87,7 @@ target-version = ["py38"]
 [tool.pydoclint]
 style = 'google'
 check-return-types = 'False'
-exclude = 'tests/torchtune/models/(\w+)/scripts/'
+exclude = 'tests/torchtune/models/(\w+)/scripts/|recipes/|torchtune/modules/_export'
 
 [tool.pytest.ini_options]
 addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]
