@@ -358,7 +358,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             --config mistral/7B_full_ppo_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir='{policy_tmpdir}' \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
             checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={policy_tmpdir} \
