@@ -382,7 +382,7 @@ def copy_files(
             # Check the file size
             if os.path.getsize(src_file) > max_file_size:
                 print(
-                    f"Skipping copying {src_file} to {output_dir} as it exceeds the size limit of 100 MiB."
+                    f"Skipping copying {src_file} to {output_dir} as it exceeds the size limit of {max_file_size_mb} MiB."
                 )
                 continue
 
