@@ -20,6 +20,7 @@ from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG_FNAME,
     ADAPTER_MODEL_FNAME,
     BASE_MODEL_DIRNAME,
+    check_outdir_not_in_ckptdir,
     copy_files,
     get_adapter_checkpoint_path,
     get_model_checkpoint_path,
@@ -148,7 +149,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
             raise ValueError(
-                "Currently we only support reading from a single torchtune checkpoint file. "
+                "Currently we only support reading from a single checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
             )
 
@@ -157,6 +158,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
+
+        check_outdir_not_in_ckptdir(
+            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
+        )
 
         # save all files in input_dir, except model weights and mapping, to output_dir
         # this is useful to preserve the tokenizer, configs, license, etc.
@@ -392,6 +397,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
+
+        check_outdir_not_in_ckptdir(
+            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
+        )
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -914,7 +923,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
             raise ValueError(
-                "Currently we only support reading from a single torchtune checkpoint file. "
+                "Currently we only support reading from a single checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
             )
 
@@ -923,6 +932,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
+
+        check_outdir_not_in_ckptdir(
+            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
+        )
 
         # save all files in input_dir, except model weights and mapping, to output_dir
         # this is useful to preserve the tokenizer, configs, license, etc.
