@@ -367,7 +367,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ref_policy_checkpointer.checkpoint_dir='{ckpt_dir}' \
             ref_policy_checkpointer.checkpoint_files=[{policy_ckpt_path}]\
 
-            value_checkpointer.checkpoint_dir='{value_tmpdir}' \
+            value_checkpointer.checkpoint_dir='{ckpt_dir}' \
             value_checkpointer.checkpoint_files=[{os.path.join(value_tmpdir, epoch_folder_minus_one, model_ckpt_fname)}]\
             value_checkpointer.output_dir={value_tmpdir} \
 
