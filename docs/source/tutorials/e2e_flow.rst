@@ -448,6 +448,7 @@ It will look for the files adapter_model.safetensors for the weights and adapter
 Case 2: HF using merged full+adapter weights
 
 In this case, HF will check in model.safetensors.index.json which files it should load.
+
 .. code-block:: python
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
