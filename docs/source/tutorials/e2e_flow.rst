@@ -373,7 +373,7 @@ We'll use a different prompt from the one in the config
 Once generation is complete, you'll see the following in the logs.
 
 
-.. code-block:: bash
+.. code-block::
 
     Tell me a joke.Here's a joke for you:
 
@@ -421,6 +421,7 @@ Here we load the base model from HF model hub. Then we load the adapters on top 
 It will look for the files adapter_model.safetensors for the weights and adapter_config.json for where to insert them.
 
 .. code-block:: python
+
     from peft import PeftModel
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -450,6 +451,7 @@ Case 2: HF using merged full+adapter weights
 In this case, HF will check in model.safetensors.index.json which files it should load.
 
 .. code-block:: python
+
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     # Define the model and adapter paths
@@ -479,11 +481,13 @@ It will load any .safetensors file. Since here we mixed both the full model weig
 adapter weights to succesfully load it.
 
 .. code-block:: bash
+
     rm /tmp/torchtune/llama3_2_3B/lora_single_device/base_model/adapter_model.safetensors
 
 Now we can run the script
 
 .. code-block:: python
+
     from vllm import LLM, SamplingParams
 
     def print_outputs(outputs):
@@ -519,6 +523,7 @@ Your new model is working great and you want to share it with the world. The eas
 is utilizing the `huggingface_hub <https://huggingface.co/docs/huggingface_hub/guides/upload>`_.
 
 .. code-block:: python
+
     import huggingface_hub
     api = huggingface_hub.HfApi()
 
