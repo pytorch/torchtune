@@ -26,6 +26,7 @@ from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
     get_adapter_state_dict,
+    get_lora_module_names,
     get_merged_lora_ckpt,
     LoRALinear,
     set_trainable_params,
@@ -595,6 +596,17 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     }
                 )
 
+            adapter_config = {
+                "r": self._lora_rank,
+                "lora_alpha": self._lora_alpha,
+                "target_modules": get_lora_module_names(
+                    self._lora_attn_modules,
+                    self._apply_lora_to_mlp,
+                    self._apply_lora_to_output,
+                ),
+                "peft_type": "LORA",
+            }
+            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
