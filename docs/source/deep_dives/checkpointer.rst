@@ -58,13 +58,13 @@ from the `meta-llama website <https://llama.meta.com/llama-downloads>`_, you'll 
     >>> for key, value in state_dict.items():
     >>>    print(f'{key}: {value.shape}')
 
-    tok_embeddings.weight: torch.Size(128256, 3072])
+    tok_embeddings.weight: torch.Size([128256, 3072])
     ...
     ...
     >>> print(len(state_dict.keys()))
     255
 
-The state_dict contains 147 keys, including an input embedding table called ``tok_embeddings``. The
+The state_dict contains 255 keys, including an input embedding table called ``tok_embeddings``. The
 model definition for this state_dict expects an embedding layer with ``128256`` tokens each having a
 embedding with dim of ``3072``.
 
@@ -149,7 +149,7 @@ Model Hub and is the default format in every torchtune config.
 For this checkpointer to work correctly, we assume that ``checkpoint_dir`` contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:
 
-- Download the model from the HF repo using tune download. By default, this will ignore the "pth"
+- Download the model from the HF repo using tune download. This will ignore the "pth"
   files, since we will be loading the "safetensors".
 
     |
