@@ -38,7 +38,6 @@ TORCH_INDEX_FNAME = "pytorch_model.bin.index.json"
 # standardize checkpointing
 SHARD_FNAME = "ft-model-{cpt_idx}-of-{num_shards}"
 RECIPE_STATE_DIRNAME = "recipe_state"
-BASE_MODEL_DIRNAME = "base_model"
 
 # Needed when setting up output dir in checkpointing
 REPO_ID_FNAME = "original_repo_id"
@@ -334,6 +333,7 @@ def copy_files(
     output_dir: Union[str, Path],
     *,
     ignore_suffixes: Optional[List[str]] = None,
+    max_file_size_mb: int = 100,
 ) -> None:
     """
     Copies files from the input directory to the output directory, preserving the directory structure.
@@ -346,6 +346,7 @@ def copy_files(
         output_dir (Union[str, Path]): The path to the output directory where files should be copied.
         ignore_suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.
           Defaults to ['.pt', '.bin', '.safetensors'] if not provided.
+        max_file_size_mb (int): The maximum file size in megabytes to copy. Defaults to 100 MB.
     Returns:
         None
     Example:
@@ -355,6 +356,7 @@ def copy_files(
     already exist in the destination or have the specified suffixes.
     """
 
+    max_file_size = max_file_size_mb * 1024 * 1024
     for root, dirs, files in os.walk(input_dir):
 
         # Filter out directories that start with '.'. E.g. ".cache/"
@@ -380,6 +382,13 @@ def copy_files(
 
             src_file = os.path.join(root, file)
             dest_file = os.path.join(dest_dir, file)
+
+            # Check the file size
+            if os.path.getsize(src_file) > max_file_size:
+                print(
+                    f"Skipping copying {src_file} to {output_dir} as it exceeds the size limit of {max_file_size_mb} MiB."
+                )
+                continue
 
             # Copy the file if it doesn't already exist in the destination
             if not os.path.exists(dest_file):
