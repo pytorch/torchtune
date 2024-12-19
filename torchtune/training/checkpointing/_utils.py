@@ -574,7 +574,7 @@ def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
     # Check if out_dir is the same as ckpt_dir or a subdirectory of it
     if _out_dir == _ckpt_dir or _ckpt_dir in _out_dir.parents:
         raise ValueError(
-            "The output directory cannot be the same as or a subdirectory of the checkpoint directory."
+            "The output directory cannot be the same as or a subdirectory of the checkpoint directory. "
             f"Found {ckpt_dir=} and {out_dir=}."
         )
 
