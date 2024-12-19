@@ -560,7 +560,10 @@
 
 
 <span class="c1"># int4 weight-only</span>
-<span class="n">Int4WeightOnlyQATQuantizerModuleSwap</span> <span class="o">=</span> <span class="n">Int4WeightOnlyQATQuantizer</span>
+<span class="k">class</span> <span class="nc">Int4WeightOnlyQATQuantizerModuleSwap</span><span class="p">(</span><span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
 <span class="n">disable_4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">disable_4w_fake_quant</span>
 <span class="n">enable_4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant</span>
 <span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int4WeightOnlyQATQuantizerModuleSwap</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;4w-qat-module-swap&quot;</span>
@@ -572,7 +575,10 @@
 <span class="p">]</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant_module_swap</span>
 
 <span class="c1"># int8 dynamic activations + int4 weight</span>
-<span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span> <span class="o">=</span> <span class="n">Int8DynActInt4WeightQATQuantizer</span>
+<span class="k">class</span> <span class="nc">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">(</span><span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
 <span class="n">disable_8da4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">disable_8da4w_fake_quant</span>
 <span class="n">enable_8da4w_fake_quant_module_swap</span> <span class="o">=</span> <span class="n">enable_8da4w_fake_quant</span>
 <span class="n">_quantizer_to_mode</span><span class="p">[</span><span class="n">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;8da4w-qat-module-swap&quot;</span>
