@@ -149,7 +149,7 @@ class Gemma2Attention(nn.Module):
             self.kv_cache = KVCache(
                 batch_size=batch_size,
                 max_seq_len=max_seq_len,
-                num_heads=self.num_heads,
+                num_kv_heads=self.num_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
@@ -211,9 +211,9 @@ class Gemma2Attention(nn.Module):
             - h_d: head dim
         """
         #  until flex attention implementation exists, we do not accept block masks
-        if (mask is not None) and (type(mask) != torch.Tensor()):
+        if mask is not None and (not isinstance(mask, torch.Tensor)):
             raise NotImplementedError(
-                "Block masks are not implemeted yet, use packed=False"
+                "Block masks are not implemeted yet, use packed=False."
             )
 
         # x has shape [b, s_x, d]
@@ -240,7 +240,7 @@ class Gemma2Attention(nn.Module):
             q = self.q_norm(q)
 
         if y is None:
-            if self.kv_cache is None:
+            if self.kv_cache is None or not self.cache_enabled:
                 raise ValueError(
                     "Must provide y input or use kv_cache to enable streaming decoding"
                 )

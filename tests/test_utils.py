@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from functools import partial
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, TextIO, Tuple, Union
+from typing import Any, Generator, List, Mapping, Optional, TextIO, Tuple, Union
 
 import pytest
 
@@ -34,6 +34,8 @@ CKPT_MODEL_PATHS = {
     "llama2_reward_hf": "/tmp/test-artifacts/small-ckpt-hf-reward-07122024.pt",
     "llama3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
+    "llama3_2_vision_hf": "/tmp/test-artifacts/small-ckpt-hf-vision-10172024.pt",
+    "llama3_2_vision_meta": "/tmp/test-artifacts/small-ckpt-meta-vision-10172024.pt",
 }
 
 TOKENIZER_PATHS = {
@@ -306,7 +308,7 @@ def gpu_test(gpu_count: int = 1):
     return pytest.mark.skipif(local_gpu_count < gpu_count, reason=message)
 
 
-def get_loss_values_from_metric_logger(log_file_path: str) -> Dict[str, float]:
+def get_loss_values_from_metric_logger(log_file_path: str) -> List[float]:
     """
     Given an output directory containing metric logger .txt file,
     parse the .txt and return a list of losses from each logged iteration.

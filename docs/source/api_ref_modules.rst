@@ -23,6 +23,8 @@ Modeling Components and Building Blocks
     TransformerCrossAttentionLayer
     TransformerDecoder
     VisionTransformer
+    LayerDropout
+    prepare_layer_dropout
 
 Losses
 ------
@@ -75,8 +77,8 @@ PEFT Components
     peft.AdapterModule
     peft.get_adapter_params
     peft.set_trainable_params
+    peft.get_adapter_state_dict
     peft.validate_missing_and_unexpected_for_lora
-    peft.validate_state_dict_for_lora
     peft.disable_adapter
 
 

@@ -9,7 +9,7 @@ import mmap
 import sys
 from collections import OrderedDict
 from functools import partial
-from typing import Any, Dict, Generator, Optional, Tuple
+from typing import Any, Dict, Generator, Optional
 from warnings import warn
 
 import torch
@@ -24,10 +24,10 @@ _use_low_cpu_ram: bool = False
 def reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
     state_dict: Dict[str, Any],
-    *args: Tuple[Any, ...],
+    *args: Any,
     dtype: torch.dtype = torch.bfloat16,
     offload_to_cpu: bool = True,
-    **kwargs: Dict[Any, Any],
+    **kwargs: Any,
 ):
     """
     A state_dict hook that replaces NF4 tensors with their restored
@@ -47,10 +47,10 @@ def reparametrize_as_dtype_state_dict_post_hook(
     Args:
         model (nn.Module): the model to take ``state_dict()`` on
         state_dict (Dict[str, Any]): the state dict to modify
-        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.
+        *args (Any): Unused args passed when running this as a state_dict hook.
         dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
         offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
-        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.
+        **kwargs (Any): Unused keyword args passed when running this as a state_dict hook.
     """
     for k, v in state_dict.items():
         if isinstance(v, NF4Tensor):
@@ -59,13 +59,87 @@ def reparametrize_as_dtype_state_dict_post_hook(
                 state_dict[k] = state_dict[k].cpu()
 
 
+def slice_str_to_array(slice_str: str, length: int) -> list[bool]:
+    """
+    Convert a string representing a Python slice or index into a boolean array.
+
+    The resulting array will have the same length as the specified `length` parameter.
+    Each element in the array corresponds to an index in the original sequence,
+    with `True` indicating that the index is included in the slice and `False` otherwise.
+
+    Args:
+        slice_str (str): A string representing a Python slice or index, e.g. "1:3", ":5", "2::3", "0,4,5".
+        length (int): The length of the original sequence.
+
+    Returns:
+        list[bool]: A boolean array representing the slice.
+
+    Examples:
+        >>> slice_str_to_array("1:3", 5)
+        [False, True, True, False, False]
+        >>> slice_str_to_array(":", 5)
+        [True, True, True, True, True]
+        >>> slice_str_to_array("::2", 5)
+        [True, False, True, False, True]
+        >>> slice_str_to_array("1::2", 5)
+        [False, True, False, True, False]
+        >>> slice_str_to_array("2:5:2", 6)
+        [False, False, True, False, True, False]
+        >>> slice_str_to_array("0,4,5", 7)
+        [True, False, False, False, True, True, False]
+    """
+
+    assert "," not in slice_str or ":" not in slice_str, "Cannot mix commas and colons"
+
+    if "," in slice_str:
+        indices = [int(i) for i in slice_str.split(",")]
+        assert all(0 <= i < length for i in indices), "Index out of range"
+        result = [False] * length
+        for i in indices:
+            result[i] = True
+        return result
+
+    parts = slice_str.split(":")
+    assert len(parts) <= 3, "Invalid slice format"
+    start, end, step = None, None, None
+
+    if len(parts) == 1 and parts[0] != "":
+        start = int(parts[0])
+        end = start + 1
+        step = 1
+    elif len(parts) == 2:
+        start = int(parts[0]) if parts[0] != "" else None
+        end = int(parts[1]) if parts[1] != "" else None
+    elif len(parts) == 3:
+        start = int(parts[0]) if parts[0] != "" else None
+        end = int(parts[1]) if parts[1] != "" else None
+        step = int(parts[2]) if parts[2] != "" else None
+
+    assert start is None or 0 <= start < length, "Start index out of range"
+    assert end is None or 0 <= end < length, "End index out of range"
+    assert step is None or step != 0, "Step cannot be zero"
+
+    result = [False] * length
+    slice_indices = range(
+        start if start is not None else 0,
+        end if end is not None else length,
+        step if step is not None else 1,
+    )
+
+    for i in slice_indices:
+        if 0 <= i < length:
+            result[i] = True
+
+    return result
+
+
 def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
     state_dict: Dict[str, Any],
-    *args: Tuple[Any, ...],
+    *args: Any,
     dtype: torch.dtype = torch.bfloat16,
     offload_to_cpu: bool = True,
-    **kwargs: Dict[Any, Any],
+    **kwargs: Any,
 ):
     """
     A state_dict hook that replaces NF4 tensors with their restored
@@ -88,10 +162,10 @@ def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
     Args:
         model (nn.Module): the model to take ``state_dict()`` on
         state_dict (Dict[str, Any]): the state dict to modify
-        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.
+        *args (Any): Unused args passed when running this as a state_dict hook.
         dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
         offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
-        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.
+        **kwargs (Any): Unused keyword args passed when running this as a state_dict hook.
     """
     # Create a state dict of FakeTensors that matches the state_dict
     mode = FakeTensorMode()
@@ -149,11 +223,7 @@ def _register_reparametrize_state_dict_hooks(
         RuntimeError: If the low RAM reparametrize hook is used on Windows or an incompatible torch version.
     """
     if _use_low_cpu_ram:
-        if torch.__version__ < "2.5.0.dev20240906":
-            raise RuntimeError(
-                "Low RAM reparametrize_as_dtype_state_dict_post_hook requires PyTorch 2.5.0.dev20240906 or later."
-            )
-        elif sys.platform == "win32":
+        if sys.platform == "win32":
             # mmap.MAP_SHARED is not supported on Windows but this change targets colab.
             raise RuntimeError(
                 "Low RAM reparametrize_as_dtype_state_dict_post_hook is not supported on Windows."

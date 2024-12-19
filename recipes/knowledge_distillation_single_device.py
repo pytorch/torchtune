@@ -19,13 +19,13 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.data import padded_collate_sft
+from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -147,7 +147,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -420,7 +420,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # This is for any adapters that need to be initialized after base weights
         # have been loaded (e.g. DoRA).
         if self._is_dora:
-            load_dora_magnitudes(model)
+            for m in model.modules():
+                if hasattr(m, "initialize_dora_magnitude"):
+                    m.initialize_dora_magnitude()
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = model.load_state_dict(
                 lora_weights_state_dict, strict=False
@@ -443,11 +445,14 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             self.adapter_params.items(), dtype=self._dtype
         )
 
-        log.info(f"Model is initialized with precision {self._dtype}.")
+        log.info(f"Student model is initialized with precision {self._dtype}.")
 
         if self._device.type == "cuda":
+            log.info("Memory stats initializing student model:")
             memory_stats = training.get_memory_stats(device=self._device)
-            training.log_memory_stats(memory_stats)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after student model init:"
+            )
         return model
 
     def _setup_teacher_model(
@@ -470,6 +475,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             model.named_parameters(), dtype=self._dtype
         )
         log.info(f"Teacher model is initialized with precision {self._dtype}.")
+
+        if self._device.type == "cuda":
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after teacher model init:"
+            )
+
         return model
 
     def _setup_optimizer(
@@ -540,7 +552,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     ignore_idx=self._loss_fn.ignore_index,
                 )
                 if not packed
-                else None
+                else padded_collate_packed
             ),
         )
 
@@ -586,10 +598,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
 
         # Construct the adapter weights
-        adapter_key_filter = lambda x: x in self.adapter_params
-        adapter_state_dict = {
-            k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
-        }
+        adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
         ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
         adapter_config = {
             "r": self._lora_rank,

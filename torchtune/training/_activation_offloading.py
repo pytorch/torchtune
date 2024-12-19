@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Optional, Union
+from typing import Union
 from warnings import warn
 
 import psutil
@@ -38,9 +38,9 @@ class OffloadActivations(saved_tensors_hooks):
             memory on the CPU. Pinned memory allows the Tensor to be moved back onto GPU more quickly
             but is a limited resource. Default: True.
 
-        use_streams (Optional[bool]): Whether or not to use streams for performance optimization where
+        use_streams (bool): Whether or not to use streams for performance optimization where
             the communications get overlapped with the computation. Requires a torch build
-            after torch-2.5.0.dev20240907. Default: True if a later torch build is found, else False.
+            after torch-2.5.0.]. Default: True.
 
         max_fwd_stash_size (int): The maximum size of the forward stash, or the maximum number of
             consecutive activations to keep alive during the forward pass. This number must be at
@@ -67,15 +67,12 @@ class OffloadActivations(saved_tensors_hooks):
     def __init__(
         self,
         use_pin_memory: bool = True,
-        use_streams: Optional[bool] = None,
+        use_streams: bool = True,
         max_fwd_stash_size: int = 5,
         min_offload_size: int = 1024,
     ) -> None:
-        if use_streams is None:
-            # Default to True if an acceptable torch is installed (later nightly/version or from source)
-            self.use_streams = torch.__version__ >= "2.5.0.dev20240907"
-        else:
-            self.use_streams = use_streams
+
+        self.use_streams: bool = use_streams
 
         self.min_tensor_size_bytes = (
             min_offload_size  # we don't want to bother with small tensors
@@ -98,10 +95,6 @@ class OffloadActivations(saved_tensors_hooks):
 
         # for streaming
         if self.use_streams:
-            if torch.__version__ < "2.5.0.dev20240907":
-                raise RuntimeError(
-                    "OffloadActivations with use_streams=True requires PyTorch 2.5.0.dev20240907 or later."
-                )
             self.s1 = torch.cuda.Stream()  # comms stream
             self.fwd_stash = {}  # tensor_id => (activation, ev1)
             if max_fwd_stash_size < 1:

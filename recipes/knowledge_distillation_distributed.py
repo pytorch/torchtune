@@ -25,9 +25,9 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -116,10 +116,8 @@ class KDRecipeDistributed(FTRecipeInterface):
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
 
-        _, rank = training.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -151,7 +149,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -255,7 +253,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+        utils.log_rank_zero(log, "Tokenizer is initialized from file.")
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -286,8 +284,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                 self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
             ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
 
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -388,9 +385,10 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
+        utils.log_rank_zero(
+            log, f" Profiler config after instantiation: {profiler_cfg}"
+        )
         if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
-
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
             if profiler_cfg["enabled"]:
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
@@ -424,11 +422,11 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
@@ -478,8 +476,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                 ) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
-                    m.lora_a.to_empty(device=lora_device)
-                    m.lora_b.to_empty(device=lora_device)
+                    m.to_empty(device=lora_device)
                     m.initialize_parameters()
                 # RoPE is not covered in state dict
                 if hasattr(m, "rope_init"):
@@ -492,13 +489,10 @@ class KDRecipeDistributed(FTRecipeInterface):
             self._is_rank_zero,
             cpu_offload=fsdp_cpu_offload,
         )
-        is_dora = False
         for m in model.modules():
             if hasattr(m, "initialize_dora_magnitude"):
-                is_dora = True
                 m.initialize_dora_magnitude()
-        if is_dora:
-            load_dora_magnitudes(model)
+
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
@@ -511,12 +505,15 @@ class KDRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
+        utils.log_rank_zero(
+            log,
+            f"Instantiating student model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
-            training.log_memory_stats(memory_stats)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after student model init:"
+            )
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -539,11 +536,11 @@ class KDRecipeDistributed(FTRecipeInterface):
               full state dicts are loaded with ``torch.load(mmap=True)``
         """
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP enabled. Instantiating teacher model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "FSDP enabled. Instantiating teacher model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(model_cfg)
@@ -593,12 +590,15 @@ class KDRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
+        utils.log_rank_zero(
+            log,
+            f"Instantiating teacher model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating teacher model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
-            training.log_memory_stats(memory_stats)
+            training.log_memory_stats(
+                memory_stats, message="Memory stats after teacher model init:"
+            )
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -616,8 +616,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        if self._is_rank_zero:
-            log.info("Optimizer is initialized.")
+        utils.log_rank_zero(log, "Optimizer is initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -633,8 +632,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -648,7 +646,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         Map-style Datasets which fit into memory and an option for random shuffling.
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -685,8 +683,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -707,8 +704,8 @@ class KDRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        cpu_state_dict = training.gather_cpu_state_dict(
+            self._model.state_dict(),
             self._is_rank_zero,
             device=self._device,
         )
@@ -728,10 +725,7 @@ class KDRecipeDistributed(FTRecipeInterface):
 
             # Filter out the adapter keys and weights from the model state dict. These will
             # be saved separately
-            adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {
-                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
-            }
+            adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
             checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # merge the adapter weights and base weights to create the model checkpoint
@@ -821,7 +815,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -972,11 +966,11 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
+    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     config.log_config(recipe_name="KDRecipeDistributed", cfg=cfg)
 

@@ -7,6 +7,10 @@
 from typing import Callable, Optional
 from warnings import warn
 
+from torch import nn
+from torchtune.modules.peft.lora import LoRALinear, QATLoRALinear
+
+
 try:
     # torchao 0.7+
     from torchao.dtypes import TensorCoreTiledLayout
@@ -54,6 +58,12 @@ __all__ = [
     "Int8DynActInt4WeightQATQuantizerModuleSwap",
 ]
 
+
+_torchao_0_7_supported = True
+try:
+    from torchao.quantization import qat  # noqa: F401
+except ImportError:
+    _torchao_0_7_supported = False
 
 _quantizer_to_mode = {}
 _quantizer_mode_to_disable_fake_quant = {}
@@ -120,7 +130,10 @@ _quantizer_mode_to_enable_fake_quant["4w-qat"] = enable_4w_fake_quant
 
 
 # int4 weight-only
-Int4WeightOnlyQATQuantizerModuleSwap = Int4WeightOnlyQATQuantizer
+class Int4WeightOnlyQATQuantizerModuleSwap(Int4WeightOnlyQATQuantizer):
+    pass
+
+
 disable_4w_fake_quant_module_swap = disable_4w_fake_quant
 enable_4w_fake_quant_module_swap = enable_4w_fake_quant
 _quantizer_to_mode[Int4WeightOnlyQATQuantizerModuleSwap] = "4w-qat-module-swap"
@@ -132,7 +145,10 @@ _quantizer_mode_to_enable_fake_quant[
 ] = enable_4w_fake_quant_module_swap
 
 # int8 dynamic activations + int4 weight
-Int8DynActInt4WeightQATQuantizerModuleSwap = Int8DynActInt4WeightQATQuantizer
+class Int8DynActInt4WeightQATQuantizerModuleSwap(Int8DynActInt4WeightQATQuantizer):
+    pass
+
+
 disable_8da4w_fake_quant_module_swap = disable_8da4w_fake_quant
 enable_8da4w_fake_quant_module_swap = enable_8da4w_fake_quant
 _quantizer_to_mode[Int8DynActInt4WeightQATQuantizerModuleSwap] = "8da4w-qat-module-swap"
@@ -185,3 +201,45 @@ def _get_enable_fake_quant(quantizer_mode: str) -> Callable:
     If the quantizer is not recognized as a known QAT quantizer, return None.
     """
     return _quantizer_mode_to_enable_fake_quant.get(quantizer_mode, None)
+
+
+def swap_lora_linear_with_qat(
+    module: nn.Module,
+    # TODO: make the types Optional[FakeQuantizeConfig] once we
+    # support torchao 0.7+ by default
+    activation_qat_config: Optional["FakeQuantizeConfig"] = None,
+    weight_qat_config: Optional["FakeQuantizeConfig"] = None,
+) -> None:
+    """
+    Swap all `LoRALinear` in the model with `QATLoRALinear`.
+
+    This is used for combining QAT + LoRA during finetuning. The resulting linear layers
+    will apply the following transformation instead:
+
+        x -> fake_quantize(W_frozen) @ fake_quantize(x) + BAx
+
+    Fake quantization here refers to simulating the quantization numerics without actual
+    dtype casting, with the goal of providing improved accuracies when the model is
+    ultimately quantized after finetuning.
+
+    Args:
+        module (nn.Module): The model to swap linear layers on
+        activation_qat_config (Optional[FakeQuantizeConfig]): The config for specifying
+            how to fake quantize input activations in the base linear layer
+        weight_qat_config (Optional[FakeQuantizeConfig]): The config for specifying
+            how to fake quantize base linear weights
+    """
+    for name, child in module.named_children():
+        if isinstance(child, LoRALinear):
+            new_linear = QATLoRALinear.from_lora_linear(
+                child,
+                activation_qat_config,
+                weight_qat_config,
+            )
+            setattr(module, name, new_linear)
+        else:
+            swap_lora_linear_with_qat(
+                child,
+                activation_qat_config,
+                weight_qat_config,
+            )

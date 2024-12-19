@@ -12,7 +12,6 @@ from torchtune.datasets._sft import SFTDataset
 from torchtune.modules.transforms import Transform
 
 
-# TODO: point to Flamingo model transform as an example
 def llava_instruct_dataset(
     model_transform: Transform,
     *,
@@ -119,6 +118,8 @@ def llava_instruct_dataset(
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
     """
+    if packed:
+        raise ValueError("Multimodal datasets don't support packing yet.")
 
     message_transform = ShareGPTToMessages(
         train_on_input=False,
@@ -137,6 +138,5 @@ def llava_instruct_dataset(
         data_files=data_files,
         **load_dataset_kwargs,
     )
-    if packed:
-        raise ValueError("Multimodal datasets don't support packing yet.")
+
     return ds

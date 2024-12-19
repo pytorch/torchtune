@@ -168,11 +168,6 @@ modifications accordingly:
   fake_quant_after_n_steps: 1000
   memory_efficient_fsdp_wrap: False
 
-.. note::
-
-  QAT in torchtune is currently not compatible with `memory_efficient_fsdp_wrap <https://pytorch.org/torchtune/stable/generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy>`_.
-  This is a known issue and will be fixed in a future torchtune version.
-
 Empirically, we observed that disabling fake quantization for the first N steps
 led to better results, presumably because doing so allows the weights to stabilize
 before we start introducing quantization noise to the fine-tuning process.

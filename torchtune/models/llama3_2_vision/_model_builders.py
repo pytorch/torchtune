@@ -50,17 +50,12 @@ def llama3_2_vision_transform(
     Returns:
         Llama3VisionTransform: Instantiation of the Llama 3.2 vision transform
     """
-    special_tokens = (
-        parse_hf_tokenizer_json(special_tokens_path)
-        if special_tokens_path is not None
-        else None
-    )
     template = (
         _get_prompt_template(prompt_template) if prompt_template is not None else None
     )
     return Llama3VisionTransform(
         path=path,
-        special_tokens=special_tokens,
+        special_tokens_path=special_tokens_path,
         tile_size=image_size,
         patch_size=14,
         max_num_tiles=4,
@@ -111,7 +106,7 @@ def llama3_2_vision_11b(
         embed_dim=4096,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=14336,
     )
     return DeepFusionModel(
@@ -172,6 +167,11 @@ def lora_llama3_2_vision_11b(
     decoder_type = LoRATrainable(decoder_trainable.lower())
     encoder_type = LoRATrainable(encoder_trainable.lower())
     fusion_type = LoRATrainable(fusion_trainable.lower())
+    assert LoRATrainable.FULL not in [
+        decoder_type,
+        encoder_type,
+        fusion_type,
+    ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama3_2_vision_11b if you need full finetuning"
     encoder = lora_llama3_2_vision_encoder(
         encoder_lora=encoder_type == LoRATrainable.LORA,
         fusion_lora=fusion_type == LoRATrainable.LORA,
@@ -193,6 +193,9 @@ def lora_llama3_2_vision_11b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        # Update scaler block size to ensure that weights can be quantized evenly across 1, 2, 4, 6, 8 GPUs.
+        # This is dependent on ``clip_embed_dim`` so if that is updated, this variable should be as well
+        scaler_block_size=200 if quantize_base else None,
     )
     decoder = lora_llama3_2_vision_decoder(
         decoder_lora=decoder_type == LoRATrainable.LORA,
@@ -209,7 +212,7 @@ def lora_llama3_2_vision_11b(
         embed_dim=4096,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=14336,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
@@ -266,7 +269,7 @@ def llama3_2_vision_90b(
         embed_dim=8192,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=28672,
     )
     return DeepFusionModel(
@@ -327,6 +330,11 @@ def lora_llama3_2_vision_90b(
     decoder_type = LoRATrainable(decoder_trainable.lower())
     encoder_type = LoRATrainable(encoder_trainable.lower())
     fusion_type = LoRATrainable(fusion_trainable.lower())
+    assert LoRATrainable.FULL not in [
+        decoder_type,
+        encoder_type,
+        fusion_type,
+    ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama3_2_vision_90b if you need full finetuning"
     encoder = lora_llama3_2_vision_encoder(
         encoder_lora=encoder_type == LoRATrainable.LORA,
         fusion_lora=fusion_type == LoRATrainable.LORA,
@@ -348,6 +356,9 @@ def lora_llama3_2_vision_90b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        # Update scaler block size to ensure that weights can be quantized evenly across 1, 2, 4, 6, 8 GPUs.
+        # This is dependent on ``clip_embed_dim`` so if that is updated, this variable should be as well
+        scaler_block_size=200 if quantize_base else None,
     )
     decoder = lora_llama3_2_vision_decoder(
         decoder_lora=decoder_type == LoRATrainable.LORA,
@@ -364,7 +375,7 @@ def lora_llama3_2_vision_90b(
         embed_dim=8192,
         max_seq_len=131_072,
         encoder_max_seq_len=128_080,  # 20*6404
-        rope_base=500000.0,
+        rope_base=500_000,
         intermediate_dim=28672,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,

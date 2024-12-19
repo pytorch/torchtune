@@ -17,9 +17,7 @@ class KVCache(nn.Module):
     Args:
         batch_size (int): batch size model will be run with
         max_seq_len (int): maximum sequence length model will be run with
-        num_heads (int): number of heads. We take num_heads instead of num_kv_heads because
-            the cache is created after we've expanded the key and value tensors to have the
-            same shape as the query tensor. See attention.py for more details
+        num_kv_heads (int): number of key/value heads.
         head_dim (int): per-attention head embedding dimension
         dtype (torch.dtype): dtype for the caches
     """
@@ -28,12 +26,12 @@ class KVCache(nn.Module):
         self,
         batch_size: int,
         max_seq_len: int,
-        num_heads: int,
+        num_kv_heads: int,
         head_dim: int,
         dtype: torch.dtype,
     ) -> None:
         super().__init__()
-        cache_shape = (batch_size, num_heads, max_seq_len, head_dim)
+        cache_shape = (batch_size, num_kv_heads, max_seq_len, head_dim)
         self.register_buffer(
             "k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
@@ -66,7 +64,7 @@ class KVCache(nn.Module):
             already been filled, use ``.reset()``, which will reset the cache to the zero-th position.
 
         Example:
-            >>> cache = KVCache(batch_size=2, max_seq_len=16, num_heads=4, head_dim=32, dtype=torch.bfloat16)
+            >>> cache = KVCache(batch_size=2, max_seq_len=16, num_kv_heads=4, head_dim=32, dtype=torch.bfloat16)
             >>> keys, values = torch.ones((2, 4, 8, 32)), torch.ones((2, 4, 8, 32))
             >>> cache.update(keys, values)
             >>> # now positions 0 through 7 are filled
