@@ -82,7 +82,9 @@ class PPOLoss(nn.Module):
         policy_losses_clipped = -advantages * clipped_ratios
         policy_losses_unclipped = -advantages * ratios
 
-        clipfrac = (policy_losses_clipped > policy_losses_unclipped).float()
+        clipfrac = (policy_losses_clipped > policy_losses_unclipped).to(
+            pi_logprobs.dtype
+        )
         clipfrac = (
             clipfrac.mean()
             if padding_masks is None

@@ -94,15 +94,15 @@ def generate_next_token(
             - tokens (torch.Tensor): tensor with the generated tokens,
                 with shape [bsz x 1].
             - logits (torch.Tensor): tensor with the logits associated with the generated tokens,
-                with shape [bsz x seq_length x vocab_size].
+                with shape [bsz x 1 x vocab_size].
 
     """
     # model produces logits in [bsz, seq_length, vocab_size]
     # we want to take the last token's logits as the input to the next model call
-    logits = model(x, input_pos=input_pos, mask=mask)
+    logits = model(x, input_pos=input_pos, mask=mask)[:, -1]
     return (
-        sample(logits[:, -1].clone(), temperature=temperature, top_k=top_k, q=q),
-        logits,
+        sample(logits.clone(), temperature=temperature, top_k=top_k, q=q),
+        logits.unsqueeze(1),
     )
 
 
@@ -189,7 +189,7 @@ def get_position_ids_from_padding_mask(
     return ((padding_mask.cumsum(-1) - 1) * padding_mask).to(torch.int)
 
 
-@torch.inference_mode()
+@torch.no_grad()
 def generate(
     model: TransformerDecoder,
     prompt: torch.Tensor,
@@ -241,7 +241,7 @@ def generate(
                 with shape ``[bsz x seq_len + num_generated_tokens]`` where ``num_generated_tokens``
                 may be less than ``max_generated_tokens`` if ``stop_tokens`` are provided.
             - logits (torch.Tensor): tensor with the logits associated with the generated tokens,
-                with shape ``[bsz x seq_len + num_generated_tokens x vocab_size]``.
+                with shape ``[bsz x num_generated_tokens x vocab_size]``.
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
 
@@ -355,8 +355,8 @@ def generate(
         # if incremental decoding is enabled, we can use the current position
         # otherwise, we take the whole sequence up to the current position
         if incremental_decoding:
-            curr_input_pos = input_pos[:, curr_pos]
-            curr_masks = masks[:, curr_pos, None, :]
+            curr_input_pos = input_pos[:, curr_pos].contiguous()
+            curr_masks = masks[:, curr_pos, None, :].contiguous()
         else:
             tokens = generated_tokens.clone()
             curr_input_pos = input_pos[:, : curr_pos + 1]
@@ -377,11 +377,8 @@ def generate(
             q=q,
         )
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
+        generated_logits = torch.cat([generated_logits, logits], dim=1)
         curr_pos += 1
-        if incremental_decoding:
-            generated_logits = torch.cat([generated_logits, logits], dim=1)
-        else:
-            generated_logits = logits
 
         if stop_tokens is not None:
             stop_token_reached = update_stop_tokens_tracker(
@@ -393,6 +390,6 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
-        generated_logits *= stop_token_mask[:, :-1, None]
+        generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
 
     return generated_tokens, generated_logits
