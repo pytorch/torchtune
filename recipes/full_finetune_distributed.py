@@ -602,6 +602,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 for param in opt_state_dict.keys():
                     try:
                         training.load_from_full_optimizer_state_dict(
+                            self._model,
                             self._optim_ckpt_wrapper.state_dict()[param],
                             opt_state_dict[param],
                             self._device,
@@ -617,6 +618,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
             if opt_state_dict:
                 training.load_from_full_optimizer_state_dict(
+                    self._model,
                     optimizer,
                     opt_state_dict,
                     self._device,
