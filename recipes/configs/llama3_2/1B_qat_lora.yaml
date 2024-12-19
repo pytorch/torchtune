@@ -82,6 +82,10 @@ dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 
+# QAT arguments
+quantizer:
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
+  groupsize: 256
 
 # Profiler (disabled)
 profiler:
@@ -107,8 +111,3 @@ profiler:
   warmup_steps: 3
   active_steps: 2
   num_cycles: 1
-
-# QAT arguments
-quantizer:
-  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
-  groupsize: 256
