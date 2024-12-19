@@ -468,7 +468,6 @@
 <span class="c1"># standardize checkpointing</span>
 <span class="n">SHARD_FNAME</span> <span class="o">=</span> <span class="s2">&quot;ft-model-</span><span class="si">{cpt_idx}</span><span class="s2">-of-</span><span class="si">{num_shards}</span><span class="s2">&quot;</span>
 <span class="n">RECIPE_STATE_DIRNAME</span> <span class="o">=</span> <span class="s2">&quot;recipe_state&quot;</span>
-<span class="n">BASE_MODEL_DIRNAME</span> <span class="o">=</span> <span class="s2">&quot;base_model&quot;</span>
 
 <span class="c1"># Needed when setting up output dir in checkpointing</span>
 <span class="n">REPO_ID_FNAME</span> <span class="o">=</span> <span class="s2">&quot;original_repo_id&quot;</span>
@@ -764,6 +763,7 @@
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">ignore_suffixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_file_size_mb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Copies files from the input directory to the output directory, preserving the directory structure.</span>
@@ -776,6 +776,7 @@
 <span class="sd">        output_dir (Union[str, Path]): The path to the output directory where files should be copied.</span>
 <span class="sd">        ignore_suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.</span>
 <span class="sd">          Defaults to [&#39;.pt&#39;, &#39;.bin&#39;, &#39;.safetensors&#39;] if not provided.</span>
+<span class="sd">        max_file_size_mb (int): The maximum file size in megabytes to copy. Defaults to 100 MB.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        None</span>
 <span class="sd">    Example:</span>
@@ -785,6 +786,7 @@
 <span class="sd">    already exist in the destination or have the specified suffixes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">max_file_size</span> <span class="o">=</span> <span class="n">max_file_size_mb</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
     <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
 
         <span class="c1"># Filter out directories that start with &#39;.&#39;. E.g. &quot;.cache/&quot;</span>
@@ -810,6 +812,13 @@
 
             <span class="n">src_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
             <span class="n">dest_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+            <span class="c1"># Check the file size</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">src_file</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_file_size</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Skipping copying </span><span class="si">{</span><span class="n">src_file</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2"> as it exceeds the size limit of </span><span class="si">{</span><span class="n">max_file_size_mb</span><span class="si">}</span><span class="s2"> MiB.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
 
             <span class="c1"># Copy the file if it doesn&#39;t already exist in the destination</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dest_file</span><span class="p">):</span>

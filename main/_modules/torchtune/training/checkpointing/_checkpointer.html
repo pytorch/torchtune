@@ -460,7 +460,6 @@
 <span class="kn">from</span> <span class="nn">torchtune.training.checkpointing._utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ADAPTER_CONFIG_FNAME</span><span class="p">,</span>
     <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">,</span>
-    <span class="n">BASE_MODEL_DIRNAME</span><span class="p">,</span>
     <span class="n">copy_files</span><span class="p">,</span>
     <span class="n">get_adapter_checkpoint_path</span><span class="p">,</span>
     <span class="n">get_model_checkpoint_path</span><span class="p">,</span>
@@ -610,14 +609,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="c1"># save all files in input_dir, except model weights and mapping, to output_dir</span>
-        <span class="c1"># this is useful to preserve the tokenizer, configs, license, etc.</span>
-        <span class="n">copy_files</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">BASE_MODEL_DIRNAME</span><span class="p">),</span>
-            <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
-        <span class="p">)</span>
-
         <span class="c1">#  resume from adapter_model ckpt</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="n">get_adapter_checkpoint_path</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
@@ -761,6 +752,14 @@
                 <span class="s2">&quot;Adapter checkpoint not found in state_dict. Please ensure that the state_dict contains adapter weights.&quot;</span>
             <span class="p">)</span>
 
+        <span class="c1"># Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}</span>
+        <span class="c1"># So its easy to run inference with the model using this epoch&#39;s checkpoint</span>
+        <span class="n">copy_files</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+            <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="c1"># If the recipe state needs to be output, first remove the model state dict</span>
         <span class="k">if</span> <span class="n">intermediate_checkpoint</span><span class="p">:</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -863,14 +862,6 @@
         <span class="c1"># the config.json file contains model params needed for state dict conversion</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span>
             <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="s2">&quot;config.json&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
-        <span class="p">)</span>
-
-        <span class="c1"># save all files in input_dir, except model weights and mapping, to output_dir</span>
-        <span class="c1"># this is useful to preserve the tokenizer, configs, license, etc.</span>
-        <span class="n">copy_files</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">BASE_MODEL_DIRNAME</span><span class="p">),</span>
-            <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># repo_id is necessary for when saving an adapter config, so its compatible with HF.</span>
@@ -1303,6 +1294,14 @@
                     <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
+        <span class="c1"># Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}</span>
+        <span class="c1"># So its easy to run inference with the model using this epoch&#39;s checkpoint</span>
+        <span class="n">copy_files</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+            <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="c1"># If the recipe state needs to be output, first remove the model state dict</span>
         <span class="c1"># and if it exists, remove the adapter state dict as well</span>
         <span class="k">if</span> <span class="n">intermediate_checkpoint</span><span class="p">:</span>
@@ -1395,14 +1394,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="c1"># save all files in input_dir, except model weights and mapping, to output_dir</span>
-        <span class="c1"># this is useful to preserve the tokenizer, configs, license, etc.</span>
-        <span class="n">copy_files</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">BASE_MODEL_DIRNAME</span><span class="p">),</span>
-            <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
-        <span class="p">)</span>
 
         <span class="c1">#  resume from adapter_model ckpt</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span> <span class="o">=</span> <span class="n">get_adapter_checkpoint_path</span><span class="p">(</span>
@@ -1555,6 +1546,14 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Adapter checkpoint not found in state_dict. Please ensure that the state_dict contains adapter weights.&quot;</span>
             <span class="p">)</span>
+
+        <span class="c1"># Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}</span>
+        <span class="c1"># So its easy to run inference with the model using this epoch&#39;s checkpoint</span>
+        <span class="n">copy_files</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+            <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="c1"># If the recipe state needs to be output, first remove the model state dict</span>
         <span class="c1"># and if it exists, remove the adapter state dict as well</span>
