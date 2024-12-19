@@ -138,7 +138,7 @@ tokenizer. Let's do this using the overrides in the tune CLI while starting trai
 
 
 Preparing your artifacts for inference
--------------------------------
+--------------------------------------
 
 Congrats for getting this far! You have loaded your weights, trained your model, now it's time to visualize
 the outputs. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
@@ -182,8 +182,8 @@ There are 4 types of folders:
     │   └── model.safetensors.index.json
     ├── logs
     │   └── log_1734559109.txt
-    └── recipe_state
-    └── recipe_state.pt
+    ├── recipe_state
+    ├── └── recipe_state.pt
 
 Let's say that you want to run inference with epoch_1. Then all you have to do it copy it's contents to the base_model folder,
 which will now hold the necessary configs, tokenizer and checkpoint weights.
@@ -192,6 +192,7 @@ which will now hold the necessary configs, tokenizer and checkpoint weights.
 
     cp -r /tmp/torchtune/llama3_2_3B/lora_single_device/epoch_1/* /tmp/torchtune/llama3_2_3B/lora_single_device/base_model/
 
+.. todo: delete
 .. For this tutorial, we'll only use the merged full model checkpoints and not the adapter weights, i.e. the adapter weights are already
 .. merged into the base model. Please, see the :ref:`LoRA Tutorial <lora_finetune_label>` for more details.
 
