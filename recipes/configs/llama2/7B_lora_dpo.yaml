@@ -32,7 +32,7 @@ model:
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
   path: /tmp/Llama-2-7b-hf/tokenizer.model
-  max_seq_len: 1024
+  max_seq_len: 1024 # higher increases memory
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
