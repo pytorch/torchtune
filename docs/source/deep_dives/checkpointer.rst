@@ -174,7 +174,7 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
         _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
-        # this should match the output_dir above
+        # this should match the folder you used when downloading the model
         checkpoint_dir: <checkpoint_dir>
 
         # checkpoint files. For the Llama-3.2-3B-Instruct model we have
@@ -238,7 +238,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
         _component_: torchtune.training.FullModelMetaCheckpointer
 
         # directory with the checkpoint files
-        # this should match the output_dir above
+        # this should match the folder you used when downloading the model
         checkpoint_dir: <checkpoint_dir>
 
         # checkpoint files. For the llama3.2 3B model we have
@@ -271,16 +271,11 @@ Checkpoint Output
 
 Congrats for getting this far! You have loaded your weights, trained your model, now it's time to visualize
 the outputs. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
-There are 4 types of folders:
+There are 3 types of folders:
 
 1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart the last intermediate epoch;
 2) **logs**: Defined in your config in metric_logger;
-3) **epoch_{}**: Contains the model weights and the index.json used by HF to load the model;
-4) **base_model**: The files in the original checkpoint_dir, with the exception of model weights;
-
-
-We keep a copy of the base_model folder so that it is easier for the user to copy their checkpoints from /epoch_{} to /base_model,
-and have this folder ready for inference or being uploaded to a model hub.
+3) **epoch_{}**: Contains your new trained model weights plus all original files of the model, making it easy for you to choose an specific epoch to run inference on or push to a model hub;
 
     .. code-block:: bash
 
