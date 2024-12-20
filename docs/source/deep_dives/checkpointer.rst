@@ -42,11 +42,11 @@ inference will not work as expected). In addition to the keys lining up, you als
 of the weights (values in the state_dict) to match up exactly with those expected by the model
 definition.
 
-Let's look at the two popular formats for Llama2.
+Let's look at the two popular formats for Llama 3.2.
 
 **Meta Format**
 
-This is the format supported by the official Llama2 implementation. When you download the Llama2 7B model
+This is the format supported by the official Llama 3.2 implementation. When you download the Llama 3.2 3B model
 from the `meta-llama website <https://llama.meta.com/llama-downloads>`_, you'll get access to a single
 ``.pth`` checkpoint file. You can inspect the contents of this checkpoint easily with ``torch.load``
 
@@ -58,39 +58,43 @@ from the `meta-llama website <https://llama.meta.com/llama-downloads>`_, you'll 
     >>> for key, value in state_dict.items():
     >>>    print(f'{key}: {value.shape}')
 
-    tok_embeddings.weight: torch.Size([32000, 4096])
+    tok_embeddings.weight: torch.Size([128256, 3072])
     ...
     ...
     >>> print(len(state_dict.keys()))
-    292
+    255
 
-The state_dict contains 292 keys, including an input embedding table called ``tok_embeddings``. The
-model definition for this state_dict expects an embedding layer with ``32000`` tokens each having a
-embedding with dim of ``4096``.
+The state_dict contains 255 keys, including an input embedding table called ``tok_embeddings``. The
+model definition for this state_dict expects an embedding layer with ``128256`` tokens each having a
+embedding with dim of ``3072``.
 
 
 **HF Format**
 
 This is the most popular format within the Hugging Face Model Hub and is
 the default format in every torchtune config. This is also the format you get when you download the
-llama2 model from the `Llama-2-7b-hf <https://huggingface.co/meta-llama/Llama-2-7b-hf>`_ repo.
+llama3.2 model from the `Llama-3.2-3B-Instruct <https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct>`_ repo.
 
-The first big difference is that the state_dict is split across two ``.bin`` files. To correctly
+The first big difference is that the state_dict is split across two ``.safetensors`` files. To correctly
 load the checkpoint, you'll need to piece these files together. Let's inspect one of the files.
 
 .. code-block:: python
 
-    >>> import torch
-    >>> state_dict = torch.load('pytorch_model-00001-of-00002.bin', mmap=True, weights_only=True, map_location='cpu')
+    >>> from safetensors import safe_open
+    >>> state_dict = {}
+    >>> with safe_open("model-00001-of-00002.safetensors", framework="pt", device="cpu") as f:
+    >>>     for k in f.keys():
+    >>>         state_dict[k] = f.get_tensor(k)
+
     >>> # inspect the keys and the shapes of the associated tensors
     >>> for key, value in state_dict.items():
     >>>     print(f'{key}: {value.shape}')
 
-    model.embed_tokens.weight: torch.Size([32000, 4096])
+    model.embed_tokens.weight: torch.Size([128256, 3072])
     ...
     ...
     >>> print(len(state_dict.keys()))
-    241
+    187
 
 Not only does the state_dict contain fewer keys (expected since this is one of two files), but
 the embedding table is called ``model.embed_tokens`` instead of ``tok_embeddings``. This mismatch
@@ -145,16 +149,16 @@ Model Hub and is the default format in every torchtune config.
 For this checkpointer to work correctly, we assume that ``checkpoint_dir`` contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:
 
-- Download the model from the HF repo using tune download. By default, this will ignore the "safetensors"
-  files.
+- Download the model from the HF repo using tune download. This will ignore the "pth"
+  files, since we will be loading the "safetensors".
 
     |
 
     .. code-block:: bash
 
-        tune download meta-llama/Llama-2-7b-hf \
-        --output-dir <checkpoint_dir> \
-        --hf-token <hf-token>
+       tune download meta-llama/Llama-3.2-3B-Instruct \
+       --output-dir /tmp/Llama-3.2-3B-Instruct \
+       --ignore-patterns "original/consolidated.00.pth"
 
 - Use ``output_dir`` specified here as the ``checkpoint_dir`` argument for the checkpointer.
 
@@ -170,31 +174,25 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
         _component_: torchtune.training.FullModelHFCheckpointer
 
         # directory with the checkpoint files
-        # this should match the output_dir above
-        checkpoint_dir: <checkpoint_dir>
+        # this should match the folder you used when downloading the model
+        checkpoint_dir: /tmp/Llama-3.2-3B-Instruct
 
-        # checkpoint files. For the llama2-7b-hf model we have
-        # 2 .bin files. The checkpointer takes care of sorting
+        # checkpoint files. For the Llama-3.2-3B-Instruct model we have
+        # 2 .safetensor files. The checkpointer takes care of sorting
         # by id and so the order here does not matter
         checkpoint_files: [
-            pytorch_model-00001-of-00002.bin,
-            pytorch_model-00002-of-00002.bin,
+            model-00001-of-00002.safetensors,
+            model-00002-of-00002.safetensors,
         ]
 
-        # if we're restarting a previous run, we need to specify
-        # the file with the checkpoint state. More on this in the
-        # next section
-        recipe_checkpoint: null
-
-        # dir for saving the output checkpoints. Usually set
-        # to be the same as checkpoint_dir
-        output_dir: <checkpoint_dir>
+        # dir for saving the output checkpoints
+        output_dir: <output_dir>
 
         # model_type which specifies how to convert the state_dict
         # into a format which torchtune understands
-        model_type: LLAMA2
+        model_type: LLAMA3_2
 
-    # set to True if restarting training
+    # set to True if restarting training. More on that later.
     resume_from_checkpoint: False
 
 .. note::
@@ -222,9 +220,9 @@ and json files. The easiest way to make sure everything works correctly is to us
 
     .. code-block:: bash
 
-        tune download meta-llama/Llama-2-7b \
-        --output-dir <checkpoint_dir> \
-        --hf-token <hf-token>
+        tune download meta-llama/Llama-3.2-3B-Instruct \
+        --output-dir /tmp/Llama-3.2-3B-Instruct \
+        --ignore-patterns "*.safetensors"
 
 - Use ``output_dir`` above as the ``checkpoint_dir`` for the checkpointer.
 
@@ -240,27 +238,21 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
         _component_: torchtune.training.FullModelMetaCheckpointer
 
         # directory with the checkpoint files
-        # this should match the output_dir above
+        # this should match the folder you used when downloading the model
         checkpoint_dir: <checkpoint_dir>
 
-        # checkpoint files. For the llama2-7b model we have
+        # checkpoint files. For the llama3.2 3B model we have
         # a single .pth file
         checkpoint_files: [consolidated.00.pth]
 
-        # if we're restarting a previous run, we need to specify
-        # the file with the checkpoint state. More on this in the
-        # next section
-        recipe_checkpoint: null
-
-        # dir for saving the output checkpoints. Usually set
-        # to be the same as checkpoint_dir
+        # dir for saving the output checkpoints.
         output_dir: <checkpoint_dir>
 
         # model_type which specifies how to convert the state_dict
         # into a format which torchtune understands
-        model_type: LLAMA2
+        model_type: LLAMA3_2
 
-    # set to True if restarting training
+    # set to True if restarting training. More on that later.
     resume_from_checkpoint: False
 
 |
@@ -273,6 +265,73 @@ model definition. This does not perform any state_dict conversions and is curren
 for testing or for loading quantized models for generation.
 
 |
+
+Checkpoint Output
+---------------------------------
+
+Congrats for getting this far! Let's say you have followed our :ref:`End-to-End Workflow with torchtune <e2e_flow>` and trained a llama 3.2 3B using one of our LoRA recipes.
+
+Now let's visualize the outputs. A simple way of doing this is by running :code:`tree -a path/to/outputdir`, which should show something like the tree below.
+There are 3 types of folders:
+
+1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart your training run from the last intermediate epoch. More on that later;
+2) **logs**: Outputs of your metric_logger, if any;
+3) **epoch_{}**: Contains your trained model weights plus model metadata. If running inference or pushing to a model hub, you should use this folder directly;
+
+.. note::
+     For each epoch, we copy the contents of the original checkpoint folder, excluding the original checkpoints and large files.
+     These files are lightweight, mostly configuration files, and make it easier for the user to use the epoch folders directly in downstream applications.
+
+For more details about each file, please check the End-to-End tutorial mentioned above.
+
+    .. code-block:: bash
+
+        >>> tree -a /tmp/torchtune/llama3_2_3B/lora_single_device
+        /tmp/torchtune/llama3_2_3B/lora_single_device
+        ├── epoch_0
+        │   ├── adapter_config.json
+        │   ├── adapter_model.pt
+        │   ├── adapter_model.safetensors
+        │   ├── config.json
+        │   ├── ft-model-00001-of-00002.safetensors
+        │   ├── ft-model-00002-of-00002.safetensors
+        │   ├── generation_config.json
+        │   ├── LICENSE.txt
+        │   ├── model.safetensors.index.json
+        │   ├── original
+        │   │   ├── orig_params.json
+        │   │   ├── params.json
+        │   │   └── tokenizer.model
+        │   ├── original_repo_id.json
+        │   ├── README.md
+        │   ├── special_tokens_map.json
+        │   ├── tokenizer_config.json
+        │   ├── tokenizer.json
+        │   └── USE_POLICY.md
+        ├── epoch_1
+        │   ├── adapter_config.json
+        │   ├── adapter_model.pt
+        │   ├── adapter_model.safetensors
+        │   ├── config.json
+        │   ├── ft-model-00001-of-00002.safetensors
+        │   ├── ft-model-00002-of-00002.safetensors
+        │   ├── generation_config.json
+        │   ├── LICENSE.txt
+        │   ├── model.safetensors.index.json
+        │   ├── original
+        │   │   ├── orig_params.json
+        │   │   ├── params.json
+        │   │   └── tokenizer.model
+        │   ├── original_repo_id.json
+        │   ├── README.md
+        │   ├── special_tokens_map.json
+        │   ├── tokenizer_config.json
+        │   ├── tokenizer.json
+        │   └── USE_POLICY.md
+        ├── logs
+        │   └── log_1734652101.txt
+        └── recipe_state
+            └── recipe_state.pt
 
 
 Intermediate vs Final Checkpoints
@@ -327,92 +386,66 @@ The output state dicts have the following formats:
                 ...
             }
 
-To restart from a previous checkpoint file, you'll need to make the following changes
-to the config file
+Resuming from checkpoint - Full Finetuning
+------------------------------------------
+
+Sometimes our training is interrupted for some reason. To restart training from a previous checkpoint file,
+you'll need to **update** the following fields in your configs:
+
+**resume_from_checkpoint**: Set it to True;
+
+**checkpoint_files**: change the path to ``epoch_{YOUR_EPOCH}/ft-model={}-of-{}.safetensors``;
+
+Notice that we do **not** change our checkpoint_dir or output_dir. Since we are resuming from checkpoint, we know
+to look for it in the output_dir.
 
 .. code-block:: yaml
 
     checkpointer:
-
-        # checkpointer to use
-        _component_: torchtune.training.FullModelHFCheckpointer
-
-        checkpoint_dir: <checkpoint_dir>
-
         # checkpoint files. Note that you will need to update this
         # section of the config with the intermediate checkpoint files
         checkpoint_files: [
-            hf_model_0001_0.pt,
-            hf_model_0002_0.pt,
+            epoch_{YOUR_EPOCH}/ft-model-00001-of-00002.safetensors,
+            epoch_{YOUR_EPOCH}/ft-model-00001-of-00002.safetensors,
         ]
-
-        # if we're restarting a previous run, we need to specify
-        # the file with the checkpoint state
-        recipe_checkpoint: recipe_state.pt
-
-        # dir for saving the output checkpoints. Usually set
-        # to be the same as checkpoint_dir
-        output_dir: <checkpoint_dir>
-
-        # model_type which specifies how to convert the state_dict
-        # into a format which torchtune understands
-        model_type: LLAMA2
 
     # set to True if restarting training
     resume_from_checkpoint: True
 
 
-Checkpointing for LoRA
-----------------------
+Resuming from checkpoint - LoRA Finetuning
+------------------------------------------
 
-In torchtune, we output both the adapter weights and the full model "merged" weights
-for LoRA. The "merged" checkpoint can be used just like you would use the source
-checkpoint with any post-training tools. For more details, take a look at our
-:ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.Additionally, by setting the option "save_adapter_weights_only" to True when saving a checkpoint, you can choose to save only the adapter weights.
-
-The primary difference between the two use cases is when you want to resume training
-from a checkpoint. In this case, the checkpointer needs access to both the initial frozen
-base model weights as well as the learnt adapter weights. The config for this scenario
-looks something like this:
-
+Similarly to full finetuning, we will also only need to modify two fields: ``resume_from_checkpoint``
+and ``adapter_checkpoint``, which will be loaded from output_dir. We do not have to modify ``checkpoint_files``,
+because the base model being loaded is still the same.
 
 .. code-block:: yaml
 
     checkpointer:
 
-        # checkpointer to use
-        _component_: torchtune.training.FullModelHFCheckpointer
-
-        # directory with the checkpoint files
-        # this should match the output_dir above
-        checkpoint_dir: <checkpoint_dir>
-
-        # checkpoint files. This is the ORIGINAL frozen checkpoint
-        # and NOT the merged checkpoint output during training
-        checkpoint_files: [
-            pytorch_model-00001-of-00002.bin,
-            pytorch_model-00002-of-00002.bin,
-        ]
-
-        # this refers to the adapter weights learnt during training
-        adapter_checkpoint: adapter_0.pt
-
-        # the file with the checkpoint state
-        recipe_checkpoint: recipe_state.pt
-
-        # dir for saving the output checkpoints. Usually set
-        # to be the same as checkpoint_dir
-        output_dir: <checkpoint_dir>
-
-        # model_type which specifies how to convert the state_dict
-        # into a format which torchtune understands
-        model_type: LLAMA2
+        # adapter_checkpoint. Note that you will need to update this
+        # section of the config with the intermediate checkpoint files
+        adapter_checkpoint: epoch_{YOUR_EPOCH}/adapter_model.safetensors
 
     # set to True if restarting training
     resume_from_checkpoint: True
 
-    # Set to True to save only the adapter weights
+    # set to True to save only the adapter weights
+    # it does not influence resuming_from_checkpointing
     save_adapter_weights_only: False
+
+.. note::
+    In torchtune, we output both the adapter weights and the full model merged weights
+    for LoRA. The merged checkpoint is a convenience, since it can be used without having special
+    tooling to handle the adapters. However, they should **not** be used when resuming
+    training, as loading the merged weights + adapter would be an error. Therefore, when resuming for LoRA,
+    we will take the original untrained weigths from checkpoint dir, and the trained
+    adapters from output_dir. For more details, take a look at our :ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
+
+.. note::
+    Additionally, by setting the option :code:`save_adapter_weights_only`, you can choose to **only** save the adapter weights.
+    This reduces the amount of storage and time needed to save the checkpoint, but has no influence over resuming from checkpoint.
 
 |
 
@@ -422,51 +455,50 @@ Putting this all together
 Let's now put all of this knowledge together! We'll load some checkpoints,
 create some models and run a simple forward.
 
-For this section we'll use the Llama2 13B model in HF format.
+For this section we'll use the Llama-3.2-3B-Instruct model in HF format.
 
 .. code-block:: python
 
     import torch
-    from torchtune.training import FullModelHFCheckpointer, ModelType
-    from torchtune.models.llama2 import llama2_13b
+    from torchtune.models.llama3_2 import llama3_2_3b
+    from torchtune.training import FullModelHFCheckpointer
 
     # Set the right directory and files
-    checkpoint_dir = 'Llama-2-13b-hf/'
+    checkpoint_dir = "/tmp/Llama-3.2-3B-Instruct/"
+    output_dir = "/tmp/torchtune/llama3_2_3B/full_single_device"
+
     pytorch_files = [
-        'pytorch_model-00001-of-00003.bin',
-        'pytorch_model-00002-of-00003.bin',
-        'pytorch_model-00003-of-00003.bin'
+        "model-00001-of-00002.safetensors",
+        "model-00002-of-00002.safetensors",
     ]
 
     # Set up the checkpointer and load state dict
     checkpointer = FullModelHFCheckpointer(
         checkpoint_dir=checkpoint_dir,
         checkpoint_files=pytorch_files,
-        output_dir=checkpoint_dir,
-        model_type="LLAMA2"
+        output_dir=output_dir,
+        model_type="LLAMA3_2",
     )
     torchtune_sd = checkpointer.load_checkpoint()
 
     # Setup the model and the input
-    model = llama2_13b()
+    model = llama3_2_3b()
 
     # Model weights are stored with the key="model"
     model.load_state_dict(torchtune_sd["model"])
-    <All keys matched successfully>
+    model.to("cuda")
 
-    # We have 32000 vocab tokens; lets generate an input with 70 tokens
-    x = torch.randint(0, 32000, (1, 70))
+    # We have 128256 vocab tokens; lets generate an input with 24 tokens
+    x = torch.randint(0, 128256, (1, 24), dtype=torch.long, device="cuda")
 
-    with torch.no_grad():
-        model(x)
-
-    tensor([[[ -6.3989,  -9.0531,   3.2375,  ...,  -5.2822,  -4.4872,  -5.7469],
-        [ -8.6737, -11.0023,   6.8235,  ...,  -2.6819,  -4.2424,  -4.0109],
-        [ -4.6915,  -7.3618,   4.1628,  ...,  -2.8594,  -2.5857,  -3.1151],
-        ...,
-        [ -7.7808,  -8.2322,   2.8850,  ...,  -1.9604,  -4.7624,  -1.6040],
-        [ -7.3159,  -8.5849,   1.8039,  ...,  -0.9322,  -5.2010,  -1.6824],
-        [ -7.8929,  -8.8465,   3.3794,  ...,  -1.3500,  -4.6145,  -2.5931]]])
+    tensor([[[ 1.4299,  1.1658,  4.2459,  ..., -2.3259, -2.3262, -2.3259],
+            [ 6.5942,  7.2284,  2.4090,  ..., -6.0129, -6.0121, -6.0127],
+            [ 5.6462,  4.8787,  4.0950,  ..., -4.6460, -4.6455, -4.6457],
+            ...,
+            [-0.4156, -0.0626, -0.0362,  ..., -3.6432, -3.6437, -3.6427],
+            [-0.5679, -0.6902,  0.5267,  ..., -2.6137, -2.6138, -2.6127],
+            [ 0.3688, -0.1350,  1.1764,  ..., -3.4563, -3.4565, -3.4564]]],
+        device='cuda:0')
 
 
 You can do this with any model supported by torchtune. You can find a full list
