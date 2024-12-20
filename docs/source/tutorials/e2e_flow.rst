@@ -7,7 +7,7 @@ End-to-End Workflow with torchtune
 In this tutorial, we'll walk through an end-to-end example of how you can fine-tune,
 evaluate, optionally quantize and then run generation with your favorite LLM using
 torchtune. We'll also go over how you can use some popular tools and libraries
-from the community seemlessly with torchtune.
+from the community seamlessly with torchtune.
 
 .. grid:: 2
 
@@ -30,7 +30,7 @@ Finetune your model
 
 First, let's download a model using the tune CLI. The following command will download the `Llama3.2 3B Instruct <https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/>`_
 model from the Hugging Face Hub and save it the local filesystem. Hugging Face uploaded the original
-weights (``consolidated.00.pth``) and the weights compatible with the `from_pretrained() <https://huggingface.co/docs/huggingface_hub/main/en/guides/integrations#frompretrained>`_ API (`*.safetensors`).
+weights (``consolidated.00.pth``) and the weights compatible with the `from_pretrained() <https://huggingface.co/docs/huggingface_hub/main/en/guides/integrations#frompretrained>`_ API (``*.safetensors``).
 We don't need both so we'll ignore the original weights when downloading.
 
 .. code-block:: text
@@ -45,13 +45,12 @@ We don't need both so we'll ignore the original weights when downloading.
     /tmp/Llama-3.2-3B-Instruct/config.json
     /tmp/Llama-3.2-3B-Instruct/generation_config.json
     /tmp/Llama-3.2-3B-Instruct/model-00001-of-00002.safetensors
-    /tmp/Llama-3.2-3B-Instruct/model-00002-of-00002.safetensors
-    /tmp/Llama-3.2-3B-Instruct/model.safetensors.index.json
-    /tmp/Llama-3.2-3B-Instruct/original
-    /tmp/Llama-3.2-3B-Instruct/special_tokens_map.json
-    /tmp/Llama-3.2-3B-Instruct/tokenizer.json
-    /tmp/Llama-3.2-3B-Instruct/tokenizer_config.json
-    /tmp/Llama-3.2-3B-Instruct/original_repo_id.json
+    ...
+
+.. note::
+
+    For a list of all other models you can finetune out-of-the-box with torchtune, check out
+    our :ref:`models page<models>`.
 
 For this tutorial, we'll fine-tune the model using LoRA. LoRA is a parameter efficient fine-tuning
 technique which is especially helpful when you don't have a lot of GPU memory to play with. LoRA
@@ -103,7 +102,7 @@ We'll fine-tune using our
 and use the standard settings from the
 `default config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama3_2/3B_lora_single_device.yaml>`_.
 
-This will fine-tune our model using a ``batch_size=2`` and ``dtype=bfloat16``. With these settings the model
+This will fine-tune our model using a ``batch_size=4`` and ``dtype=bfloat16``. With these settings the model
 should have a peak memory usage of ~16GB and total training time of around 2-3 hours for each epoch.
 
 .. code-block:: text
@@ -126,12 +125,13 @@ should have a peak memory usage of ~16GB and total training time of around 2-3 h
     Profiler config after instantiation: {'enabled': False}
     1|3|Loss: 1.943998098373413:   0%|                    | 3/1617 [00:21<3:04:47,  6.87s/it]
 
-Congrats on training your model! Let's take a look at the artifacts produced by torchtune. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
-There are 4 types of folders:
+Congrats on training your model! Let's take a look at the artifacts produced by torchtune. A simple way of doing this is by running :code:`tree -a path/to/outputdir`, which should show something like the tree below.
+There are 3 types of folders:
 
 1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart the last intermediate epoch. For more information, please check our deep-dive :ref:`Checkpointing in torchtune <understand_checkpointer>`.;
-2) **logs**: Defined in your config in metric_logger;
-3) **epoch_{}**: Contains your new trained model weights plus all original files of the model, except the checkpoints, making it easy for you to choose an specific epoch to run inference on or push to a model hub;
+2) **logs**: Contains all the logging output from your training run: loss, memory, exceptions, etc.
+3) **epoch_{}**: Contains your trained model weights plus model metadata. If running inference or pushing to a model hub, you should use this folder directly.
+
 
 .. code-block:: text
 
@@ -157,6 +157,9 @@ There are 4 types of folders:
     │   ├── tokenizer_config.json
     │   ├── tokenizer.json
     │   └── USE_POLICY.md
+    ├── epoch_1
+    │   ├── adapter_config.json
+    │   ...
     ├── logs
     │   └── log_1734652101.txt
     └── recipe_state
@@ -164,10 +167,10 @@ There are 4 types of folders:
 
 Let's understand the files:
 
-- `adapter_model.safetensors` and `adapter_model.pt` are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.
-- `ft-model-{}-of-{}.safetensors` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the merged base model with trained adapters, making inference easier.
-- `adapter_config.json` is used by Huggingface PEFT when loading an adapter (more on that later);
-- `model.safetensors.index.json` is used by Huggingface .from_pretrained when loading the model weights (more on that later)
+- ``adapter_model.safetensors`` and ``adapter_model.pt`` are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.
+- ``ft-model-{}-of-{}.safetensors`` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the merged base model with trained adapters, making inference easier.
+- ``adapter_config.json`` is used by Huggingface PEFT when loading an adapter (more on that later);
+- ``model.safetensors.index.json`` is used by Hugging Face ``from_pretrained()`` when loading the model weights (more on that later)
 - All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending on .safetensors, .pth, .pt, .bin are ignored, making it lightweight.
 
 Evaluate your model
@@ -365,7 +368,7 @@ with interoperability with other libraries since torchtune doesn't add yet anoth
 Use with Hugging Face ``from_pretrained()``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Case 1: HF using BASE MODEL + trained adapter**
+**Case 1: Hugging Face using base model + trained adapters**
 
 Here we load the base model from Hugging Face model hub. Then we load the adapters on top of it using `PeftModel <https://huggingface.co/docs/peft/v0.6.1/en/package_reference/peft_model>`_.
 It will look for the files ``adapter_model.safetensors`` for the weights and ``adapter_config.json`` for where to insert them.
@@ -398,7 +401,7 @@ It will look for the files ``adapter_model.safetensors`` for the weights and ``a
     prompt = "tell me a joke: '"
     print("Base model output:", generate_text(peft_model, tokenizer, prompt))
 
-**Case 2: HF using merged full+adapter weights**
+**Case 2: Hugging Face using merged weights**
 
 In this case, Hugging Face will check in ``model.safetensors.index.json`` for which files it should load.
 
