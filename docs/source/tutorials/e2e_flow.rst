@@ -250,7 +250,7 @@ For this tutorial we'll use the `truthfulqa_mc2 <https://github.com/sylinrl/Trut
 
 This task measures a model's propensity to be truthful when answering questions and
 measures the model's zero-shot accuracy on a question followed by one or more true
-responses and one or more false responses
+responses and one or more false responses.
 
 .. code-block:: text
 
