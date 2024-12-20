@@ -203,8 +203,7 @@ let's first copy over the config to our local working directory so we can make c
     $ tune cp eleuther_evaluation ./custom_eval_config.yaml
     Copied file to custom_eval_config.yaml
 
-Then, in your config, you only need to replace two fields: ``output_dir`` and ``checkpoint_files``. Notice
-that we are using the merged weights, and not the LoRA adapters.
+Notice that we are using the merged weights, and not the LoRA adapters.
 
 .. code-block:: yaml
 
@@ -277,8 +276,7 @@ Let's first copy over the config to our local working directory so we can make c
     $ tune cp generation ./custom_generation_config.yaml
     Copied file to custom_generation_config.yaml
 
-Let's modify ``custom_generation_config.yaml`` to include the following changes. Again, you only need
- to replace two fields: ``output_dir`` and ``checkpoint_files``
+Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
 .. code-block:: yaml
 
