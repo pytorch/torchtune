@@ -1,0 +1,2 @@
+[console_scripts]
+tune = torchtune._cli.tune:main
