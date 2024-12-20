@@ -437,7 +437,7 @@ because the base model being loaded is still the same.
 
 .. note::
     In torchtune, we output both the adapter weights and the full model merged weights
-    for LoRA. The "merged" checkpoint is a convenience, since it can be used without having special
+    for LoRA. The merged checkpoint is a convenience, since it can be used without having special
     tooling to handle the adapters. However, they should **not** be used when resuming
     training, as loading the merged weights + adapter would be an error. Therefore, when resuming for LoRA,
     we will take the original untrained weigths from checkpoint dir, and the trained
