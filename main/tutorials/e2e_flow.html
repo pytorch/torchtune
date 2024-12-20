@@ -437,7 +437,7 @@
 <p>In this tutorial, we’ll walk through an end-to-end example of how you can fine-tune,
 evaluate, optionally quantize and then run generation with your favorite LLM using
 torchtune. We’ll also go over how you can use some popular tools and libraries
-from the community seemlessly with torchtune.</p>
+from the community seamlessly with torchtune.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -469,45 +469,30 @@ from the community seemlessly with torchtune.</p>
 </div>
 </div>
 </div>
-<section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h2>
-<p>Fine-tuning an LLM is usually only one step in a larger workflow. An example workflow that you
-might have can look something like this:</p>
-<ul class="simple">
-<li><p>Download a popular model from <a class="reference external" href="https://huggingface.co/docs/hub/en/index">HF Hub</a></p></li>
-<li><p>Fine-tune the model using a relevant fine-tuning technique. The exact technique used
-will depend on factors such as the model, amount and nature of training data, your hardware
-setup and the end task for which the model will be used</p></li>
-<li><p>Evaluate the model on some benchmarks to validate model quality</p></li>
-<li><p>Run some generations to make sure the model output looks reasonable</p></li>
-<li><p>Quantize the model for efficient inference</p></li>
-<li><p>[Optional] Export the model for specific environments such as inference on a mobile phone</p></li>
-</ul>
-<p>In this tutorial, we’ll cover how you can use torchtune for all of the above, leveraging
-integrations with popular tools and libraries from the ecosystem.</p>
-<p>We’ll use the Llama-3.2-3B-Instruct model for this tutorial. You can find a complete set of models supported
-by torchtune <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/README.md#introduction">here</a>.</p>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
-</section>
-<section id="download-llama-3-2-3b-instruct">
-<h2>Download Llama-3.2-3B-Instruct<a class="headerlink" href="#download-llama-3-2-3b-instruct" title="Permalink to this heading">¶</a></h2>
-<p>For more information on checkpoint formats and how these are handled in torchtune, take a look at
-this tutorial on <a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpoints</span></a>.</p>
-<p>To download the HF format Llama-3.2-3B-Instruct, we’ll use the tune CLI.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.2-3B-Instruct<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--output-dir<span class="w"> </span>/tmp/Llama-3.2-3B-Instruct<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span>
+<section id="finetune-your-model">
+<h2>Finetune your model<a class="headerlink" href="#finetune-your-model" title="Permalink to this heading">¶</a></h2>
+<p>First, let’s download a model using the tune CLI. The following command will download the <a class="reference external" href="https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/">Llama3.2 3B Instruct</a>
+model from the Hugging Face Hub and save it the local filesystem. Hugging Face uploaded the original
+weights (<code class="docutils literal notranslate"><span class="pre">consolidated.00.pth</span></code>) and the weights compatible with the <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/main/en/guides/integrations#frompretrained">from_pretrained()</a> API (<code class="docutils literal notranslate"><span class="pre">*.safetensors</span></code>).
+We don’t need both so we’ll ignore the original weights when downloading.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune download meta-llama/Llama-3.2-3B-Instruct --ignore-patterns &quot;original/consolidated.00.pth&quot;
+Successfully downloaded model repo and wrote to the following locations:
+/tmp/Llama-3.2-3B-Instruct/.cache
+/tmp/Llama-3.2-3B-Instruct/.gitattributes
+/tmp/Llama-3.2-3B-Instruct/LICENSE.txt
+/tmp/Llama-3.2-3B-Instruct/README.md
+/tmp/Llama-3.2-3B-Instruct/USE_POLICY.md
+/tmp/Llama-3.2-3B-Instruct/config.json
+/tmp/Llama-3.2-3B-Instruct/generation_config.json
+/tmp/Llama-3.2-3B-Instruct/model-00001-of-00002.safetensors
+...
 </pre></div>
 </div>
-<p>Make a note of <code class="docutils literal notranslate"><span class="pre">&lt;checkpoint_dir&gt;</span></code>, we’ll use this many times in this tutorial.</p>
-<div class="line-block">
-<div class="line"><br /></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For a list of all other models you can finetune out-of-the-box with torchtune, check out
+our <a class="reference internal" href="../api_ref_models.html#models"><span class="std std-ref">models page</span></a>.</p>
 </div>
-</section>
-<section id="finetune-the-model-using-lora">
-<h2>Finetune the model using LoRA<a class="headerlink" href="#finetune-the-model-using-lora" title="Permalink to this heading">¶</a></h2>
 <p>For this tutorial, we’ll fine-tune the model using LoRA. LoRA is a parameter efficient fine-tuning
 technique which is especially helpful when you don’t have a lot of GPU memory to play with. LoRA
 freezes the base LLM and adds a very small percentage of learnable parameters. This helps keep
@@ -515,147 +500,134 @@ memory associated with gradients and optimizer state low. Using torchtune, you s
 fine-tune a Llama-3.2-3B-Instruct model with LoRA in less than 16GB of GPU memory using bfloat16 on a
 RTX 3090/4090. For more information on how to use LoRA, take a look at our
 <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Tutorial</span></a>.</p>
-<p>We’ll fine-tune using our
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py">single device LoRA recipe</a>
-and use the standard settings from the
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama3_2/3B_lora_single_device.yaml">default config</a>.</p>
-<p>This will fine-tune our model using a <code class="docutils literal notranslate"><span class="pre">batch_size=2</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype=bfloat16</span></code>. With these settings the model
-should have a peak memory usage of ~16GB and total training time of around two hours for each epoch.
-We’ll need to make some changes to the config to make sure our recipe can access the
-right checkpoints.</p>
 <p>Let’s look for the right config for this use case by using the tune CLI.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>ls
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune ls
+RECIPE                                  CONFIG
+full_finetune_single_device             llama2/7B_full_low_memory
+                                        code_llama2/7B_full_low_memory
+                                        llama3/8B_full_single_device
+                                        llama3_1/8B_full_single_device
+                                        llama3_2/1B_full_single_device
+                                        llama3_2/3B_full_single_device
+                                        mistral/7B_full_low_memory
+                                        phi3/mini_full_low_memory
+                                        qwen2/7B_full_single_device
+                                        ...
 
-RECIPE<span class="w">                                  </span>CONFIG
-full_finetune_single_device<span class="w">             </span>llama2/7B_full_low_memory
-<span class="w">                                        </span>code_llama2/7B_full_low_memory
-<span class="w">                                        </span>llama3/8B_full_single_device
-<span class="w">                                        </span>llama3_1/8B_full_single_device
-<span class="w">                                        </span>llama3_2/1B_full_single_device
-<span class="w">                                        </span>llama3_2/3B_full_single_device
-<span class="w">                                        </span>mistral/7B_full_low_memory
-<span class="w">                                        </span>phi3/mini_full_low_memory
-<span class="w">                                        </span>qwen2/7B_full_single_device
-<span class="w">                                        </span>...
 
+full_finetune_distributed               llama2/7B_full
+                                        llama2/13B_full
+                                        llama3/8B_full
+                                        llama3_1/8B_full
+                                        llama3_2/1B_full
+                                        llama3_2/3B_full
+                                        mistral/7B_full
+                                        gemma2/9B_full
+                                        gemma2/27B_full
+                                        phi3/mini_full
+                                        qwen2/7B_full
+                                        ...
 
-full_finetune_distributed<span class="w">               </span>llama2/7B_full
-<span class="w">                                        </span>llama2/13B_full
-<span class="w">                                        </span>llama3/8B_full
-<span class="w">                                        </span>llama3_1/8B_full
-<span class="w">                                        </span>llama3_2/1B_full
-<span class="w">                                        </span>llama3_2/3B_full
-<span class="w">                                        </span>mistral/7B_full
-<span class="w">                                        </span>gemma2/9B_full
-<span class="w">                                        </span>gemma2/27B_full
-<span class="w">                                        </span>phi3/mini_full
-<span class="w">                                        </span>qwen2/7B_full
-<span class="w">                                        </span>...
-
-lora_finetune_single_device<span class="w">             </span>llama2/7B_lora_single_device
-<span class="w">                                        </span>llama2/7B_qlora_single_device
-<span class="w">                                        </span>llama3/8B_lora_single_device
+lora_finetune_single_device             llama2/7B_lora_single_device
+                                        llama2/7B_qlora_single_device
+                                        llama3/8B_lora_single_device
 ...
 </pre></div>
 </div>
-<p>For this tutorial we’ll use the <code class="docutils literal notranslate"><span class="pre">llama3_2/3B_lora_single_device</span></code> config.</p>
-<p>The config already points to the HF Checkpointer and the right checkpoint files.
-All we need to do is update the checkpoint directory for both the model and the
-tokenizer. Let’s do this using the overrides in the tune CLI while starting training!</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/3B_lora_single_device
+<p>We’ll fine-tune using our
+<a class="reference internal" href="../recipes/lora_finetune_single_device.html#lora-finetune-recipe-label"><span class="std std-ref">single device LoRA recipe</span></a>
+and use the standard settings from the
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama3_2/3B_lora_single_device.yaml">default config</a>.</p>
+<p>This will fine-tune our model using a <code class="docutils literal notranslate"><span class="pre">batch_size=4</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype=bfloat16</span></code>. With these settings the model
+should have a peak memory usage of ~16GB and total training time of around 2-3 hours for each epoch.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device
+Setting manual seed to local seed 3977464327. Local seed is seed + rank = 3977464327 + 0
+Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn&#39;t. Enabling activation offloading should reduce memory further.
+Writing logs to /tmp/torchtune/llama3_2_3B/lora_single_device/logs/log_1734708879.txt
+Model is initialized with precision torch.bfloat16.
+Memory stats after model init:
+        GPU peak memory allocation: 6.21 GiB
+        GPU peak memory reserved: 6.27 GiB
+        GPU peak memory active: 6.21 GiB
+Tokenizer is initialized from file.
+Optimizer and loss are initialized.
+Loss is initialized.
+Dataset and Sampler are initialized.
+Learning rate scheduler is initialized.
+Profiling disabled.
+Profiler config after instantiation: {&#39;enabled&#39;: False}
+1|3|Loss: 1.943998098373413:   0%|                    | 3/1617 [00:21&lt;3:04:47,  6.87s/it]
 </pre></div>
 </div>
-</section>
-<section id="preparing-your-artifacts-for-inference">
-<h2>Preparing your artifacts for inference<a class="headerlink" href="#preparing-your-artifacts-for-inference" title="Permalink to this heading">¶</a></h2>
-<p>Congrats for getting this far! You have loaded your weights, trained your model, now it’s time to visualize
-the outputs. A simple way of doing this is by running <cite>tree -a path/to/outputdir</cite>, which should show something like the tree below.
-There are 4 types of folders:</p>
+<p>Congrats on training your model! Let’s take a look at the artifacts produced by torchtune. A simple way of doing this is by running <code class="code docutils literal notranslate"><span class="pre">tree</span> <span class="pre">-a</span> <span class="pre">path/to/outputdir</span></code>, which should show something like the tree below.
+There are 3 types of folders:</p>
 <ol class="arabic simple">
 <li><p><strong>recipe_state</strong>: Holds recipe_state.pt with the information necessary to restart the last intermediate epoch. For more information, please check our deep-dive <a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">Checkpointing in torchtune</span></a>.;</p></li>
-<li><p><strong>logs</strong>: Defined in your config in metric_logger;</p></li>
-<li><p><strong>epoch_{}</strong>: Contains your new trained model weights plus all original files of the model, except the checkpoints, making it easy for you to choose an specific epoch to run inference on or push to a model hub;</p></li>
+<li><p><strong>logs</strong>: Contains all the logging output from your training run: loss, memory, exceptions, etc.</p></li>
+<li><p><strong>epoch_{}</strong>: Contains your trained model weights plus model metadata. If running inference or pushing to a model hub, you should use this folder directly.</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>tree<span class="w"> </span>-a<span class="w"> </span>/tmp/torchtune/llama3_2_3B/lora_single_device
-<span class="w">    </span>/tmp/torchtune/llama3_2_3B/lora_single_device
-<span class="w">    </span>├──<span class="w"> </span>epoch_0
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>adapter_config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>adapter_model.pt
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>adapter_model.safetensors
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>ft-model-00001-of-00002.safetensors
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>ft-model-00002-of-00002.safetensors
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>generation_config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>LICENSE.txt
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>model.safetensors.index.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>original
-<span class="w">    </span>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>orig_params.json
-<span class="w">    </span>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>params.json
-<span class="w">    </span>│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>tokenizer.model
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>original_repo_id.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>README.md
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>special_tokens_map.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>tokenizer_config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>tokenizer.json
-<span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>USE_POLICY.md
-<span class="w">    </span>├──<span class="w"> </span>epoch_1
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>adapter_config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>adapter_model.pt
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>adapter_model.safetensors
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>ft-model-00001-of-00002.safetensors
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>ft-model-00002-of-00002.safetensors
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>generation_config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>LICENSE.txt
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>model.safetensors.index.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>original
-<span class="w">    </span>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>orig_params.json
-<span class="w">    </span>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>params.json
-<span class="w">    </span>│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>tokenizer.model
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>original_repo_id.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>README.md
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>special_tokens_map.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>tokenizer_config.json
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>tokenizer.json
-<span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>USE_POLICY.md
-<span class="w">    </span>├──<span class="w"> </span>logs
-<span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>log_1734652101.txt
-<span class="w">    </span>└──<span class="w"> </span>recipe_state
-<span class="w">        </span>└──<span class="w"> </span>recipe_state.pt
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tree -a /tmp/torchtune/llama3_2_3B/lora_single_device
+/tmp/torchtune/llama3_2_3B/lora_single_device
+├── epoch_0
+│   ├── adapter_config.json
+│   ├── adapter_model.pt
+│   ├── adapter_model.safetensors
+│   ├── config.json
+│   ├── ft-model-00001-of-00002.safetensors
+│   ├── ft-model-00002-of-00002.safetensors
+│   ├── generation_config.json
+│   ├── LICENSE.txt
+│   ├── model.safetensors.index.json
+│   ├── original
+│   │   ├── orig_params.json
+│   │   ├── params.json
+│   │   └── tokenizer.model
+│   ├── original_repo_id.json
+│   ├── README.md
+│   ├── special_tokens_map.json
+│   ├── tokenizer_config.json
+│   ├── tokenizer.json
+│   └── USE_POLICY.md
+├── epoch_1
+│   ├── adapter_config.json
+│   ...
+├── logs
+│   └── log_1734652101.txt
+└── recipe_state
+    └── recipe_state.pt
 </pre></div>
 </div>
 <p>Let’s understand the files:</p>
 <ul class="simple">
-<li><p><cite>adapter_model.safetensors</cite> and <cite>adapter_model.pt</cite> are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.</p></li>
-<li><p><cite>ft-model-{}-of-{}.safetensors</cite> are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set <code class="docutils literal notranslate"><span class="pre">save_adapter_weights_only=False</span></code>. In that case, we merge the merged base model with trained adapters, making inference easier.</p></li>
-<li><p><cite>adapter_config.json</cite> is used by Huggingface PEFT when loading an adapter (more on that later);</p></li>
-<li><p><cite>model.safetensors.index.json</cite> is used by Huggingface .from_pretrained when loading the model weights (more on that later)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">adapter_model.safetensors</span></code> and <code class="docutils literal notranslate"><span class="pre">adapter_model.pt</span></code> are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ft-model-{}-of-{}.safetensors</span></code> are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set <code class="docutils literal notranslate"><span class="pre">save_adapter_weights_only=False</span></code>. In that case, we merge the merged base model with trained adapters, making inference easier.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">adapter_config.json</span></code> is used by Huggingface PEFT when loading an adapter (more on that later);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model.safetensors.index.json</span></code> is used by Hugging Face <code class="docutils literal notranslate"><span class="pre">from_pretrained()</span></code> when loading the model weights (more on that later)</p></li>
 <li><p>All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending on .safetensors, .pth, .pt, .bin are ignored, making it lightweight.</p></li>
 </ul>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
 </section>
-<section id="run-evaluation-using-eleutherai-s-eval-harness">
-<span id="eval-harness-label"></span><h2>Run Evaluation using EleutherAI’s Eval Harness<a class="headerlink" href="#run-evaluation-using-eleutherai-s-eval-harness" title="Permalink to this heading">¶</a></h2>
-<p>We’ve fine-tuned a model. But how well does this model really do? Let’s run some Evaluations!</p>
+<section id="evaluate-your-model">
+<h2>Evaluate your model<a class="headerlink" href="#evaluate-your-model" title="Permalink to this heading">¶</a></h2>
+<p>We’ve fine-tuned a model. But how well does this model really do? Let’s determine this through structured evaluation and playing around with it.</p>
+<section id="run-evals-using-eleutherai-s-eval-harness">
+<span id="eval-harness-label"></span><h3>Run evals using EleutherAI’s Eval Harness<a class="headerlink" href="#run-evals-using-eleutherai-s-eval-harness" title="Permalink to this heading">¶</a></h3>
 <p>torchtune integrates with
 <a class="reference external" href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI’s evaluation harness</a>.
 An example of this is available through the
-<code class="docutils literal notranslate"><span class="pre">eleuther_eval</span></code> recipe. In this tutorial, we’re going to directly use this recipe by
-modifying its associated config <code class="docutils literal notranslate"><span class="pre">eleuther_evaluation.yaml</span></code>.</p>
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/eleuther_eval.py">eleuther_eval</a> recipe. In this tutorial, we’re going to directly use this recipe by
+modifying its associated config <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/eleuther_evaluation.yaml">eleuther_evaluation.yaml</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For this section of the tutorial, you should first run <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">lm_eval==0.4.*</span></code>
+<p>For this section of the tutorial, you should first run <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">lm_eval&gt;=0.4.5</span></code>
 to install the EleutherAI evaluation harness.</p>
 </div>
 <p>Since we plan to update all of the checkpoint files to point to our fine-tuned checkpoints,
 let’s first copy over the config to our local working directory so we can make changes.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>./custom_eval_config.yaml<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>./custom_eval_config.yaml
+Copied<span class="w"> </span>file<span class="w"> </span>to<span class="w"> </span>custom_eval_config.yaml
 </pre></div>
 </div>
-<p>Then, in your config, you only need to replace two fields: <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> and <code class="docutils literal notranslate"><span class="pre">checkpoint_files</span></code>. Notice
-that we are using the merged weights, and not the LoRA adapters.</p>
+<p>Notice that we are using the merged weights, and not the LoRA adapters.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO: update to your desired epoch</span>
 <span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0</span>
 
@@ -699,18 +671,15 @@ that we are using the merged weights, and not the LoRA adapters.</p>
 <p>For this tutorial we’ll use the <a class="reference external" href="https://github.com/sylinrl/TruthfulQA">truthfulqa_mc2</a> task from the harness.</p>
 <p>This task measures a model’s propensity to be truthful when answering questions and
 measures the model’s zero-shot accuracy on a question followed by one or more true
-responses and one or more false responses</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">tune run eleuther_eval --config ./custom_eval_config.yaml</span>
-
-<span class="l l-Scalar l-Scalar-Plain">[evaluator.py:324] Running loglikelihood requests</span>
+responses and one or more false responses.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune run eleuther_eval --config ./custom_eval_config.yaml
+[evaluator.py:324] Running loglikelihood requests
+...
 </pre></div>
 </div>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
 </section>
-<section id="generation">
-<h2>Generation<a class="headerlink" href="#generation" title="Permalink to this heading">¶</a></h2>
+<section id="generate-some-output">
+<h3>Generate some output<a class="headerlink" href="#generate-some-output" title="Permalink to this heading">¶</a></h3>
 <p>We’ve run some evaluations and the model seems to be doing well. But does it really
 generate meaningful text for the prompts you care about? Let’s find out!</p>
 <p>For this, we’ll use the
@@ -718,7 +687,8 @@ generate meaningful text for the prompts you care about? Let’s find out!</p>
 and the associated
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/generation.yaml">config</a>.</p>
 <p>Let’s first copy over the config to our local working directory so we can make changes.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>generation<span class="w"> </span>./custom_generation_config.yaml
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune cp generation ./custom_generation_config.yaml
+Copied file to custom_generation_config.yaml
 </pre></div>
 </div>
 <dl class="simple">
@@ -772,24 +742,17 @@ default settings for sampling with <code class="docutils literal notranslate"><s
 <code class="docutils literal notranslate"><span class="pre">temperature=0.8</span></code>. These parameters control how the probabilities for
 sampling are computed. We recommend inspecting the model with these before playing around with
 these parameters.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>generate<span class="w"> </span>--config<span class="w"> </span>./custom_generation_config.yaml<span class="w"> </span><span class="se">\</span>
-<span class="nv">prompt</span><span class="o">=</span><span class="s2">&quot;tell me a joke. &quot;</span>
-</pre></div>
-</div>
-<p>Once generation is complete, you’ll see the following in the logs.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Tell me a joke. Here&#39;s a joke for you:
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune run generate --config ./custom_generation_config.yaml prompt=&quot;tell me a joke. &quot;
+Tell me a joke. Here&#39;s a joke for you:
 
 What do you call a fake noodle?
 
 An impasta!
 </pre></div>
 </div>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
 </section>
-<section id="speeding-up-generation-using-quantization">
-<h2>Speeding up Generation using Quantization<a class="headerlink" href="#speeding-up-generation-using-quantization" title="Permalink to this heading">¶</a></h2>
+<section id="introduce-some-quantization">
+<h3>Introduce some quantization<a class="headerlink" href="#introduce-some-quantization" title="Permalink to this heading">¶</a></h3>
 <p>We rely on <a class="reference external" href="https://github.com/pytorch-labs/ao">torchao</a> for <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/quantization#quantization">post-training quantization</a>.
 To quantize the fine-tuned model after installing torchao we can run the following command:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see</span>
@@ -804,20 +767,18 @@ To quantize the fine-tuned model after installing torchao we can run the followi
 <p>For Llama models, you can run generation directly in torchao on the quantized model using their <code class="docutils literal notranslate"><span class="pre">generate.py</span></code> script as
 discussed in <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/_models/llama">this readme</a>. This way you can compare your own results
 to those in the previously-linked table.</p>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
 </section>
-<section id="using-torchtune-checkpoints-with-other-libraries">
-<h2>Using torchtune checkpoints with other libraries<a class="headerlink" href="#using-torchtune-checkpoints-with-other-libraries" title="Permalink to this heading">¶</a></h2>
-<p>As we mentioned above, one of the benefits of handling of the checkpoint
-conversion is that you can directly work with standard formats. This helps
-with interoperability with other libraries since torchtune doesn’t add yet
-another format to the mix.</p>
-<p>Let’s start with huggingface</p>
-<p><strong>Case 1: HF using BASE MODEL + trained adapter</strong></p>
-<p>Here we load the base model from HF model hub. Then we load the adapters on top of it using PeftModel.
-It will look for the files adapter_model.safetensors for the weights and adapter_config.json for where to insert them.</p>
+</section>
+<section id="use-your-model-in-the-wild">
+<h2>Use your model in the wild<a class="headerlink" href="#use-your-model-in-the-wild" title="Permalink to this heading">¶</a></h2>
+<p>Let’s say we’re happy with how our model is performing at this point - we want to do something with it! Productionize for serving, publish on the Hugging Face Hub, etc.
+As we mentioned above, one of the benefits of handling of the checkpoint conversion is that you can directly work with standard formats. This helps
+with interoperability with other libraries since torchtune doesn’t add yet another format to the mix.</p>
+<section id="use-with-hugging-face-from-pretrained">
+<h3>Use with Hugging Face <code class="docutils literal notranslate"><span class="pre">from_pretrained()</span></code><a class="headerlink" href="#use-with-hugging-face-from-pretrained" title="Permalink to this heading">¶</a></h3>
+<p><strong>Case 1: Hugging Face using base model + trained adapters</strong></p>
+<p>Here we load the base model from Hugging Face model hub. Then we load the adapters on top of it using <a class="reference external" href="https://huggingface.co/docs/peft/v0.6.1/en/package_reference/peft_model">PeftModel</a>.
+It will look for the files <code class="docutils literal notranslate"><span class="pre">adapter_model.safetensors</span></code> for the weights and <code class="docutils literal notranslate"><span class="pre">adapter_config.json</span></code> for where to insert them.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">peft</span> <span class="kn">import</span> <span class="n">PeftModel</span>
 <span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
 
@@ -845,8 +806,8 @@ It will look for the files adapter_model.safetensors for the weights and adapter
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Base model output:&quot;</span><span class="p">,</span> <span class="n">generate_text</span><span class="p">(</span><span class="n">peft_model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">))</span>
 </pre></div>
 </div>
-<p><strong>Case 2: HF using merged full+adapter weights</strong></p>
-<p>In this case, HF will check in model.safetensors.index.json which files it should load.</p>
+<p><strong>Case 2: Hugging Face using merged weights</strong></p>
+<p>In this case, Hugging Face will check in <code class="docutils literal notranslate"><span class="pre">model.safetensors.index.json</span></code> for which files it should load.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
 
 <span class="c1">#TODO: update it to your chosen epoch</span>
@@ -871,13 +832,17 @@ It will look for the files adapter_model.safetensors for the weights and adapter
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Base model output:&quot;</span><span class="p">,</span> <span class="n">generate_text</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">))</span>
 </pre></div>
 </div>
-<p><strong>Case 3: vLLM using merged full+adapter weights</strong></p>
-<p>It will load any .safetensors file. Since here we mixed both the full model weights and adapter weights, we have to delete the
+</section>
+<section id="use-with-vllm">
+<h3>Use with vLLM<a class="headerlink" href="#use-with-vllm" title="Permalink to this heading">¶</a></h3>
+<p><a class="reference external" href="https://docs.vllm.ai/en/latest/">vLLM</a> is a fast and easy-to-use library for LLM inference and serving. They include a lot of awesome features like
+state-of-the-art serving throughput, continuous batching of incoming requests, quantization, and speculative decoding.</p>
+<p>The library will load any .safetensors file. Since here we mixed both the full model weights and adapter weights, we have to delete the
 adapter weights to succesfully load it.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm<span class="w"> </span>/tmp/torchtune/llama3_2_3B/lora_single_device/base_model/adapter_model.safetensors
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rm</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">torchtune</span><span class="o">/</span><span class="n">llama3_2_3B</span><span class="o">/</span><span class="n">lora_single_device</span><span class="o">/</span><span class="n">base_model</span><span class="o">/</span><span class="n">adapter_model</span><span class="o">.</span><span class="n">safetensors</span>
 </pre></div>
 </div>
-<p>Now we can run the script</p>
+<p>Now we can run the following script:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">vllm</span> <span class="kn">import</span> <span class="n">LLM</span><span class="p">,</span> <span class="n">SamplingParams</span>
 
 <span class="k">def</span> <span class="nf">print_outputs</span><span class="p">(</span><span class="n">outputs</span><span class="p">):</span>
@@ -909,8 +874,8 @@ adapter weights to succesfully load it.</p>
 </pre></div>
 </div>
 </section>
-<section id="uploading-your-model-to-the-hugging-face-hub">
-<h2>Uploading your model to the Hugging Face Hub<a class="headerlink" href="#uploading-your-model-to-the-hugging-face-hub" title="Permalink to this heading">¶</a></h2>
+<section id="upload-your-model-to-the-hugging-face-hub">
+<h3>Upload your model to the Hugging Face Hub<a class="headerlink" href="#upload-your-model-to-the-hugging-face-hub" title="Permalink to this heading">¶</a></h3>
 <p>Your new model is working great and you want to share it with the world. The easiest way to do this
 is utilizing the <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/guides/upload">huggingface_hub</a>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">huggingface_hub</span>
@@ -942,6 +907,7 @@ is utilizing the <a class="reference external" href="https://huggingface.co/docs
 </div>
 <p>Hopefully this tutorial gave you some insights into how you can use torchtune for
 your own workflows. Happy Tuning!</p>
+</section>
 </section>
 </section>
 
@@ -989,15 +955,19 @@ your own workflows. Happy Tuning!</p>
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">End-to-End Workflow with torchtune</a><ul>
-<li><a class="reference internal" href="#overview">Overview</a></li>
-<li><a class="reference internal" href="#download-llama-3-2-3b-instruct">Download Llama-3.2-3B-Instruct</a></li>
-<li><a class="reference internal" href="#finetune-the-model-using-lora">Finetune the model using LoRA</a></li>
-<li><a class="reference internal" href="#preparing-your-artifacts-for-inference">Preparing your artifacts for inference</a></li>
-<li><a class="reference internal" href="#run-evaluation-using-eleutherai-s-eval-harness">Run Evaluation using EleutherAI’s Eval Harness</a></li>
-<li><a class="reference internal" href="#generation">Generation</a></li>
-<li><a class="reference internal" href="#speeding-up-generation-using-quantization">Speeding up Generation using Quantization</a></li>
-<li><a class="reference internal" href="#using-torchtune-checkpoints-with-other-libraries">Using torchtune checkpoints with other libraries</a></li>
-<li><a class="reference internal" href="#uploading-your-model-to-the-hugging-face-hub">Uploading your model to the Hugging Face Hub</a></li>
+<li><a class="reference internal" href="#finetune-your-model">Finetune your model</a></li>
+<li><a class="reference internal" href="#evaluate-your-model">Evaluate your model</a><ul>
+<li><a class="reference internal" href="#run-evals-using-eleutherai-s-eval-harness">Run evals using EleutherAI’s Eval Harness</a></li>
+<li><a class="reference internal" href="#generate-some-output">Generate some output</a></li>
+<li><a class="reference internal" href="#introduce-some-quantization">Introduce some quantization</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#use-your-model-in-the-wild">Use your model in the wild</a><ul>
+<li><a class="reference internal" href="#use-with-hugging-face-from-pretrained">Use with Hugging Face <code class="docutils literal notranslate"><span class="pre">from_pretrained()</span></code></a></li>
+<li><a class="reference internal" href="#use-with-vllm">Use with vLLM</a></li>
+<li><a class="reference internal" href="#upload-your-model-to-the-hugging-face-hub">Upload your model to the Hugging Face Hub</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
