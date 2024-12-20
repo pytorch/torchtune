@@ -274,7 +274,7 @@ Congrats for getting this far! Let's say you have followed our :ref:`End-to-End 
 Now let's visualize the outputs. A simple way of doing this is by running :code:`tree -a path/to/outputdir`, which should show something like the tree below.
 There are 3 types of folders:
 
-1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart the last intermediate epoch. More on that later;
+1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart your training run from the last intermediate epoch. More on that later;
 2) **logs**: Outputs of your metric_logger, if any;
 3) **epoch_{}**: Contains your trained model weights plus model metadata. If running inference or pushing to a model hub, you should use this folder directly;
 
