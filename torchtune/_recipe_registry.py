@@ -488,6 +488,10 @@ _ALL_RECIPES = [
                 name="mistral/evaluation",
                 file_path="mistral/evaluation.yaml",
             ),
+            Config(
+                name="llama3_2/evaluation",
+                file_path="llama3_2/evaluation.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
