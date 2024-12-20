@@ -480,7 +480,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model,
                 lora_weights_state_dict,
                 self._device,
-                self._is_rank_zero,
                 cpu_offload=fsdp_cpu_offload,
             )
         else:
@@ -505,7 +504,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             model,
             base_model_state_dict,
             self._device,
-            self._is_rank_zero,
             cpu_offload=fsdp_cpu_offload,
         )
         for m in model.modules():

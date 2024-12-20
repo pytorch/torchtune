@@ -221,7 +221,6 @@ class TestFullyShardState(FSDPTest):
             fsdp_model_to_load,
             copy.deepcopy(base_model.state_dict()),
             torch.device("cuda"),
-            is_rank_zero,
         )
         fsdp_optim_to_load = torch.optim.Adam(
             fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
@@ -355,7 +354,7 @@ class TestFullyShardState(FSDPTest):
                     fully_shard(m)
         fully_shard(fsdp_model_to_load)
         training.load_from_full_model_state_dict(
-            fsdp_model_to_load, expected_model_sd, torch.device("cuda"), is_rank_zero
+            fsdp_model_to_load, expected_model_sd, torch.device("cuda")
         )
         fsdp_model_to_load(inp)
         sharded_model_sd = fsdp_model_to_load.state_dict()
