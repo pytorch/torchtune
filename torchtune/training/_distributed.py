@@ -18,6 +18,7 @@ from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
+    _init_optim_state,
     get_model_state_dict,
     get_optimizer_state_dict,
     set_model_state_dict,
