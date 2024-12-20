@@ -1,0 +1,1219 @@
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta name="robots" content="noindex">
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Memory Optimization Overview &mdash; torchtune main documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Checkpointing in torchtune" href="../deep_dives/checkpointer.html" />
+    <link rel="prev" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" href="llama_kd_tutorial.html" />
+  <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-T8XT4PS');</script>
+    <!-- End Google Tag Manager -->
+  
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+  <!-- Preload the theme fonts -->
+
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+    <div class="header-container">
+      <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+
+      <div class="main-menu">
+        <ul>
+
+          <li class="main-menu-item">
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Learn
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/get-started">
+                  <span class=dropdown-title>Get Started</span>
+                  <p>Run PyTorch locally or get started quickly with one of the supported cloud platforms</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials">
+                  <span class="dropdown-title">Tutorials</span>
+                  <p>Whats new in PyTorch tutorials</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/basics/intro.html">
+                  <span class="dropdown-title">Learn the Basics</span>
+                  <p>Familiarize yourself with PyTorch concepts and modules</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/recipes/recipes_index.html">
+                  <span class="dropdown-title">PyTorch Recipes</span>
+                  <p>Bite-size, ready-to-deploy PyTorch code examples</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/introyt.html">
+                  <span class="dropdown-title">Intro to PyTorch - YouTube Series</span>
+                  <p>Master PyTorch basics with our engaging YouTube tutorial series</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Ecosystem
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem">
+                  <span class="dropdown-title">Tools</span>
+                  <p>Learn about the tools and frameworks in the PyTorch Ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/#community-module">
+                  <span class=dropdown-title>Community</span>
+                  <p>Join the PyTorch developer community to contribute, learn, and get your questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://discuss.pytorch.org/" target="_blank">
+                  <span class=dropdown-title>Forums</span>
+                  <p>A place to discuss PyTorch code, issues, install, research</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/resources">
+                  <span class=dropdown-title>Developer Resources</span>
+                  <p>Find resources and get questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem/contributor-awards-2023">
+                  <span class="dropdown-title">Contributor Awards - 2023</span>
+                  <p>Award winners announced at this year's PyTorch Conference</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Edge
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/edge">
+                  <span class="dropdown-title">About PyTorch Edge</span>
+                  <p>Build innovative and privacy-aware AI experiences for edge devices</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch-overview">
+                  <span class="dropdown-title">ExecuTorch</span>
+                  <p>End-to-end solution for enabling on-device inference capabilities across mobile and edge devices</p>
+                </a>
+              </div>
+            </div>  
+          </li>
+
+          <li class="main-menu-item">
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Docs
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/docs/stable/index.html">
+                  <span class="dropdown-title">PyTorch</span>
+                  <p>Explore the documentation for comprehensive guidance on how to use PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/pytorch-domains">
+                  <span class="dropdown-title">PyTorch Domains</span>
+                  <p>Read the PyTorch Domains documentation to learn more about domain-specific libraries</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Blogs & News 
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/blog/">
+                  <span class="dropdown-title">PyTorch Blog</span>
+                  <p>Catch up on the latest technical news and happenings</p>
+                </a>
+                 <a class="nav-dropdown-item" href="https://pytorch.org/community-blog">
+                  <span class="dropdown-title">Community Blog</span>
+                  <p>Stories from the PyTorch ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/videos">
+                  <span class="dropdown-title">Videos</span>
+                  <p>Learn about the latest PyTorch tutorials, new, and more </p>
+                <a class="nav-dropdown-item" href="https://pytorch.org/community-stories">
+                  <span class="dropdown-title">Community Stories</span>
+                  <p>Learn how our community solves real, everyday machine learning problems with PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/events">
+                  <span class="dropdown-title">Events</span>
+                  <p>Find events, webinars, and podcasts</p>
+                </a>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                About
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/foundation">
+                  <span class="dropdown-title">PyTorch Foundation</span>
+                  <p>Learn more about the PyTorch Foundation</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
+                  <span class="dropdown-title">Governing Board</span>
+                  <p></p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li class="main-menu-item">
+            <div class="no-dropdown">
+              <a href="https://pytorch.org/join" data-cta="join">
+                Become a Member
+              </a>
+            </div>
+          </li>
+          <li>
+           <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="github-icon">
+             </a>
+           </div>
+          </li>
+          <!--- TODO: This block adds the search icon to the nav bar. We will enable it later. 
+          <li>
+            <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="search-icon">
+             </a>
+            </div>
+          </li>
+          --->
+        </ul>
+      </div>
+
+      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+    </div>
+  </div>
+</div>
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+    <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>main &#x25BC</a>
+      </div>
+    
+
+
+  
+
+
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search Docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recipes/dpo.html">Direct Preference Optimization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/packing.html">Sample packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/custom_components.html">Custom Components and Recipes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Memory Optimization Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>Memory Optimization Overview</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/tutorials/memory_optimizations.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          <!-- Google Tag Manager (noscript) -->
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8XT4PS"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+          <!-- End Google Tag Manager (noscript) -->
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="memory-optimization-overview">
+<span id="memory-optimization-overview-label"></span><h1>Memory Optimization Overview<a class="headerlink" href="#memory-optimization-overview" title="Permalink to this heading">¶</a></h1>
+<p><strong>Author</strong>: <a class="reference external" href="https://github.com/SalmanMohammadi">Salman Mohammadi</a></p>
+<p>torchtune comes with a host of plug-and-play memory optimization components which give you lots of flexibility
+to <code class="docutils literal notranslate"><span class="pre">tune</span></code> our recipes to your hardware. This page provides a brief glossary of these components and how you might use them.
+To make things easy, we’ve summarized these components in the following table:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Memory optimization components</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>When to use?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-precision"><span class="std std-ref">Model Precision</span></a></p></td>
+<td><p>You’ll usually want to leave this as its default <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>. It uses 2 bytes per model parameter instead of 4 bytes when using <code class="docutils literal notranslate"><span class="pre">float32</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">Activation Checkpointing</span></a></p></td>
+<td><p>Use when you’re memory constrained and want to use a larger model, batch size or context length. Be aware that it will slow down training speed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-act-off"><span class="std std-ref">Activation Offloading</span></a></p></td>
+<td><p>Similar to activation checkpointing, this can be used when memory constrained, but may decrease training speed. This <strong>should</strong> be used alongside activation checkpointing.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">Gradient Accumulation</span></a></p></td>
+<td><p>Helpful when memory-constrained to simulate larger batch sizes. Not compatible with optimizer in backward. Use it when you can already fit at least one sample without OOMing, but not enough of them.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-low-precision-opt"><span class="std std-ref">Lower Precision Optimizers</span></a></p></td>
+<td><p>Use when you want to reduce the size of the optimizer state. This is relevant when training large models and using optimizers with momentum, like Adam. Note that lower precision optimizers may reduce training stability/accuracy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-opt-in-bwd"><span class="std std-ref">Fusing Optimizer Step into Backward Pass</span></a></p></td>
+<td><p>Use it when you have large gradients and can fit a large enough batch size, since this is not compatible with <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-cpu-offload"><span class="std std-ref">Offloading Optimizer/Gradient states to CPU</span></a></p></td>
+<td><p>Offloads optimizer states and (optionally) gradients to CPU, and performs optimizer steps on CPU. This can be used to significantly reduce GPU memory usage at the cost of CPU RAM and training speed. Prioritize using it only if the other techniques are not enough.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-lora"><span class="std std-ref">Low Rank Adaptation (LoRA)</span></a></p></td>
+<td><p>When you want to significantly reduce the number of trainable parameters, saving gradient and optimizer memory during training, and significantly speeding up training. This may reduce training accuracy</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a></p></td>
+<td><p>When you are training a large model, since quantization will save 1.5 bytes * (# of model parameters), at the potential cost of some training speed and accuracy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#glossary-dora"><span class="std std-ref">Weight-Decomposed Low-Rank Adaptation (DoRA)</span></a></p></td>
+<td><p>a variant of LoRA that may improve model performance at the cost of slightly more memory.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In its current state, this tutorial is focused on single-device optimizations. Check in soon as we update this page
+for the latest memory optimization features for distributed fine-tuning.</p>
+</div>
+<section id="model-precision">
+<span id="glossary-precision"></span><h2>Model Precision<a class="headerlink" href="#model-precision" title="Permalink to this heading">¶</a></h2>
+<p><em>What’s going on here?</em></p>
+<p>We use the term “precision” to refer to the underlying data type used to represent the model and optimizer parameters.
+We support two data types in torchtune:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We recommend diving into Sebastian Raschka’s <a class="reference external" href="https://sebastianraschka.com/blog/2023/llm-mixed-precision-copy.html">blogpost on mixed-precision techniques</a>
+for a deeper understanding of concepts around precision and data formats.</p>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fp32</span></code>, commonly referred to as “full-precision”, uses 4 bytes per model and optimizer parameter.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>, referred to as “half-precision”, uses 2 bytes per model and optimizer parameter - effectively half
+the memory of <code class="docutils literal notranslate"><span class="pre">fp32</span></code>, and also improves training speed. Generally, if your hardware supports training with <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>,
+we recommend using it - this is the default setting for our recipes.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Another common paradigm is “mixed-precision” training: where model weights are in <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code> (or <code class="docutils literal notranslate"><span class="pre">fp16</span></code>), and optimizer
+states are in <code class="docutils literal notranslate"><span class="pre">fp32</span></code>. Currently, we don’t support mixed-precision training in torchtune.</p>
+</div>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>Simply use the <code class="docutils literal notranslate"><span class="pre">dtype</span></code> flag or config entry in all our recipes! For example, to use half-precision training in <code class="docutils literal notranslate"><span class="pre">bf16</span></code>,
+set <code class="docutils literal notranslate"><span class="pre">dtype=bf16</span></code>.</p>
+</section>
+<section id="activation-checkpointing">
+<span id="glossary-act-ckpt"></span><h2>Activation Checkpointing<a class="headerlink" href="#activation-checkpointing" title="Permalink to this heading">¶</a></h2>
+<p><em>What’s going on here?</em></p>
+<p>The relevant section in the <a class="reference external" href="https://pytorch.org/docs/stable/checkpoint.html">PyTorch documentation</a> explains this concept well.
+To quote:</p>
+<blockquote>
+<div><p>Activation checkpointing is a technique that trades compute for memory.
+Instead of keeping tensors needed for backward alive until they are used in
+gradient computation during backward, forward computation in checkpointed
+regions omits saving tensors for backward and recomputes them during the backward pass.</p>
+</div></blockquote>
+<p>This setting is helpful for when you’re memory-constrained, especially due to larger batch sizes or longer context lengths.
+However, these savings in memory come at the cost of training speed (i.e. tokens-per-second),
+and in most cases training can slow down quite a bit as a result of this activation recomputation.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>To enable activation checkpointing, use <code class="docutils literal notranslate"><span class="pre">enable_activation_checkpointing=True</span></code>.</p>
+</section>
+<section id="activation-offloading">
+<span id="glossary-act-off"></span><h2>Activation Offloading<a class="headerlink" href="#activation-offloading" title="Permalink to this heading">¶</a></h2>
+<p><em>What’s going on here?</em></p>
+<p>You may have just read about activation checkpointing! Similar to checkpointing, offloading is a memory
+efficiency technique that allows saving GPU VRAM by temporarily moving activations to CPU and bringing
+them back when needed in the backward pass.</p>
+<p>See <a class="reference external" href="https://pytorch.org/tutorials/intermediate/autograd_saved_tensors_hooks_tutorial.html#saving-tensors-to-cpu">PyTorch autograd hook tutorial</a>
+for more details about how this is implemented through <code class="xref py py-func docutils literal notranslate"><span class="pre">torch.autograd.graph.saved_tensors_hooks()</span></code>.</p>
+<p>This setting is especially helpful for larger batch sizes, or longer context lengths when you’re memory constrained.
+While of course it takes runtime and resources to move Tensors from GPU to CPU and back, the implementation in
+torchtune uses multiple CUDA streams (when available) in order to overlap the extra communication with the computation
+to hide the extra runtime. As the communication workload is variable depending on the number and size of tensors being
+offloaded, we do not recommend using it unless <a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">Activation Checkpointing</span></a> is also enabled, in which case only the checkpointed
+tensors will be offloaded.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>To enable activation offloading, use the <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading</span></code> config entry or flag
+in our lora finetuning single device recipe, e.g. <code class="docutils literal notranslate"><span class="pre">enable_activation_offloading=True</span></code>. To allow
+usage of streams, make sure you are on a torch version equal to or later than PyTorch.</p>
+</section>
+<section id="gradient-accumulation">
+<span id="glossary-grad-accm"></span><h2>Gradient Accumulation<a class="headerlink" href="#gradient-accumulation" title="Permalink to this heading">¶</a></h2>
+<p><em>What’s going on here?</em></p>
+<p>Gradient accumulation allows you to simulate large batch sizes by <em>accumulating</em> gradients over several
+batches before updating model parameters using the optimizer. Concretely, the total number of samples used
+for a gradient update is when using gradient accumulation is:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">total_batch_size</span> <span class="pre">=</span> <span class="pre">batch_size</span> <span class="pre">*</span> <span class="pre">gradient_accumulation_steps</span></code></p>
+</div></blockquote>
+<p>For example: with <code class="docutils literal notranslate"><span class="pre">batch_size=1</span></code> and <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps=32</span></code> we get a total batch size of 32.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For other components in torchtune which use “steps”, such as <a class="reference internal" href="../api_ref_training.html#metric-logging-label"><span class="std std-ref">metric logging</span></a>, or
+<code class="xref py py-func docutils literal notranslate"><span class="pre">learning</span> <span class="pre">rate</span> <span class="pre">schedulers</span></code>, a “step” is counted as a
+single update to model parameters, rather than a single model forward pass with the data.
+Suppose <code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span> <span class="pre">=</span> <span class="pre">4</span></code> and <code class="docutils literal notranslate"><span class="pre">log_every_n_steps</span> <span class="pre">=</span> <span class="pre">10</span></code>.
+Metrics would be logged every 10 global steps, which translates to every 40 model forward passes.
+For this reason, metric logging will appear less frequently when training with gradient accumulation,
+and progress bars may update more slowly.</p>
+</div>
+<p>If you’re using one of our distributed recipes, simply multiply by the number of devices:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">total_batch_size</span> <span class="pre">=</span> <span class="pre">batch_size</span> <span class="pre">*</span> <span class="pre">gradient_accumulation_steps</span> <span class="pre">*</span> <span class="pre">num_devices</span></code></p>
+</div></blockquote>
+<p>Gradient accumulation is especially useful when you can fit at least one sample in your GPU. In this case, artificially increasing the batch by
+accumulating gradients might give you faster training speeds than using other memory optimization techniques that trade-off memory for speed, like <a class="reference internal" href="#glossary-act-ckpt"><span class="std std-ref">activation checkpointing</span></a>.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>All of our finetuning recipes support simulating larger batch sizes by accumulating gradients. Just set the
+<code class="docutils literal notranslate"><span class="pre">gradient_accumulation_steps</span></code> flag or config entry.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Gradient accumulation should always be set to 1 when <a class="reference internal" href="#glossary-opt-in-bwd"><span class="std std-ref">fusing the optimizer step into the backward pass</span></a>.</p>
+</div>
+</section>
+<section id="optimizers">
+<h2>Optimizers<a class="headerlink" href="#optimizers" title="Permalink to this heading">¶</a></h2>
+<section id="lower-precision-optimizers">
+<span id="glossary-low-precision-opt"></span><h3>Lower Precision Optimizers<a class="headerlink" href="#lower-precision-optimizers" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p>In addition to <a class="reference internal" href="#glossary-precision"><span class="std std-ref">reducing model and optimizer precision</span></a> during training, we can further reduce precision in our optimizer states.
+All of our recipes support lower-precision optimizers from the <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim">torchao</a> library.
+For single device recipes, we also support <a class="reference external" href="https://huggingface.co/docs/bitsandbytes/main/en/index">bitsandbytes</a>.</p>
+<p>A good place to start might be the <code class="xref py py-class docutils literal notranslate"><span class="pre">torchao.prototype.low_bit_optim.AdamW8bit</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">bitsandbytes.optim.PagedAdamW8bit</span></code> optimizers.
+Both reduce memory by quantizing the optimizer state dict. Paged optimizers will also offload to CPU if there isn’t enough GPU memory available. In practice,
+you can expect higher memory savings from bnb’s PagedAdamW8bit but higher training speed from torchao’s AdamW8bit.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>To use this in your recipes, make sure you have installed torchao (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">torchao</span></code>) or bitsandbytes (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">bitsandbytes</span></code>). Then, enable
+a low precision optimizer using the <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">torchtune CLI</span></a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
+<span class="nv">optimizer</span><span class="o">=</span>torchao.prototype.low_bit_optim.AdamW8bit
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
+<span class="nv">optimizer</span><span class="o">=</span>bitsandbytes.optim.PagedAdamW8bit
+</pre></div>
+</div>
+<p>or by directly <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">modifying a config file</span></a>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">optimizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitsandbytes.optim.PagedAdamW8bit</span>
+<span class="w">  </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2e-5</span>
+</pre></div>
+</div>
+</section>
+<section id="fusing-optimizer-step-into-backward-pass">
+<span id="glossary-opt-in-bwd"></span><h3>Fusing Optimizer Step into Backward Pass<a class="headerlink" href="#fusing-optimizer-step-into-backward-pass" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p>Stateful optimizers (e.g. optimizers which use momentum) are the default in modern deep learning due to their stable convergence properties.
+However, maintaining a state of gradient statistics comes at the cost of additional memory usage. An immediate alternative might be to
+turn to stateless optimizers such as <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.SGD.html">stochastic gradient descent</a>
+without momentum, which don’t require any additional memory usage, but will likely result in worse convergence during training.</p>
+<p>Can we find a middle ground here? Let’s consider a technique which enables the use of “stateful” optimizers such as <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html">AdamW</a>
+without the memory overhead of gradient statistics, and without sacrificing their desirable convergence properties.
+How is this possible, you might ask? By <em>completely removing the buffer of gradients</em> which are stored by the optimizer during its <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p>
+<p>To understand how this works, we encourage you to read through the relevant PyTorch tutorial on this concept:
+<a class="reference external" href="https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html">How to save memory by fusing the optimizer step into the backward pass</a>.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>In torchtune, you can enable this feature using the <code class="docutils literal notranslate"><span class="pre">optimizer_in_bwd</span></code> flag. This feature works best when using a stateful optimizer
+with a model with a lot of parameters, and when you don’t need to use <a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.
+You won’t see meaningful impact when finetuning LoRA recipes, since in this case the number of parameters being updated are small.</p>
+</section>
+<section id="offloading-optimizer-gradient-states-to-cpu">
+<span id="glossary-cpu-offload"></span><h3>Offloading Optimizer/Gradient states to CPU<a class="headerlink" href="#offloading-optimizer-gradient-states-to-cpu" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p>We’ve mentioned above the concept of optimizer states - memory used by the stateful optimizers to maintain a state of gradient statistics, and
+model gradients - tensors used to store gradients when we perform model backwards passes. We support using CPU offloading in our single-device recipes
+through the <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#optimizer-cpu-offload">CPUOffloadOptimizer</a> from <code class="docutils literal notranslate"><span class="pre">torchao</span></code>.</p>
+<p>This optimizer can wrap any base optimizer and works by keeping the optimizer states and performing the optimizer step on CPU, thus reducing
+GPU memory usage by the size of the optimizer states. Additionally, we can also offload gradients to the CPU by using <cite>offload_gradients=True</cite>.</p>
+<p>If finetuning on a single-device, another option is to use the <code class="docutils literal notranslate"><span class="pre">PagedAdamW8bit</span></code> from bitsandbytes, mentioned <a class="reference internal" href="#glossary-low-precision-opt"><span class="std std-ref">above</span></a>, which will <em>only</em> offload to CPU
+when there is not enough GPU available.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>To use this optimizer in your recipes, set the <code class="docutils literal notranslate"><span class="pre">optimizer</span></code> key in your config to <code class="xref py py-class docutils literal notranslate"><span class="pre">torchao.prototype.low_bit_optim.CPUOffloadOptimizer</span></code>, which
+will use the <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html#torch.optim.AdamW" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.AdamW</span></code></a> optimizer with <code class="docutils literal notranslate"><span class="pre">fused=True</span></code> as the base optimizer. For example, to use this optimizer to offload
+both optimizer states and gradients to CPU:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="se">\</span>
+<span class="nv">optimizer</span><span class="o">=</span><span class="nv">optimizer</span><span class="o">=</span>torchao.prototype.low_bit_optim.CPUOffloadOptimizer<span class="w"> </span><span class="se">\</span>
+optimizer.offload_gradients<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+<span class="nv">lr</span><span class="o">=</span>4e-5
+</pre></div>
+</div>
+<p>or by directly <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">modifying a config file</span></a>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">optimizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchao.prototype.low_bit_optim.CPUOffloadOptimizer</span>
+<span class="w">  </span><span class="nt">offload_gradients</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="c1"># additional key-word arguments can be passed to torch.optim.AdamW</span>
+<span class="w">  </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4e-5</span>
+</pre></div>
+</div>
+<p>or using it directly in your code, which allows you to change the base optimizer:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchao.prototype.low_bit_optim</span> <span class="kn">import</span> <span class="n">CPUOffloadOptimizer</span>
+<span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Adam</span>
+
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">CPUOffloadOptimizer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="c1"># your model here</span>
+    <span class="n">Adam</span><span class="p">,</span>
+    <span class="n">lr</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="n">fused</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Some helpful hints from the <code class="docutils literal notranslate"><span class="pre">torchao</span></code> <a class="reference external" href="https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#optimizer-cpu-offload">CPUOffloadOptimizer page</a>:</p>
+<ul class="simple">
+<li><p>The CPU optimizer step is often the bottleneck when optimizer CPU offload is used. To minimize the slowdown, it is recommended to (1) use full <code class="docutils literal notranslate"><span class="pre">bf16</span></code> training so that parameters, gradients, and optimizer states are in <code class="docutils literal notranslate"><span class="pre">bf16</span></code>; and (2) give GPU more work per optimizer step to amortize the offloading time (e.g. larger batch size with activation checkpointing, gradient accumulation).</p></li>
+<li><p>Gradient accumulation should always be set to 1 when <code class="docutils literal notranslate"><span class="pre">offload_gradients=True</span></code>, as gradients are cleared on GPU every backward pass.</p></li>
+<li><p>This optimizer works by keeping a copy of parameters and pre-allocating gradient memory on CPU. Therefore, expect your RAM usage to increase by 4x model size.</p></li>
+<li><p>This optimizer is only supported for single-device recipes. To use CPU-offloading in distributed recipes, use <code class="docutils literal notranslate"><span class="pre">fsdp_cpu_offload=True</span></code> instead. See <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel" title="(in PyTorch v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.distributed.fsdp.FullyShardedDataParallel</span></code></a> for more details and <a class="reference external" href="https://github.com/pytorch/torchtitan/blob/main/docs/fsdp.md">FSDP1 vs FSDP2</a> to see how they differ.</p></li>
+</ul>
+</section>
+</section>
+<section id="parameter-efficient-fine-tuning-peft">
+<span id="glossary-peft"></span><h2>Parameter Efficient Fine-Tuning (PEFT)<a class="headerlink" href="#parameter-efficient-fine-tuning-peft" title="Permalink to this heading">¶</a></h2>
+<section id="low-rank-adaptation-lora">
+<span id="glossary-lora"></span><h3>Low Rank Adaptation (LoRA)<a class="headerlink" href="#low-rank-adaptation-lora" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p>You can read our tutorial on <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">finetuning Llama2 with LoRA</span></a> to understand how LoRA works, and how to use it.
+Simply stated, LoRA greatly reduces the number of trainable parameters, thus saving significant gradient and optimizer
+memory during training.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>You can finetune using any of our recipes with the <code class="docutils literal notranslate"><span class="pre">lora_</span></code> prefix, e.g. <a class="reference internal" href="../recipes/lora_finetune_single_device.html#lora-finetune-recipe-label"><span class="std std-ref">lora_finetune_single_device</span></a>. These recipes utilize
+LoRA-enabled model builders, which we support for all our models, and also use the <code class="docutils literal notranslate"><span class="pre">lora_</span></code> prefix, e.g.
+the <a class="reference internal" href="../generated/torchtune.models.llama3.llama3.html#torchtune.models.llama3.llama3" title="torchtune.models.llama3.llama3"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.llama3()</span></code></a> model has a corresponding <a class="reference internal" href="../generated/torchtune.models.llama3.lora_llama3.html#torchtune.models.llama3.lora_llama3" title="torchtune.models.llama3.lora_llama3"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.lora_llama3()</span></code></a>.
+We aim to provide a comprehensive set of configurations to allow you to get started with training with LoRA quickly,
+just specify any config with <code class="docutils literal notranslate"><span class="pre">_lora</span></code> in its name, e.g:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device
+</pre></div>
+</div>
+<p>There are two sets of parameters to customize LoRA to suit your needs. Firstly, the parameters which control
+which linear layers LoRA should be applied to in the model:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">lora_attn_modules:</span> <span class="pre">List[str]</span></code> accepts a list of strings specifying which layers of the model to apply
+LoRA to:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">q_proj</span></code> applies LoRA to the query projection layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">k_proj</span></code> applies LoRA to the key projection layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">v_proj</span></code> applies LoRA to the value projection layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_proj</span></code> applies LoRA to the attention output projection layer.</p></li>
+</ul>
+<p>Whilst adding more layers to be fine-tuned may improve model accuracy,
+this will come at the cost of increased memory usage and reduced training speed.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">apply_lora_to_mlp:</span> <span class="pre">Bool</span></code> applies LoRA to the MLP in each transformer layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">apply_lora_to_output:</span> <span class="pre">Bool</span></code> applies LoRA to the model’s final output projection.
+This is usually a projection to vocabulary space (e.g. in language models), but
+other modelling tasks may have different projections - classifier models will project
+to the number of classes, for example</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Models which use tied embeddings (such as Gemma and Qwen2 1.5B and 0.5B) for the
+final output projection do not support <code class="docutils literal notranslate"><span class="pre">apply_lora_to_output</span></code>.</p>
+</div>
+<p>These are all specified under the <code class="docutils literal notranslate"><span class="pre">model</span></code> flag or config entry, i.e:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w">  </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span>,<span class="s2">&quot;output_proj&quot;</span><span class="o">]</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.lora_llama3_8b</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">model.lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;output_proj&quot;</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>Secondly, parameters which control the scale of the impact of LoRA on the model:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">lora_rank:</span> <span class="pre">int</span></code> affects the scale of the LoRA decomposition, where <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">&lt;&lt;</span> <span class="pre">in_dim</span></code> and <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">&lt;&lt;</span> <span class="pre">out_dim</span></code>
+- the dimensions of an arbitrary linear layer in the model. Concretely, <code class="docutils literal notranslate"><span class="pre">lora_rank</span></code> reduces the number of gradients stored
+in a linear fashion from <code class="docutils literal notranslate"><span class="pre">in_dim</span> <span class="pre">*</span> <span class="pre">out_dim</span></code> to <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">*</span> <span class="pre">(in_dim</span> <span class="pre">+</span> <span class="pre">out_dim)</span></code>. Typically, we have <code class="docutils literal notranslate"><span class="pre">lora_rank</span> <span class="pre">in</span> <span class="pre">[8,</span> <span class="pre">256]</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lora_alpha:</span> <span class="pre">float</span></code> affects the magnitude of the LoRA updates. A larger alpha results in larger updates to the base model weights
+, potentially at the cost of training stability, conversely, smaller alpha can stabilize training at the cost of slower learning.
+We provide default settings for these parameters which we’ve tested with all of our models, but we encourage you to adjust them
+to your specific use case. Typically, one jointly changes <code class="docutils literal notranslate"><span class="pre">lora_rank</span></code> and <code class="docutils literal notranslate"><span class="pre">lora_alpha</span></code> together, where <code class="docutils literal notranslate"><span class="pre">lora_alpha</span> <span class="pre">~=</span> <span class="pre">2*lora_rank</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lora_dropout</span></code> introduces dropout in the LoRA layers to help regularize training. We default to 0.0 for all of our models.</p></li>
+</ul>
+<p>As above, these parameters are also specified under the <code class="docutils literal notranslate"><span class="pre">model</span></code> flag or config entry:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w">  </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span>,<span class="s2">&quot;output_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+model.lora_rank<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+model.lora_alpha<span class="o">=</span><span class="m">64</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.lora_llama3_8b</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">,</span><span class="s">&quot;output_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">lora_rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To get a deeper sense of how LoRA parameters affect memory usage during training,
+see the <a class="reference internal" href="lora_finetune.html#lora-tutorial-memory-tradeoff-label"><span class="std std-ref">relevant section in our Llama2 LoRA tutorial</span></a>.</p>
+</div>
+</section>
+<section id="quantized-low-rank-adaptation-qlora">
+<span id="glossary-qlora"></span><h3>Quantized Low Rank Adaptation (QLoRA)<a class="headerlink" href="#quantized-low-rank-adaptation-qlora" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p><a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a> is a memory enhancement on top of <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>
+that maintains the frozen model parameters from LoRA in 4-bit quantized precision, thereby reducing memory usage.
+This is enabled through a novel  4-bit NormalFloat (NF4) data type proposed by the authors, which allows for 4-8x less
+parameter memory usage whilst retaining model accuracy. You can read our tutorial on <a class="reference internal" href="qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">finetuning Llama2 with QLoRA</span></a>
+for a deeper understanding of how it works.</p>
+<p>When considering using QLoRA to reduce memory usage, it’s worth noting that QLoRA is slower than LoRA and may not be worth it if
+the model you are finetuning is small. In numbers, QLoRA saves roughly 1.5 bytes * (# of model parameters). Also, although QLoRA quantizes the model,
+it minimizes accuracy degradation by up-casting quantized parameters to the original higher precision datatype during model forward passes - this up-casting may incur penalties to training speed.
+The <a class="reference internal" href="qlora_finetune.html#qlora-compile-label"><span class="std std-ref">relevant section</span></a> in our QLoRA tutorial demonstrates the usage of <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> to address this by speeding up training.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>You can finetune using QLoRA with any of our LoRA recipes, i.e. recipes with the <code class="docutils literal notranslate"><span class="pre">lora_</span></code> prefix, e.g. <a class="reference internal" href="../recipes/lora_finetune_single_device.html#lora-finetune-recipe-label"><span class="std std-ref">lora_finetune_single_device</span></a>. These recipes utilize
+QLoRA-enabled model builders, which we support for all our models, and also use the <code class="docutils literal notranslate"><span class="pre">qlora_</span></code> prefix, e.g.
+the <a class="reference internal" href="../generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b" title="torchtune.models.llama3.llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.llama3_8b()</span></code></a> model has a corresponding <a class="reference internal" href="../generated/torchtune.models.llama3.qlora_llama3_8b.html#torchtune.models.llama3.qlora_llama3_8b" title="torchtune.models.llama3.qlora_llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.qlora_llama3_8b()</span></code></a>.
+We aim to provide a comprehensive set of configurations to allow you to get started with training with QLoRA quickly,
+just specify any config with <code class="docutils literal notranslate"><span class="pre">_qlora</span></code> in its name.</p>
+<p>All the rest of the LoRA parameters remain the same for QLoRA - check out the section above on <a class="reference internal" href="#glossary-lora"><span class="std std-ref">LoRA</span></a>
+to see how to configure these parameters.</p>
+<p>To configure from the command line:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_qlora_single_device<span class="w"> </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+model.lora_rank<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+model.lora_alpha<span class="o">=</span><span class="m">64</span>
+</pre></div>
+</div>
+<p>or, by modifying a config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.qlora_llama3_8b</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">lora_rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+</pre></div>
+</div>
+</section>
+<section id="weight-decomposed-low-rank-adaptation-dora">
+<span id="glossary-dora"></span><h3>Weight-Decomposed Low-Rank Adaptation (DoRA)<a class="headerlink" href="#weight-decomposed-low-rank-adaptation-dora" title="Permalink to this heading">¶</a></h3>
+<p><em>What’s going on here?</em></p>
+<p><a class="reference external" href="https://arxiv.org/abs/2402.09353">DoRA</a> is another PEFT technique which builds on-top of LoRA by
+further decomposing the pre-trained weights into two components: magnitude and direction. The magnitude component
+is a scalar vector that adjusts the scale, while the direction component corresponds to the original LoRA decomposition and
+updates the orientation of weights.</p>
+<p>DoRA adds a small overhead to LoRA training due to the addition of the magnitude parameter, but it has been shown to
+improve the performance of LoRA, particularly at low ranks.</p>
+<p><em>Sounds great! How do I use it?</em></p>
+<p>Much like LoRA and QLoRA, you can finetune using DoRA with any of our LoRA recipes. We use the same model builders for LoRA
+as we do for DoRA, so you can use the <code class="docutils literal notranslate"><span class="pre">lora_</span></code> version of any model builder with <code class="docutils literal notranslate"><span class="pre">use_dora=True</span></code>. For example, to finetune
+<a class="reference internal" href="../generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b" title="torchtune.models.llama3.llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.llama3_8b()</span></code></a> with DoRA, you would use <a class="reference internal" href="../generated/torchtune.models.llama3.lora_llama3_8b.html#torchtune.models.llama3.lora_llama3_8b" title="torchtune.models.llama3.lora_llama3_8b"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.models.llama3.lora_llama3_8b()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">use_dora=True</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w"> </span><span class="se">\</span>
+model.use_dora<span class="o">=</span>True
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.lora_llama3_8b</span>
+<span class="w">  </span><span class="nt">use_dora</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<p>Since DoRA extends LoRA, the parameters for <a class="reference internal" href="#glossary-lora"><span class="std std-ref">customizing LoRA</span></a> are identical. You can also quantize the base model weights like in <a class="reference internal" href="#glossary-qlora"><span class="std std-ref">Quantized Low Rank Adaptation (QLoRA)</span></a> by using <code class="docutils literal notranslate"><span class="pre">quantize=True</span></code> to reap
+even more memory savings!</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device<span class="w"> </span><span class="se">\</span>
+model.apply_lora_to_mlp<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.lora_attn_modules<span class="o">=[</span><span class="s2">&quot;q_proj&quot;</span>,<span class="s2">&quot;k_proj&quot;</span>,<span class="s2">&quot;v_proj&quot;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+model.lora_rank<span class="o">=</span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
+model.lora_alpha<span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="se">\</span>
+model.use_dora<span class="o">=</span>True<span class="w"> </span><span class="se">\</span>
+model.quantize_base<span class="o">=</span>True
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.lora_llama3_8b</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;q_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;k_proj&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;v_proj&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">lora_rank</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
+<span class="w">  </span><span class="nt">lora_alpha</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="nt">use_dora</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">quantize_base</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Under the hood, we’ve enabled DoRA by adding the <a class="reference internal" href="../generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear" title="torchtune.modules.peft.DoRALinear"><code class="xref py py-class docutils literal notranslate"><span class="pre">DoRALinear</span></code></a> module, which we swap
+out for <a class="reference internal" href="../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear" title="torchtune.modules.peft.LoRALinear"><code class="xref py py-class docutils literal notranslate"><span class="pre">LoRALinear</span></code></a> when <code class="docutils literal notranslate"><span class="pre">use_dora=True</span></code>.</p>
+</div>
+<span class="target" id="glossary-distrib"></span></section>
+</section>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../deep_dives/checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="llama_kd_tutorial.html" class="btn btn-neutral" title="Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2023-present, torchtune Contributors.
+
+    </p>
+  </div>
+    
+      <div>
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      </div>
+     
+
+</footer>
+
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">Memory Optimization Overview</a><ul>
+<li><a class="reference internal" href="#model-precision">Model Precision</a></li>
+<li><a class="reference internal" href="#activation-checkpointing">Activation Checkpointing</a></li>
+<li><a class="reference internal" href="#activation-offloading">Activation Offloading</a></li>
+<li><a class="reference internal" href="#gradient-accumulation">Gradient Accumulation</a></li>
+<li><a class="reference internal" href="#optimizers">Optimizers</a><ul>
+<li><a class="reference internal" href="#lower-precision-optimizers">Lower Precision Optimizers</a></li>
+<li><a class="reference internal" href="#fusing-optimizer-step-into-backward-pass">Fusing Optimizer Step into Backward Pass</a></li>
+<li><a class="reference internal" href="#offloading-optimizer-gradient-states-to-cpu">Offloading Optimizer/Gradient states to CPU</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#parameter-efficient-fine-tuning-peft">Parameter Efficient Fine-Tuning (PEFT)</a><ul>
+<li><a class="reference internal" href="#low-rank-adaptation-lora">Low Rank Adaptation (LoRA)</a></li>
+<li><a class="reference internal" href="#quantized-low-rank-adaptation-qlora">Quantized Low Rank Adaptation (QLoRA)</a></li>
+<li><a class="reference internal" href="#weight-decomposed-low-rank-adaptation-dora">Weight-Decomposed Low-Rank Adaptation (DoRA)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!--  
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script type="text/javascript">
+    var collapsedSections = []
+</script>
+ 
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
+    });
+</script>
+
+
+  <!-- Begin Footer -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/docs/stable/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="https://pytorch.org/tutorials">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="https://pytorch.org/resources">View Resources</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/">PyTorch</a></li>
+            <li><a href="https://pytorch.org/get-started">Get Started</a></li>
+            <li><a href="https://pytorch.org/features">Features</a></li>
+            <li><a href="https://pytorch.org/ecosystem">Ecosystem</a></li>
+            <li><a href="https://pytorch.org/blog/">Blog</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/resources">Resources</a></li>
+            <li><a href="https://pytorch.org/tutorials">Tutorials</a></li>
+            <li><a href="https://pytorch.org/docs/stable/index.html">Docs</a></li>
+            <li><a href="https://discuss.pytorch.org" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/issues" target="_blank">Github Issues</a></li>
+            <li><a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf" target="_blank">Brand Guidelines</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">Stay up to date</li>
+            <li><a href="https://www.facebook.com/pytorch" target="_blank">Facebook</a></li>
+            <li><a href="https://twitter.com/pytorch" target="_blank">Twitter</a></li>
+            <li><a href="https://www.youtube.com/pytorch" target="_blank">YouTube</a></li>
+            <li><a href="https://www.linkedin.com/company/pytorch" target="_blank">LinkedIn</a></li>
+          </ul>  
+          </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">PyTorch Podcasts</li>
+            <li><a href="https://open.spotify.com/show/6UzHKeiy368jKfQMKKvJY5" target="_blank">Spotify</a></li>
+            <li><a href="https://podcasts.apple.com/us/podcast/pytorch-developer-podcast/id1566080008" target="_blank">Apple</a></li>
+            <li><a href="https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9PQjVGa0lsOA%3D%3D" target="_blank">Google</a></li>
+            <li><a href="https://music.amazon.com/podcasts/7a4e6f0e-26c2-49e9-a478-41bd244197d0/PyTorch-Developer-Podcast?" target="_blank">Amazon</a></li>
+          </ul>
+         </div>
+        </div>
+        
+        <div class="privacy-policy">
+          <ul>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/terms/" target="_blank">Terms</a></li>
+            <li class="privacy-policy-links">|</li>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/privacy-policy/" target="_blank">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="copyright">
+        <p>© Copyright The Linux Foundation. The PyTorch Foundation is a project of The Linux Foundation.
+          For web site terms of use, trademark policy and other policies applicable to The PyTorch Foundation please see
+          <a href="https://www.linuxfoundation.org/policies/">www.linuxfoundation.org/policies/</a>. The PyTorch Foundation supports the PyTorch open source
+          project, which has been established as PyTorch Project a Series of LF Projects, LLC. For policies applicable to the PyTorch Project a Series of LF Projects, LLC,
+          please see <a href="https://www.lfprojects.org/policies/">www.lfprojects.org/policies/</a>.</p>
+      </div>
+     </div>
+
+  </footer>
+
+  <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
+  </div>
+</div>
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+           <li class="resources-mobile-menu-title">
+             <a>Learn</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/get-started">Get Started</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials">Tutorials</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">Learn the Basics</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/recipes/recipes_index.html">PyTorch Recipes</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/introyt.html">Introduction to PyTorch - YouTube Series</a>
+             </li>
+           </ul>
+           <li class="resources-mobile-menu-title">
+             <a>Ecosystem</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/ecosystem">Tools</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/#community-module">Community</a>
+             </li>
+             <li>
+               <a href="https://discuss.pytorch.org/">Forums</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/resources">Developer Resources</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/ecosystem/contributor-awards-2023">Contributor Awards - 2023</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Edge</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/edge">About PyTorch Edge</a>
+             </li>
+             
+             <li>
+               <a href="https://pytorch.org/executorch-overview">ExecuTorch</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Docs</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/pytorch-domains">PyTorch Domains</a>
+            </li>
+          </ul>
+
+          <li class="resources-mobile-menu-title">
+            <a>Blog & News</a>
+          </li>
+            
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/blog/">PyTorch Blog</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/community-blog">Community Blog</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/videos">Videos</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/community-stories">Community Stories</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/events">Events</a>
+            </li>
+          </ul>
+          
+          <li class="resources-mobile-menu-title">
+            <a>About</a>
+          </li>
+
+          <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/foundation">PyTorch Foundation</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/governing-board">Governing Board</a>
+            </li>
+          </ul>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+      mainMenuDropdown.bind();
+      filterTags.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+</body>
+</html>
