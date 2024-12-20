@@ -269,22 +269,29 @@ for testing or for loading quantized models for generation.
 Checkpoint Output
 ---------------------------------
 
-Congrats for getting this far! You have loaded your weights, trained your model, now it's time to visualize
-the outputs. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
+Congrats for getting this far! Let's say you have followed our :ref:`End-to-End Workflow with torchtune <e2e_flow>` and trained a llama 3.2 3B using one of our LoRA recipes.
+
+Now let's visualize the outputs. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
 There are 3 types of folders:
 
-1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart the last intermediate epoch;
+1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart the last intermediate epoch. More on that later;
 2) **logs**: Defined in your config in metric_logger;
-3) **epoch_{}**: Contains your new trained model weights plus all original files of the model, making it easy for you to choose an specific epoch to run inference on or push to a model hub;
+3) **epoch_{}**: Contains your new trained model weights plus all original files of the model, except the checkpoints, making it easy for you to choose an specific epoch to run inference on or push to a model hub;
 
     .. code-block:: bash
 
-        >>> tree -a /tmp/torchtune/llama3_2_3B/full_single_device
-        /tmp/torchtune/llama3_2_3B/full_single_device
-        ├── base_model
+        >>> tree -a /tmp/torchtune/llama3_2_3B/lora_single_device
+        /tmp/torchtune/llama3_2_3B/lora_single_device
+        ├── epoch_0
+        │   ├── adapter_config.json
+        │   ├── adapter_model.pt
+        │   ├── adapter_model.safetensors
         │   ├── config.json
+        │   ├── ft-model-00001-of-00002.safetensors
+        │   ├── ft-model-00002-of-00002.safetensors
         │   ├── generation_config.json
         │   ├── LICENSE.txt
+        │   ├── model.safetensors.index.json
         │   ├── original
         │   │   ├── orig_params.json
         │   │   ├── params.json
@@ -295,18 +302,31 @@ There are 3 types of folders:
         │   ├── tokenizer_config.json
         │   ├── tokenizer.json
         │   └── USE_POLICY.md
-        ├── epoch_0
-        │   ├── ft-model-00001-of-00002.safetensors
-        │   ├── ft-model-00002-of-00002.safetensors
-        │   └── model.safetensors.index.json
         ├── epoch_1
+        │   ├── adapter_config.json
+        │   ├── adapter_model.pt
+        │   ├── adapter_model.safetensors
+        │   ├── config.json
         │   ├── ft-model-00001-of-00002.safetensors
         │   ├── ft-model-00002-of-00002.safetensors
-        │   └── model.safetensors.index.json
+        │   ├── generation_config.json
+        │   ├── LICENSE.txt
+        │   ├── model.safetensors.index.json
+        │   ├── original
+        │   │   ├── orig_params.json
+        │   │   ├── params.json
+        │   │   └── tokenizer.model
+        │   ├── original_repo_id.json
+        │   ├── README.md
+        │   ├── special_tokens_map.json
+        │   ├── tokenizer_config.json
+        │   ├── tokenizer.json
+        │   └── USE_POLICY.md
         ├── logs
-        │   └── log_1734548357.txt
+        │   └── log_1734652101.txt
         └── recipe_state
             └── recipe_state.pt
+
 
 Intermediate vs Final Checkpoints
 ---------------------------------
@@ -360,14 +380,18 @@ The output state dicts have the following formats:
                 ...
             }
 
-To restart from a previous checkpoint file, you'll need to **update** the following fields in your configs:
+Resuming from checkpoint - Full Finetuning
+------------------------------------------
+
+Sometimes our training is interrupted for some reason. To restart training from a previous checkpoint file,
+you'll need to **update** the following fields in your configs:
 
 **resume_from_checkpoint**: Set it to True;
-**checkpoint_files**: change the path to epoch_{YOUR_EPOCH}/updated_file_name;
 
+**checkpoint_files**: change the path to ``epoch_{YOUR_EPOCH}/ft-model={}-of-{}.safetensors``;
 
-Notice that we do not change our checkpoint_dir or output_dir. When resuming from checkpoint for a full model,
-we will always look for checkpoint_files in the *output_dir*.
+Notice that we do **not** change our checkpoint_dir or output_dir. Since we are resuming from checkpoint, we know
+to look for it in the output_dir.
 
 .. code-block:: yaml
 
@@ -383,34 +407,39 @@ we will always look for checkpoint_files in the *output_dir*.
     resume_from_checkpoint: True
 
 
-Checkpointing for LoRA
-----------------------
+Resuming from checkpoint - LoRA Finetuning
+------------------------------------------
 
-In torchtune, we output both the adapter weights and the full model "merged" weights
-for LoRA. The "merged" checkpoint is a convenience, since it can be used just like you would use the source
-checkpoint with any post-training tools. For more details, take a look at our
-:ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
-
-Additionally, by setting the option "save_adapter_weights_only" to True when saving a checkpoint,
-you can choose to save **only** the adapter weights. This reduces the amount of storage and time needed
-to save the checkpoint.
-
-The config **updates** for resuming from a LoRA adapter looks something like this:
-
+Similarly to full finetuning, we will also only need to modify two fields: ``resume_from_checkpoint``
+and ``adapter_checkpoint``, which will be loaded from output_dir. We do not have to modify ``checkpoint_files``,
+because the base model being loaded is still the same.
 
 .. code-block:: yaml
 
     checkpointer:
 
-        # this is optinoal. If left empty, we will always look for it
-        # in the latest epoch folder.
+        # adapter_checkpoint. Note that you will need to update this
+        # section of the config with the intermediate checkpoint files
         adapter_checkpoint: epoch_{YOUR_EPOCH}/adapter_model.safetensors
 
     # set to True if restarting training
     resume_from_checkpoint: True
 
     # set to True to save only the adapter weights
-    save_adapter_weights_only: False # it does not influence resuming_from_checkpointing
+    # it does not influence resuming_from_checkpointing
+    save_adapter_weights_only: False
+
+.. note::
+    In torchtune, we output both the adapter weights and the full model "merged" weights
+    for LoRA. The "merged" checkpoint is a convenience, since it can be used without having special
+    tooling to handle the adapters. However, they should **not** be used when resuming
+    training, as loading the merged weights + adapter would be an error. Therefore, when resuming for LoRA,
+    we will take the original untrained weigths from checkpoint dir, and the trained
+    adapters from output_dir. For more details, take a look at our :ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
+
+.. note::
+    Additionally, by setting the option "save_adapter_weights_only", you can choose to **only** save the adapter weights.
+    This reduces the amount of storage and time needed to save the checkpoint, but has no influence over resuming from checkpoint.
 
 |
 
@@ -441,7 +470,7 @@ For this section we'll use the Llama-3.2-3B-Instruct model in HF format.
     checkpointer = FullModelHFCheckpointer(
         checkpoint_dir=checkpoint_dir,
         checkpoint_files=pytorch_files,
-        output_dir=checkpoint_dir,
+        output_dir=output_dir,
         model_type="LLAMA3_2",
     )
     torchtune_sd = checkpointer.load_checkpoint()
