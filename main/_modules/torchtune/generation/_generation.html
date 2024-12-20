@@ -569,7 +569,7 @@
 <span class="sd">            - [bsz, seq_length, target_seq_len] if ``target_seq_len`` was specified.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        AssertionError: if ``target_seq_len &gt; seq_len``, the sequence length of the padding mask.</span>
+<span class="sd">        AssertionError: if ``target_seq_len &lt; seq_len``, the sequence length of the padding mask.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; padding_mask = torch.tensor([[False, True, True, True]])</span>
