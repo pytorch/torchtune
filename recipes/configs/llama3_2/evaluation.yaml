@@ -16,7 +16,7 @@ checkpointer:
     model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-3.2-3B-Instruct
+  output_dir: ${output_dir}
   model_type: LLAMA3_2
 resume_from_checkpoint: False
 
