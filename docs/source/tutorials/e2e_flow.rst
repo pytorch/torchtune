@@ -98,7 +98,7 @@ Let's look for the right config for this use case by using the tune CLI.
 
 
 We'll fine-tune using our
-`single device LoRA recipe <https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py>`_
+:ref:`single device LoRA recipe <lora_finetune_recipe_label>`
 and use the standard settings from the
 `default config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama3_2/3B_lora_single_device.yaml>`_.
 
