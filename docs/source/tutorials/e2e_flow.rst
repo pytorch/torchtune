@@ -276,7 +276,8 @@ Let's first copy over the config to our local working directory so we can make c
     $ tune cp generation ./custom_generation_config.yaml
     Copied file to custom_generation_config.yaml
 
-Let's modify ``custom_generation_config.yaml`` to include the following changes.
+Let's modify ``custom_generation_config.yaml`` to include the following changes. Again, you only need
+ to replace two fields: ``output_dir`` and ``checkpoint_files``
 
 .. code-block:: yaml
 
@@ -437,7 +438,7 @@ state-of-the-art serving throughput, continuous batching of incoming requests, q
 The library will load any .safetensors file. Since here we mixed both the full model weights and adapter weights, we have to delete the
 adapter weights to succesfully load it.
 
-.. code-block:: bash
+.. code-block:: python
 
     rm /tmp/torchtune/llama3_2_3B/lora_single_device/base_model/adapter_model.safetensors
 
