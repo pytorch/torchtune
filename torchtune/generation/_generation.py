@@ -139,7 +139,7 @@ def get_causal_mask_from_padding_mask(
             - [bsz, seq_length, target_seq_len] if ``target_seq_len`` was specified.
 
     Raises:
-        AssertionError: if ``target_seq_len > seq_len``, the sequence length of the padding mask.
+        AssertionError: if ``target_seq_len < seq_len``, the sequence length of the padding mask.
 
     Example:
         >>> padding_mask = torch.tensor([[False, True, True, True]])
