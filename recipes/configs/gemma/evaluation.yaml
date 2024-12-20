@@ -3,6 +3,8 @@
 # To launch, run the following command:
 #    tune run eleuther_eval --config gemma/evaluation
 
+output_dir: ./ # Not needed
+
 # Model Arguments
 model:
   _component_: torchtune.models.gemma.gemma_2b
@@ -15,7 +17,7 @@ checkpointer:
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
   ]
-  output_dir: ./ # Not needed
+  output_dir: ${output_dir}
   model_type: GEMMA
 
 # Tokenizer

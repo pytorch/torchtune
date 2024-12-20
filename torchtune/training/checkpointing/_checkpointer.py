@@ -30,7 +30,7 @@ from torchtune.models import convert_weights
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG_FNAME,
     ADAPTER_MODEL_FNAME,
-    BASE_MODEL_DIRNAME,
+    check_outdir_not_in_ckptdir,
     copy_files,
     get_adapter_checkpoint_path,
     get_model_checkpoint_path,
@@ -163,7 +163,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
             raise ValueError(
-                "Currently we only support reading from a single torchtune checkpoint file. "
+                "Currently we only support reading from a single checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
             )
 
@@ -178,15 +178,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
-        self._output_dir.mkdir(parents=True, exist_ok=True)
-
-        # save all files in input_dir, except model weights and mapping, to output_dir
-        # this is useful to preserve the tokenizer, configs, license, etc.
-        copy_files(
-            self._checkpoint_dir,
-            Path.joinpath(self._output_dir, BASE_MODEL_DIRNAME),
-            ignore_suffixes=SUFFIXES_TO_NOT_COPY,
+        check_outdir_not_in_ckptdir(
+            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
         )
+        self._output_dir.mkdir(parents=True, exist_ok=True)
 
         #  resume from adapter_model ckpt
         self._adapter_checkpoint = get_adapter_checkpoint_path(
@@ -331,6 +326,14 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 "Adapter checkpoint not found in state_dict. Please ensure that the state_dict contains adapter weights."
             )
 
+        # Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}
+        # So its easy to run inference with the model using this epoch's checkpoint
+        copy_files(
+            self._checkpoint_dir,
+            Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+            ignore_suffixes=SUFFIXES_TO_NOT_COPY,
+        )
+
         # If the recipe state needs to be output, first remove the model state dict
         if intermediate_checkpoint:
             _ = state_dict.pop(training.MODEL_KEY, None)
@@ -423,6 +426,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._checkpoint_dir = Path(checkpoint_dir)
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
+        check_outdir_not_in_ckptdir(
+            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
+        )
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
@@ -433,14 +439,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # the config.json file contains model params needed for state dict conversion
         self._config = json.loads(
             Path.joinpath(self._checkpoint_dir, "config.json").read_text()
-        )
-
-        # save all files in input_dir, except model weights and mapping, to output_dir
-        # this is useful to preserve the tokenizer, configs, license, etc.
-        copy_files(
-            self._checkpoint_dir,
-            Path.joinpath(self._output_dir, BASE_MODEL_DIRNAME),
-            ignore_suffixes=SUFFIXES_TO_NOT_COPY,
         )
 
         # repo_id is necessary for when saving an adapter config, so its compatible with HF.
@@ -873,6 +871,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     f"saved to {output_path}"
                 )
 
+        # Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}
+        # So its easy to run inference with the model using this epoch's checkpoint
+        copy_files(
+            self._checkpoint_dir,
+            Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+            ignore_suffixes=SUFFIXES_TO_NOT_COPY,
+        )
+
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
         if intermediate_checkpoint:
@@ -951,7 +957,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
             raise ValueError(
-                "Currently we only support reading from a single torchtune checkpoint file. "
+                "Currently we only support reading from a single checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
             )
 
@@ -964,15 +970,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             )
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
-        self._output_dir.mkdir(parents=True, exist_ok=True)
-
-        # save all files in input_dir, except model weights and mapping, to output_dir
-        # this is useful to preserve the tokenizer, configs, license, etc.
-        copy_files(
-            self._checkpoint_dir,
-            Path.joinpath(self._output_dir, BASE_MODEL_DIRNAME),
-            ignore_suffixes=SUFFIXES_TO_NOT_COPY,
+        check_outdir_not_in_ckptdir(
+            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
         )
+        self._output_dir.mkdir(parents=True, exist_ok=True)
 
         #  resume from adapter_model ckpt
         self._adapter_checkpoint = get_adapter_checkpoint_path(
@@ -1125,6 +1126,14 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             raise ValueError(
                 "Adapter checkpoint not found in state_dict. Please ensure that the state_dict contains adapter weights."
             )
+
+        # Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}
+        # So its easy to run inference with the model using this epoch's checkpoint
+        copy_files(
+            self._checkpoint_dir,
+            Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+            ignore_suffixes=SUFFIXES_TO_NOT_COPY,
+        )
 
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
