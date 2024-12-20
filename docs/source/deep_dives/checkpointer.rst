@@ -175,7 +175,7 @@ The following snippet explains how the HFCheckpointer is setup in torchtune conf
 
         # directory with the checkpoint files
         # this should match the folder you used when downloading the model
-        checkpoint_dir: <checkpoint_dir>
+        checkpoint_dir: /tmp/Llama-3.2-3B-Instruct
 
         # checkpoint files. For the Llama-3.2-3B-Instruct model we have
         # 2 .safetensor files. The checkpointer takes care of sorting
@@ -271,14 +271,18 @@ Checkpoint Output
 
 Congrats for getting this far! Let's say you have followed our :ref:`End-to-End Workflow with torchtune <e2e_flow>` and trained a llama 3.2 3B using one of our LoRA recipes.
 
-Now let's visualize the outputs. A simple way of doing this is by running `tree -a path/to/outputdir`, which should show something like the tree below.
+Now let's visualize the outputs. A simple way of doing this is by running :code:`tree -a path/to/outputdir`, which should show something like the tree below.
 There are 3 types of folders:
 
 1) **recipe_state**: Holds recipe_state.pt with the information necessary to restart the last intermediate epoch. More on that later;
-2) **logs**: Defined in your config in metric_logger;
-3) **epoch_{}**: Contains your new trained model weights plus all original files of the model, except the checkpoints, making it easy for you to choose an specific epoch to run inference on or push to a model hub;
+2) **logs**: Outputs of your metric_logger, if any;
+3) **epoch_{}**: Contains your trained model weights plus model metadata. If running inference or pushing to a model hub, you should use this folder directly;
 
-For more details about each file, check the End-to-End tutorial mentioned above.
+.. note::
+     For each epoch, we copy the contents of the original checkpoint folder, excluding the original checkpoints and large files.
+     These files are lightweight, mostly configuration files, and make it easier for the user to use the epoch folders directly in downstream applications.
+
+For more details about each file, please check the End-to-End tutorial mentioned above.
 
     .. code-block:: bash
 
@@ -432,7 +436,7 @@ because the base model being loaded is still the same.
     save_adapter_weights_only: False
 
 .. note::
-    In torchtune, we output both the adapter weights and the full model "merged" weights
+    In torchtune, we output both the adapter weights and the full model merged weights
     for LoRA. The "merged" checkpoint is a convenience, since it can be used without having special
     tooling to handle the adapters. However, they should **not** be used when resuming
     training, as loading the merged weights + adapter would be an error. Therefore, when resuming for LoRA,
@@ -440,7 +444,7 @@ because the base model being loaded is still the same.
     adapters from output_dir. For more details, take a look at our :ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
 
 .. note::
-    Additionally, by setting the option "save_adapter_weights_only", you can choose to **only** save the adapter weights.
+    Additionally, by setting the option :code:`save_adapter_weights_only`, you can choose to **only** save the adapter weights.
     This reduces the amount of storage and time needed to save the checkpoint, but has no influence over resuming from checkpoint.
 
 |
