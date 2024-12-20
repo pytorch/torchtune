@@ -474,9 +474,9 @@ state dict will raise an exception) or worse - silent errors (loading will succe
 inference will not work as expected). In addition to the keys lining up, you also need the shapes
 of the weights (values in the state_dict) to match up exactly with those expected by the model
 definition.</p>
-<p>Let’s look at the two popular formats for Llama2.</p>
+<p>Let’s look at the two popular formats for Llama 3.2.</p>
 <p><strong>Meta Format</strong></p>
-<p>This is the format supported by the official Llama2 implementation. When you download the Llama2 7B model
+<p>This is the format supported by the official Llama 3.2 implementation. When you download the Llama 3.2 3B model
 from the <a class="reference external" href="https://llama.meta.com/llama-downloads">meta-llama website</a>, you’ll get access to a single
 <code class="docutils literal notranslate"><span class="pre">.pth</span></code> checkpoint file. You can inspect the contents of this checkpoint easily with <code class="docutils literal notranslate"><span class="pre">torch.load</span></code></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
@@ -485,33 +485,37 @@ from the <a class="reference external" href="https://llama.meta.com/llama-downlo
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 <span class="gp">&gt;&gt;&gt; </span>   <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-<span class="go">tok_embeddings.weight: torch.Size([32000, 4096])</span>
+<span class="go">tok_embeddings.weight: torch.Size([128256, 3072])</span>
 <span class="go">...</span>
 <span class="go">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-<span class="go">292</span>
+<span class="go">255</span>
 </pre></div>
 </div>
-<p>The state_dict contains 292 keys, including an input embedding table called <code class="docutils literal notranslate"><span class="pre">tok_embeddings</span></code>. The
-model definition for this state_dict expects an embedding layer with <code class="docutils literal notranslate"><span class="pre">32000</span></code> tokens each having a
-embedding with dim of <code class="docutils literal notranslate"><span class="pre">4096</span></code>.</p>
+<p>The state_dict contains 255 keys, including an input embedding table called <code class="docutils literal notranslate"><span class="pre">tok_embeddings</span></code>. The
+model definition for this state_dict expects an embedding layer with <code class="docutils literal notranslate"><span class="pre">128256</span></code> tokens each having a
+embedding with dim of <code class="docutils literal notranslate"><span class="pre">3072</span></code>.</p>
 <p><strong>HF Format</strong></p>
 <p>This is the most popular format within the Hugging Face Model Hub and is
 the default format in every torchtune config. This is also the format you get when you download the
-llama2 model from the <a class="reference external" href="https://huggingface.co/meta-llama/Llama-2-7b-hf">Llama-2-7b-hf</a> repo.</p>
-<p>The first big difference is that the state_dict is split across two <code class="docutils literal notranslate"><span class="pre">.bin</span></code> files. To correctly
+llama3.2 model from the <a class="reference external" href="https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct">Llama-3.2-3B-Instruct</a> repo.</p>
+<p>The first big difference is that the state_dict is split across two <code class="docutils literal notranslate"><span class="pre">.safetensors</span></code> files. To correctly
 load the checkpoint, you’ll need to piece these files together. Let’s inspect one of the files.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;pytorch_model-00001-of-00002.bin&#39;</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">safetensors</span> <span class="kn">import</span> <span class="n">safe_open</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">state_dict</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">safe_open</span><span class="p">(</span><span class="s2">&quot;model-00001-of-00002.safetensors&quot;</span><span class="p">,</span> <span class="n">framework</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># inspect the keys and the shapes of the associated tensors</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-<span class="go">model.embed_tokens.weight: torch.Size([32000, 4096])</span>
+<span class="go">model.embed_tokens.weight: torch.Size([128256, 3072])</span>
 <span class="go">...</span>
 <span class="go">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-<span class="go">241</span>
+<span class="go">187</span>
 </pre></div>
 </div>
 <p>Not only does the state_dict contain fewer keys (expected since this is one of two files), but
@@ -563,15 +567,15 @@ Model Hub and is the default format in every torchtune config.</p>
 <p>For this checkpointer to work correctly, we assume that <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:</p>
 <ul>
-<li><p>Download the model from the HF repo using tune download. By default, this will ignore the “safetensors”
-files.</p>
+<li><p>Download the model from the HF repo using tune download. This will ignore the “pth”
+files, since we will be loading the “safetensors”.</p>
 <blockquote>
 <div><div class="line-block">
 <div class="line"><br /></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-7b-hf<span class="w"> </span><span class="se">\</span>
---output-dir<span class="w"> </span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
---hf-token<span class="w"> </span>&lt;hf-token&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.2-3B-Instruct<span class="w"> </span><span class="se">\</span>
+--output-dir<span class="w"> </span>/tmp/Llama-3.2-3B-Instruct<span class="w"> </span><span class="se">\</span>
+--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -588,31 +592,25 @@ files.</p>
 <span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 
 <span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
-<span class="w">    </span><span class="c1"># this should match the output_dir above</span>
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">    </span><span class="c1"># this should match the folder you used when downloading the model</span>
+<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/Llama-3.2-3B-Instruct</span>
 
-<span class="w">    </span><span class="c1"># checkpoint files. For the llama2-7b-hf model we have</span>
-<span class="w">    </span><span class="c1"># 2 .bin files. The checkpointer takes care of sorting</span>
+<span class="w">    </span><span class="c1"># checkpoint files. For the Llama-3.2-3B-Instruct model we have</span>
+<span class="w">    </span><span class="c1"># 2 .safetensor files. The checkpointer takes care of sorting</span>
 <span class="w">    </span><span class="c1"># by id and so the order here does not matter</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">pytorch_model-00001-of-00002.bin</span><span class="p p-Indicator">,</span>
-<span class="w">        </span><span class="nv">pytorch_model-00002-of-00002.bin</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">model-00002-of-00002.safetensors</span><span class="p p-Indicator">,</span>
 <span class="w">    </span><span class="p p-Indicator">]</span>
 
-<span class="w">    </span><span class="c1"># if we&#39;re restarting a previous run, we need to specify</span>
-<span class="w">    </span><span class="c1"># the file with the checkpoint state. More on this in the</span>
-<span class="w">    </span><span class="c1"># next section</span>
-<span class="w">    </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-
-<span class="w">    </span><span class="c1"># dir for saving the output checkpoints. Usually set</span>
-<span class="w">    </span><span class="c1"># to be the same as checkpoint_dir</span>
-<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">    </span><span class="c1"># dir for saving the output checkpoints</span>
+<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;output_dir&gt;</span>
 
 <span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
 <span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3_2</span>
 
-<span class="c1"># set to True if restarting training</span>
+<span class="c1"># set to True if restarting training. More on that later.</span>
 <span class="nt">resume_from_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </pre></div>
 </div>
@@ -640,9 +638,9 @@ files.</p>
 <div><div class="line-block">
 <div class="line"><br /></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-7b<span class="w"> </span><span class="se">\</span>
---output-dir<span class="w"> </span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
---hf-token<span class="w"> </span>&lt;hf-token&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-3.2-3B-Instruct<span class="w"> </span><span class="se">\</span>
+--output-dir<span class="w"> </span>/tmp/Llama-3.2-3B-Instruct<span class="w"> </span><span class="se">\</span>
+--ignore-patterns<span class="w"> </span><span class="s2">&quot;*.safetensors&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -659,27 +657,21 @@ files.</p>
 <span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelMetaCheckpointer</span>
 
 <span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
-<span class="w">    </span><span class="c1"># this should match the output_dir above</span>
+<span class="w">    </span><span class="c1"># this should match the folder you used when downloading the model</span>
 <span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
-<span class="w">    </span><span class="c1"># checkpoint files. For the llama2-7b model we have</span>
+<span class="w">    </span><span class="c1"># checkpoint files. For the llama3.2 3B model we have</span>
 <span class="w">    </span><span class="c1"># a single .pth file</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">consolidated.00.pth</span><span class="p p-Indicator">]</span>
 
-<span class="w">    </span><span class="c1"># if we&#39;re restarting a previous run, we need to specify</span>
-<span class="w">    </span><span class="c1"># the file with the checkpoint state. More on this in the</span>
-<span class="w">    </span><span class="c1"># next section</span>
-<span class="w">    </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-
-<span class="w">    </span><span class="c1"># dir for saving the output checkpoints. Usually set</span>
-<span class="w">    </span><span class="c1"># to be the same as checkpoint_dir</span>
+<span class="w">    </span><span class="c1"># dir for saving the output checkpoints.</span>
 <span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
 <span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
 <span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3_2</span>
 
-<span class="c1"># set to True if restarting training</span>
+<span class="c1"># set to True if restarting training. More on that later.</span>
 <span class="nt">resume_from_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </pre></div>
 </div>
@@ -696,6 +688,73 @@ for testing or for loading quantized models for generation.</p>
 <div class="line"><br /></div>
 </div>
 </section>
+</section>
+<section id="checkpoint-output">
+<h2>Checkpoint Output<a class="headerlink" href="#checkpoint-output" title="Permalink to this heading">¶</a></h2>
+<p>Congrats for getting this far! Let’s say you have followed our <a class="reference internal" href="../tutorials/e2e_flow.html#e2e-flow"><span class="std std-ref">End-to-End Workflow with torchtune</span></a> and trained a llama 3.2 3B using one of our LoRA recipes.</p>
+<p>Now let’s visualize the outputs. A simple way of doing this is by running <code class="code docutils literal notranslate"><span class="pre">tree</span> <span class="pre">-a</span> <span class="pre">path/to/outputdir</span></code>, which should show something like the tree below.
+There are 3 types of folders:</p>
+<ol class="arabic simple">
+<li><p><strong>recipe_state</strong>: Holds recipe_state.pt with the information necessary to restart your training run from the last intermediate epoch. More on that later;</p></li>
+<li><p><strong>logs</strong>: Outputs of your metric_logger, if any;</p></li>
+<li><p><strong>epoch_{}</strong>: Contains your trained model weights plus model metadata. If running inference or pushing to a model hub, you should use this folder directly;</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For each epoch, we copy the contents of the original checkpoint folder, excluding the original checkpoints and large files.
+These files are lightweight, mostly configuration files, and make it easier for the user to use the epoch folders directly in downstream applications.</p>
+</div>
+<p>For more details about each file, please check the End-to-End tutorial mentioned above.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>tree<span class="w"> </span>-a<span class="w"> </span>/tmp/torchtune/llama3_2_3B/lora_single_device
+/tmp/torchtune/llama3_2_3B/lora_single_device
+├──<span class="w"> </span>epoch_0
+│<span class="w">   </span>├──<span class="w"> </span>adapter_config.json
+│<span class="w">   </span>├──<span class="w"> </span>adapter_model.pt
+│<span class="w">   </span>├──<span class="w"> </span>adapter_model.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>config.json
+│<span class="w">   </span>├──<span class="w"> </span>ft-model-00001-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>ft-model-00002-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>generation_config.json
+│<span class="w">   </span>├──<span class="w"> </span>LICENSE.txt
+│<span class="w">   </span>├──<span class="w"> </span>model.safetensors.index.json
+│<span class="w">   </span>├──<span class="w"> </span>original
+│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>orig_params.json
+│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>params.json
+│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>tokenizer.model
+│<span class="w">   </span>├──<span class="w"> </span>original_repo_id.json
+│<span class="w">   </span>├──<span class="w"> </span>README.md
+│<span class="w">   </span>├──<span class="w"> </span>special_tokens_map.json
+│<span class="w">   </span>├──<span class="w"> </span>tokenizer_config.json
+│<span class="w">   </span>├──<span class="w"> </span>tokenizer.json
+│<span class="w">   </span>└──<span class="w"> </span>USE_POLICY.md
+├──<span class="w"> </span>epoch_1
+│<span class="w">   </span>├──<span class="w"> </span>adapter_config.json
+│<span class="w">   </span>├──<span class="w"> </span>adapter_model.pt
+│<span class="w">   </span>├──<span class="w"> </span>adapter_model.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>config.json
+│<span class="w">   </span>├──<span class="w"> </span>ft-model-00001-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>ft-model-00002-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>generation_config.json
+│<span class="w">   </span>├──<span class="w"> </span>LICENSE.txt
+│<span class="w">   </span>├──<span class="w"> </span>model.safetensors.index.json
+│<span class="w">   </span>├──<span class="w"> </span>original
+│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>orig_params.json
+│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>params.json
+│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>tokenizer.model
+│<span class="w">   </span>├──<span class="w"> </span>original_repo_id.json
+│<span class="w">   </span>├──<span class="w"> </span>README.md
+│<span class="w">   </span>├──<span class="w"> </span>special_tokens_map.json
+│<span class="w">   </span>├──<span class="w"> </span>tokenizer_config.json
+│<span class="w">   </span>├──<span class="w"> </span>tokenizer.json
+│<span class="w">   </span>└──<span class="w"> </span>USE_POLICY.md
+├──<span class="w"> </span>logs
+│<span class="w">   </span>└──<span class="w"> </span>log_1734652101.txt
+└──<span class="w"> </span>recipe_state
+<span class="w">    </span>└──<span class="w"> </span>recipe_state.pt
+</pre></div>
+</div>
+</div></blockquote>
 </section>
 <section id="intermediate-vs-final-checkpoints">
 <h2>Intermediate vs Final Checkpoints<a class="headerlink" href="#intermediate-vs-final-checkpoints" title="Permalink to this heading">¶</a></h2>
@@ -742,85 +801,60 @@ overwritten at the end of each epoch.</p>
 </pre></div>
 </div>
 </div></blockquote>
-<p>To restart from a previous checkpoint file, you’ll need to make the following changes
-to the config file</p>
+</section>
+<section id="resuming-from-checkpoint-full-finetuning">
+<h2>Resuming from checkpoint - Full Finetuning<a class="headerlink" href="#resuming-from-checkpoint-full-finetuning" title="Permalink to this heading">¶</a></h2>
+<p>Sometimes our training is interrupted for some reason. To restart training from a previous checkpoint file,
+you’ll need to <strong>update</strong> the following fields in your configs:</p>
+<p><strong>resume_from_checkpoint</strong>: Set it to True;</p>
+<p><strong>checkpoint_files</strong>: change the path to <code class="docutils literal notranslate"><span class="pre">epoch_{YOUR_EPOCH}/ft-model={}-of-{}.safetensors</span></code>;</p>
+<p>Notice that we do <strong>not</strong> change our checkpoint_dir or output_dir. Since we are resuming from checkpoint, we know
+to look for it in the output_dir.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-
-<span class="w">    </span><span class="c1"># checkpointer to use</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
-
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-
 <span class="w">    </span><span class="c1"># checkpoint files. Note that you will need to update this</span>
 <span class="w">    </span><span class="c1"># section of the config with the intermediate checkpoint files</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">hf_model_0001_0.pt</span><span class="p p-Indicator">,</span>
-<span class="w">        </span><span class="nv">hf_model_0002_0.pt</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">epoch_</span><span class="p p-Indicator">{</span><span class="nv">YOUR_EPOCH</span><span class="p p-Indicator">}</span><span class="nv">/ft-model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">epoch_</span><span class="p p-Indicator">{</span><span class="nv">YOUR_EPOCH</span><span class="p p-Indicator">}</span><span class="nv">/ft-model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
 <span class="w">    </span><span class="p p-Indicator">]</span>
-
-<span class="w">    </span><span class="c1"># if we&#39;re restarting a previous run, we need to specify</span>
-<span class="w">    </span><span class="c1"># the file with the checkpoint state</span>
-<span class="w">    </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">recipe_state.pt</span>
-
-<span class="w">    </span><span class="c1"># dir for saving the output checkpoints. Usually set</span>
-<span class="w">    </span><span class="c1"># to be the same as checkpoint_dir</span>
-<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-
-<span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
-<span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
 
 <span class="c1"># set to True if restarting training</span>
 <span class="nt">resume_from_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
 </section>
-<section id="checkpointing-for-lora">
-<h2>Checkpointing for LoRA<a class="headerlink" href="#checkpointing-for-lora" title="Permalink to this heading">¶</a></h2>
-<p>In torchtune, we output both the adapter weights and the full model “merged” weights
-for LoRA. The “merged” checkpoint can be used just like you would use the source
-checkpoint with any post-training tools. For more details, take a look at our
-<a class="reference internal" href="../tutorials/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Finetuning Tutorial</span></a>.Additionally, by setting the option “save_adapter_weights_only” to True when saving a checkpoint, you can choose to save only the adapter weights.</p>
-<p>The primary difference between the two use cases is when you want to resume training
-from a checkpoint. In this case, the checkpointer needs access to both the initial frozen
-base model weights as well as the learnt adapter weights. The config for this scenario
-looks something like this:</p>
+<section id="resuming-from-checkpoint-lora-finetuning">
+<h2>Resuming from checkpoint - LoRA Finetuning<a class="headerlink" href="#resuming-from-checkpoint-lora-finetuning" title="Permalink to this heading">¶</a></h2>
+<p>Similarly to full finetuning, we will also only need to modify two fields: <code class="docutils literal notranslate"><span class="pre">resume_from_checkpoint</span></code>
+and <code class="docutils literal notranslate"><span class="pre">adapter_checkpoint</span></code>, which will be loaded from output_dir. We do not have to modify <code class="docutils literal notranslate"><span class="pre">checkpoint_files</span></code>,
+because the base model being loaded is still the same.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 
-<span class="w">    </span><span class="c1"># checkpointer to use</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
-
-<span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
-<span class="w">    </span><span class="c1"># this should match the output_dir above</span>
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-
-<span class="w">    </span><span class="c1"># checkpoint files. This is the ORIGINAL frozen checkpoint</span>
-<span class="w">    </span><span class="c1"># and NOT the merged checkpoint output during training</span>
-<span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">pytorch_model-00001-of-00002.bin</span><span class="p p-Indicator">,</span>
-<span class="w">        </span><span class="nv">pytorch_model-00002-of-00002.bin</span><span class="p p-Indicator">,</span>
-<span class="w">    </span><span class="p p-Indicator">]</span>
-
-<span class="w">    </span><span class="c1"># this refers to the adapter weights learnt during training</span>
-<span class="w">    </span><span class="nt">adapter_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">adapter_0.pt</span>
-
-<span class="w">    </span><span class="c1"># the file with the checkpoint state</span>
-<span class="w">    </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">recipe_state.pt</span>
-
-<span class="w">    </span><span class="c1"># dir for saving the output checkpoints. Usually set</span>
-<span class="w">    </span><span class="c1"># to be the same as checkpoint_dir</span>
-<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-
-<span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
-<span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
+<span class="w">    </span><span class="c1"># adapter_checkpoint. Note that you will need to update this</span>
+<span class="w">    </span><span class="c1"># section of the config with the intermediate checkpoint files</span>
+<span class="w">    </span><span class="nt">adapter_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">epoch_{YOUR_EPOCH}/adapter_model.safetensors</span>
 
 <span class="c1"># set to True if restarting training</span>
 <span class="nt">resume_from_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 
-<span class="c1"># Set to True to save only the adapter weights</span>
+<span class="c1"># set to True to save only the adapter weights</span>
+<span class="c1"># it does not influence resuming_from_checkpointing</span>
 <span class="nt">save_adapter_weights_only</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In torchtune, we output both the adapter weights and the full model merged weights
+for LoRA. The merged checkpoint is a convenience, since it can be used without having special
+tooling to handle the adapters. However, they should <strong>not</strong> be used when resuming
+training, as loading the merged weights + adapter would be an error. Therefore, when resuming for LoRA,
+we will take the original untrained weigths from checkpoint dir, and the trained
+adapters from output_dir. For more details, take a look at our <a class="reference internal" href="../tutorials/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Finetuning Tutorial</span></a>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Additionally, by setting the option <code class="code docutils literal notranslate"><span class="pre">save_adapter_weights_only</span></code>, you can choose to <strong>only</strong> save the adapter weights.
+This reduces the amount of storage and time needed to save the checkpoint, but has no influence over resuming from checkpoint.</p>
 </div>
 <div class="line-block">
 <div class="line"><br /></div>
@@ -830,48 +864,47 @@ looks something like this:</p>
 <h2>Putting this all together<a class="headerlink" href="#putting-this-all-together" title="Permalink to this heading">¶</a></h2>
 <p>Let’s now put all of this knowledge together! We’ll load some checkpoints,
 create some models and run a simple forward.</p>
-<p>For this section we’ll use the Llama2 13B model in HF format.</p>
+<p>For this section we’ll use the Llama-3.2-3B-Instruct model in HF format.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torchtune.training</span> <span class="kn">import</span> <span class="n">FullModelHFCheckpointer</span><span class="p">,</span> <span class="n">ModelType</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">llama2_13b</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.llama3_2</span> <span class="kn">import</span> <span class="n">llama3_2_3b</span>
+<span class="kn">from</span> <span class="nn">torchtune.training</span> <span class="kn">import</span> <span class="n">FullModelHFCheckpointer</span>
 
 <span class="c1"># Set the right directory and files</span>
-<span class="n">checkpoint_dir</span> <span class="o">=</span> <span class="s1">&#39;Llama-2-13b-hf/&#39;</span>
+<span class="n">checkpoint_dir</span> <span class="o">=</span> <span class="s2">&quot;/tmp/Llama-3.2-3B-Instruct/&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;/tmp/torchtune/llama3_2_3B/full_single_device&quot;</span>
+
 <span class="n">pytorch_files</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s1">&#39;pytorch_model-00001-of-00003.bin&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;pytorch_model-00002-of-00003.bin&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;pytorch_model-00003-of-00003.bin&#39;</span>
+    <span class="s2">&quot;model-00001-of-00002.safetensors&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;model-00002-of-00002.safetensors&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="c1"># Set up the checkpointer and load state dict</span>
 <span class="n">checkpointer</span> <span class="o">=</span> <span class="n">FullModelHFCheckpointer</span><span class="p">(</span>
     <span class="n">checkpoint_dir</span><span class="o">=</span><span class="n">checkpoint_dir</span><span class="p">,</span>
     <span class="n">checkpoint_files</span><span class="o">=</span><span class="n">pytorch_files</span><span class="p">,</span>
-    <span class="n">output_dir</span><span class="o">=</span><span class="n">checkpoint_dir</span><span class="p">,</span>
-    <span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;LLAMA2&quot;</span>
+    <span class="n">output_dir</span><span class="o">=</span><span class="n">output_dir</span><span class="p">,</span>
+    <span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;LLAMA3_2&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">torchtune_sd</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">()</span>
 
 <span class="c1"># Setup the model and the input</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">llama2_13b</span><span class="p">()</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">llama3_2_3b</span><span class="p">()</span>
 
 <span class="c1"># Model weights are stored with the key=&quot;model&quot;</span>
 <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torchtune_sd</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
-<span class="o">&lt;</span><span class="n">All</span> <span class="n">keys</span> <span class="n">matched</span> <span class="n">successfully</span><span class="o">&gt;</span>
+<span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">)</span>
 
-<span class="c1"># We have 32000 vocab tokens; lets generate an input with 70 tokens</span>
-<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32000</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">70</span><span class="p">))</span>
+<span class="c1"># We have 128256 vocab tokens; lets generate an input with 24 tokens</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">128256</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">)</span>
 
-<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-    <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-
-<span class="n">tensor</span><span class="p">([[[</span> <span class="o">-</span><span class="mf">6.3989</span><span class="p">,</span>  <span class="o">-</span><span class="mf">9.0531</span><span class="p">,</span>   <span class="mf">3.2375</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span>  <span class="o">-</span><span class="mf">5.2822</span><span class="p">,</span>  <span class="o">-</span><span class="mf">4.4872</span><span class="p">,</span>  <span class="o">-</span><span class="mf">5.7469</span><span class="p">],</span>
-    <span class="p">[</span> <span class="o">-</span><span class="mf">8.6737</span><span class="p">,</span> <span class="o">-</span><span class="mf">11.0023</span><span class="p">,</span>   <span class="mf">6.8235</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span>  <span class="o">-</span><span class="mf">2.6819</span><span class="p">,</span>  <span class="o">-</span><span class="mf">4.2424</span><span class="p">,</span>  <span class="o">-</span><span class="mf">4.0109</span><span class="p">],</span>
-    <span class="p">[</span> <span class="o">-</span><span class="mf">4.6915</span><span class="p">,</span>  <span class="o">-</span><span class="mf">7.3618</span><span class="p">,</span>   <span class="mf">4.1628</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span>  <span class="o">-</span><span class="mf">2.8594</span><span class="p">,</span>  <span class="o">-</span><span class="mf">2.5857</span><span class="p">,</span>  <span class="o">-</span><span class="mf">3.1151</span><span class="p">],</span>
-    <span class="o">...</span><span class="p">,</span>
-    <span class="p">[</span> <span class="o">-</span><span class="mf">7.7808</span><span class="p">,</span>  <span class="o">-</span><span class="mf">8.2322</span><span class="p">,</span>   <span class="mf">2.8850</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span>  <span class="o">-</span><span class="mf">1.9604</span><span class="p">,</span>  <span class="o">-</span><span class="mf">4.7624</span><span class="p">,</span>  <span class="o">-</span><span class="mf">1.6040</span><span class="p">],</span>
-    <span class="p">[</span> <span class="o">-</span><span class="mf">7.3159</span><span class="p">,</span>  <span class="o">-</span><span class="mf">8.5849</span><span class="p">,</span>   <span class="mf">1.8039</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span>  <span class="o">-</span><span class="mf">0.9322</span><span class="p">,</span>  <span class="o">-</span><span class="mf">5.2010</span><span class="p">,</span>  <span class="o">-</span><span class="mf">1.6824</span><span class="p">],</span>
-    <span class="p">[</span> <span class="o">-</span><span class="mf">7.8929</span><span class="p">,</span>  <span class="o">-</span><span class="mf">8.8465</span><span class="p">,</span>   <span class="mf">3.3794</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span>  <span class="o">-</span><span class="mf">1.3500</span><span class="p">,</span>  <span class="o">-</span><span class="mf">4.6145</span><span class="p">,</span>  <span class="o">-</span><span class="mf">2.5931</span><span class="p">]]])</span>
+<span class="n">tensor</span><span class="p">([[[</span> <span class="mf">1.4299</span><span class="p">,</span>  <span class="mf">1.1658</span><span class="p">,</span>  <span class="mf">4.2459</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.3259</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.3262</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.3259</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">6.5942</span><span class="p">,</span>  <span class="mf">7.2284</span><span class="p">,</span>  <span class="mf">2.4090</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mf">6.0129</span><span class="p">,</span> <span class="o">-</span><span class="mf">6.0121</span><span class="p">,</span> <span class="o">-</span><span class="mf">6.0127</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">5.6462</span><span class="p">,</span>  <span class="mf">4.8787</span><span class="p">,</span>  <span class="mf">4.0950</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.6460</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.6455</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.6457</span><span class="p">],</span>
+        <span class="o">...</span><span class="p">,</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">0.4156</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0626</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0362</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.6432</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.6437</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.6427</span><span class="p">],</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">0.5679</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.6902</span><span class="p">,</span>  <span class="mf">0.5267</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.6137</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.6138</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.6127</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.3688</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1350</span><span class="p">,</span>  <span class="mf">1.1764</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.4563</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.4565</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.4564</span><span class="p">]]],</span>
+    <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can do this with any model supported by torchtune. You can find a full list
@@ -935,8 +968,10 @@ associated utilities in torchtune. Happy tuning!</p>
 <li><a class="reference internal" href="#torchtunecheckpointer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchTuneCheckpointer</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#checkpoint-output">Checkpoint Output</a></li>
 <li><a class="reference internal" href="#intermediate-vs-final-checkpoints">Intermediate vs Final Checkpoints</a></li>
-<li><a class="reference internal" href="#checkpointing-for-lora">Checkpointing for LoRA</a></li>
+<li><a class="reference internal" href="#resuming-from-checkpoint-full-finetuning">Resuming from checkpoint - Full Finetuning</a></li>
+<li><a class="reference internal" href="#resuming-from-checkpoint-lora-finetuning">Resuming from checkpoint - LoRA Finetuning</a></li>
 <li><a class="reference internal" href="#putting-this-all-together">Putting this all together</a></li>
 </ul>
 </li>
