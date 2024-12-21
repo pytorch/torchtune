@@ -5,7 +5,7 @@ default_language_version:
 
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 6306a48f7dae5861702d573c9c247e4e9498e867
+    rev: v5.0.0
     hooks:
     -   id: trailing-whitespace
     -   id: check-ast
@@ -18,7 +18,7 @@ repos:
         exclude: '^(.*\.svg)$'
 
 -   repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.4
+    rev: v1.5.5
     hooks:
     -   id: insert-license
         files: \.py$|\.sh$
@@ -27,7 +27,7 @@ repos:
         - docs/license_header.txt
 
 -   repo: https://github.com/pycqa/flake8
-    rev: 34cbf8ef3950f43d09b85e2e45c15ae5717dc37b
+    rev: 7.1.1
     hooks:
     -   id: flake8
         additional_dependencies:
@@ -37,7 +37,7 @@ repos:
         args: ['--config=.flake8']
 
 -   repo: https://github.com/omnilib/ufmt
-    rev: v2.3.0
+    rev: v2.8.0
     hooks:
     -   id: ufmt
         additional_dependencies:
@@ -45,7 +45,7 @@ repos:
           - usort == 1.0.5
 
 - repo: https://github.com/jsh9/pydoclint
-  rev: 94efc5f989adbea30f3534b476b2931a02c1af90
+  rev: 0.5.12
   hooks:
     - id: pydoclint
       args: [--config=pyproject.toml]

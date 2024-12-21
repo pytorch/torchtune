@@ -126,12 +126,13 @@ class TiledTokenPositionalEmbedding(nn.Module):
             **kwargs (Dict[str, Any]): Additional keyword arguments.
 
         Raises:
-            ValueError: if loaded local or global embedding n_tokens_per_tile is not derived
-                from a squared grid.
-            ValueError: if after interpolation, the shape of the loaded local embedding
-                is not compatible with the current embedding.
-            ValueError: if after interpolation, the shape of the loaded global embedding
-                is not compatible with the current embedding.
+            ValueError:
+                If loaded local or global embedding n_tokens_per_tile is not derived
+                    from a squared grid, **or**
+                if after interpolation, the shape of the loaded local embedding
+                    is not compatible with the current embedding, **or**
+                if after interpolation, the shape of the loaded global embedding
+                    is not compatible with the current embedding.
         """
 
         # process local_token_positional_embedding
@@ -530,9 +531,10 @@ class TilePositionalEmbedding(nn.Module):
             **kwargs (Dict[str, Any]): Additional keyword arguments.
 
         Raises:
-            ValueError: if the shape of the loaded embedding is not compatible with the current embedding.
-            ValueError: if max_num_tiles_x, max_num_tiles_y are not equal.
-            ValueError: if after interpolation, the shape of the loaded embedding is not compatible with the current embedding.
+            ValueError:
+                If the shape of the loaded embedding is not compatible with the current embedding, **or**
+                if ``max_num_tiles_x``, ``max_num_tiles_y`` are not equal, **or**
+                if after interpolation, the shape of the loaded embedding is not compatible with the current embedding.
         """
 
         embedding = state_dict.get(prefix + "embedding")

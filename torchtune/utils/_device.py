@@ -177,10 +177,11 @@ def batch_to_device(batch: dict, device: torch.device) -> None:
 
     Args:
         batch (dict): dict of Tensors or more nested dicts of tensors.
-        device (torch.device): torch device to move the tensor's too
+        device (torch.device): torch device to move the tensors to.
 
     Raises:
-        AttributeError: if batch dict contains anything other than tensors
+        ValueError: if batch dict contains anything other than ``torch.Tensor``.
+
     """
     for k, v in batch.items():
         if isinstance(v, dict):
