@@ -222,7 +222,7 @@ class WandBLogger(MetricLoggerInterface):
             try:
                 output_config_fname = Path(
                     os.path.join(
-                        config.checkpointer.checkpoint_dir,
+                        config.output_dir,
                         "torchtune_config.yaml",
                     )
                 )
