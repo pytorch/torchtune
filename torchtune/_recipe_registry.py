@@ -173,6 +173,14 @@ _ALL_RECIPES = [
                 file_path="llama3_2/3B_lora_single_device.yaml",
             ),
             Config(
+                name="llama3_2/3B_lora_single_device_cpu",
+                file_path="llama3_2/3B_lora_single_device_cpu.yaml",
+            ),
+            Config(
+                name="llama3_2/3B_lora_single_device_xpu",
+                file_path="llama3_2/3B_lora_single_device_xpu.yaml",
+            ),
+            Config(
                 name="llama3/8B_dora_single_device",
                 file_path="llama3/8B_dora_single_device.yaml",
             ),
