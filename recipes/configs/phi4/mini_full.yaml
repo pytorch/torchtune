@@ -3,43 +3,43 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN>
+#   tune download microsoft/Phi-4-mini-16k-instruct --output-dir /tmp/Phi-4-mini-16k-instruct --hf-token <HF_TOKEN>
 #
 # Run this config on 4 GPUs using the following:
-#  tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full
+#  tune run --nproc_per_node 4 full_finetune_distributed --config phi4/mini_full
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 4 full_finetune_distributed --config phi4/mini_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # Single device full finetuning requires more memory optimizations. It's
 # best to use mini_low_memory.yaml for those cases
 
-output_dir: /tmp/torchtune/phi3_mini/full # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/phi4_mini/full # /tmp may be deleted by your system. Change it to your preference.
 
 # Model arguments
 model:
-  _component_: torchtune.models.phi3.phi3_mini
+  _component_: torchtune.models.phi4.phi4_mini
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.phi3.phi3_mini_tokenizer
-  path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  _component_: torchtune.models.phi4.phi4_mini_tokenizer
+  path: /tmp/Phi-4-mini-16k-instruct/tokenizer.model
   max_seq_len: null
 
 # Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
+  checkpoint_dir: /tmp/Phi-4-mini-16k-instruct
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: PHI3_MINI
+  model_type: PHI4_MINI
 resume_from_checkpoint: False
 
 # Dataset
