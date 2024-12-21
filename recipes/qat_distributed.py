@@ -508,7 +508,6 @@ class QATRecipeDistributed(FTRecipeInterface):
             model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
@@ -562,6 +561,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                 for param in opt_state_dict.keys():
                     try:
                         training.load_from_full_optimizer_state_dict(
+                            self._model,
                             self._optim_ckpt_wrapper.state_dict()[param],
                             opt_state_dict[param],
                             self._device,
@@ -577,6 +577,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
             if opt_state_dict:
                 training.load_from_full_optimizer_state_dict(
+                    self._model,
                     optimizer,
                     opt_state_dict,
                     self._device,
@@ -667,7 +668,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            self._model,
             self._is_rank_zero,
             device=self._device,
         )
@@ -682,6 +683,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             utils.log_rank_zero(log, "Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._model,
                     self._optimizer,
                     self._is_rank_zero,
                     device=self._device,
@@ -690,7 +692,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                 opt_state_dict = {}
                 for param, opt in self._optim_ckpt_wrapper.optim_map.items():
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
+                        self._model, opt, self._is_rank_zero, device=self._device
                     )
             utils.log_rank_zero(
                 log,
