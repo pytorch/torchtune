@@ -334,6 +334,17 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="full_dpo_distributed",
+        file_path="full_dpo_distributed.py",
+        configs=[
+            Config(
+                name="sarvam1/full_dpo",
+                file_path="sarvam1/full_dpo.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="ppo_full_finetune_single_device",
         file_path="ppo_full_finetune_single_device.py",
         configs=[

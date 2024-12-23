@@ -23,7 +23,7 @@ model:
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.sarvam1.sarvam1_tokenizer
+  _component_: torchtune.models.llama2.llama2_tokenizer
   path: /projects/data/rahul_sarvam_ai/nemo_models/sarvam-1-pt/tokenizer.model
   max_seq_len: 8192
 
@@ -35,10 +35,10 @@ dataset:
   conversation_style: openai
   conversation_column: messages
   source: json
-  packs_cache_path: /projects/data/mohit_sarvam_ai/torchtune/data/microsoft_agent
+  packs_cache_path: /projects/data/rahul_sarvam_ai/torchtune_models/cache/ft_train_cache_phase_1
   data_files: [
-    # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/sample.json,
-    /projects/data/mohit_sarvam_ai/torchtune/data/microsoft-agent.jsonl
+    /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/sample.json,
+    # /projects/data/mohit_sarvam_ai/torchtune/data/microsoft-agent.jsonl
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_0.json,
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_1.json,
     # /projects/data/mohit_sarvam_ai/torchtune/data/ft_train/data_2.json,
@@ -63,13 +63,14 @@ dataset:
   split: train
 seed: null
 shuffle: True
-output_dir: /projects/data/mohit_sarvam_ai/torchtune/output-sft/sarvam1-sft-microsft-agent
+output_dir: /projects/data/rahul_sarvam_ai/torchtune_models/sft-phase-1
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /projects/data/rahul_sarvam_ai/nemo_models/sarvam-1-pt
   checkpoint_files: [
-    pytorch_model.bin
+    # pytorch_model.bin
+    ft-model-00001-of-00001.safetensors
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -78,20 +79,20 @@ save_interval: 2000
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 1
+batch_size: 8
 epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
   fused: True
-  lr: 7e-6
+  lr: 3e-5
   weight_decay: 0.01
   betas: [0.9, 0.98]
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_linear_schedule_with_warmup
-  min_lr: 1e6
+  min_lr: 1e-8
   max_lr: ${optimizer.lr}
-  num_warmup_steps: 500
-  constant_steps: 500
+  num_warmup_steps: 1000
+  constant_steps: 0
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
