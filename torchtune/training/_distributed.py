@@ -13,12 +13,20 @@ from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 import torch
 import torch.distributed as dist
 from torch import nn
+from torch.distributed import DeviceMesh
 
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
-from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed._tensor import distribute_tensor, DTensor, Replicate, Shard
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.tensor.parallel import (
+    ColwiseParallel,
+    parallelize_module,
+    PrepareModuleInput,
+    RowwiseParallel,
+    SequenceParallel,
+)
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
@@ -434,6 +442,7 @@ def get_shard_conditions(
 
 def shard_model(
     model: TransformerDecoder,
+    device_mesh: DeviceMesh,
     shard_conditions: List[Callable[[str, nn.Module], bool]],
     *,
     cpu_offload: bool,
@@ -447,6 +456,7 @@ def shard_model(
 
     Args:
         model (TransformerDecoder): Model to shard with FSDP.
+        device_mesh (DeviceMesh): Device mesh to shard the model with. For now just DP and/or TP mesh.
         shard_conditions (List[Callable[[str, nn.Module], bool]]): A list of functions to determine
             which modules to shard with FSDP. Each function should take module name (relative to root)
             and the module itself, returning True if FSDP should shard the module and False otherwise.
@@ -460,6 +470,133 @@ def shard_model(
     Raises:
         ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.
     """
+
+    def apply_tp(
+        model: nn.Module,
+        tp_mesh: DeviceMesh,
+        loss_parallel: bool,
+        enable_float8: bool,
+        enable_async_tp: bool,
+    ):
+        """Apply tensor parallelism."""
+        # Slightly modified from torchtitan to work with LoRA
+        # See: https://github.com/pytorch/torchtitan/blob/main/torchtitan/parallelisms/parallelize_llama.py
+        # 1. Parallelize the embedding and shard its outputs (which are the first
+        # transformer block's inputs)
+        # 2. Parallelize the root norm layer over the sequence dim
+        # 3. Parallelize the final linear output layer
+        seq_parallel_input_output_layer_plan = {
+            "tok_embeddings": RowwiseParallel(
+                input_layouts=Replicate(),
+                output_layouts=Shard(1),
+            ),
+            "norm": SequenceParallel(),
+            "output": ColwiseParallel(
+                input_layouts=Shard(1),
+                output_layouts=Shard(-1) if loss_parallel else Replicate(),
+                use_local_output=not loss_parallel,
+            ),
+        }
+
+        parallelize_module(model, tp_mesh, seq_parallel_input_output_layer_plan)
+
+        # Parallel styles used for transformer block linear weights and their
+        # inputs may be different for float8 linears
+        if enable_float8:
+            # TODO(vkuzo): once float8 configuration supports delayed scaling,
+            # add a check here to enforce supported float8 all-gather configurations
+            # TODO(vkuzo): add the items below to __init__.py of torchao.float8 and import from there
+            from torchao.float8.float8_tensor_parallel import (
+                Float8ColwiseParallel,
+                Float8RowwiseParallel,
+                PrepareFloat8ModuleInput,
+            )
+
+            rowwise_parallel, colwise_parallel, prepare_module_input = (
+                Float8RowwiseParallel,
+                Float8ColwiseParallel,
+                PrepareFloat8ModuleInput,
+            )
+        else:
+            rowwise_parallel, colwise_parallel, prepare_module_input = (
+                RowwiseParallel,
+                ColwiseParallel,
+                PrepareModuleInput,
+            )
+
+        # Apply tensor + sequence parallelism to every transformer block
+        # NOTE: At the cost of model code change, we can accelerate Sequence Parallel
+        #       by folding (and unfolding) the batch dimension and the sequence dimension.
+        #       Examples can be found at https://github.com/pytorch/torchtitan/pull/437
+        for i, transformer_block in enumerate(model.layers):
+
+            seq_parallel_layer_plan = {
+                "sa_norm": SequenceParallel(),
+                "attn": prepare_module_input(
+                    input_layouts=(Shard(1), None),
+                    desired_input_layouts=(Replicate(), None),
+                ),
+                "attn.k_proj": colwise_parallel(),
+                "attn.q_proj.linear": colwise_parallel(),
+                "attn.v_proj.linear": colwise_parallel(),
+                "attn.q_proj.lora_a": colwise_parallel(),
+                "attn.v_proj.lora_a": colwise_parallel(),
+                # Shard the q_proj.lora_b and v_proj.lora_b outputs colwise
+                # since they are added to outputs of q_proj and v_proj (which are colwise sharded)
+                "attn.q_proj.lora_b": rowwise_parallel(output_layouts=Shard(-1)),
+                "attn.v_proj.lora_b": rowwise_parallel(output_layouts=Shard(-1)),
+                "attn.output_proj.linear": rowwise_parallel(output_layouts=Shard(1)),
+                "attn.output_proj.lora_a": rowwise_parallel(),
+                "attn.output_proj.lora_b": colwise_parallel(output_layouts=Shard(1)),
+                "mlp_norm": SequenceParallel(),
+                "mlp": prepare_module_input(
+                    input_layouts=(Shard(1),),
+                    desired_input_layouts=(Replicate(),),
+                ),
+                "mlp.w1.linear": colwise_parallel(),
+                "mlp.w1.lora_a": colwise_parallel(),
+                "mlp.w3.linear": colwise_parallel(),
+                "mlp.w3.lora_a": colwise_parallel(),
+                # Shard the .w1.lora_b and .w3.lora_b outputs colwise
+                # since they are added to outputs of w1 and w3 (which are colwise sharded)
+                "mlp.w1.lora_b": rowwise_parallel(output_layouts=Shard(-1)),
+                "mlp.w3.lora_b": rowwise_parallel(output_layouts=Shard(-1)),
+                "mlp.w2.linear": rowwise_parallel(output_layouts=Shard(1)),
+                "mlp.w2.lora_a": rowwise_parallel(),
+                "mlp.w2.lora_b": colwise_parallel(output_layouts=Shard(1)),
+            }
+
+            # Adjust attention module to use the local number of heads
+            attn_layer = transformer_block.attn
+            attn_layer.num_heads = attn_layer.num_heads // tp_mesh.size()
+            attn_layer.num_kv_heads = attn_layer.num_kv_heads // tp_mesh.size()
+
+            parallelize_module(
+                module=transformer_block,
+                device_mesh=tp_mesh,
+                parallelize_plan=seq_parallel_layer_plan,
+            )
+
+        if enable_async_tp:
+            from torch.distributed._symmetric_memory import enable_symm_mem_for_group
+
+            torch._inductor.config._micro_pipeline_tp = True
+            enable_symm_mem_for_group(tp_mesh.get_group().group_name)
+
+        _log.info(
+            f"Applied {'Float8 ' if enable_float8 else ''}{'Async ' if enable_async_tp else ''}"
+            "Tensor Parallelism to the model"
+        )
+
+    # Apply Tensor Parallelism to the model
+    apply_tp(
+        model=model,
+        tp_mesh=device_mesh["tp"],
+        loss_parallel=False,  # Don't support loss parallelism for now
+        enable_float8=False,  # Don't support float8 for now
+        enable_async_tp=False,  # Don't support async TP for now
+    )
+
     fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
@@ -469,7 +606,9 @@ def shard_model(
     num_layers_sharded = 0
     for n, m in reversed(list(model.named_modules())):
         if any([shard_condition(n, m) for shard_condition in shard_conditions]):
-            fully_shard(m, **fsdp_kwargs)
+            fully_shard(
+                m, mesh=device_mesh["dp"], **fsdp_kwargs
+            )  # Use the DP mesh here
             num_layers_sharded += 1
 
     if num_layers_sharded == 0:
@@ -478,4 +617,4 @@ def shard_model(
         )
 
     # Finally shard the entire model to account for any stragglers
-    fully_shard(model, **fsdp_kwargs)
+    fully_shard(model, mesh=device_mesh["dp"], **fsdp_kwargs)

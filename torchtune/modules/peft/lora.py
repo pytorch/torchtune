@@ -11,13 +11,12 @@ import torch.nn.functional as F
 
 from torch import nn
 
-from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
-from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
 from torchtune.modules.peft import AdapterModule
 
 
 class LoRALinear(nn.Module, AdapterModule):
-    """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
+    """Modified LoRA Linear config to support Tensor Parallel Sharding with DTensors
+    (which currently only support sharding nn.Linear and nn.Embedding layers)
 
     LoRA perturbs a given layer via a low-rank approximation where only
     the rank decomposition matrices are trainable. In a linear layer instead of
@@ -70,23 +69,15 @@ class LoRALinear(nn.Module, AdapterModule):
                 f"``quantize_base`` is False, but received the following quantization arguments: {quantization_kwargs}"
             )
 
-        # Setup weight and bias
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=self.use_bias)
-        weight = (
-            linear.weight
-            if not self._quantize_base
-            else to_nf4(linear.weight, **quantization_kwargs)
+        # Setup weight and bias (these are the original weights that we will be loading from state_dict)
+        self.linear = nn.Linear(
+            in_features=in_dim, out_features=out_dim, bias=self.use_bias
         )
-        bias = linear.bias if self.use_bias else None
 
         # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
         # this can be used in DPO for treating the lora adapters as the policy model
         # and disabling it to treat the base model as the reference model
         self.disabled = False
-        self.register_parameter("weight", nn.Parameter(weight))
-        self.register_parameter(
-            "bias", nn.Parameter(bias) if bias is not None else None
-        )
         self.dropout = nn.Dropout(p=dropout) if dropout > 0.0 else nn.Identity()
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
@@ -126,12 +117,7 @@ class LoRALinear(nn.Module, AdapterModule):
             torch.Tensor: output tensor with shape ``(..., out_dim)``
 
         """
-        if self._quantize_base:
-            out = linear_nf4(input=x, weight=self.weight)
-            if self.use_bias:
-                out = out + self.bias
-        else:
-            out = F.linear(x, self.weight, self.bias)
+        out = self.linear(x)
         if self.disabled:
             return out
         lora_out = self.lora_a(self.dropout(x))
