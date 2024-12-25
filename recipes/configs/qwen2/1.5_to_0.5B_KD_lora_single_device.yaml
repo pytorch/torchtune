@@ -51,7 +51,7 @@ teacher_checkpointer:
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Qwen2-1.5B-Instruct
+  output_dir: ${output_dir}
   model_type: QWEN2
 
 resume_from_checkpoint: False

@@ -1,34 +1,33 @@
 # Config for EleutherEvalRecipe in eleuther_eval.py
 #
 # To launch, run the following command:
-#    tune run eleuther_eval --config mistral/evaluation
-
-output_dir: ./ # Not needed
+#    tune run eleuther_eval --config llama3_2/evaluation
 
 # Model Arguments
 model:
-  _component_: torchtune.models.mistral.mistral_7b
+  _component_: torchtune.models.llama3_2.llama3_2_3b
 
 # Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Mistral-7B-v0.1/
+  checkpoint_dir: /tmp/Llama-3.2-3B-Instruct
   checkpoint_files: [
-    pytorch_model-00001-of-00002.bin,
-    pytorch_model-00002-of-00002.bin
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
   ]
+  recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: MISTRAL
+  model_type: LLAMA3_2
 resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.mistral.mistral_tokenizer
-  path: /tmp/Mistral-7B-v0.1/tokenizer.model
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Llama-3.2-3B-Instruct/original/tokenizer.model
   max_seq_len: null
 
 # Environment
-device: cuda
+device: cpu
 dtype: bf16
 seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
 
