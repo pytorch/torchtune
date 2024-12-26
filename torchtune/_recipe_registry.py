@@ -470,6 +470,10 @@ _ALL_RECIPES = [
                 file_path="mistral/evaluation.yaml",
             ),
             Config(
+                name="llama3_2/evaluation",
+                file_path="llama3_2/evaluation.yaml",
+            ),
+            Config(
                 name="code_llama2/evaluation",
                 file_path="code_llama2/evaluation.yaml",
             ),
