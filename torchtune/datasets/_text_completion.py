@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 from torchtune.data._utils import truncate
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms import Transform
 
 
 class TextCompletionDataset(Dataset):
@@ -52,6 +53,10 @@ class TextCompletionDataset(Dataset):
         self._column = column
         self.add_eos = add_eos
 
+        self._prepare_sample = TextCompletionTransform(
+            self._tokenizer, self._column, self.add_eos
+        )
+
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
 
@@ -62,7 +67,19 @@ class TextCompletionDataset(Dataset):
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
+
+class TextCompletionTransform(Transform):
+    def __init__(
+        self,
+        tokenizer: ModelTokenizer,
+        column: str = "text",
+        add_eos: bool = True,
+    ):
+        self._tokenizer = tokenizer
+        self._column = column
+        self.add_eos = add_eos
+
+    def __call__(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
         prompt = sample[self._column]
 
         tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
@@ -165,3 +182,10 @@ def text_completion_dataset(
             ds, max_seq_len=tokenizer.max_seq_len, split_across_pack=split_across_pack
         )
     return ds
+
+
+def text_completion_transform(
+    tokenizer: ModelTokenizer,
+    column: str = "text",
+) -> TextCompletionTransform:
+    return TextCompletionTransform(tokenizer, column)
