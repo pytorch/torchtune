@@ -411,6 +411,17 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="full_finetune_distributed_multi_dataset",
+        file_path="full_finetune_distributed_multi_dataset.py",
+        configs=[
+            Config(
+                name="llama2/7B_full_multi_dataset",
+                file_path="llama2/7B_full_multi_dataset.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="generate",
         file_path="generate.py",
         configs=[
