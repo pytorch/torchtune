@@ -142,7 +142,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = training.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg

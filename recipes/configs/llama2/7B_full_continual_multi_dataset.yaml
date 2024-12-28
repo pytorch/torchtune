@@ -16,7 +16,7 @@
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 
 
-output_dir: /tmp/torchtune/llama2_7B/full_multi_dataset # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/llama2_7B/7B_full_continual_multi_dataset # /tmp may be deleted by your system. Change it to your preference.
 
 # Tokenizer
 tokenizer:
