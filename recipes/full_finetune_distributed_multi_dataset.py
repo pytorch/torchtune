@@ -675,7 +675,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             weights[key] = float(cfg_dataset.pop("weight"))
             datasets[key] = load_hf_dataset(
                 **cfg_dataset,
-                transform=transform,
+                transform=TextCompletionTransform(
+                    tokenizer=self._tokenizer, column=column
+                ),
                 streaming=ds_streaming,
                 shuffle=ds_shuffle,
                 parallel_method=ds_parallel_method,
@@ -706,9 +708,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         loader = get_dataloader(
             dataset=dataset,
-            model_transform=TextCompletionTransform(
-                tokenizer=self._tokenizer, column=column
-            ),
+            model_transform=lambda x: x,
             batch_size=batch_size,
             collate_fn=collate_fn,
             drop_last=True,

@@ -39,7 +39,11 @@ datasets:
   - source: cerebras/SlimPajama-627B
     split: train
     column: text
-    weight: 1.0
+    weight: 0.9
+  - source: bigcode/the-stack-dedup
+    split: train
+    column: content
+    weight: 0.1
 seed: null
 
 # Model Arguments
