@@ -36,8 +36,7 @@ dataloader:
   streaming: True
 
 datasets:
-  - source: Salesforce/wikitext
-    subset: wikitext-2-v1
+  - source: cerebras/SlimPajama-627B
     split: train
     column: text
     weight: 1.0
