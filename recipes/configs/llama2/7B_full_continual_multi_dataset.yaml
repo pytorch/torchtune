@@ -1,4 +1,4 @@
-# Config for multi-device full finetuning in full_finetune_distributed_multi_dataset.py
+# Config for multi-device full finetuning in full_continual_pretraining_distributed_multi_dataset.py
 # using a Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
@@ -6,12 +6,12 @@
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed_multi_dataset --config llama2/7B_full_multi_dataset
+#   tune run --nnodes 1 --nproc_per_node 4 full_continual_pretraining_distributed_multi_dataset --config llama2/7B_full_continual_multi_dataset
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed_multi_dataset --config llama2/7B_full_multi_dataset checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 4 full_continual_pretraining_distributed_multi_dataset --config llama2/7B_full_continual_multi_dataset checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 
