@@ -213,7 +213,7 @@ def load_hf_dataset(
             "name" not in load_dataset_kwargs
         ), f"found both 'subset' and 'name' found, you may only specify one, {load_dataset_kwargs=}"
         load_dataset_kwargs["name"] = load_dataset_kwargs.pop("subset")
-    dataset = load_dataset(source, **load_dataset_kwargs)
+    dataset = load_dataset(source, streaming=streaming, **load_dataset_kwargs)
     if filter_fn is not None:
         dataset = dataset.filter(filter_fn)
 
