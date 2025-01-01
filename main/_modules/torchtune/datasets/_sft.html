@@ -513,7 +513,7 @@
 <span class="sd">            ``load_dataset`` for more details.</span>
 <span class="sd">        message_transform (Transform): callable that keys into the desired fields in the sample</span>
 <span class="sd">            and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list</span>
-<span class="sd">            of messages are stored in the ``&quot;messages&quot;`` key.</span>
+<span class="sd">            of messages are stored in the ``&quot;messages&quot;`` key. See :ref:`message_transform_usage_label` for details.</span>
 <span class="sd">        model_transform (Transform): callable that applies model-specific pre-processing to the sample after the list of</span>
 <span class="sd">            messages is created from ``message_transform``. This includes tokenization and any modality-specific</span>
 <span class="sd">            transforms. It is expected to return at minimum ``&quot;tokens&quot;`` and ``&quot;mask&quot;`` keys.</span>
