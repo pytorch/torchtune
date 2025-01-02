@@ -463,6 +463,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             pattern=r"^epoch_(\d+)",
         )
 
+        self._adapter_config = Path(adapter_config) if adapter_config else None
+
         # resume recipe_state ckpt
         self._recipe_checkpoint = get_recipe_checkpoint_path(
             output_dir=self._output_dir,
