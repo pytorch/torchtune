@@ -28,6 +28,14 @@ from tests.test_utils import (
 )
 from torchtune import config
 
+from torchtune.training.checkpointing._utils import (
+    ADAPTER_MODEL_FNAME,
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+    safe_torch_load,
+    SHARD_FNAME,
+)
+
 
 class TestLoRAFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
@@ -46,8 +54,8 @@ class TestLoRAFinetuneDistributedRecipe:
         # These values have been validated against single device recipe test via
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         loss_values_map = {
-            "llama2": [10.5136, 10.4856, 10.5292, 10.5345],
-            "llama3": [11.9325, 11.9325, 11.9325, 11.9369],
+            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
+            "llama3": [11.9839, 11.9691, 11.9617, 11.9383],
         }
         return loss_values_map[model_type]
 
@@ -75,6 +83,8 @@ class TestLoRAFinetuneDistributedRecipe:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -85,6 +95,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             reshard_after_forward={reshard_after_forward} \
             enable_activation_checkpointing=False \
+            enable_activation_offloading=False \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
@@ -145,6 +156,8 @@ class TestLoRAFinetuneDistributedRecipe:
             batch_size=4 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -154,6 +167,7 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             save_adapter_weights_only={save_adapter_weights_only} \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
@@ -163,17 +177,21 @@ class TestLoRAFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             checkpointer._component_={ckpt_component} \
-            checkpointer.checkpoint_dir={tmpdir} \
+            checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
@@ -181,6 +199,7 @@ class TestLoRAFinetuneDistributedRecipe:
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
@@ -196,15 +215,15 @@ class TestLoRAFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "recipe_config, model_type, ckpt_type",
+        "recipe_config, model_type, ckpt_type, use_dora",
         [
-            ("llama2/7B_lora", "llama2", "tune"),
-            ("llama3/8B_lora", "llama3", "tune"),
+            ("llama2/7B_lora", "llama2", "tune", True),
+            ("llama3/8B_lora", "llama3", "tune", False),
         ],
     )
     @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(
-        self, recipe_config, model_type, ckpt_type, tmpdir, monkeypatch
+        self, recipe_config, model_type, ckpt_type, use_dora, tmpdir, monkeypatch
     ):
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
@@ -217,6 +236,8 @@ class TestLoRAFinetuneDistributedRecipe:
             batch_size=4 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             model=torchtune.models.lora_small_test_model \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -226,10 +247,11 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             enable_activation_checkpointing=True \
+            enable_activation_offloading=True \
         """.split()
-
-        model_config = MODEL_TEST_CONFIGS[model_type + "_lora"]
-
+        model_config = MODEL_TEST_CONFIGS[
+            model_type + ("_dora" if use_dora else "_lora")
+        ]
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -247,17 +269,25 @@ class TestLoRAFinetuneDistributedRecipe:
         model = config.instantiate(OmegaConf.from_dotlist(base_config).model)
 
         # Load base model and trained adapter weights into LoRA model and call fwd
-        with open(f"{tmpdir}/adapter_1.pt", "rb") as f:
-            lora_sd = torch.load(f, weights_only=True)
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
+        lora_sd = safe_torch_load(adpt_path, weights_only=True)
+
         with open(ckpt_path, "rb") as f:
             base_model_sd = torch.load(f, weights_only=True)
+
         lora_model.load_state_dict(lora_sd, strict=False)
         lora_model.load_state_dict(base_model_sd, strict=False)
         baseline_out = lora_model(inputs)
 
         # Load merged final ckpt directly into model and call fwd
-        with open(f"{tmpdir}/torchtune_model_1.pt", "rb") as f:
-            sd = torch.load(f, weights_only=True)
+        suffix = ".safetensors" if ckpt_type == "hf" else ".bin"
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        )
+        model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
+        sd = safe_torch_load(model_path, weights_only=True)
+
         model.load_state_dict(sd)
         merged_ckpt_out = model(inputs)
 

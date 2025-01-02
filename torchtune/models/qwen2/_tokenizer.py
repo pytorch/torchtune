@@ -24,12 +24,11 @@ QWEN2_SPECIAL_TOKENS = {
     "<|im_end|>": 151645,
 }
 
-
 ENDOFTEXT = "<|endoftext|>"
 IM_START = "<|im_start|>"
 IM_END = "<|im_end|>"
 
-DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 151646
+DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE = 152064
 
 
 @lru_cache()
@@ -83,7 +82,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Optional[Dict[str, int]]): Special tokens to add to the tokenizer. Default is None.
+        special_tokens (Dict[str, int]): Special tokens to add to the tokenizer. Default is QWEN2_SPECIAL_TOKENS.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -95,7 +94,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens.
-            Default is :class:`~torchtune.data.ChatMLTemplate`.
+            Default: None
         errors (str): Paradigm to follow when decoding bytes to UTF-8. Defaults to "replace".
             See [bytes.decode](https://docs.python.org/3/library/stdtypes.html#bytes.decode) for more information.
         unk_token (Optional[str]): The unknown token. A token that is not in the vocabulary cannot be converted
@@ -110,7 +109,8 @@ class Qwen2Tokenizer(ModelTokenizer):
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
 
     Example:
-        >>> tokenizer = Qwen2Tokenizer(path="/path/to/vocab.json", merges_file="/path/to/merges.txt")
+        >>> tokenizer = Qwen2Tokenizer(
+                path="/path/to/vocab.json", merges_file="/path/to/merges.txt", special_tokens=QWEN2_SPECIAL_TOKENS)
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
         [39, 385, 78, 675, 0, 2000]
@@ -120,10 +120,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         self,
         path: str,
         merges_file: str,
-        special_tokens: Optional[Dict[str, int]] = None,
+        special_tokens: Dict[str, int] = QWEN2_SPECIAL_TOKENS,
         max_seq_len: Optional[int] = None,
         *,
-        prompt_template: Optional[PromptTemplate] = ChatMLTemplate(),
+        prompt_template: Optional[PromptTemplate] = None,
         errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
@@ -151,9 +151,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         self.pat = re.compile(PRETOKENIZE_REGEX)
 
-        self.special_tokens = (
-            special_tokens if special_tokens is not None else QWEN2_SPECIAL_TOKENS
-        )
+        self.special_tokens = special_tokens
         self._special_tokens_reversed = {v: k for k, v in self.special_tokens.items()}
 
         self.unk_id = None if unk_token is None else self.special_tokens[unk_token]
@@ -345,6 +343,10 @@ class Qwen2Tokenizer(ModelTokenizer):
         Raises:
             RuntimeError: If a message contains non-text content
         """
+        assert not isinstance(self.prompt_template, ChatMLTemplate), (
+            "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
+            "Please use a different template or set to None."
+        )
         templated_messages = (
             self.prompt_template(messages)
             if self.prompt_template is not None
@@ -355,28 +357,47 @@ class Qwen2Tokenizer(ModelTokenizer):
         mask = []
         for index, message in enumerate(templated_messages):
             tokens = []
+
+            # message header
+            if message.role != "ipython":
+                tokens.append(self.im_start_id)
+                tokens.extend(
+                    self.encode(f"{message.role}\n", add_bos=False, add_eos=False)
+                )
+
+            # message content
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = tokens + self.encode(
-                        item["content"],
-                        add_bos=False,
-                        add_eos=False,
+                    tokens.extend(
+                        self.encode(
+                            item["content"],
+                            add_bos=False,
+                            add_eos=False,
+                        )
                     )
                 else:
                     raise RuntimeError(
                         f"Unsupported message content type: {item['type']}"
                     )
+
+            # message footer
+            if message.role != "ipython" and (
+                message.role != "assistant" or index != len(messages) - 1
+            ):
+                tokens.append(self.im_end_id)
+                tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
+
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
-
-            # If assistant message, append EOS at end
-            if message.role == "assistant" and add_eos:
-                tokenized_messages.append(self.eos_id)
-                mask.append(message.masked)
 
             # Break out early if we reach max_seq_len
             if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
+
+        # Add the End-Of-Sequence token
+        if add_eos:
+            tokenized_messages.append(self.eos_id)
+            mask.append(mask[-1])
 
         # Finally, truncate if necessary
         if self.max_seq_len:

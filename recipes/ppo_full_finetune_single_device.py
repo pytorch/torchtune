@@ -119,6 +119,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
+        if self._log_peak_memory_stats and self._device.type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+            )
+            self._log_peak_memory_stats = False
+
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
@@ -371,22 +377,22 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         policy_checkpointer = config.instantiate(
             policy_cfg,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
 
         ref_policy_checkpointer = config.instantiate(
             ref_policy_cfg,
-            resume_from_checkpoint=False,
+            should_load_recipe_state=False,
         )
 
         value_checkpointer = config.instantiate(
             value_cfg,
-            resume_from_checkpoint=False,
+            should_load_recipe_state=False,
         )
 
         reward_checkpointer = config.instantiate(
             reward_cfg,
-            resume_from_checkpoint=False,
+            should_load_recipe_state=False,
         )
 
         return (

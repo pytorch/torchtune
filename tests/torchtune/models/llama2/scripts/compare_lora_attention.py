@@ -33,7 +33,6 @@ def compare_lora_attention(
     lora_rank: int,
     lora_alpha: float,
 ) -> None:
-
     # make sure we have the right seed for generating outputs
     # this should match up the seed value set in the corresponding
     # unit test
@@ -68,8 +67,9 @@ def compare_lora_attention(
         KVCache(
             batch_size=batch_size,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
+            dtype=x.dtype,
         )
         if batch_size is not None
         else None

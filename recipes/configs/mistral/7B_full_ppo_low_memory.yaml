@@ -7,8 +7,8 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download weqweasdas/RM-Mistral-7B --output-dir /tmp/RM-Mistral-7B/ --ignore-patterns None
-#   tune download mistralai/Mistral-7B-Instruct-v0.2 --output-dir /tmp/Mistral-7B-Instruct-v0.2/ --hf-token HF_TOKEN
+#   tune download weqweasdas/RM-Mistral-7B --output-dir /tmp/RM-Mistral-7B/
+#   tune download mistralai/Mistral-7B-Instruct-v0.2 --output-dir /tmp/Mistral-7B-Instruct-v0.2/ --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 #
 # You'll also need to ensure that {output_dir} exists beforehand, as checkpoints for policy and value models are saved in sub-folders.
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
@@ -23,6 +23,8 @@
 # you can run:
 #   tune run ppo_full_finetune_single_device --config mistral/7B_full_ppo_low_memory checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
+
+output_dir: /tmp/torchtune/mistral_7B/full_ppo_low_memory # /tmp may be deleted by your system. Change it to your preference.
 
 # Tokenizer
 tokenizer:
@@ -68,7 +70,7 @@ checkpointer:
     ]
   # this is the only place where you should update `recipe_checkpoint` if resuming training
   recipe_checkpoint: null
-  output_dir: ${output_dir}/policy
+  output_dir: ${output_dir}
   model_type: MISTRAL
 
 # this should be setup identically to the policy model checkpointer at the start of training
@@ -115,7 +117,6 @@ reward_checkpointer:
   model_type: REWARD
 
 resume_from_checkpoint: False
-output_dir: /tmp/mistral7b-ppo-finetune
 seed: null
 shuffle: True
 
@@ -127,16 +128,16 @@ batch_size: 64
 num_steps: 10000
 ppo_epochs: 2
 ppo_batch_size: 32
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 1  # Use to increase effective batch size
 
 # Memory management and performance
-compile: True
+compile: True  # torch.compile the model + loss, True increases speed + decreases memory
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 3e-6
-optimizer_in_bwd: True
-log_peak_memory_stats: False
-enable_activation_checkpointing: True
+optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
+log_peak_memory_stats: True
+enable_activation_checkpointing: True  # True reduces memory
 
 # Reduced precision
 dtype: bf16
@@ -176,6 +177,6 @@ kl_coeff: 0.01
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 
 log_every_n_steps: 1
