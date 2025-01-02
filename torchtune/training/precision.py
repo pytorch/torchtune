@@ -53,6 +53,7 @@ def verify_bf16_support() -> bool:
         - NCCL is available and version >= 2.10
         - MPS is available and torch was built with MPS
         - NPU is available and supports bf16
+        - XPU is available and supports bf16
 
     Returns:
         bool: True if bf16 is available, False otherwise.
@@ -66,7 +67,8 @@ def verify_bf16_support() -> bool:
     )
     mps_support = torch.backends.mps.is_available() and torch.backends.mps.is_built()
     npu_support = is_npu_available and torch.npu.is_bf16_supported()
-    return cuda_support or mps_support or npu_support
+    xpu_support = torch.xpu.is_available() and torch.xpu.is_bf16_supported()
+    return cuda_support or mps_support or npu_support or xpu_support
 
 
 def get_dtype(
