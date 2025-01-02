@@ -54,14 +54,15 @@ class PromptCompletionDataset(Dataset):
         self._text_column = text_column
         self._label_column = label_column
         # Add label separator
-        self._label_separator = self._tokenizer.encode(
-            text="]\n\n## Label:\n",
-            # text="## Label:\n",
-            add_bos=False,
-            add_eos=False,
-            trim_leading_whitespace=True,
-        )
-        self._label_separator_len = len(self._label_separator)
+        # Deprecated and controlled by prompt formatting in dataset creation
+        # self._label_separator = self._tokenizer.encode(
+        #     text="]\n\n## Label:\n",
+        #     # text="## Label:\n",
+        #     add_bos=False,
+        #     add_eos=False,
+        #     trim_leading_whitespace=True,
+        # )
+        # self._label_separator_len = len(self._label_separator)
 
     def __len__(self):
         return len(self._data)
@@ -77,10 +78,12 @@ class PromptCompletionDataset(Dataset):
 
         # Truncate if needed, but leave room for label separator.
         if self.max_seq_len is not None:
-            tokens = truncate(tokens, self.max_seq_len - self._label_separator_len)
+            # tokens = truncate(tokens, self.max_seq_len - self._label_separator_len)
+            tokens = truncate(tokens, self.max_seq_len)
 
         # Add label separator
-        tokens.extend(self._label_separator)
+        # Deprecated and controlled by prompt formatting in dataset creation
+        # tokens.extend(self._label_separator)
 
         # Directly state the label_column field
         labels = self._tokenizer.encode(
