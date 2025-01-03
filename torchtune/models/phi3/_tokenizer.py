@@ -157,6 +157,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
 
         Raises:
             ValueError: If the role is not "user", "assistant", or "system".
+            RuntimeError: If ``message["type"] != "text``.
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages

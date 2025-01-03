@@ -81,13 +81,14 @@ def padded_collate(
             padding values.
 
     Returns:
-        torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
+        torch.Tensor: The padded tensor of input ids with shape ``[batch_size, max_seq_len]``.
 
     Raises:
-        ValueError: if ``pad_direction`` is not one of "left" or "right".
-        ValueError: if ``keys_to_pad`` is empty, or is not a list, or is not a subset of keys in the batch.
-        ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to
-            ``keys_to_pad``.
+        ValueError:
+            If ``pad_direction`` is not one of "left" or "right", **or**
+            if ``keys_to_pad`` is empty, or is not a list, **or**
+            if ``keys_to_pad`` is not a subset of keys in the batch, **or**
+            if ``padding_idx`` is provided as a dictionary, but the keys are not identical to ``keys_to_pad``
 
     Example:
         >>> a = [1, 2, 3]
@@ -149,9 +150,9 @@ def padded_collate(
         output_dict[k] = pad_fn(
             [torch.tensor(x[k]) for x in batch],
             batch_first=True,
-            padding_value=padding_idx[k]
-            if isinstance(padding_idx, dict)
-            else padding_idx,
+            padding_value=(
+                padding_idx[k] if isinstance(padding_idx, dict) else padding_idx
+            ),
         )
     return output_dict
 
@@ -274,8 +275,9 @@ def padded_collate_tiled_images_and_mask(
             - aspect_ratio: Tensor of shape (bsz, max_num_images, 2)
 
     Raises:
-        ValueError: if ``pad_direction`` is not one of "left" or "right".
-        ValueError: if pad_max_tiles is set to a value less than the largest number of tiles in an image.
+        ValueError:
+            If ``pad_direction`` is not one of "left" or "right", **or**
+            if pad_max_tiles is set to a value less than the largest number of tiles in an image.
 
     Example:
         >>> image_id = 1
