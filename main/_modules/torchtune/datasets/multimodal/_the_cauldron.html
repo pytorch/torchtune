@@ -554,7 +554,7 @@
 <div class="viewcode-block" id="the_cauldron_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.multimodal.the_cauldron_dataset.html#torchtune.datasets.multimodal.the_cauldron_dataset">[docs]</a><span class="k">def</span> <span class="nf">the_cauldron_dataset</span><span class="p">(</span>
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">subset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">subset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;orcvqa&quot;</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;HuggingFaceM4/the_cauldron&quot;</span><span class="p">,</span>
     <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -568,8 +568,8 @@
 <span class="sd">    `The Cauldron &lt;https://huggingface.co/datasets/HuggingFaceM4/the_cauldron&gt;`_</span>
 <span class="sd">    from Hugging Face Datasets.</span>
 
-<span class="sd">    The Cauldron consists of numerous datasets. You must specify one of the datasets</span>
-<span class="sd">    using the ``subset`` argument.</span>
+<span class="sd">    The Cauldron consists of numerous datasets. You can specify one of the datasets</span>
+<span class="sd">    using the ``subset`` argument. The default value is the ``orcvqa`` dataset.</span>
 
 <span class="sd">    The model transform is expected to be a callable that applies pre-processing steps specific</span>
 <span class="sd">    to a model. For multimodal datasets, this is expected to be at minimum a tokenizer and</span>
@@ -611,8 +611,8 @@
 <span class="sd">            transforms on the keys. It should consist of at minimum two components: text tokenization (called</span>
 <span class="sd">            on the &quot;messages&quot; field) and image transform (called on the &quot;images&quot; field). The keys returned by</span>
 <span class="sd">            the model transform should be aligned with the expected inputs into the model.</span>
-<span class="sd">        subset (str): name of the subset of the dataset to load. See the `dataset card</span>
-<span class="sd">            &lt;https://huggingface.co/datasets/HuggingFaceM4/the_cauldron&gt;`_ for options.</span>
+<span class="sd">        subset (str): name of the subset of the dataset to load. Default is `orcvqa`, see the `dataset card</span>
+<span class="sd">            &lt;https://huggingface.co/datasets/HuggingFaceM4/the_cauldron&gt;`_ for other options.</span>
 <span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>
 <span class="sd">            define source as the data file type (e.g. &quot;json&quot;, &quot;csv&quot;, &quot;text&quot;) and pass</span>
 <span class="sd">            in the filepath in ``data_files``. See `Hugging Face&#39;s</span>
