@@ -58,6 +58,7 @@ class ForwardKLLoss(torch.nn.Module):
             return torch.tensor(0.0, device=x.device)
         return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
 
+
 class ReverseKLLoss(torch.nn.Module):
     """
     The Kullback-Leibler divergence loss for valid indexes.
@@ -112,6 +113,7 @@ class ReverseKLLoss(torch.nn.Module):
             return torch.tensor(0.0, device=x.device)
         return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
 
+
 class SymmetricKLLoss(torch.nn.Module):
     """
     The Symmetric Kullback-Leibler divergence loss for valid indexes.
@@ -119,13 +121,19 @@ class SymmetricKLLoss(torch.nn.Module):
 
     Args:
         sym_kd_ratio (float): Ratio of symmetric KL divergence loss.
+            When set to 1 this loss reduces to forward KL divergence, when set to 0 this loss reduces to reverse kl divergence.
         ignore_index (int):  Specifies a target value that is ignored and does not contribute to the input gradient.
             The loss is divided over non-ignored targets.
             Default: -100.
+
+    Raises:
+        ValueError: If sym_kd_ratio is not in the range [0, 1].
     """
 
     def __init__(self, sym_kd_ratio: float = 0.5, ignore_index: int = -100):
         super().__init__()
+        if sym_kd_ratio < 0.0 or sym_kd_ratio > 1.0:
+            raise ValueError("sym_kd_ratio must be in the range [0, 1]")
         self.ignore_index = ignore_index
         self.sym_kd_ratio = sym_kd_ratio
         self.fkl = ForwardKLLoss(ignore_index)
@@ -157,6 +165,7 @@ class SymmetricKLLoss(torch.nn.Module):
         ) + (1 - self.sym_kd_ratio) * self.rkl(
             student_logits, teacher_logits, labels, normalize
         )
+
 
 class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
     """
@@ -238,6 +247,7 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
 
         return total_fkl_loss / torch.sum(mask.view(-1), dim=0)
 
+
 class ReverseKLWithChunkedOutputLoss(torch.nn.Module):
     """
     Reverse KL with chunked outputs that saves memory by only upcasting one chunk at a time.
@@ -318,6 +328,7 @@ class ReverseKLWithChunkedOutputLoss(torch.nn.Module):
 
         return total_rkl_loss / torch.sum(mask.view(-1), dim=0)
 
+
 class SymmetricKLWithChunkedOutputLoss(torch.nn.Module):
     """
     Symmetric KL with chunked outputs that saves memory by only upcasting one chunk at a time.
@@ -332,17 +343,27 @@ class SymmetricKLWithChunkedOutputLoss(torch.nn.Module):
         num_output_chunks (int): Number of chunks to chunk the output into. Each chunk has shape
             (batch_size, num_tokens / num_output_chunks, vocab_size).
             Default: 8
+        sym_kd_ratio (float): Ratio of symmetric KL divergence loss.
+            When set to 1 this loss reduces to forward KL divergence, when set to 0 this loss reduces to reverse kl divergence.
+            Default: 0.5
         ignore_index (int): Specifies a target value that is ignored and does not contribute to the input gradient.
             The loss is divided over non-ignored targets.
             Default: -100
     """
 
-    def __init__(self, num_output_chunks: int = 8, sym_kd_ratio: float = 0.5, ignore_index: int = -100):
+    def __init__(
+        self,
+        num_output_chunks: int = 8,
+        sym_kd_ratio: float = 0.5,
+        ignore_index: int = -100,
+    ):
         super().__init__()
         self.num_output_chunks = num_output_chunks
         self.sym_kd_ratio = sym_kd_ratio
         self.ignore_index = ignore_index
-        self.sym_kl_loss = SymmetricKLLoss(sym_kd_ratio=self.sym_kd_ratio, ignore_index=self.ignore_index)
+        self.sym_kl_loss = SymmetricKLLoss(
+            sym_kd_ratio=self.sym_kd_ratio, ignore_index=self.ignore_index
+        )
 
     def forward(
         self,
