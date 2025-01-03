@@ -131,6 +131,7 @@ ppo_batch_size: 32
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 
 # Memory management and performance
+clip_grad_norm: null
 compile: True  # torch.compile the model + loss, True increases speed + decreases memory
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
