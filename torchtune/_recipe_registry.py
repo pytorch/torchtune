@@ -60,6 +60,10 @@ _ALL_RECIPES = [
                 file_path="phi3/mini_full_low_memory.yaml",
             ),
             Config(
+                name="phi4/mini_full_low_memory",
+                file_path="phi4/mini_full_low_memory.yaml",
+            ),
+            Config(
                 name="qwen2/7B_full_single_device",
                 file_path="qwen2/7B_full_single_device.yaml",
             ),
@@ -114,6 +118,7 @@ _ALL_RECIPES = [
             Config(name="gemma2/9B_full", file_path="gemma2/9B_full.yaml"),
             Config(name="gemma2/27B_full", file_path="gemma2/27B_full.yaml"),
             Config(name="phi3/mini_full", file_path="phi3/mini_full.yaml"),
+            Config(name="phi4/mini_full", file_path="phi4/mini_full.yaml"),
             Config(name="qwen2/7B_full", file_path="qwen2/7B_full.yaml"),
             Config(name="qwen2/0.5B_full", file_path="qwen2/0.5B_full.yaml"),
             Config(name="qwen2/1.5B_full", file_path="qwen2/1.5B_full.yaml"),
@@ -253,6 +258,14 @@ _ALL_RECIPES = [
                 file_path="phi3/mini_qlora_single_device.yaml",
             ),
             Config(
+                name="phi4/mini_lora_single_device",
+                file_path="phi4/mini_lora_single_device.yaml",
+            ),
+            Config(
+                name="phi4/mini_qlora_single_device",
+                file_path="phi4/mini_qlora_single_device.yaml",
+            ),
+            Config(
                 name="qwen2/7B_lora_single_device",
                 file_path="qwen2/7B_lora_single_device.yaml",
             ),
@@ -371,6 +384,7 @@ _ALL_RECIPES = [
             Config(name="gemma2/9B_lora", file_path="gemma2/9B_lora.yaml"),
             Config(name="gemma2/27B_lora", file_path="gemma2/27B_lora.yaml"),
             Config(name="phi3/mini_lora", file_path="phi3/mini_lora.yaml"),
+            Config(name="phi4/mini_lora", file_path="phi3/mini_lora.yaml"),
             Config(name="qwen2/7B_lora", file_path="qwen2/7B_lora.yaml"),
             Config(name="qwen2/0.5B_lora", file_path="qwen2/0.5B_lora.yaml"),
             Config(name="qwen2/1.5B_lora", file_path="qwen2/1.5B_lora.yaml"),
