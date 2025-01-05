@@ -434,12 +434,12 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 
-<span class="k">def</span> <span class="nf">get_reward_penalty_mask</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_reward_penalty_mask</span><span class="p">(</span>
     <span class="n">padding_masks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">seq_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">penalise_no_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -476,7 +476,7 @@
     <span class="k">return</span> <span class="n">reward_penalty_mask</span>
 
 
-<div class="viewcode-block" id="get_rewards_ppo"><a class="viewcode-back" href="../../../generated/torchtune.rlhf.get_rewards_ppo.html#torchtune.rlhf.get_rewards_ppo">[docs]</a><span class="k">def</span> <span class="nf">get_rewards_ppo</span><span class="p">(</span>
+<div class="viewcode-block" id="get_rewards_ppo"><a class="viewcode-back" href="../../../generated/torchtune.rlhf.get_rewards_ppo.html#torchtune.rlhf.get_rewards_ppo">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_rewards_ppo</span><span class="p">(</span>
     <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">logprobs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">ref_logprobs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -528,7 +528,7 @@
     <span class="k">return</span> <span class="n">total_reward</span><span class="p">,</span> <span class="n">kl</span><span class="p">,</span> <span class="n">kl_reward</span></div>
 
 
-<span class="k">def</span> <span class="nf">masked_mean</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">masked_mean</span><span class="p">(</span>
     <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -546,7 +546,7 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="o">/</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">masked_var</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">masked_var</span><span class="p">(</span>
     <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">unbiased</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -581,7 +581,7 @@
     <span class="k">return</span> <span class="n">var</span>
 
 
-<span class="k">def</span> <span class="nf">whiten</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">whiten</span><span class="p">(</span>
     <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">shift_mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -606,7 +606,7 @@
     <span class="k">return</span> <span class="n">whitened</span>
 
 
-<div class="viewcode-block" id="estimate_advantages"><a class="viewcode-back" href="../../../generated/torchtune.rlhf.estimate_advantages.html#torchtune.rlhf.estimate_advantages">[docs]</a><span class="k">def</span> <span class="nf">estimate_advantages</span><span class="p">(</span>
+<div class="viewcode-block" id="estimate_advantages"><a class="viewcode-back" href="../../../generated/torchtune.rlhf.estimate_advantages.html#torchtune.rlhf.estimate_advantages">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">estimate_advantages</span><span class="p">(</span>
     <span class="n">values</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">rewards</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>

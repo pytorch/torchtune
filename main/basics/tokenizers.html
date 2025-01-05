@@ -437,8 +437,8 @@
 <p>Tokenizers are a key component of any LLM. They convert raw text into token IDs, which index into embedding vectors that are
 understood by the model.</p>
 <p>In torchtune, tokenizers play the role of converting <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> objects into token IDs and any necessary model-specific special tokens.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.phi3</span> <span class="kn">import</span> <span class="n">phi3_mini_tokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3</span><span class="w"> </span><span class="kn">import</span> <span class="n">phi3_mini_tokenizer</span>
 
 <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;user prompt&quot;</span><span class="p">,</span>
@@ -477,7 +477,7 @@ ls<span class="w"> </span>tokenizer.model
 to the file path of the tokenizer model in your config or in the constructor. You can also pass in a custom file path if you’ve already
 downloaded it to a different location.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="nb">type</span><span class="p">(</span><span class="n">m_tokenizer</span><span class="p">)</span>
@@ -495,12 +495,12 @@ downloaded it to a different location.</p>
 <h2>Setting max sequence length<a class="headerlink" href="#setting-max-sequence-length" title="Permalink to this heading">¶</a></h2>
 <p>Setting max sequence length can give you control over memory usage and adhere to model specifications.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">)</span>
 
 <span class="c1"># Set an arbitrarily small seq len for demonstration</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
 <span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;hello world&quot;</span><span class="p">)</span>
@@ -554,7 +554,7 @@ some models require the presence of certain special tokens for proper usage, suc
 </pre></div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
 
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
@@ -577,9 +577,9 @@ some models require the presence of certain special tokens for proper usage, suc
 <p><a class="reference internal" href="../generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer" title="torchtune.modules.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a> are the underlying byte-pair encoding modules that perform the actual raw string to token ID conversion and back.
 In torchtune, they are required to implement <code class="docutils literal notranslate"><span class="pre">encode</span></code> and <code class="docutils literal notranslate"><span class="pre">decode</span></code> methods, which are called by the <a class="reference internal" href="#model-tokenizers"><span class="std std-ref">Model tokenizers</span></a> to convert
 between raw text and token IDs.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Given a string, return the encoded list of token ids.</span>
 
@@ -592,7 +592,7 @@ between raw text and token IDs.</p>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Given a list of token ids, return the decoded text, optionally including special tokens.</span>
 
@@ -608,8 +608,8 @@ between raw text and token IDs.</p>
 </div>
 <p>If you load any <a class="reference internal" href="#model-tokenizers"><span class="std std-ref">Model tokenizers</span></a>, you can see that it calls its underlying <a class="reference internal" href="../generated/torchtune.modules.tokenizers.BaseTokenizer.html#torchtune.modules.tokenizers.BaseTokenizer" title="torchtune.modules.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a>
 to do the actual encoding and decoding.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">SentencePieceBaseTokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentencePieceBaseTokenizer</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="c1"># Mistral uses SentencePiece for its underlying BPE</span>
@@ -629,12 +629,12 @@ to do the actual encoding and decoding.</p>
 <span id="id2"></span><h2>Model tokenizers<a class="headerlink" href="#model-tokenizers" title="Permalink to this heading">¶</a></h2>
 <p><a class="reference internal" href="../generated/torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelTokenizer</span></code></a> are specific to a particular model. They are required to implement the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method,
 which converts a list of Messages into a list of token IDs.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ModelTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ModelTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 
     <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -653,9 +653,9 @@ which converts a list of Messages into a list of token IDs.</p>
 </div>
 <p>The reason they are model specific and different from <a class="reference internal" href="#base-tokenizers"><span class="std std-ref">Base tokenizers</span></a>
 is because they add all the necessary special tokens or prompt templates required to prompt the model.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">SentencePieceBaseTokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentencePieceBaseTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="c1"># Mistral uses SentencePiece for its underlying BPE</span>

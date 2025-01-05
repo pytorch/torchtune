@@ -434,19 +434,19 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">gc</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">Future</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
-<span class="kn">from</span> <span class="nn">safetensors.torch</span> <span class="kn">import</span> <span class="n">save_file</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.checkpoint</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">async_save</span><span class="p">,</span>
     <span class="n">FileSystemReader</span><span class="p">,</span>
     <span class="n">FileSystemWriter</span><span class="p">,</span>
@@ -454,10 +454,10 @@
     <span class="n">save</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">training</span>
-<span class="kn">from</span> <span class="nn">torchtune.models</span> <span class="kn">import</span> <span class="n">convert_weights</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune</span><span class="w"> </span><span class="kn">import</span> <span class="n">training</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_weights</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.training.checkpointing._utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.training.checkpointing._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ADAPTER_CONFIG_FNAME</span><span class="p">,</span>
     <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">,</span>
     <span class="n">check_outdir_not_in_ckptdir</span><span class="p">,</span>
@@ -474,12 +474,12 @@
     <span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
     <span class="n">TORCH_INDEX_FNAME</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">log_rank_zero</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">log_rank_zero</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_CheckpointerInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_CheckpointerInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Interface implemented by Checkpointers in torchtune.</span>
 
@@ -540,14 +540,14 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="o">...</span>
 
-    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="o">...</span>
 
 
-<div class="viewcode-block" id="FullModelTorchTuneCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelTorchTuneCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="FullModelTorchTuneCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FullModelTorchTuneCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checkpointer which reads and writes checkpoints in a format compatible with</span>
 <span class="sd">    torchtune. No conversion of weights is required.</span>
@@ -577,7 +577,7 @@
 <span class="sd">        ValueError: If more than one checkpoint file is provided</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -648,7 +648,7 @@
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load torchtune checkpoint from file. Currently only loading from a single file is supported.</span>
 
@@ -685,7 +685,7 @@
             <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">state_dict</span></div>
 
-<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
+<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -794,7 +794,7 @@
                 <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="FullModelHFCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelHFCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="FullModelHFCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FullModelHFCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checkpointer which reads and writes checkpoints in HF&#39;s format. For LoRA models this includes</span>
 <span class="sd">    saving checkpoints in a format that can be loaded into PEFT via e.g. ``from_pretrained``. Examples include</span>
@@ -832,7 +832,7 @@
 <span class="sd">            the receipe state from a previous run. Default is False</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
@@ -915,7 +915,7 @@
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="FullModelHFCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="FullModelHFCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load HF checkpoint from file.</span>
 
@@ -967,13 +967,13 @@
                 <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Converting Phi-3 Mini weights from HF format.&quot;</span>
                 <span class="s2">&quot;Note that conversion of adapter weights into PEFT format is not supported.&quot;</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="kn">from</span> <span class="nn">torchtune.models.phi3._convert_weights</span> <span class="kn">import</span> <span class="n">phi3_hf_to_tune</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">phi3_hf_to_tune</span>
 
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">REWARD</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">torchtune.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_hf_to_tune</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.rlhf.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">reward_hf_to_tune</span>
 
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">reward_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
@@ -982,7 +982,7 @@
                 <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">QWEN2</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">torchtune.models.qwen2._convert_weights</span> <span class="kn">import</span> <span class="n">qwen2_hf_to_tune</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.qwen2._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">qwen2_hf_to_tune</span>
 
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">qwen2_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
@@ -992,7 +992,7 @@
                 <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;tie_word_embeddings&quot;</span><span class="p">],</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
                 <span class="n">llama3_vision_hf_to_tune</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -1014,13 +1014,13 @@
                 <span class="p">),</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">CLIP_TEXT</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">torchtune.models.clip._convert_weights</span> <span class="kn">import</span> <span class="n">clip_text_hf_to_tune</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.clip._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">clip_text_hf_to_tune</span>
 
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">clip_text_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">GEMMA2</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">torchtune.models.gemma2._convert_weights</span> <span class="kn">import</span> <span class="n">gemma2_hf_to_tune</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma2._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma2_hf_to_tune</span>
 
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">gemma2_hf_to_tune</span><span class="p">(</span>
                 <span class="n">merged_state_dict</span><span class="p">,</span>
@@ -1048,7 +1048,7 @@
 
         <span class="k">return</span> <span class="n">converted_state_dict</span></div>
 
-<div class="viewcode-block" id="FullModelHFCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
+<div class="viewcode-block" id="FullModelHFCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1076,13 +1076,13 @@
         <span class="c1"># convert the state_dict back to hf format; do this inplace</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">torchtune.models.phi3._convert_weights</span> <span class="kn">import</span> <span class="n">phi3_tune_to_hf</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">phi3_tune_to_hf</span>
 
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_tune_to_hf</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">REWARD</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">torchtune.rlhf.utils</span> <span class="kn">import</span> <span class="n">reward_tune_to_hf</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.rlhf.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">reward_tune_to_hf</span>
 
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">reward_tune_to_hf</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
@@ -1091,7 +1091,7 @@
                     <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">QWEN2</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">torchtune.models.qwen2._convert_weights</span> <span class="kn">import</span> <span class="n">qwen2_tune_to_hf</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.qwen2._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">qwen2_tune_to_hf</span>
 
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">qwen2_tune_to_hf</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
@@ -1101,7 +1101,7 @@
                     <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;tie_word_embeddings&quot;</span><span class="p">],</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
                     <span class="n">llama3_vision_tune_to_hf</span><span class="p">,</span>
                 <span class="p">)</span>
 
@@ -1125,7 +1125,7 @@
                     <span class="p">),</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">GEMMA2</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">torchtune.models.gemma2._convert_weights</span> <span class="kn">import</span> <span class="n">gemma2_tune_to_hf</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma2._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma2_tune_to_hf</span>
 
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">gemma2_tune_to_hf</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
@@ -1340,7 +1340,7 @@
                 <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="FullModelMetaCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelMetaCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="FullModelMetaCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FullModelMetaCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checkpointer which reads and writes checkpoints in Meta&#39;s format. Examples include</span>
 <span class="sd">    the Llama-2-7b model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b)</span>
@@ -1371,7 +1371,7 @@
 <span class="sd">        ValueError: If ``should_load_recipe_state`` is True but ``recipe_checkpoint`` is None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1440,14 +1440,14 @@
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="FullModelMetaCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="FullModelMetaCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load Meta checkpoint from file. Currently only loading from a single file is supported.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
                 <span class="n">llama3_vision_meta_to_tune</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -1477,7 +1477,7 @@
             <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">state_dict</span></div>
 
-<div class="viewcode-block" id="FullModelMetaCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
+<div class="viewcode-block" id="FullModelMetaCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1503,7 +1503,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
             <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._convert_weights</span> <span class="kn">import</span> <span class="p">(</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
                     <span class="n">llama3_vision_tune_to_meta</span><span class="p">,</span>
                 <span class="p">)</span>
 
@@ -1596,7 +1596,7 @@
                 <span class="p">)</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">DistributedCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checkpointer which reads and writes checkpoints in the DistributedCheckpointing format.</span>
 
@@ -1608,7 +1608,7 @@
 <span class="sd">            For checkpointing, gloo CPU-based backend is needed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1622,7 +1622,7 @@
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">get_world_size_and_rank</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">dist</span><span class="o">.</span><span class="n">ProcessGroup</span><span class="p">]</span> <span class="o">=</span> <span class="n">process_group</span>
 
-    <span class="k">def</span> <span class="nf">_get_latest_intermediate_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_latest_intermediate_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method iterates over the available intermediate distributed checkpoints and</span>
 <span class="sd">        finds the latest checkpoint to load.</span>
@@ -1649,7 +1649,7 @@
             <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">latest_checkpoint_dir</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1683,7 +1683,7 @@
 
         <span class="k">return</span> <span class="n">state_dict</span>
 
-    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1729,7 +1729,7 @@
 
         <span class="k">if</span> <span class="n">save_async</span><span class="p">:</span>
 
-            <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span>
                 <span class="n">f</span><span class="p">:</span> <span class="n">Future</span><span class="p">,</span>
             <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">exception</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

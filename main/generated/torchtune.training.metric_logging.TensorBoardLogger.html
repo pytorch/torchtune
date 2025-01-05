@@ -455,7 +455,7 @@ Recommended value is <cite>True</cite>. Run <cite>tensorboard –logdir my_log_d
 </dd>
 </dl>
 <p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.training.metric_logging</span> <span class="kn">import</span> <span class="n">TensorBoardLogger</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.training.metric_logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorBoardLogger</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span> <span class="o">=</span> <span class="n">TensorBoardLogger</span><span class="p">(</span><span class="n">log_dir</span><span class="o">=</span><span class="s2">&quot;my_log_dir&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;my_metric&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">log_dict</span><span class="p">({</span><span class="s2">&quot;my_metric&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span> <span class="mi">1</span><span class="p">)</span>

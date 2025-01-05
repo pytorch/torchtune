@@ -434,13 +434,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
 
-<div class="viewcode-block" id="KVCache"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache">[docs]</a><span class="k">class</span> <span class="nc">KVCache</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="KVCache"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">KVCache</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Standalone ``nn.Module`` containing a kv-cache to cache past key and values during inference.</span>
 
@@ -452,7 +452,7 @@
 <span class="sd">        dtype (torch.dtype): dtype for the caches</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -473,17 +473,17 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
 
-<div class="viewcode-block" id="KVCache.reset"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="KVCache.reset"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.reset">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the cache to zero.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span></div>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 
-<div class="viewcode-block" id="KVCache.update"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<div class="viewcode-block" id="KVCache.update"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">k_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">v_val</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update KV cache with the new ``k_val``, ``v_val`` and return the updated cache.</span>

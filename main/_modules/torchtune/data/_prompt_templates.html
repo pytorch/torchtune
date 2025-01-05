@@ -433,17 +433,17 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_component_from_path</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">Role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">Role</span>
 
 <span class="n">_TemplateType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
 
 
-<div class="viewcode-block" id="PromptTemplateInterface"><a class="viewcode-back" href="../../../generated/torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface">[docs]</a><span class="k">class</span> <span class="nc">PromptTemplateInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<div class="viewcode-block" id="PromptTemplateInterface"><a class="viewcode-back" href="../../../generated/torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">PromptTemplateInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Interface for prompt templates. Each prompt template can include structured</span>
 <span class="sd">    text for system, user, and assistant roles that are prepended or appended to</span>
@@ -454,7 +454,7 @@
     <span class="c1"># and tag to append to the text. Leave as empty strings to not prepend or append</span>
     <span class="n">template</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -473,7 +473,7 @@
         <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="PromptTemplate"><a class="viewcode-back" href="../../../generated/torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate">[docs]</a><span class="k">class</span> <span class="nc">PromptTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="PromptTemplate"><a class="viewcode-back" href="../../../generated/torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">PromptTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Quickly define a custom prompt template by passing in a dictionary mapping role to</span>
 <span class="sd">    the prepend and append tags. For example, to achieve the following prompt</span>
@@ -515,13 +515,13 @@
 <span class="sd">            prepend and append tags</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">template</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -560,7 +560,7 @@
         <span class="k">return</span> <span class="n">formatted_dialogue</span></div>
 
 
-<div class="viewcode-block" id="ChatMLTemplate"><a class="viewcode-back" href="../../../generated/torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate">[docs]</a><span class="k">class</span> <span class="nc">ChatMLTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="ChatMLTemplate"><a class="viewcode-back" href="../../../generated/torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ChatMLTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    OpenAI&#39;s `Chat Markup Language</span>
 <span class="sd">    &lt;https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md&gt;`_</span>
@@ -586,7 +586,7 @@
         <span class="s2">&quot;ipython&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
     <span class="p">}</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -689,7 +689,7 @@
 <span class="s2">&quot;&quot;&quot;</span>
 
 
-<span class="k">def</span> <span class="nf">_get_prompt_template</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_prompt_template</span><span class="p">(</span>
     <span class="n">prompt_template</span><span class="p">:</span> <span class="n">_TemplateType</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PromptTemplateInterface</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>

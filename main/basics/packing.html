@@ -441,8 +441,8 @@ depending on the dataset. In torchtune, sample packing is done by iterating thro
 greedy packing upon dataset initialization. You can use sample packing with any of the single dataset builders by passing in
 <code class="code docutils literal notranslate"><span class="pre">packed=True</span></code>.</p>
 <p>To set the max sequence length to pack to, make sure to define <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code> on your tokenizer.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">alpaca_dataset</span><span class="p">,</span> <span class="n">PackedDataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">alpaca_dataset</span><span class="p">,</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
 
 <span class="c1"># Load in tokenizer</span>
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span>

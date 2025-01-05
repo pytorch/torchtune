@@ -453,7 +453,7 @@ we use the default softmax sampling trick. Default None.</p></li>
 </dd>
 </dl>
 <p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.generation</span> <span class="kn">import</span> <span class="n">sample</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
 <span class="go">tensor([[1],</span>

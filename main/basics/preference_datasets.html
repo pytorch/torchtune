@@ -465,8 +465,8 @@ some other set of interactions between a user and model (e.g. free-form text com
 <span class="o">]</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">preference_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">preference_dataset</span>
 
  <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span>
      <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span>
@@ -550,8 +550,8 @@ You can use this dataset out-of-the-box in torchtune through <a class="reference
 <section id="loading-preference-datasets-from-hugging-face">
 <h2>Loading preference datasets from Hugging Face<a class="headerlink" href="#loading-preference-datasets-from-hugging-face" title="Permalink to this heading">¶</a></h2>
 <p>To load in preference datasets from Hugging Face you’ll need to pass in the dataset repo name to <code class="docutils literal notranslate"><span class="pre">source</span></code>. For most HF datasets, you will also need to specify the <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">preference_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">preference_dataset</span>
 
 <span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>

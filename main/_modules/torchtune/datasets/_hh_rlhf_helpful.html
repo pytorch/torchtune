@@ -434,14 +434,14 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">ChosenRejectedToMessages</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets._preference</span> <span class="kn">import</span> <span class="n">PreferenceDataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChosenRejectedToMessages</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets._preference</span><span class="w"> </span><span class="kn">import</span> <span class="n">PreferenceDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
-<div class="viewcode-block" id="hh_rlhf_helpful_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.hh_rlhf_helpful_dataset.html#torchtune.datasets.hh_rlhf_helpful_dataset">[docs]</a><span class="k">def</span> <span class="nf">hh_rlhf_helpful_dataset</span><span class="p">(</span>
+<div class="viewcode-block" id="hh_rlhf_helpful_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.hh_rlhf_helpful_dataset.html#torchtune.datasets.hh_rlhf_helpful_dataset">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">hh_rlhf_helpful_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;RLHFlow/HH-RLHF-Helpful-standard&quot;</span><span class="p">,</span>

@@ -439,8 +439,8 @@ objects to be input into the model. torchtune currently supports text + image mo
 These are intended to be drop-in replacements for tokenizers in multimodal datasets and support the standard
 <code class="docutils literal notranslate"><span class="pre">encode</span></code>, <code class="docutils literal notranslate"><span class="pre">decode</span></code>, and <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># torchtune.models.llama3_2_vision.Llama3VisionTransform</span>
-<span class="k">class</span> <span class="nc">Llama3VisionTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Llama3VisionTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
         <span class="c1"># Text transform - standard tokenization</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
         <span class="c1"># Image transforms</span>
@@ -448,9 +448,9 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
         <span class="bp">self</span><span class="o">.</span><span class="n">xattn_mask</span> <span class="o">=</span> <span class="n">VisionCrossAttentionMask</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 
 <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[</span>
@@ -483,8 +483,8 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
 <section id="using-model-transforms">
 <h2>Using model transforms<a class="headerlink" href="#using-model-transforms" title="Permalink to this heading">¶</a></h2>
 <p>You can pass them into any multimodal dataset builder just as you would a model tokenizer.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets.multimodal</span> <span class="kn">import</span> <span class="n">the_cauldron_dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets.multimodal</span><span class="w"> </span><span class="kn">import</span> <span class="n">the_cauldron_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
 
 <span class="n">transform</span> <span class="o">=</span> <span class="n">Llama3VisionTransform</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
@@ -522,15 +522,15 @@ Both should be contained in the <code class="docutils literal notranslate"><span
 <li><p><code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">__call__</span></code></p></li>
 </ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
 
-<span class="k">class</span> <span class="nc">MyMultimodalTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MyMultimodalTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">my_tokenizer_builder</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">transform_image</span> <span class="o">=</span> <span class="n">MyImageTransform</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -543,7 +543,7 @@ Both should be contained in the <code class="docutils literal notranslate"><span
             <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="c1"># Expected input parameters for vision encoder</span>

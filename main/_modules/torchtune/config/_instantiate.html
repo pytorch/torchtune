@@ -434,17 +434,17 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._errors</span> <span class="kn">import</span> <span class="n">InstantiationError</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span><span class="p">,</span> <span class="n">_has_component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">InstantiationError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_component_from_path</span><span class="p">,</span> <span class="n">_has_component</span>
 
 
-<span class="k">def</span> <span class="nf">_create_component</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_component</span><span class="p">(</span>
     <span class="n">_component_</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -452,7 +452,7 @@
     <span class="k">return</span> <span class="n">_component_</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_instantiate_node</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_instantiate_node</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates the object specified in _component_ field with provided positional args</span>
 <span class="sd">    and kwargs already merged. Raises an InstantiationError if _component_ is not specified.</span>
@@ -468,7 +468,7 @@
         <span class="p">)</span>
 
 
-<div class="viewcode-block" id="instantiate"><a class="viewcode-back" href="../../../generated/torchtune.config.instantiate.html#torchtune.config.instantiate">[docs]</a><span class="k">def</span> <span class="nf">instantiate</span><span class="p">(</span>
+<div class="viewcode-block" id="instantiate"><a class="viewcode-back" href="../../../generated/torchtune.config.instantiate.html#torchtune.config.instantiate">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">instantiate</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">,</span>
     <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>

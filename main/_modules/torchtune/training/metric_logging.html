@@ -433,30 +433,30 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">ndarray</span>
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndarray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Protocol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span>
 
 <span class="n">Scalar</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">MetricLoggerInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MetricLoggerInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract metric logger.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span>
@@ -471,7 +471,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Logs the config</span>
 
 <span class="sd">        Args:</span>
@@ -479,7 +479,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Log multiple scalar values.</span>
 
 <span class="sd">        Args:</span>
@@ -488,7 +488,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Close log resource, flushing if necessary.</span>
 <span class="sd">        Logs should not be written after `close` is called.</span>
@@ -496,7 +496,7 @@
         <span class="k">pass</span>
 
 
-<div class="viewcode-block" id="DiskLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger">[docs]</a><span class="k">class</span> <span class="nc">DiskLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="DiskLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">DiskLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Logger to disk.</span>
 
 <span class="sd">    Args:</span>
@@ -512,7 +512,7 @@
 <span class="sd">        This logger creates a new file based on the current time.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">log_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span><span class="p">:</span>
@@ -522,47 +522,47 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_name</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Writing logs to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">path_to_log_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">path_to_log_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file_name</span>
 
-<div class="viewcode-block" id="DiskLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="DiskLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="DiskLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log_dict">[docs]</a>    <span class="k">def</span> <span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="DiskLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | &quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">payload</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-<div class="viewcode-block" id="DiskLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="DiskLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.close">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
 
 
-<div class="viewcode-block" id="StdoutLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger">[docs]</a><span class="k">class</span> <span class="nc">StdoutLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="StdoutLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">StdoutLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Logger to standard output.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="StdoutLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="StdoutLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="StdoutLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log_dict">[docs]</a>    <span class="k">def</span> <span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="StdoutLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | &quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">payload</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
-<div class="viewcode-block" id="StdoutLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="StdoutLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.close">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div></div>
 
 
-<div class="viewcode-block" id="WandBLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger">[docs]</a><span class="k">class</span> <span class="nc">WandBLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="WandBLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">WandBLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Logger for use w/ Weights and Biases application (https://wandb.ai/).</span>
 <span class="sd">    For more information about arguments expected by WandB, see https://docs.wandb.ai/ref/python/init.</span>
 
@@ -593,7 +593,7 @@
 <span class="sd">        You can do this by running `wandb login` in your terminal.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">project</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;torchtune&quot;</span><span class="p">,</span>
         <span class="n">entity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -602,12 +602,12 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">wandb</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">wandb</span>
         <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">&quot;``wandb`` package not found. Please install wandb using `pip install wandb` to use WandBLogger.&quot;</span>
                 <span class="s2">&quot;Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type=&#39;stdout&#39;.&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span> <span class="o">=</span> <span class="n">wandb</span>
 
         <span class="c1"># Use dir if specified, otherwise use log_dir.</span>
@@ -635,7 +635,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">config_allow_val_change</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;allow_val_change&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
-<div class="viewcode-block" id="WandBLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_config">[docs]</a>    <span class="k">def</span> <span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="WandBLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Saves the config locally and also logs the config to W&amp;B. The config is</span>
 <span class="sd">        stored in the same directory as the checkpoint. You can</span>
 <span class="sd">        see an example of the logged config to W&amp;B in the following link:</span>
@@ -669,25 +669,25 @@
                     <span class="s2">&quot;Don&#39;t worry the config will be logged the W&amp;B workspace&quot;</span>
                 <span class="p">)</span></div>
 
-<div class="viewcode-block" id="WandBLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="WandBLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">run</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="n">name</span><span class="p">:</span> <span class="n">data</span><span class="p">,</span> <span class="s2">&quot;global_step&quot;</span><span class="p">:</span> <span class="n">step</span><span class="p">})</span></div>
 
-<div class="viewcode-block" id="WandBLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_dict">[docs]</a>    <span class="k">def</span> <span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="WandBLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">run</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;global_step&quot;</span><span class="p">:</span> <span class="n">step</span><span class="p">})</span></div>
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># extra check for when there is an import error</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_wandb&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">run</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
 
-<div class="viewcode-block" id="WandBLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="WandBLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.close">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">run</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span></div></div>
 
 
-<div class="viewcode-block" id="TensorBoardLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger">[docs]</a><span class="k">class</span> <span class="nc">TensorBoardLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="TensorBoardLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">TensorBoardLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Logger for use w/ PyTorch&#39;s implementation of TensorBoard (https://pytorch.org/docs/stable/tensorboard.html).</span>
 
 <span class="sd">    Args:</span>
@@ -713,8 +713,8 @@
 <span class="sd">        In order to view TensorBoard logs, you need to run `tensorboard --logdir my_log_dir` in your terminal.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">organize_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">organize_logs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.tensorboard</span><span class="w"> </span><span class="kn">import</span> <span class="n">SummaryWriter</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SummaryWriter</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
@@ -731,26 +731,26 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="n">log_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TensorBoardLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="TensorBoardLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> <span class="n">new_style</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="TensorBoardLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log_dict">[docs]</a>    <span class="k">def</span> <span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="TensorBoardLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">payload</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="TensorBoardLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="TensorBoardLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.close">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span> <span class="o">=</span> <span class="kc">None</span></div></div>
 
 
-<div class="viewcode-block" id="CometLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger">[docs]</a><span class="k">class</span> <span class="nc">CometLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="CometLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">CometLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Logger for use w/ Comet (https://www.comet.com/site/).</span>
 <span class="sd">    Comet is an experiment tracking tool that helps ML teams track, debug,</span>
 <span class="sd">    compare, and reproduce their model training runs.</span>
@@ -796,7 +796,7 @@
 <span class="sd">        You can also set it as the `COMET_API_KEY` environment variable.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">workspace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -810,12 +810,12 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">comet_ml</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">comet_ml</span>
         <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">&quot;``comet_ml`` package not found. Please install comet_ml using `pip install comet_ml` to use CometLogger.&quot;</span>
                 <span class="s2">&quot;Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type=&#39;stdout&#39;.&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
 
@@ -837,15 +837,15 @@
                 <span class="p">),</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="CometLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="CometLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_metric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CometLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log_dict">[docs]</a>    <span class="k">def</span> <span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="CometLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_metrics</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CometLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log_config">[docs]</a>    <span class="k">def</span> <span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="CometLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">resolved</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_container</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_parameters</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
@@ -857,7 +857,7 @@
                 <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving Config to disk.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
                 <span class="k">return</span></div>
 
-    <span class="k">def</span> <span class="nf">_log_config_as_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_log_config_as_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
         <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="n">config</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">,</span>
@@ -870,11 +870,11 @@
             <span class="n">output_config_fname</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="s2">&quot;torchtune_config.yaml&quot;</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="CometLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="CometLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.close">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">end</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 </pre></div>
 

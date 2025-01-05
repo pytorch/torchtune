@@ -433,17 +433,17 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">_get_prompt_template</span><span class="p">,</span> <span class="n">_TemplateType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_prompt_template</span><span class="p">,</span> <span class="n">_TemplateType</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3._component_builders</span> <span class="kn">import</span> <span class="n">llama3</span><span class="p">,</span> <span class="n">lora_llama3</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3._tokenizer</span> <span class="kn">import</span> <span class="n">Llama3Tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3._component_builders</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3</span><span class="p">,</span> <span class="n">lora_llama3</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3._tokenizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama3Tokenizer</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">parse_hf_tokenizer_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_hf_tokenizer_json</span>
 
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -453,7 +453,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="llama3_8b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b">[docs]</a><span class="k">def</span> <span class="nf">llama3_8b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama3_8b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_8b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama3 model initialized w/ the default 8b parameter values.</span>
 
@@ -474,7 +474,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="llama3_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.llama3_70b.html#torchtune.models.llama3.llama3_70b">[docs]</a><span class="k">def</span> <span class="nf">llama3_70b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama3_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.llama3_70b.html#torchtune.models.llama3.llama3_70b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_70b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama3 model initialized w/ the default 70B parameter values.</span>
 
@@ -495,7 +495,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="llama3_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama3_tokenizer</span><span class="p">(</span>
+<div class="viewcode-block" id="llama3_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -535,7 +535,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_llama3_8b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.lora_llama3_8b.html#torchtune.models.llama3.lora_llama3_8b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama3_8b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama3_8b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.lora_llama3_8b.html#torchtune.models.llama3.lora_llama3_8b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_8b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -592,7 +592,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_llama3_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.lora_llama3_70b.html#torchtune.models.llama3.lora_llama3_70b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama3_70b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama3_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.lora_llama3_70b.html#torchtune.models.llama3.lora_llama3_70b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_70b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>

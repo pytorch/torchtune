@@ -433,16 +433,16 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.llama2._component_builders</span> <span class="kn">import</span> <span class="n">llama2</span><span class="p">,</span> <span class="n">lora_llama2</span><span class="p">,</span> <span class="n">llama2_classifier</span><span class="p">,</span> <span class="n">lora_llama2_classifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama2._component_builders</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama2</span><span class="p">,</span> <span class="n">lora_llama2</span><span class="p">,</span> <span class="n">llama2_classifier</span><span class="p">,</span> <span class="n">lora_llama2_classifier</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama2._tokenizer</span> <span class="kn">import</span> <span class="n">Llama2Tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">_TemplateType</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">_get_prompt_template</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama2._tokenizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama2Tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_TemplateType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_prompt_template</span>
 
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -452,7 +452,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="llama2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_7b.html#torchtune.models.llama2.llama2_7b">[docs]</a><span class="k">def</span> <span class="nf">llama2_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_7b.html#torchtune.models.llama2.llama2_7b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama2_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama2 model initialized w/ the default 7B parameter values</span>
 <span class="sd">    from https://arxiv.org/abs/2307.09288</span>
@@ -472,7 +472,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="llama2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TemplateType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;torchtune.models.llama2.Llama2ChatTemplate&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TemplateType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;torchtune.models.llama2.Llama2ChatTemplate&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tokenizer for Llama2.</span>
 
@@ -491,7 +491,7 @@
     <span class="k">return</span> <span class="n">Llama2Tokenizer</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">prompt_template</span><span class="o">=</span><span class="n">_get_prompt_template</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">)</span> <span class="k">if</span> <span class="n">prompt_template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_llama2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama2_7b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama2_7b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -555,7 +555,7 @@
 <span class="s2">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="llama2_13b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_13b.html#torchtune.models.llama2.llama2_13b">[docs]</a><span class="k">def</span> <span class="nf">llama2_13b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_13b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_13b.html#torchtune.models.llama2.llama2_13b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama2_13b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama2 model initialized w/ the default 13B parameter values</span>
 <span class="sd">    from https://arxiv.org/abs/2307.09288</span>
@@ -576,7 +576,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_llama2_13b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_13b.html#torchtune.models.llama2.lora_llama2_13b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama2_13b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama2_13b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_13b.html#torchtune.models.llama2.lora_llama2_13b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama2_13b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -640,7 +640,7 @@
 <span class="s2">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="llama2_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_70b.html#torchtune.models.llama2.llama2_70b">[docs]</a><span class="k">def</span> <span class="nf">llama2_70b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_70b.html#torchtune.models.llama2.llama2_70b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama2_70b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama2 model initialized w/ the default 70B parameter values</span>
 <span class="sd">    from https://arxiv.org/abs/2307.09288</span>
@@ -661,7 +661,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_llama2_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_70b.html#torchtune.models.llama2.lora_llama2_70b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama2_70b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama2_70b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_70b.html#torchtune.models.llama2.lora_llama2_70b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama2_70b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -725,7 +725,7 @@
 <span class="s2">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="llama2_reward_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_reward_7b.html#torchtune.models.llama2.llama2_reward_7b">[docs]</a><span class="k">def</span> <span class="nf">llama2_reward_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_reward_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_reward_7b.html#torchtune.models.llama2.llama2_reward_7b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama2_reward_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama2 model initialized w/ the default 7B parameter values</span>
 <span class="sd">    from https://arxiv.org/abs/2307.09288, where the output layer is a classification layer</span>
@@ -747,7 +747,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_llama2_reward_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_reward_7b.html#torchtune.models.llama2.lora_llama2_reward_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama2_reward_7b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama2_reward_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_reward_7b.html#torchtune.models.llama2.lora_llama2_reward_7b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama2_reward_7b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>

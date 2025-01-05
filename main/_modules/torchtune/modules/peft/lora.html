@@ -433,20 +433,20 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.low_precision</span> <span class="kn">import</span> <span class="n">_register_nf4_dispatch_ops</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">AdapterModule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes.nf4tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.low_precision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_register_nf4_dispatch_ops</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">AdapterModule</span>
 
 
-<div class="viewcode-block" id="LoRALinear"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear">[docs]</a><span class="k">class</span> <span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">AdapterModule</span><span class="p">):</span>
+<div class="viewcode-block" id="LoRALinear"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">AdapterModule</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models &lt;https://arxiv.org/abs/2106.09685&gt;`_.</span>
 
 <span class="sd">    LoRA perturbs a given layer via a low-rank approximation where only</span>
@@ -476,7 +476,7 @@
 <span class="sd">        ValueError: If ``quantize_base`` is False, but quantization kwargs are provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -523,19 +523,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">merged</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_parameters</span><span class="p">()</span>
 
-<div class="viewcode-block" id="LoRALinear.to_empty"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.to_empty">[docs]</a>    <span class="k">def</span> <span class="nf">to_empty</span><span class="p">(</span>
+<div class="viewcode-block" id="LoRALinear.to_empty"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.to_empty">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_empty</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span> <span class="n">recurse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">to_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">to_empty</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="n">recurse</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">initialize_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Initialize as in</span>
         <span class="c1"># https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119</span>
         <span class="n">_lora_a_init_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="p">)</span>
         <span class="n">_lora_b_init_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="p">)</span>
 
-<div class="viewcode-block" id="LoRALinear.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.adapter_params">[docs]</a>    <span class="k">def</span> <span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="LoRALinear.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.adapter_params">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a list of strings corresponding to the names of the ``nn.Parameter`` s in</span>
 <span class="sd">        the model coming from the adapter.</span>
@@ -547,7 +547,7 @@
         <span class="n">adapter_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;lora_a.weight&quot;</span><span class="p">,</span> <span class="s2">&quot;lora_b.weight&quot;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">adapter_params</span></div>
 
-<div class="viewcode-block" id="LoRALinear.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="LoRALinear.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): input tensor with shape ``(..., in_dim)``</span>
@@ -569,7 +569,7 @@
         <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="n">lora_out</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">QATLoRALinear</span><span class="p">(</span><span class="n">LoRALinear</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QATLoRALinear</span><span class="p">(</span><span class="n">LoRALinear</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    LoRA linear layer with quantization-aware training (QAT) applied to the</span>
 <span class="sd">    activations and/or weights before the low rank adapters.</span>
@@ -617,7 +617,7 @@
 <span class="sd">        qat_lora_linear(torch.randn(512))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -641,12 +641,12 @@
         <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">torchao.quantization.qat.api</span> <span class="kn">import</span> <span class="n">FakeQuantizeConfig</span>
-            <span class="kn">from</span> <span class="nn">torchao.quantization.qat.fake_quantizer</span> <span class="kn">import</span> <span class="n">FakeQuantizer</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">FakeQuantizeConfig</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat.fake_quantizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">FakeQuantizer</span>
         <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;QATLoRALinear is only compatible with torchao 0.7+&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
 
         <span class="c1"># initialize activation fake quantizer</span>
         <span class="k">if</span> <span class="n">activation_qat_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -668,7 +668,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">weight_fake_quantizer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): input tensor with shape ``(..., in_dim)``</span>
@@ -687,7 +687,7 @@
         <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="n">lora_out</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_lora_linear</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_lora_linear</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">lora_linear</span><span class="p">:</span> <span class="n">LoRALinear</span><span class="p">,</span>
         <span class="c1"># TODO: make the types Optional[FakeQuantizeConfig] once we</span>
@@ -728,14 +728,14 @@
         <span class="k">return</span> <span class="n">new_linear</span>
 
 
-<span class="k">def</span> <span class="nf">_lora_a_init_params</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_lora_a_init_params</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialize LoRA A weight to Kaiming uniform.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">_lora_b_init_params</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_lora_b_init_params</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialize LoRA B weight to zeros.</span>
 <span class="sd">    &quot;&quot;&quot;</span>

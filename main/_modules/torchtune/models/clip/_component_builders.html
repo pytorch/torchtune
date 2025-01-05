@@ -434,18 +434,18 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.clip._position_embeddings</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.clip._position_embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TiledTokenPositionalEmbedding</span><span class="p">,</span>
     <span class="n">TilePositionalEmbedding</span><span class="p">,</span>
     <span class="n">TokenPositionalEmbedding</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.clip._text_encoder</span> <span class="kn">import</span> <span class="n">CLIPTextEncoder</span><span class="p">,</span> <span class="n">QuickGELU</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.clip._text_encoder</span><span class="w"> </span><span class="kn">import</span> <span class="n">CLIPTextEncoder</span><span class="p">,</span> <span class="n">QuickGELU</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">FeedForward</span><span class="p">,</span>
     <span class="n">Fp32LayerNorm</span><span class="p">,</span>
     <span class="n">FrozenNF4Linear</span><span class="p">,</span>
@@ -453,12 +453,12 @@
     <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
     <span class="n">VisionRotaryPositionalEmbeddings</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LoRALinear</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.vision_transformer</span> <span class="kn">import</span> <span class="n">CLSProjection</span><span class="p">,</span> <span class="n">VisionTransformer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.common_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LoRALinear</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.vision_transformer</span><span class="w"> </span><span class="kn">import</span> <span class="n">CLSProjection</span><span class="p">,</span> <span class="n">VisionTransformer</span>
 
 
-<div class="viewcode-block" id="clip_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder">[docs]</a><span class="k">def</span> <span class="nf">clip_vision_encoder</span><span class="p">(</span>
+<div class="viewcode-block" id="clip_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">clip_vision_encoder</span><span class="p">(</span>
     <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -609,7 +609,7 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">clip_text_encoder</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">clip_text_encoder</span><span class="p">(</span>
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -668,7 +668,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">clip_mlp</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">clip_mlp</span><span class="p">(</span>
     <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -697,7 +697,7 @@
 <span class="c1"># ------------------ LoRA CLIP ------------------</span>
 
 
-<span class="k">def</span> <span class="nf">lora_clip_vision_encoder</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_clip_vision_encoder</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -864,7 +864,7 @@
     <span class="k">return</span> <span class="n">model</span>
 
 
-<span class="k">def</span> <span class="nf">lora_clip_attention</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_clip_attention</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># MultiHeadAttention args</span>
@@ -1018,7 +1018,7 @@
     <span class="k">return</span> <span class="n">self_attn</span>
 
 
-<span class="k">def</span> <span class="nf">lora_clip_mlp</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_clip_mlp</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>

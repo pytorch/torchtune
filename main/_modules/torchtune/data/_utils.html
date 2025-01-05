@@ -434,23 +434,23 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
-<span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib</span><span class="w"> </span><span class="kn">import</span> <span class="n">request</span>
 
-<span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
-<span class="kn">from</span> <span class="nn">datasets.distributed</span> <span class="kn">import</span> <span class="n">split_dataset_by_node</span>
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">default_collate</span><span class="p">,</span> <span class="n">DistributedSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datasets.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_dataset_by_node</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">default_collate</span><span class="p">,</span> <span class="n">DistributedSampler</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._torchdata</span> <span class="kn">import</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Loader</span><span class="p">,</span> <span class="n">requires_torchdata</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._torchdata</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Loader</span><span class="p">,</span> <span class="n">requires_torchdata</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_world_size_and_rank</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_world_size_and_rank</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="nb">type</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="truncate"><a class="viewcode-back" href="../../../generated/torchtune.data.truncate.html#torchtune.data.truncate">[docs]</a><span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span>
+<div class="viewcode-block" id="truncate"><a class="viewcode-back" href="../../../generated/torchtune.data.truncate.html#torchtune.data.truncate">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">truncate</span><span class="p">(</span>
     <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">eos_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -474,7 +474,7 @@
     <span class="k">return</span> <span class="n">tokens_truncated</span></div>
 
 
-<div class="viewcode-block" id="load_image"><a class="viewcode-back" href="../../../generated/torchtune.data.load_image.html#torchtune.data.load_image">[docs]</a><span class="k">def</span> <span class="nf">load_image</span><span class="p">(</span><span class="n">image_loc</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">:</span>
+<div class="viewcode-block" id="load_image"><a class="viewcode-back" href="../../../generated/torchtune.data.load_image.html#torchtune.data.load_image">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">load_image</span><span class="p">(</span><span class="n">image_loc</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convenience method to load an image in PIL format from a local file path or remote source.</span>
 
@@ -502,25 +502,25 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Hackily import PIL to avoid burdensome import in the main module</span>
     <span class="c1"># TODO: Fix this</span>
-    <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 
     <span class="c1"># If pointing to remote source, try to load to local</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_loc</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">image_loc</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;http&quot;</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">image_loc</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">image_loc</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load image from </span><span class="si">{</span><span class="n">image_loc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load image from </span><span class="si">{</span><span class="n">image_loc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
     <span class="c1"># Open the local image as a PIL image</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_loc</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to open image as PIL Image from </span><span class="si">{</span><span class="n">image_loc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to open image as PIL Image from </span><span class="si">{</span><span class="n">image_loc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
     <span class="k">return</span> <span class="n">image</span></div>
 
 
-<div class="viewcode-block" id="format_content_with_images"><a class="viewcode-back" href="../../../generated/torchtune.data.format_content_with_images.html#torchtune.data.format_content_with_images">[docs]</a><span class="k">def</span> <span class="nf">format_content_with_images</span><span class="p">(</span>
+<div class="viewcode-block" id="format_content_with_images"><a class="viewcode-back" href="../../../generated/torchtune.data.format_content_with_images.html#torchtune.data.format_content_with_images">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">format_content_with_images</span><span class="p">(</span>
     <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">image_tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -583,7 +583,7 @@
     <span class="k">return</span> <span class="n">final_content_list</span></div>
 
 
-<span class="k">def</span> <span class="nf">chain</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">chain</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Chain a list of functions together into a single function.</span>
 
@@ -594,7 +594,7 @@
 <span class="sd">        Callable: chained function</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">chained_fn</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">chained_fn</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">funcs</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">x</span>
@@ -603,7 +603,7 @@
 
 
 <span class="nd">@requires_torchdata</span>
-<span class="k">def</span> <span class="nf">load_hf_dataset</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_hf_dataset</span><span class="p">(</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -636,7 +636,7 @@
 <span class="sd">        A ``torchdata.nodes`` iterator that can be passed directly to a Loader, or combined with other-datasets in a multi-dataset</span>
 <span class="sd">        sampler.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">torchdata.nodes</span> <span class="kn">import</span> <span class="n">IterableWrapper</span><span class="p">,</span> <span class="n">ParallelMapper</span><span class="p">,</span> <span class="n">SamplerWrapper</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">torchdata.nodes</span><span class="w"> </span><span class="kn">import</span> <span class="n">IterableWrapper</span><span class="p">,</span> <span class="n">ParallelMapper</span><span class="p">,</span> <span class="n">SamplerWrapper</span>
 
     <span class="k">if</span> <span class="s2">&quot;subset&quot;</span> <span class="ow">in</span> <span class="n">load_dataset_kwargs</span><span class="p">:</span>
         <span class="k">assert</span> <span class="p">(</span>
@@ -674,7 +674,7 @@
 
 
 <span class="nd">@requires_torchdata</span>
-<span class="k">def</span> <span class="nf">get_multi_dataset</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_multi_dataset</span><span class="p">(</span>
     <span class="n">datasets</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">],</span>
     <span class="n">weights</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
     <span class="n">stop_criteria</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CYCLE_UNTIL_ALL_DATASETS_EXHASTED&quot;</span><span class="p">,</span>
@@ -694,7 +694,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        A ``torchdata.nodes`` iterator which can be passed to Loader, or further composed with other Nodes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">torchdata.nodes</span> <span class="kn">import</span> <span class="n">MultiNodeWeightedSampler</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">torchdata.nodes</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiNodeWeightedSampler</span>
 
     <span class="k">return</span> <span class="n">MultiNodeWeightedSampler</span><span class="p">(</span>
         <span class="n">source_nodes</span><span class="o">=</span><span class="n">datasets</span><span class="p">,</span>
@@ -705,7 +705,7 @@
 
 
 <span class="nd">@requires_torchdata</span>
-<span class="k">def</span> <span class="nf">get_dataloader</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_dataloader</span><span class="p">(</span>
     <span class="n">dataset</span><span class="p">:</span> <span class="n">DatasetType</span><span class="p">,</span>
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -737,7 +737,7 @@
 <span class="sd">        A ``torchdata.nodes`` Loader, an Iterable that returns batches.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">from</span> <span class="nn">torchdata.nodes</span> <span class="kn">import</span> <span class="n">Batcher</span><span class="p">,</span> <span class="n">ParallelMapper</span><span class="p">,</span> <span class="n">PinMemory</span><span class="p">,</span> <span class="n">Prefetcher</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">torchdata.nodes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Batcher</span><span class="p">,</span> <span class="n">ParallelMapper</span><span class="p">,</span> <span class="n">PinMemory</span><span class="p">,</span> <span class="n">Prefetcher</span>
 
     <span class="k">if</span> <span class="n">collate_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">collate_fn</span> <span class="o">=</span> <span class="n">default_collate</span>

@@ -434,16 +434,16 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">Fp32LayerNorm</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transformer</span> <span class="kn">import</span> <span class="n">_get_clones</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fp32LayerNorm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transformer</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_clones</span>
 
 
-<div class="viewcode-block" id="VisionTransformer"><a class="viewcode-back" href="../../../generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer">[docs]</a><span class="k">class</span> <span class="nc">VisionTransformer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="VisionTransformer"><a class="viewcode-back" href="../../../generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">VisionTransformer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Implementation of the ViT architecture (https://arxiv.org/abs/2010.11929),</span>
 <span class="sd">    with support for tile-cropped images, outputting of hidden layers and optional CLS projection.</span>
@@ -625,7 +625,7 @@
 <span class="sd">        ValueError: If `len(out_indices)` is greater than `num_layers`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -682,10 +682,10 @@
             <span class="n">embed_dim</span><span class="p">,</span> <span class="n">append_cls_token</span><span class="o">=</span><span class="n">append_cls_token</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">get_image_tokens_per_tile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_image_tokens_per_tile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># +1 for CLS token</span>
 
-<div class="viewcode-block" id="VisionTransformer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="VisionTransformer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">images</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -841,7 +841,7 @@
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">hidden_states</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">CLSEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CLSEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Adds a CLS token to every tile in an image.</span>
 
@@ -854,14 +854,14 @@
 <span class="sd">            Default is False, which adds CLS token to the beginning of the sequence.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">append_cls_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">append_cls_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">scale</span> <span class="o">=</span> <span class="n">embed_dim</span><span class="o">**-</span><span class="mf">0.5</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span> <span class="o">=</span> <span class="n">append_cls_token</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 
         <span class="c1"># add 1 CLS token to every tile</span>
         <span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
@@ -873,7 +873,7 @@
         <span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">CLSProjection</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CLSProjection</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Linear projection of the CLS token.</span>
 
@@ -882,14 +882,14 @@
 <span class="sd">        cls_output_dim (int): The dimensionality of the output projection.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">scale</span> <span class="o">=</span> <span class="n">embed_dim</span><span class="o">**-</span><span class="mf">0.5</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cls_output_dim</span> <span class="o">=</span> <span class="n">cls_output_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">cls_output_dim</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">bsz</span><span class="p">,</span> <span class="n">n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span> <span class="o">*</span> <span class="n">n_imgs</span> <span class="o">*</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
 

@@ -463,7 +463,7 @@ See <a class="reference internal" href="torchtune.models.mistral.mistral_reward_
 </dl>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Usage in a checkpointer class</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="o">...</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">MY_NEW_MODEL</span><span class="p">:</span>
 <span class="gp">&gt;&gt;&gt; </span>        <span class="n">state_dict</span> <span class="o">=</span> <span class="n">my_custom_state_dict_mapping</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>

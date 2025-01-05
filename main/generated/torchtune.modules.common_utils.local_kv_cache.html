@@ -445,9 +445,9 @@ will use KV-caches.</p>
 <p>KV-caches will be set-up with the given <code class="docutils literal notranslate"><span class="pre">batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">dtype</span></code>, and <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code> when
 entering the context manager, and will be deleted on exit.</p>
 <p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.models.llama3_2</span> <span class="kn">import</span> <span class="n">llama3_2_1b</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">local_kv_cache</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_2_1b</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">local_kv_cache</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">llama3_2_1b</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">())</span>
 <span class="go">False</span>

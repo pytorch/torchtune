@@ -433,16 +433,16 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_sequence</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">PACK_TYPE</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.attention_utils</span> <span class="kn">import</span> <span class="n">packed_block_causal_mask</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.utils.rnn</span><span class="w"> </span><span class="kn">import</span> <span class="n">pad_sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._common</span><span class="w"> </span><span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">PACK_TYPE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.attention_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">packed_block_causal_mask</span>
 
 
-<div class="viewcode-block" id="left_pad_sequence"><a class="viewcode-back" href="../../../generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence">[docs]</a><span class="k">def</span> <span class="nf">left_pad_sequence</span><span class="p">(</span>
+<div class="viewcode-block" id="left_pad_sequence"><a class="viewcode-back" href="../../../generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">left_pad_sequence</span><span class="p">(</span>
     <span class="n">sequences</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">padding_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
@@ -483,7 +483,7 @@
     <span class="p">)</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">batch_first</span><span class="p">)])</span></div>
 
 
-<div class="viewcode-block" id="padded_collate"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate">[docs]</a><span class="k">def</span> <span class="nf">padded_collate</span><span class="p">(</span>
+<div class="viewcode-block" id="padded_collate"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">padded_collate</span><span class="p">(</span>
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -586,7 +586,7 @@
     <span class="k">return</span> <span class="n">output_dict</span></div>
 
 
-<div class="viewcode-block" id="padded_collate_sft"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_sft.html#torchtune.data.padded_collate_sft">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_sft</span><span class="p">(</span>
+<div class="viewcode-block" id="padded_collate_sft"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_sft.html#torchtune.data.padded_collate_sft">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">padded_collate_sft</span><span class="p">(</span>
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
@@ -647,7 +647,7 @@
 
 <span class="c1"># TODO: Generalize this to support any type of encoder input, right now this assumes</span>
 <span class="c1"># a specific encoder_input signature</span>
-<div class="viewcode-block" id="padded_collate_tiled_images_and_mask"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_tiled_images_and_mask.html#torchtune.data.padded_collate_tiled_images_and_mask">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_tiled_images_and_mask</span><span class="p">(</span>
+<div class="viewcode-block" id="padded_collate_tiled_images_and_mask"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_tiled_images_and_mask.html#torchtune.data.padded_collate_tiled_images_and_mask">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">padded_collate_tiled_images_and_mask</span><span class="p">(</span>
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
@@ -875,7 +875,7 @@
     <span class="k">return</span> <span class="n">batch_dict</span></div>
 
 
-<span class="k">def</span> <span class="nf">padded_collate_packed</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">padded_collate_packed</span><span class="p">(</span>
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PACK_TYPE</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Collate packed sequences into a batch. Only convert the seq lens into</span>
@@ -936,7 +936,7 @@
     <span class="p">}</span>
 
 
-<div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_dpo.html#torchtune.data.padded_collate_dpo">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>
+<div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_dpo.html#torchtune.data.padded_collate_dpo">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">padded_collate_dpo</span><span class="p">(</span>
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>

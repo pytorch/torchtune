@@ -434,13 +434,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils._device</span> <span class="kn">import</span> <span class="n">is_npu_available</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_npu_available</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
@@ -453,7 +453,7 @@
 <span class="p">}</span>
 
 
-<span class="k">def</span> <span class="nf">_set_float32_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;high&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_set_float32_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;high&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Sets the precision of float32 matrix multiplications and convolution operations.</span>
 
 <span class="sd">    For more information, see the PyTorch docs:</span>
@@ -474,7 +474,7 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">allow_tf32</span> <span class="o">=</span> <span class="kc">True</span>
 
 
-<span class="k">def</span> <span class="nf">verify_bf16_support</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_bf16_support</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Check that bf16 is available on this hardware. Requirements:</span>
 <span class="sd">        - CUDA is available and supports bf16</span>
@@ -501,7 +501,7 @@
     <span class="k">return</span> <span class="n">cuda_support</span> <span class="ow">or</span> <span class="n">mps_support</span> <span class="ow">or</span> <span class="n">npu_support</span> <span class="ow">or</span> <span class="n">xpu_support</span>
 
 
-<div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.get_dtype.html#torchtune.training.get_dtype">[docs]</a><span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span>
+<div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.get_dtype.html#torchtune.training.get_dtype">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_dtype</span><span class="p">(</span>
     <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the torch.dtype corresponding to the given precision string. If no string is passed,</span>
@@ -552,7 +552,7 @@
 
 
 <div class="viewcode-block" id="set_default_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.set_default_dtype.html#torchtune.training.set_default_dtype">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">set_default_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_default_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Context manager to set torch&#39;s default dtype.</span>
 
@@ -578,7 +578,7 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">set_default_dtype</span><span class="p">(</span><span class="n">old_dtype</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="validate_expected_param_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.validate_expected_param_dtype.html#torchtune.training.validate_expected_param_dtype">[docs]</a><span class="k">def</span> <span class="nf">validate_expected_param_dtype</span><span class="p">(</span>
+<div class="viewcode-block" id="validate_expected_param_dtype"><a class="viewcode-back" href="../../../generated/torchtune.training.validate_expected_param_dtype.html#torchtune.training.validate_expected_param_dtype">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">validate_expected_param_dtype</span><span class="p">(</span>
     <span class="n">named_params</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span>
     <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
     <span class="n">exclude_param_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

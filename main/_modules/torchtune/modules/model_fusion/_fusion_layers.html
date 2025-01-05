@@ -434,13 +434,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
 
-<div class="viewcode-block" id="FusionLayer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer">[docs]</a><span class="k">class</span> <span class="nc">FusionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="FusionLayer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FusionLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Fusion layer as introduced in `Flamingo: a Visual Language Model for Few-Shot Learning &lt;https://arxiv.org/abs/2204.14198&gt;`_.</span>
 
 <span class="sd">    Deep Fusion model architectures combine pretrained encoder models with pretrained</span>
@@ -475,7 +475,7 @@
 <span class="sd">        fusion_first (bool): boolean to insert fusion layer before or after the decoder layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">fusion_layer</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">fusion_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -491,7 +491,7 @@
         <span class="c1"># TODO: Switch to register_load_state_dict_pre_hook and</span>
         <span class="c1"># register_state_dict_pre_hook after PyTorch v2.5</span>
 
-    <span class="k">def</span> <span class="nf">_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove &quot;layer&quot; from the original layer in the state_dict</span>
 <span class="sd">        name. This keeps the orginal state dict name for the layer</span>
 <span class="sd">        from before fusing with the FusionLayer.</span>
@@ -506,7 +506,7 @@
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
                 <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply extra &quot;layer&quot; prefix to the state_dict key to</span>
 <span class="sd">        account for the FusionLayer wrapping.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -518,7 +518,7 @@
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
                 <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-<div class="viewcode-block" id="FusionLayer.setup_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span>
+<div class="viewcode-block" id="FusionLayer.setup_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.setup_caches">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">setup_caches</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -548,26 +548,26 @@
             <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="FusionLayer.caches_are_setup"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="FusionLayer.caches_are_setup"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_setup">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Check if the key value caches are setup on ``self.layer``.</span>
 <span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_setup`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="FusionLayer.caches_are_enabled"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="FusionLayer.caches_are_enabled"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_enabled">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Checks if the key value caches on ``self.layer`` are enabled.</span>
 <span class="sd">        See :func:~torchtune.modules.TransformerDecoder.caches_are_enabled`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="FusionLayer.reset_cache"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="FusionLayer.reset_cache"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.reset_cache">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset both layers&#39; key value caches.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fusion_layer</span><span class="o">.</span><span class="n">reset_cache</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="FusionLayer.fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.fusion_params">[docs]</a>    <span class="k">def</span> <span class="nf">fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="FusionLayer.fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.fusion_params">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return parameters of fusion layer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -576,7 +576,7 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">fusion_params</span></div>
 
-<div class="viewcode-block" id="FusionLayer.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="FusionLayer.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): input tensor with shape</span>
@@ -597,7 +597,7 @@
         <span class="k">return</span> <span class="n">x</span></div></div>
 
 
-<div class="viewcode-block" id="FusionEmbedding"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding">[docs]</a><span class="k">class</span> <span class="nc">FusionEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="FusionEmbedding"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FusionEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Fusion embedding supports training additional special tokens while keeping</span>
 <span class="sd">    the original embedding frozen. When fusing new models with a language model,</span>
 <span class="sd">    there may be some additional tokens needed to support the fused language model. For</span>
@@ -627,7 +627,7 @@
 <span class="sd">        embed_dim (int): embedding dimension of the two embedding tables</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fusion_vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fusion_vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fusion_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">fusion_vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
@@ -643,7 +643,7 @@
         <span class="c1"># TODO: Switch to register_load_state_dict_pre_hook and</span>
         <span class="c1"># register_state_dict_pre_hook after PyTorch v2.5</span>
 
-    <span class="k">def</span> <span class="nf">_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">keep_vars</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">keep_vars</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove &quot;embedding&quot; from the original embedding in the state_dict</span>
 <span class="sd">        name. This keeps the orginal state dict name for the embedding</span>
 <span class="sd">        from before fusing with the FusionEmbedding.</span>
@@ -655,7 +655,7 @@
         <span class="n">destination</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">destination</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">destination</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_state_dict_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply extra &quot;embedding&quot; prefix to the state_dict key to</span>
 <span class="sd">        account for the FusionEmbedding wrapping.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -665,14 +665,14 @@
             <span class="n">state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
             <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-<div class="viewcode-block" id="FusionEmbedding.fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.fusion_params">[docs]</a>    <span class="k">def</span> <span class="nf">fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="FusionEmbedding.fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.fusion_params">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return fusion embedding parameters.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">fusion_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;fusion_embedding.weight&quot;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">fusion_params</span></div>
 
-    <span class="k">def</span> <span class="nf">_fused_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fused_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return an empty tensor the shape of the combined embedding.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -680,7 +680,7 @@
         <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
-<div class="viewcode-block" id="FusionEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="FusionEmbedding.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): input integer tensor with shape</span>

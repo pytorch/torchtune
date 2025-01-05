@@ -434,19 +434,19 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets._packed</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedDataset</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.datasets._text_completion</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets._text_completion</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">text_completion_dataset</span><span class="p">,</span>
     <span class="n">TextCompletionDataset</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
-<div class="viewcode-block" id="wikitext_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset">[docs]</a><span class="k">def</span> <span class="nf">wikitext_dataset</span><span class="p">(</span>
+<div class="viewcode-block" id="wikitext_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">wikitext_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;EleutherAI/wikitext_document_level&quot;</span><span class="p">,</span>
     <span class="n">subset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;wikitext-103-v1&quot;</span><span class="p">,</span>

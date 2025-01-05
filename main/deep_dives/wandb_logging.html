@@ -491,7 +491,7 @@ The config used to train the models can be found <a class="reference external" h
 <h2>Logging Model Checkpoints to W&amp;B<a class="headerlink" href="#logging-model-checkpoints-to-w-b" title="Permalink to this heading">¶</a></h2>
 <p>You can also log the model checkpoints to W&amp;B by modifying the desired script <code class="code docutils literal notranslate"><span class="pre">save_checkpoint</span></code> method.</p>
 <p>A suggested approach would be something like this:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="o">...</span>
     <span class="c1">## Let&#39;s save the checkpoint to W&amp;B</span>
     <span class="c1">## depending on the Checkpointer Class the file will be named differently</span>

@@ -434,19 +434,19 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">ChosenRejectedToMessages</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChosenRejectedToMessages</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
 
 
-<div class="viewcode-block" id="PreferenceDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset">[docs]</a><span class="k">class</span> <span class="nc">PreferenceDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="PreferenceDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">PreferenceDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Primary class for fine-tuning via preference modelling techniques (e.g. training</span>
 <span class="sd">    a preference model for RLHF, or directly optimizing a model through DPO) on a</span>
@@ -529,7 +529,7 @@
 <span class="sd">        ValueError: If ``packed`` is True, this feature is not supported for ``PreferenceDataset``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -551,14 +551,14 @@
         <span class="k">if</span> <span class="n">filter_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">filter_fn</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
         <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_sample</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_prepare_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
         <span class="n">transformed_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message_transform</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
 
         <span class="c1"># TODO: Truncation differs from original DPO repo</span>
@@ -590,7 +590,7 @@
         <span class="k">return</span> <span class="n">tokenized_dict</span></div>
 
 
-<div class="viewcode-block" id="preference_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.preference_dataset.html#torchtune.datasets.preference_dataset">[docs]</a><span class="k">def</span> <span class="nf">preference_dataset</span><span class="p">(</span>
+<div class="viewcode-block" id="preference_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.preference_dataset.html#torchtune.datasets.preference_dataset">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">preference_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>

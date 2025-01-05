@@ -434,17 +434,17 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
 
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.data._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">PACK_TYPE</span>
-<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._common</span><span class="w"> </span><span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">PACK_TYPE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 
 
-<div class="viewcode-block" id="PackedDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset">[docs]</a><span class="k">class</span> <span class="nc">PackedDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="PackedDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">PackedDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performs greedy sample packing on a provided dataset. This is done as a single</span>
 <span class="sd">    preprocessing step before training begins. Shuffling is done outside of this</span>
@@ -510,7 +510,7 @@
 <span class="sd">            tuning. Default is False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -529,7 +529,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">previous_sample_boundary</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate through the dataset. Use a buffer to hold samples until max_seq_len,</span>
 <span class="sd">        then append the buffer to self.packs as a single &quot;packed&quot; sample. Continue</span>
 <span class="sd">        until max_packs or end of dataset.&quot;&quot;&quot;</span>
@@ -593,14 +593,14 @@
             <span class="c1"># No need to handle splitting at this point so we can just add the current pack</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_pack</span><span class="p">(</span><span class="n">current_pack</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_should_stop_packing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_should_stop_packing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;If max packs is set, stop packing when we reach that number.&quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_packs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_packs</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span>
 
-    <span class="k">def</span> <span class="nf">_split_and_add_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_split_and_add_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and</span>
 <span class="sd">        returns the start of the next pack.&quot;&quot;&quot;</span>
 
@@ -640,13 +640,13 @@
             <span class="s2">&quot;seq_lens&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">next_seq_len</span><span class="p">],</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_add_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Processes, pads and adds a pack to ``self.packs``.&quot;&quot;&quot;</span>
         <span class="n">pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_tensors</span><span class="p">(</span><span class="n">pack</span><span class="p">)</span>
         <span class="n">pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pad_pack</span><span class="p">(</span><span class="n">pack</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pack</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_convert_to_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
@@ -655,7 +655,7 @@
             <span class="s2">&quot;seq_lens&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;seq_lens&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_pad_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">,</span> <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_pad_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pack</span><span class="p">:</span> <span class="n">PACK_TYPE</span><span class="p">,</span> <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PACK_TYPE</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Pads a pack to ``self.max_seq_len``.&quot;&quot;&quot;</span>
         <span class="c1"># Pad tokens</span>
         <span class="n">num_padding_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span>
@@ -697,10 +697,10 @@
             <span class="s2">&quot;seq_lens&quot;</span><span class="p">:</span> <span class="n">padded_seq_lens</span><span class="p">,</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
 </pre></div>
 

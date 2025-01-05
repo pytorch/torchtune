@@ -433,21 +433,21 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">import</span> <span class="nn">argparse</span>
-<span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">argparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">Namespace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_merge_yaml_and_cli_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_merge_yaml_and_cli_args</span>
 
 
 <span class="n">Recipe</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">DictConfig</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
 
 
-<span class="k">class</span> <span class="nc">TuneRecipeArgumentParser</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TuneRecipeArgumentParser</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A helpful utility subclass of the ``argparse.ArgumentParser`` that</span>
 <span class="sd">    adds a builtin argument &quot;config&quot;. The config argument takes a file path to a YAML file</span>
@@ -461,7 +461,7 @@
 <span class="sd">        This class uses &quot;config&quot; as a builtin argument so it is not available to use.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
@@ -470,7 +470,7 @@
             <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">parse_known_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_known_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;This acts the same as the base parse_known_args but will first load in defaults from</span>
 <span class="sd">        from the config yaml file if it is provided. The command line args will always take</span>
 <span class="sd">        precident over the values in the config file. All other parsing method, such as parse_args,</span>
@@ -495,7 +495,7 @@
         <span class="k">return</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">unknown_args</span>
 
 
-<div class="viewcode-block" id="parse"><a class="viewcode-back" href="../../../generated/torchtune.config.parse.html#torchtune.config.parse">[docs]</a><span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">:</span> <span class="n">Recipe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="parse"><a class="viewcode-back" href="../../../generated/torchtune.config.parse.html#torchtune.config.parse">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">:</span> <span class="n">Recipe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Decorator that handles parsing the config file and CLI overrides</span>
 <span class="sd">    for a recipe. Use it on the recipe&#39;s main function.</span>
@@ -517,7 +517,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">parser</span> <span class="o">=</span> <span class="n">TuneRecipeArgumentParser</span><span class="p">(</span>
             <span class="n">description</span><span class="o">=</span><span class="n">recipe_main</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span>
             <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span><span class="p">,</span>

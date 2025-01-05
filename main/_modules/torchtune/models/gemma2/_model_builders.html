@@ -433,13 +433,13 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.gemma2._component_builders</span> <span class="kn">import</span> <span class="n">gemma2</span><span class="p">,</span> <span class="n">lora_gemma2</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma2._component_builders</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma2</span><span class="p">,</span> <span class="n">lora_gemma2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Model builders build specific instantiations using component builders. For example</span>
@@ -447,7 +447,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="gemma2_2b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.gemma2_2b.html#torchtune.models.gemma2.gemma2_2b">[docs]</a><span class="k">def</span> <span class="nf">gemma2_2b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="gemma2_2b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.gemma2_2b.html#torchtune.models.gemma2.gemma2_2b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">gemma2_2b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Gemma2 2B model initialized w/ the default 2b parameter values</span>
 <span class="sd">    from: https://github.com/google/gemma_pytorch/blob/main/gemma/config.py</span>
@@ -472,7 +472,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_gemma2_2b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.lora_gemma2_2b.html#torchtune.models.gemma2.lora_gemma2_2b">[docs]</a><span class="k">def</span> <span class="nf">lora_gemma2_2b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_gemma2_2b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.lora_gemma2_2b.html#torchtune.models.gemma2.lora_gemma2_2b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_gemma2_2b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
@@ -537,7 +537,7 @@
 
 
 
-<div class="viewcode-block" id="gemma2_9b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.gemma2_9b.html#torchtune.models.gemma2.gemma2_9b">[docs]</a><span class="k">def</span> <span class="nf">gemma2_9b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="gemma2_9b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.gemma2_9b.html#torchtune.models.gemma2.gemma2_9b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">gemma2_9b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Gemma2 9B model initialized w/ the default 9b parameter values</span>
 <span class="sd">    from: https://github.com/google/gemma_pytorch/blob/main/gemma/config.py</span>
@@ -562,7 +562,7 @@
     <span class="p">)</span></div>
     
     
-<div class="viewcode-block" id="lora_gemma2_9b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.lora_gemma2_9b.html#torchtune.models.gemma2.lora_gemma2_9b">[docs]</a><span class="k">def</span> <span class="nf">lora_gemma2_9b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_gemma2_9b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.lora_gemma2_9b.html#torchtune.models.gemma2.lora_gemma2_9b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_gemma2_9b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
@@ -625,7 +625,7 @@
 <span class="s2">Please see `lora_gemma2_9b` for full API arguments.</span>
 <span class="s2">&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="gemma2_27b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.gemma2_27b.html#torchtune.models.gemma2.gemma2_27b">[docs]</a><span class="k">def</span> <span class="nf">gemma2_27b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="gemma2_27b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.gemma2_27b.html#torchtune.models.gemma2.gemma2_27b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">gemma2_27b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Gemma2 27B model initialized w/ the default 27b parameter values</span>
 <span class="sd">    from: https://github.com/google/gemma_pytorch/blob/main/gemma/config.py</span>
@@ -651,7 +651,7 @@
     <span class="p">)</span></div>
     
     
-<div class="viewcode-block" id="lora_gemma2_27b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.lora_gemma2_27b.html#torchtune.models.gemma2.lora_gemma2_27b">[docs]</a><span class="k">def</span> <span class="nf">lora_gemma2_27b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_gemma2_27b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma2.lora_gemma2_27b.html#torchtune.models.gemma2.lora_gemma2_27b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_gemma2_27b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>

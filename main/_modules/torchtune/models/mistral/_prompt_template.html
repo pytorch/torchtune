@@ -433,12 +433,12 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplateInterface</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplateInterface</span>
 
 
-<div class="viewcode-block" id="MistralChatTemplate"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.MistralChatTemplate.html#torchtune.models.mistral.MistralChatTemplate">[docs]</a><span class="k">class</span> <span class="nc">MistralChatTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="MistralChatTemplate"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.MistralChatTemplate.html#torchtune.models.mistral.MistralChatTemplate">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">MistralChatTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Formats according to Mistral&#39;s `instruct model</span>
 <span class="sd">    &lt;https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1#instruction-format&gt;`_.</span>
@@ -465,7 +465,7 @@
         <span class="s2">&quot;ipython&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
     <span class="p">}</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>

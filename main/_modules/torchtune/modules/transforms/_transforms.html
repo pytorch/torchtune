@@ -434,12 +434,12 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Protocol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Protocol</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 
-<div class="viewcode-block" id="Transform"><a class="viewcode-back" href="../../../../generated/torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform">[docs]</a><span class="k">class</span> <span class="nc">Transform</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<div class="viewcode-block" id="Transform"><a class="viewcode-back" href="../../../../generated/torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Transform</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loose interface for all data and model transforms. Transforms operate at the</span>
 <span class="sd">    sample level and perform operations on a sample dict, returning the updated dict.</span>
@@ -447,11 +447,11 @@
 <span class="sd">    :class:`~torchtune.modules.transforms.VisionCrossAttentionMask`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="VisionCrossAttentionMask"><a class="viewcode-back" href="../../../../generated/torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask">[docs]</a><span class="k">class</span> <span class="nc">VisionCrossAttentionMask</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="VisionCrossAttentionMask"><a class="viewcode-back" href="../../../../generated/torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">VisionCrossAttentionMask</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes the cross-attention mask for text + image inputs. Text tokens that</span>
 <span class="sd">    participate in cross-attention with an image token will show True in the mask</span>
@@ -489,7 +489,7 @@
 <span class="sd">        image_token_id (int): Token ID of the image special token.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -499,7 +499,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">=</span> <span class="n">patch_grid_size</span><span class="o">**</span><span class="mi">2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">image_token_id</span> <span class="o">=</span> <span class="n">image_token_id</span>
 
-    <span class="k">def</span> <span class="nf">_get_image_attention_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_image_attention_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns a list of lists of the form [start, end) where start is the index</span>
 <span class="sd">        of the current image token and end is the index of the next image token, exclusive.</span>
@@ -551,7 +551,7 @@
             <span class="n">last_mask_end</span> <span class="o">=</span> <span class="n">vision_mask</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">vision_masks</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

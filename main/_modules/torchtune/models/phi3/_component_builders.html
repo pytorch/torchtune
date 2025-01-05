@@ -434,12 +434,12 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.phi3._position_embeddings</span> <span class="kn">import</span> <span class="n">Phi3RotaryPositionalEmbeddings</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3._position_embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Phi3RotaryPositionalEmbeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">MultiHeadAttention</span><span class="p">,</span>
     <span class="n">FeedForward</span><span class="p">,</span>
     <span class="n">FrozenNF4Linear</span><span class="p">,</span>
@@ -448,9 +448,9 @@
     <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">_register_reparametrize_state_dict_hooks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.common_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_register_reparametrize_state_dict_hooks</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Component builders for the Phi3 4K Mini Instruct model.</span>
@@ -464,7 +464,7 @@
 <span class="sd">the building blocks simple.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="phi3"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.phi3.html#torchtune.models.phi3.phi3">[docs]</a><span class="k">def</span> <span class="nf">phi3</span><span class="p">(</span>
+<div class="viewcode-block" id="phi3"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.phi3.html#torchtune.models.phi3.phi3">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">phi3</span><span class="p">(</span>
     <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -534,7 +534,7 @@
         <span class="n">output</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
     <span class="p">)</span></div>
 
-<span class="k">def</span> <span class="nf">phi3_mlp</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">phi3_mlp</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build the MLP layer associated with the Phi3 Mini 4K Instruct model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -547,7 +547,7 @@
 <span class="c1"># ------------------ LoRA Phi3 ------------------</span>
 
 
-<div class="viewcode-block" id="lora_phi3"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.lora_phi3.html#torchtune.models.phi3.lora_phi3">[docs]</a><span class="k">def</span> <span class="nf">lora_phi3</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_phi3"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.lora_phi3.html#torchtune.models.phi3.lora_phi3">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_phi3</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -677,7 +677,7 @@
     <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">lora_phi3_self_attention</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_phi3_self_attention</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># MultiHeadAttention args</span>
@@ -818,7 +818,7 @@
     <span class="k">return</span> <span class="n">self_attn</span>
 
 
-<span class="k">def</span> <span class="nf">lora_phi3_mlp</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_phi3_mlp</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>

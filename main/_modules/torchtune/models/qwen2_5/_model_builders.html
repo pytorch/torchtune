@@ -433,15 +433,15 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._prompt_templates</span> <span class="kn">import</span> <span class="n">_get_prompt_template</span><span class="p">,</span> <span class="n">_TemplateType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_prompt_template</span><span class="p">,</span> <span class="n">_TemplateType</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.qwen2._component_builders</span> <span class="kn">import</span> <span class="n">lora_qwen2</span><span class="p">,</span> <span class="n">qwen2</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.qwen2_5._tokenizer</span> <span class="kn">import</span> <span class="n">QWEN2_5_SPECIAL_TOKENS</span><span class="p">,</span> <span class="n">Qwen2_5Tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">parse_hf_tokenizer_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.qwen2._component_builders</span><span class="w"> </span><span class="kn">import</span> <span class="n">lora_qwen2</span><span class="p">,</span> <span class="n">qwen2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.qwen2_5._tokenizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">QWEN2_5_SPECIAL_TOKENS</span><span class="p">,</span> <span class="n">Qwen2_5Tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_hf_tokenizer_json</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Model builders build specific instantiations using component builders. For example</span>
@@ -450,7 +450,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="qwen2_5_0_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_0_5b.html#torchtune.models.qwen2_5.qwen2_5_0_5b">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_0_5b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_0_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_0_5b.html#torchtune.models.qwen2_5.qwen2_5_0_5b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_0_5b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 model (base or instruct) initialized w/ the default 0.5B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct</span>
@@ -476,7 +476,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_1_5b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_1_5b_base.html#torchtune.models.qwen2_5.qwen2_5_1_5b_base">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_1_5b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_1_5b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_1_5b_base.html#torchtune.models.qwen2_5.qwen2_5_1_5b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_1_5b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 base model initialized w/ the default 1.5B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-1.5B</span>
@@ -506,7 +506,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_1_5b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_1_5b_instruct.html#torchtune.models.qwen2_5.qwen2_5_1_5b_instruct">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_1_5b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_1_5b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_1_5b_instruct.html#torchtune.models.qwen2_5.qwen2_5_1_5b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_1_5b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 instruct model initialized w/ the default 1.5B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct</span>
@@ -536,7 +536,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_3b.html#torchtune.models.qwen2_5.qwen2_5_3b">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_3b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_3b.html#torchtune.models.qwen2_5.qwen2_5_3b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_3b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 model (base or instruct) initialized w/ the default 3B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-3B-Instruct</span>
@@ -562,7 +562,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_7b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_7b_base.html#torchtune.models.qwen2_5.qwen2_5_7b_base">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_7b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_7b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_7b_base.html#torchtune.models.qwen2_5.qwen2_5_7b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_7b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 base model initialized w/ the default 7B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-7B</span>
@@ -588,7 +588,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_7b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_7b_instruct.html#torchtune.models.qwen2_5.qwen2_5_7b_instruct">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_7b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_7b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_7b_instruct.html#torchtune.models.qwen2_5.qwen2_5_7b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_7b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 instruct model initialized w/ the default 7B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-7B-Instruct</span>
@@ -614,7 +614,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_14b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_14b_base.html#torchtune.models.qwen2_5.qwen2_5_14b_base">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_14b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_14b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_14b_base.html#torchtune.models.qwen2_5.qwen2_5_14b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_14b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 base model initialized w/ the default 14B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-14B</span>
@@ -640,7 +640,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_14b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_14b_instruct.html#torchtune.models.qwen2_5.qwen2_5_14b_instruct">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_14b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_14b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_14b_instruct.html#torchtune.models.qwen2_5.qwen2_5_14b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_14b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 instruct model initialized w/ the default 14B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-14B-Instruct</span>
@@ -666,7 +666,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_32b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_32b_base.html#torchtune.models.qwen2_5.qwen2_5_32b_base">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_32b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_32b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_32b_base.html#torchtune.models.qwen2_5.qwen2_5_32b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_32b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 base model initialized w/ the default 32B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-32B</span>
@@ -692,7 +692,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_32b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_32b_instruct.html#torchtune.models.qwen2_5.qwen2_5_32b_instruct">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_32b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_32b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_32b_instruct.html#torchtune.models.qwen2_5.qwen2_5_32b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_32b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 instruct model initialized w/ the default 32B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-32B-Instruct</span>
@@ -718,7 +718,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_72b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_72b_base.html#torchtune.models.qwen2_5.qwen2_5_72b_base">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_72b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_72b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_72b_base.html#torchtune.models.qwen2_5.qwen2_5_72b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_72b_base</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 base model initialized w/ the default 72B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-72B</span>
@@ -744,7 +744,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_72b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_72b_instruct.html#torchtune.models.qwen2_5.qwen2_5_72b_instruct">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_72b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="qwen2_5_72b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_72b_instruct.html#torchtune.models.qwen2_5.qwen2_5_72b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_72b_instruct</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Qwen2.5 instruct model initialized w/ the default 72B parameter values</span>
 <span class="sd">    from https://huggingface.co/Qwen/Qwen2.5-72B-Instruct</span>
@@ -770,7 +770,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="qwen2_5_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_tokenizer.html#torchtune.models.qwen2_5.qwen2_5_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">qwen2_5_tokenizer</span><span class="p">(</span>
+<div class="viewcode-block" id="qwen2_5_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.qwen2_5_tokenizer.html#torchtune.models.qwen2_5.qwen2_5_tokenizer">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">qwen2_5_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">merges_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -817,7 +817,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_0_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_0_5b.html#torchtune.models.qwen2_5.lora_qwen2_5_0_5b">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_0_5b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_0_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_0_5b.html#torchtune.models.qwen2_5.lora_qwen2_5_0_5b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_0_5b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -874,7 +874,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_1_5b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_1_5b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_1_5b_base">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_1_5b_base</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_1_5b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_1_5b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_1_5b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_1_5b_base</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -935,7 +935,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_1_5b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_1_5b_instruct</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_1_5b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_1_5b_instruct</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -996,7 +996,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_3b.html#torchtune.models.qwen2_5.lora_qwen2_5_3b">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_3b</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_3b.html#torchtune.models.qwen2_5.lora_qwen2_5_3b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_3b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1053,7 +1053,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_7b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_7b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_7b_base">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_7b_base</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_7b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_7b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_7b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_7b_base</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1112,7 +1112,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_7b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_7b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_7b_instruct">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_7b_instruct</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_7b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_7b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_7b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_7b_instruct</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1171,7 +1171,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_14b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_14b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_14b_base">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_14b_base</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_14b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_14b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_14b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_14b_base</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1230,7 +1230,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_14b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_14b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_14b_instruct">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_14b_instruct</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_14b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_14b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_14b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_14b_instruct</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1289,7 +1289,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_32b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_32b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_32b_base">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_32b_base</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_32b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_32b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_32b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_32b_base</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1348,7 +1348,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_32b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_32b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_32b_instruct">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_32b_instruct</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_32b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_32b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_32b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_32b_instruct</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1407,7 +1407,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_72b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_72b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_72b_base">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_72b_base</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_72b_base"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_72b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_72b_base">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_72b_base</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1466,7 +1466,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_qwen2_5_72b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_72b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_72b_instruct">[docs]</a><span class="k">def</span> <span class="nf">lora_qwen2_5_72b_instruct</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_qwen2_5_72b_instruct"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2_5.lora_qwen2_5_72b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_72b_instruct">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_5_72b_instruct</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>

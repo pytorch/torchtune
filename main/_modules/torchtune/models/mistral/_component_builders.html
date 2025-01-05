@@ -434,11 +434,11 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">FeedForward</span><span class="p">,</span>
     <span class="n">FrozenNF4Linear</span><span class="p">,</span>
     <span class="n">MultiHeadAttention</span><span class="p">,</span>
@@ -447,9 +447,9 @@
     <span class="n">TransformerDecoder</span><span class="p">,</span>
     <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">_register_reparametrize_state_dict_hooks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.common_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_register_reparametrize_state_dict_hooks</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Component builders for the Mistral 7B models and popular variants such as LoRA.</span>
@@ -464,7 +464,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="mistral"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral.html#torchtune.models.mistral.mistral">[docs]</a><span class="k">def</span> <span class="nf">mistral</span><span class="p">(</span>
+<div class="viewcode-block" id="mistral"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral.html#torchtune.models.mistral.mistral">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">mistral</span><span class="p">(</span>
     <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -546,7 +546,7 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">mistral_mlp</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mistral_mlp</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build the MLP layer associated with the Mistral model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -568,7 +568,7 @@
     <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="n">up_proj</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="lora_mistral"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral.html#torchtune.models.mistral.lora_mistral">[docs]</a><span class="k">def</span> <span class="nf">lora_mistral</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_mistral"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral.html#torchtune.models.mistral.lora_mistral">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_mistral</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -699,7 +699,7 @@
     <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">lora_mistral_self_attention</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_mistral_self_attention</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># MultiHeadAttention args</span>
@@ -841,7 +841,7 @@
     <span class="k">return</span> <span class="n">self_attn</span>
 
 
-<span class="k">def</span> <span class="nf">lora_mistral_mlp</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_mistral_mlp</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -883,7 +883,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="mistral_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral_classifier.html#torchtune.models.mistral.mistral_classifier">[docs]</a><span class="k">def</span> <span class="nf">mistral_classifier</span><span class="p">(</span>
+<div class="viewcode-block" id="mistral_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.mistral_classifier.html#torchtune.models.mistral.mistral_classifier">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">mistral_classifier</span><span class="p">(</span>
     <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># base mistral args</span>
@@ -964,7 +964,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="lora_mistral_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral_classifier.html#torchtune.models.mistral.lora_mistral_classifier">[docs]</a><span class="k">def</span> <span class="nf">lora_mistral_classifier</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_mistral_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral_classifier.html#torchtune.models.mistral.lora_mistral_classifier">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_mistral_classifier</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>

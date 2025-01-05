@@ -434,15 +434,15 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">sentencepiece</span> <span class="kn">import</span> <span class="n">SentencePieceProcessor</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers._utils</span> <span class="kn">import</span> <span class="n">BaseTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sentencepiece</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentencePieceProcessor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTokenizer</span>
 
 <span class="n">WHITESPACE_CHARS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\v</span><span class="s2">&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="SentencePieceBaseTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer">[docs]</a><span class="k">class</span> <span class="nc">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A light-weight wrapper around SentencePieceProcessor that additionally handles</span>
 <span class="sd">    trimming leading whitespaces.</span>
@@ -457,7 +457,7 @@
 <span class="sd">        [1, 31587, 29644, 102, 2]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">):</span>
@@ -476,7 +476,7 @@
             <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">WHITESPACE_CHARS</span><span class="p">]</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="SentencePieceBaseTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.encode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -529,7 +529,7 @@
                 <span class="n">out_type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
             <span class="p">)</span></div>
 
-<div class="viewcode-block" id="SentencePieceBaseTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode token IDs to strings.</span>
 
 <span class="sd">        Args:</span>

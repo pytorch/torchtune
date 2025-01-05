@@ -448,7 +448,7 @@ and more.</p></li>
 </ol>
 <p>For example, if I wanted to fine-tune a model to perform a grammar correction task, I could use the <a class="reference internal" href="../generated/torchtune.data.GrammarErrorCorrectionTemplate.html#torchtune.data.GrammarErrorCorrectionTemplate" title="torchtune.data.GrammarErrorCorrectionTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">GrammarErrorCorrectionTemplate</span></code></a>
 to add the text “Correct this to standard English: {prompt} — Corrected: {response}” to all my data samples.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">GrammarErrorCorrectionTemplate</span><span class="p">,</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">GrammarErrorCorrectionTemplate</span><span class="p">,</span> <span class="n">Message</span>
 
 <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;incorrect&quot;</span><span class="p">:</span> <span class="s2">&quot;This are a cat&quot;</span><span class="p">,</span>
@@ -481,7 +481,7 @@ discussion on the different between prompt templates and special tokens, see <a 
 <section id="defining-via-dotpath-string">
 <h3>Defining via dotpath string<a class="headerlink" href="#defining-via-dotpath-string" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span>
@@ -522,7 +522,7 @@ added before the text content and <code class="docutils literal notranslate"><sp
 </div>
 <p>Now we can pass it into the tokenizer as a dictionary:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
 
 <span class="n">template</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;System: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">),</span>
@@ -561,9 +561,9 @@ added before the text content and <code class="docutils literal notranslate"><sp
 <h3>Using the <a class="reference internal" href="../generated/torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">PromptTemplate</span></code></a> class<a class="headerlink" href="#using-the-prompttemplate-class" title="Permalink to this heading">¶</a></h3>
 <p>A template dictionary can also be passed into <a class="reference internal" href="../generated/torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate" title="torchtune.data.PromptTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">PromptTemplate</span></code></a> so you can use it as a standalone custom
 prompt template class.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">PromptTemplate</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">PromptTemplate</span>
 
-<span class="k">def</span> <span class="nf">my_custom_template</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">PromptTemplate</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_custom_template</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">PromptTemplate</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">PromptTemplate</span><span class="p">(</span>
         <span class="n">template</span><span class="o">=</span><span class="p">{</span>
             <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;User: &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">),</span>
@@ -592,10 +592,10 @@ prompt template class.</p>
 <p>For more advanced configuration that doesn’t neatly fall into the <code class="docutils literal notranslate"><span class="pre">PREPEND_TAG</span> <span class="pre">content</span> <span class="pre">APPEND_TAG</span></code>
 pattern, you can create a new class that inherits from <a class="reference internal" href="../generated/torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface" title="torchtune.data.PromptTemplateInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">PromptTemplateInterface</span></code></a>
 and implements the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
-<span class="k">class</span> <span class="nc">PromptTemplateInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PromptTemplateInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -614,8 +614,8 @@ and implements the <code class="docutils literal notranslate"><span class="pre">
         <span class="k">pass</span>
 
 <span class="c1"># Contrived example - make all assistant prompts say &quot;Eureka!&quot;</span>
-<span class="k">class</span> <span class="nc">EurekaTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EurekaTemplate</span><span class="p">(</span><span class="n">PromptTemplateInterface</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -653,7 +653,7 @@ and implements the <code class="docutils literal notranslate"><span class="pre">
 <a class="reference internal" href="../generated/torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate" title="torchtune.models.llama2.Llama2ChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatTemplate</span></code></a>.</p>
 <p>To use this custom template in the tokenizer, you can pass it in via dotpath string:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span>

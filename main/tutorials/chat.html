@@ -532,7 +532,7 @@ prompt:</p>
 <p>Now, let’s format this with the <a class="reference internal" href="../generated/torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate" title="torchtune.models.llama2.Llama2ChatTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatTemplate</span></code></a> class and
 see how it gets tokenized. The Llama2ChatTemplate is an example of a <strong>prompt template</strong>,
 which simply structures a prompt with flavor text to indicate a certain task.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatTemplate</span><span class="p">,</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama2ChatTemplate</span><span class="p">,</span> <span class="n">Message</span>
 
 <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">]</span>
 <span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">Llama2ChatTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
@@ -558,7 +558,7 @@ we don’t include the <code class="code docutils literal notranslate"><span cla
 than the rest of the prompt template. Let’s tokenize this example with the
 <a class="reference internal" href="../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer" title="torchtune.models.llama2.llama2_tokenizer"><code class="xref py py-func docutils literal notranslate"><span class="pre">llama2_tokenizer()</span></code></a> used by Llama2 to see
 why.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">llama2_tokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama2</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama2_tokenizer</span>
 
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama2_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Llama-2-7b-hf/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">user_message</span> <span class="o">=</span> <span class="n">formatted_messages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text_content</span>
@@ -598,7 +598,7 @@ token.</p>
 </div>
 <p>Now let’s take a look at Llama3’s formatting to see how it’s tokenized differently
 than Llama2.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
 
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">]</span>
@@ -687,8 +687,8 @@ builder in torchtune. For <a class="reference internal" href="../generated/torch
 <code class="docutils literal notranslate"><span class="pre">conversation_column</span></code> and <code class="docutils literal notranslate"><span class="pre">conversation_style</span></code>. Our data follows the <code class="docutils literal notranslate"><span class="pre">&quot;sharegpt&quot;</span></code> format, so
 we can specify that here. Altogether, our <a class="reference internal" href="../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">chat_dataset()</span></code></a> call should
 look like so:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">chat_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
 
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>

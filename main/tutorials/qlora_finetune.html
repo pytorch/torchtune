@@ -499,8 +499,8 @@ specifically, the <code class="docutils literal notranslate"><span class="pre">N
 in the backward pass, avoiding extra memory usage that would be incurred by storing the higher precision compute dtype.</p>
 <p>Here’s an example of creating a quantized <code class="docutils literal notranslate"><span class="pre">LoRALinear</span></code> layer in comparison to an unquantized <code class="docutils literal notranslate"><span class="pre">LoRALinear</span></code> layer. As we can see, the quantized layer consumes
 ~8x less memory than the unquantized counterpart.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LoRALinear</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoRALinear</span>
 
 <span class="n">torch</span><span class="o">.</span><span class="n">set_default_device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">)</span>
 <span class="n">qlora_linear</span> <span class="o">=</span> <span class="n">LoRALinear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -518,7 +518,7 @@ in the backward pass, avoiding extra memory usage that would be incurred by stor
 checkpointing with QLoRA.</p>
 <p>With torchtune, you can use a simple builder similar to the LoRA builder (<a class="reference internal" href="../generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b" title="torchtune.models.llama2.lora_llama2_7b"><code class="xref py py-func docutils literal notranslate"><span class="pre">lora_llama_2_7b</span></code></a>) to apply QLoRA to Llama2 models. Here’s a simple example of
 initializing a Llama2-7b model with QLoRA enabled:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">qlora_llama2_7b</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama2</span><span class="w"> </span><span class="kn">import</span> <span class="n">qlora_llama2_7b</span>
 
 <span class="n">qlora_model</span> <span class="o">=</span> <span class="n">qlora_llama2_7b</span><span class="p">(</span><span class="n">lora_attn_modules</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;q_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;v_proj&quot;</span><span class="p">])</span>
 </pre></div>
@@ -625,13 +625,13 @@ output by your saved checkpoints (which can be found in <code class="code docuti
 <p>This deep-dive section resumes from the <a class="reference internal" href="#qlora-core-highlevel"><span class="std std-ref">Using QLoRA to save memory</span></a> portion of this tutorial and dives into how quantization is done with <code class="docutils literal notranslate"><span class="pre">NF4Tensor</span></code> and handled appropriately in the forward pass.</p>
 <p>First, we’ll begin with
 a vanilla minimal LoRA layer, taken from <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">the LoRA tutorial</span></a> and augmented to support quantization:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="hll"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span><span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="hll"><span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes.nf4tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
 
-<span class="k">class</span> <span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -662,7 +662,7 @@ a vanilla minimal LoRA layer, taken from <a class="reference internal" href="lor
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
 
-  <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="hll">    <span class="c1"># frozen_out would be the output of the original model</span>
 </span><span class="hll">    <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
 </span><span class="hll">      <span class="c1"># Call into torchao&#39;s linear_nf4 to run linear forward pass w/quantized weight.</span>

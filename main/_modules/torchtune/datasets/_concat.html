@@ -434,18 +434,18 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
 
-<span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">utils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets._packed</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedDataset</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="ConcatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset">[docs]</a><span class="k">class</span> <span class="nc">ConcatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="ConcatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ConcatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A dataset class for concatenating multiple sub-datasets into a single dataset. This class enables the</span>
 <span class="sd">    unified handling of different datasets as if they were a single dataset, simplifying tasks such as</span>
@@ -494,7 +494,7 @@
 <span class="sd">    enhancing the flexibility in handling diverse data sources for training machine learning models.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span>
 
         <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span><span class="p">:</span>
@@ -513,13 +513,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cumulative_index</span><span class="p">,</span> <span class="n">next_cumulative_index</span><span class="p">,</span> <span class="n">idx</span><span class="p">))</span>
             <span class="n">cumulative_index</span> <span class="o">=</span> <span class="n">next_cumulative_index</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
         <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">dataset_index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">stop</span><span class="p">:</span>
                 <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span><span class="p">[</span><span class="n">dataset_index</span><span class="p">]</span>
                 <span class="k">return</span> <span class="n">dataset</span><span class="p">[</span><span class="n">index</span> <span class="o">-</span> <span class="n">start</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len</span></div>
 </pre></div>
 

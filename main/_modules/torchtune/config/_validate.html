@@ -434,14 +434,14 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._errors</span> <span class="kn">import</span> <span class="n">ConfigError</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span><span class="p">,</span> <span class="n">_has_component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_component_from_path</span><span class="p">,</span> <span class="n">_has_component</span>
 
 
-<div class="viewcode-block" id="validate"><a class="viewcode-back" href="../../../generated/torchtune.config.validate.html#torchtune.config.validate">[docs]</a><span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="validate"><a class="viewcode-back" href="../../../generated/torchtune.config.validate.html#torchtune.config.validate">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Ensure that all components in the config can be instantiated correctly</span>
 

@@ -434,13 +434,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
 
 
-<div class="viewcode-block" id="CEWithChunkedOutputLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss">[docs]</a><span class="k">class</span> <span class="nc">CEWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="CEWithChunkedOutputLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">CEWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.</span>
 
@@ -457,12 +457,12 @@
 <span class="sd">    For more details, please refer to: https://github.com/pytorch/torchtune/pull/1390</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
 
-<div class="viewcode-block" id="CEWithChunkedOutputLoss.compute_cross_entropy"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy">[docs]</a>    <span class="k">def</span> <span class="nf">compute_cross_entropy</span><span class="p">(</span>
+<div class="viewcode-block" id="CEWithChunkedOutputLoss.compute_cross_entropy"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_cross_entropy</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -472,7 +472,7 @@
             <span class="n">logits</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">labels</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="CEWithChunkedOutputLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="CEWithChunkedOutputLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            logits (List[torch.Tensor]): List of chunked logits of length</span>

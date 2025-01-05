@@ -517,11 +517,11 @@ and V projections. This means a LoRA decomposition of rank <code class="code doc
 parameters for a given projection from <span class="math notranslate nohighlight">\(4096 * 4096 \approx 15M\)</span> to <span class="math notranslate nohighlight">\(8 * 8192 \approx 65K\)</span>, a
 reduction of over 99%.</p>
 <p>Let’s take a look at a minimal implementation of LoRA in native PyTorch.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="k">class</span> <span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -548,7 +548,7 @@ reduction of over 99%.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_a</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">lora_b</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
 
-  <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="c1"># This would be the output of the original model</span>
     <span class="n">frozen_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
@@ -569,7 +569,7 @@ Now that we understand what LoRA is doing, let’s look at how we can apply it t
 <h2>Applying LoRA to Llama2 models<a class="headerlink" href="#applying-lora-to-llama2-models" title="Permalink to this heading">¶</a></h2>
 <p>With torchtune, we can easily apply LoRA to Llama2 with a variety of different configurations.
 Let’s take a look at how to construct Llama2 models in torchtune with and without LoRA.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">llama2_7b</span><span class="p">,</span> <span class="n">lora_llama2_7b</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama2</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama2_7b</span><span class="p">,</span> <span class="n">lora_llama2_7b</span>
 
 <span class="c1"># Build Llama2 without any LoRA layers</span>
 <span class="n">base_model</span> <span class="o">=</span> <span class="n">llama2_7b</span><span class="p">()</span>
@@ -635,7 +635,7 @@ the loaded <code class="code docutils literal notranslate"><span class="pre">sta
 <a class="reference internal" href="../generated/torchtune.modules.peft.validate_missing_and_unexpected_for_lora.html#torchtune.modules.peft.validate_missing_and_unexpected_for_lora" title="torchtune.modules.peft.validate_missing_and_unexpected_for_lora"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate_missing_and_unexpected_for_lora()</span></code></a>.</p>
 </div>
 <p>Once we’ve loaded the base model weights, we also want to set only LoRA parameters to trainable.</p>
-<div class="highlight-python notranslate" id="setting-trainable-params"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.peft.peft_utils</span> <span class="kn">import</span> <span class="n">get_adapter_params</span><span class="p">,</span> <span class="n">set_trainable_params</span>
+<div class="highlight-python notranslate" id="setting-trainable-params"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft.peft_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_adapter_params</span><span class="p">,</span> <span class="n">set_trainable_params</span>
 
 <span class="c1"># Fetch all params from the model that are associated with LoRA.</span>
 <span class="n">lora_params</span> <span class="o">=</span> <span class="n">get_adapter_params</span><span class="p">(</span><span class="n">lora_model</span><span class="p">)</span>

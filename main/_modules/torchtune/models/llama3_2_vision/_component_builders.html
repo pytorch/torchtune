@@ -434,12 +434,12 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.clip._component_builders</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.clip._component_builders</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">clip_mlp</span><span class="p">,</span>
     <span class="n">clip_vision_encoder</span><span class="p">,</span>
     <span class="n">lora_clip_attention</span><span class="p">,</span>
@@ -447,18 +447,18 @@
     <span class="n">lora_clip_vision_encoder</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3._model_utils</span> <span class="kn">import</span> <span class="n">scale_hidden_dim_for_mlp</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3_1._component_builders</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3._model_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">scale_hidden_dim_for_mlp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_1._component_builders</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">llama3_mlp</span><span class="p">,</span>
     <span class="n">lora_llama3_attention</span><span class="p">,</span>
     <span class="n">lora_llama3_mlp</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3_1._position_embeddings</span> <span class="kn">import</span> <span class="n">Llama3ScaledRoPE</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision._encoder</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_1._position_embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama3ScaledRoPE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._encoder</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Llama3VisionEncoder</span><span class="p">,</span>
     <span class="n">Llama3VisionProjectionHead</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Fp32LayerNorm</span><span class="p">,</span>
     <span class="n">MultiHeadAttention</span><span class="p">,</span>
     <span class="n">RMSNorm</span><span class="p">,</span>
@@ -468,11 +468,11 @@
     <span class="n">TransformerSelfAttentionLayer</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.common_utils</span> <span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.common_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.model_fusion</span> <span class="kn">import</span> <span class="n">FusionEmbedding</span><span class="p">,</span> <span class="n">FusionLayer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">FusionEmbedding</span><span class="p">,</span> <span class="n">FusionLayer</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
 
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -487,7 +487,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<div class="viewcode-block" id="llama3_2_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_encoder">[docs]</a><span class="k">def</span> <span class="nf">llama3_2_vision_encoder</span><span class="p">(</span>
+<div class="viewcode-block" id="llama3_2_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_encoder">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_vision_encoder</span><span class="p">(</span>
     <span class="c1"># clip encoder parameters</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -562,7 +562,7 @@
     <span class="k">return</span> <span class="n">Llama3VisionEncoder</span><span class="p">(</span><span class="n">clip</span><span class="o">=</span><span class="n">clip</span><span class="p">,</span> <span class="n">projection_head</span><span class="o">=</span><span class="n">projection_head</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="llama3_2_vision_decoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_decoder">[docs]</a><span class="k">def</span> <span class="nf">llama3_2_vision_decoder</span><span class="p">(</span>
+<div class="viewcode-block" id="llama3_2_vision_decoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_decoder">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_vision_decoder</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -683,7 +683,7 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">llama3_2_vision_projection_head</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_vision_projection_head</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -757,13 +757,13 @@
 <span class="c1"># ------------------ LoRA Llama 3.2 Vision ------------------</span>
 
 
-<span class="k">class</span> <span class="nc">LoRATrainable</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LoRATrainable</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
     <span class="n">FULL</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span>
     <span class="n">LORA</span> <span class="o">=</span> <span class="s2">&quot;lora&quot;</span>
     <span class="n">FROZEN</span> <span class="o">=</span> <span class="s2">&quot;frozen&quot;</span>
 
 
-<div class="viewcode-block" id="lora_llama3_2_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder">[docs]</a><span class="k">def</span> <span class="nf">lora_llama3_2_vision_encoder</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama3_2_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_vision_encoder</span><span class="p">(</span>
     <span class="n">encoder_lora</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">fusion_lora</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
@@ -898,7 +898,7 @@
     <span class="k">return</span> <span class="n">encoder</span></div>
 
 
-<div class="viewcode-block" id="lora_llama3_2_vision_decoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder">[docs]</a><span class="k">def</span> <span class="nf">lora_llama3_2_vision_decoder</span><span class="p">(</span>
+<div class="viewcode-block" id="lora_llama3_2_vision_decoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_vision_decoder</span><span class="p">(</span>
     <span class="n">decoder_lora</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">fusion_lora</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
@@ -1132,7 +1132,7 @@
     <span class="k">return</span> <span class="n">model</span></div>
 
 
-<span class="k">def</span> <span class="nf">lora_llama3_2_vision_projection_head</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_vision_projection_head</span><span class="p">(</span>
     <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># projection head parameters</span>

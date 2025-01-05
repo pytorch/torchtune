@@ -434,15 +434,15 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
 
 
-<div class="viewcode-block" id="DPOLoss"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.DPOLoss.html#torchtune.rlhf.loss.DPOLoss">[docs]</a><span class="k">class</span> <span class="nc">DPOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="DPOLoss"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.DPOLoss.html#torchtune.rlhf.loss.DPOLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">DPOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290</span>
 <span class="sd">    Simply stated from the paper:</span>
@@ -466,7 +466,7 @@
 <span class="sd">        label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
         <span class="n">label_smoothing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
@@ -475,7 +475,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">label_smoothing</span>
 
-<div class="viewcode-block" id="DPOLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.DPOLoss.html#torchtune.rlhf.loss.DPOLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="DPOLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.DPOLoss.html#torchtune.rlhf.loss.DPOLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">policy_chosen_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">policy_rejected_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -525,7 +525,7 @@
         <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">chosen_rewards</span><span class="p">,</span> <span class="n">rejected_rewards</span></div></div>
 
 
-<div class="viewcode-block" id="RSOLoss"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.RSOLoss.html#torchtune.rlhf.loss.RSOLoss">[docs]</a><span class="k">class</span> <span class="nc">RSOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="RSOLoss"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.RSOLoss.html#torchtune.rlhf.loss.RSOLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">RSOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Statistical Rejection Sampling Optimization (RSO) or &quot;hinge&quot; loss module: https://arxiv.org/abs/2309.06657.</span>
 <span class="sd">    Intuition from the paper:</span>
@@ -540,14 +540,14 @@
 <span class="sd">        gamma (float): Equivalent temperature parameter (from DPO) for the RSO loss.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
 
-<div class="viewcode-block" id="RSOLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.RSOLoss.html#torchtune.rlhf.loss.RSOLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="RSOLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.RSOLoss.html#torchtune.rlhf.loss.RSOLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">policy_chosen_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">policy_rejected_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -592,7 +592,7 @@
 
 
 <div class="viewcode-block" id="SimPOLoss"><a class="viewcode-back" href="../../../../generated/torchtune.rlhf.loss.SimPOLoss.html#torchtune.rlhf.loss.SimPOLoss">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;SimPOLoss will be deprecated in an upcoming release.&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">SimPOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimPOLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    SimPO: Simple Preference Optimization with a Reference-Free Reward: https://arxiv.org/abs/2405.14734.</span>
 <span class="sd">    Intuition from the paper:</span>
@@ -617,7 +617,7 @@
 <span class="sd">        label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
         <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
@@ -628,7 +628,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">label_smoothing</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">policy_chosen_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">policy_rejected_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>

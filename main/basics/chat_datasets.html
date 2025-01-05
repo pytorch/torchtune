@@ -475,8 +475,8 @@ directly from the config and train your LLM on it.</p>
 <span class="p">]</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">chat_dataset</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span>
@@ -539,8 +539,8 @@ per sample. The list of messages could include a system prompt, multiple turns b
 <h2>Loading chat datasets from Hugging Face<a class="headerlink" href="#loading-chat-datasets-from-hugging-face" title="Permalink to this heading">¶</a></h2>
 <p>You need to pass in the dataset repo name to <code class="docutils literal notranslate"><span class="pre">source</span></code>, select one of the conversation styles in <code class="docutils literal notranslate"><span class="pre">conversation_style</span></code>, and specify the <code class="docutils literal notranslate"><span class="pre">conversation_column</span></code>.
 For most HF datasets, you will also need to specify the <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">chat_dataset</span>
 
 <span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
@@ -567,8 +567,8 @@ For most HF datasets, you will also need to specify the <code class="docutils li
 <p>To load in a local or remote dataset via https that has conversational data, you need to additionally specify the <code class="docutils literal notranslate"><span class="pre">data_files</span></code> and <code class="docutils literal notranslate"><span class="pre">split</span></code>
 arguments. See Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code> <a class="reference external" href="https://huggingface.co/docs/datasets/main/en/loading#local-and-remote-files">documentation</a>
 for more details on loading local or remote files.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">chat_dataset</span>
 
 <span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
@@ -622,8 +622,8 @@ that follows this format:</p>
 </pre></div>
 </div>
 <p>You can specify <code class="docutils literal notranslate"><span class="pre">conversation_style=sharegpt</span></code> in code or config:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">chat_dataset</span>
 
 <span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
@@ -662,8 +662,8 @@ that follows this format:</p>
 </pre></div>
 </div>
 <p>You can specify <code class="docutils literal notranslate"><span class="pre">conversation_style=openai</span></code> in code or config:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">chat_dataset</span>
 
 <span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
@@ -717,8 +717,8 @@ that follows this format:</p>
 <span class="p">]</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">chat_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">chat_dataset</span>
 
 <span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>

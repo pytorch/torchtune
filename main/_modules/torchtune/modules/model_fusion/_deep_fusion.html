@@ -434,16 +434,16 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.model_fusion._fusion_utils</span> <span class="kn">import</span> <span class="n">get_fusion_params</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.peft._utils</span> <span class="kn">import</span> <span class="n">set_trainable_params</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion._fusion_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_fusion_params</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_trainable_params</span>
 
 
-<div class="viewcode-block" id="DeepFusionModel"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel">[docs]</a><span class="k">class</span> <span class="nc">DeepFusionModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="DeepFusionModel"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">DeepFusionModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;DeepFusion is a type of fused model architecture where a pretrained encoder is combined</span>
 <span class="sd">    with a pretrained decoder (LLM) in the internal decoder layers. This is a popular architecture for multimodal models, with</span>
 <span class="sd">    a full overview available in `The Evolution of Multimodal Model Architectures &lt;https://arxiv.org/abs/2405.17927&gt;`_.</span>
@@ -495,7 +495,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">decoder</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
         <span class="n">encoder</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
@@ -523,12 +523,12 @@
             <span class="n">trainable_params</span> <span class="o">-=</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
         <span class="n">set_trainable_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainable_params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DeepFusionModel.set_num_output_chunks"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.set_num_output_chunks">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="DeepFusionModel.set_num_output_chunks"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.set_num_output_chunks">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">set_num_output_chunks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.</span>
 <span class="sd">        This should be called before the first forward pass, in the recipe.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">set_num_output_chunks</span><span class="p">(</span><span class="n">num_output_chunks</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DeepFusionModel.setup_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.setup_caches">[docs]</a>    <span class="k">def</span> <span class="nf">setup_caches</span><span class="p">(</span>
+<div class="viewcode-block" id="DeepFusionModel.setup_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.setup_caches">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">setup_caches</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -556,14 +556,14 @@
             <span class="n">decoder_max_seq_len</span><span class="o">=</span><span class="n">decoder_max_seq_len</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DeepFusionModel.caches_are_setup"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_setup">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="DeepFusionModel.caches_are_setup"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_setup">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">caches_are_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Check if the key value caches are setup. This means ``setup_caches`` has been called, and</span>
 <span class="sd">        the relevant attention modules in the model have created their ``KVCache``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">caches_are_setup</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="DeepFusionModel.caches_are_enabled"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="DeepFusionModel.caches_are_enabled"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">caches_are_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Checks if the key value caches are enabled. Once KV-caches have been setup, the relevant</span>
 <span class="sd">        attention modules will be &quot;enabled&quot; and all forward passes will update the caches. This behaviour</span>
@@ -572,14 +572,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">caches_are_enabled</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="DeepFusionModel.reset_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.reset_caches">[docs]</a>    <span class="k">def</span> <span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="DeepFusionModel.reset_caches"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.reset_caches">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Resets KV-cache buffers on relevant attention modules to zero, and reset cache positions to zero,</span>
 <span class="sd">        without deleting or reallocating cache tensors.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">reset_caches</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="DeepFusionModel.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="DeepFusionModel.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>

@@ -434,15 +434,15 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch.optim.lr_scheduler</span> <span class="kn">import</span> <span class="n">LambdaLR</span>
-<span class="kn">from</span> <span class="nn">torchtune.training.memory</span> <span class="kn">import</span> <span class="n">OptimizerInBackwardWrapper</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim.lr_scheduler</span><span class="w"> </span><span class="kn">import</span> <span class="n">LambdaLR</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.training.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptimizerInBackwardWrapper</span>
 
 
-<div class="viewcode-block" id="get_cosine_schedule_with_warmup"><a class="viewcode-back" href="../../../generated/torchtune.training.get_cosine_schedule_with_warmup.html#torchtune.training.get_cosine_schedule_with_warmup">[docs]</a><span class="k">def</span> <span class="nf">get_cosine_schedule_with_warmup</span><span class="p">(</span>
+<div class="viewcode-block" id="get_cosine_schedule_with_warmup"><a class="viewcode-back" href="../../../generated/torchtune.training.get_cosine_schedule_with_warmup.html#torchtune.training.get_cosine_schedule_with_warmup">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_cosine_schedule_with_warmup</span><span class="p">(</span>
     <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
     <span class="n">num_warmup_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_training_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -470,7 +470,7 @@
 <span class="sd">        torch.optim.lr_scheduler.LambdaLR with the appropriate schedule.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">lr_lambda</span><span class="p">(</span><span class="n">current_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lr_lambda</span><span class="p">(</span><span class="n">current_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
         <span class="c1"># linear warmup phase</span>
         <span class="k">if</span> <span class="n">current_step</span> <span class="o">&lt;</span> <span class="n">num_warmup_steps</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">current_step</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_warmup_steps</span><span class="p">)</span>
@@ -488,7 +488,7 @@
     <span class="k">return</span> <span class="n">LambdaLR</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">lr_lambda</span><span class="p">,</span> <span class="n">last_epoch</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_lr"><a class="viewcode-back" href="../../../generated/torchtune.training.get_lr.html#torchtune.training.get_lr">[docs]</a><span class="k">def</span> <span class="nf">get_lr</span><span class="p">(</span>
+<div class="viewcode-block" id="get_lr"><a class="viewcode-back" href="../../../generated/torchtune.training.get_lr.html#torchtune.training.get_lr">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_lr</span><span class="p">(</span>
     <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span> <span class="n">OptimizerInBackwardWrapper</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>

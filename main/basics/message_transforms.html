@@ -452,13 +452,13 @@ you can create your own class with full flexibility. Simply inherit from the <a 
 class and add your code in the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method.</p>
 <p>A simple contrived example would be to take one column from the dataset as the user message and another
 column as the model response. Indeed, this is quite similar to <a class="reference internal" href="../generated/torchtune.data.InputOutputToMessages.html#torchtune.data.InputOutputToMessages" title="torchtune.data.InputOutputToMessages"><code class="xref py py-class docutils literal notranslate"><span class="pre">InputOutputToMessages</span></code></a>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span>
-<span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">pprint</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pprint</span><span class="w"> </span><span class="kn">import</span> <span class="n">pprint</span>
 
-<span class="k">class</span> <span class="nc">MessageTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MessageTransform</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Message</span><span class="p">(</span>
                 <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
@@ -487,9 +487,9 @@ column as the model response. Indeed, this is quite similar to <a class="referen
 <p>To use this for your dataset, you must create a custom dataset builder that uses the underlying
 dataset class, <a class="reference internal" href="../generated/torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset" title="torchtune.datasets.SFTDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SFTDataset</span></code></a>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In data/dataset.py</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">SFTDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">SFTDataset</span>
 
-<span class="k">def</span> <span class="nf">custom_dataset</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SFTDataset</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_dataset</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SFTDataset</span><span class="p">:</span>
     <span class="n">message_transform</span> <span class="o">=</span> <span class="n">MyMessageTransform</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">SFTDataset</span><span class="p">(</span>
         <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>

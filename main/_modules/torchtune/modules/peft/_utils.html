@@ -434,25 +434,25 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
 
 <span class="c1"># Modules from MultiHeadAttention that LoRA can be applied to</span>
 <span class="n">LORA_ATTN_MODULES</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;q_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;k_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;v_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;output_proj&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="AdapterModule"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule">[docs]</a><span class="k">class</span> <span class="nc">AdapterModule</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<div class="viewcode-block" id="AdapterModule"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">AdapterModule</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Interface for an ``nn.Module`` containing adapter weights.</span>
 <span class="sd">    Note that an adapter module does not have to explicitly implement this protocol,</span>
 <span class="sd">    but it must define the ``adapter_params(self)`` method.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="AdapterModule.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule.adapter_params">[docs]</a>    <span class="k">def</span> <span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="AdapterModule.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule.adapter_params">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a list of strings corresponding to the names of the ``nn.Parameter`` s in</span>
 <span class="sd">        the model coming from the adapter.</span>
@@ -464,7 +464,7 @@
         <span class="k">pass</span></div></div>
 
 
-<div class="viewcode-block" id="get_adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.get_adapter_params.html#torchtune.modules.peft.get_adapter_params">[docs]</a><span class="k">def</span> <span class="nf">get_adapter_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]:</span>
+<div class="viewcode-block" id="get_adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.get_adapter_params.html#torchtune.modules.peft.get_adapter_params">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_adapter_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the subset of parameters from a model that correspond to an adapter.</span>
 <span class="sd">    Assumes that any adapter class has defined the</span>
@@ -493,7 +493,7 @@
     <span class="k">return</span> <span class="n">adapter_params</span></div>
 
 
-<div class="viewcode-block" id="set_trainable_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">[docs]</a><span class="k">def</span> <span class="nf">set_trainable_params</span><span class="p">(</span>
+<div class="viewcode-block" id="set_trainable_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">set_trainable_params</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">adapter_params</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Set</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -511,7 +511,7 @@
         <span class="n">v</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="n">adapter_params</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_lora_module_names</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_lora_module_names</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -540,7 +540,7 @@
     <span class="k">return</span> <span class="n">lora_module_keys</span>
 
 
-<div class="viewcode-block" id="get_adapter_state_dict"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.get_adapter_state_dict.html#torchtune.modules.peft.get_adapter_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_adapter_state_dict</span><span class="p">(</span>
+<div class="viewcode-block" id="get_adapter_state_dict"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.get_adapter_state_dict.html#torchtune.modules.peft.get_adapter_state_dict">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_adapter_state_dict</span><span class="p">(</span>
     <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -561,7 +561,7 @@
     <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">adapter_key_filter</span><span class="p">(</span><span class="n">k</span><span class="p">)}</span></div>
 
 
-<span class="k">def</span> <span class="nf">_get_lora_modules</span><span class="p">(</span><span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_lora_modules</span><span class="p">(</span><span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the keys from a state dict that correspond to LoRALinear modules.</span>
 
@@ -587,7 +587,7 @@
 
 
 <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span>
-<span class="k">def</span> <span class="nf">get_merged_lora_ckpt</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_merged_lora_ckpt</span><span class="p">(</span>
     <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -639,7 +639,7 @@
 
 
 <div class="viewcode-block" id="disable_adapter"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.disable_adapter.html#torchtune.modules.peft.disable_adapter">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">disable_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">disable_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Temporarily disable the adapters in a model. For example,</span>
 <span class="sd">    this can be used in DPO for treating the LoRA adapters as the policy model</span>
@@ -679,7 +679,7 @@
                 <span class="n">module</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
-<div class="viewcode-block" id="validate_missing_and_unexpected_for_lora"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.validate_missing_and_unexpected_for_lora.html#torchtune.modules.peft.validate_missing_and_unexpected_for_lora">[docs]</a><span class="k">def</span> <span class="nf">validate_missing_and_unexpected_for_lora</span><span class="p">(</span>
+<div class="viewcode-block" id="validate_missing_and_unexpected_for_lora"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.validate_missing_and_unexpected_for_lora.html#torchtune.modules.peft.validate_missing_and_unexpected_for_lora">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">validate_missing_and_unexpected_for_lora</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -747,7 +747,7 @@
 <span class="nd">@deprecated</span><span class="p">(</span>
     <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;load_dora_magnitudes will be deprecated in 0.6.0. Please use DoRALinear.initialize_dora_magnitude instead.&quot;</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">load_dora_magnitudes</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_dora_magnitudes</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    For DoRA magnitude we use setattr to move from meta device</span>
 <span class="sd">    &quot;&quot;&quot;</span>

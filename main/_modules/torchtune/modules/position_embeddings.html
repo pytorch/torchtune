@@ -434,13 +434,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
 
-<div class="viewcode-block" id="RotaryPositionalEmbeddings"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings">[docs]</a><span class="k">class</span> <span class="nc">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="RotaryPositionalEmbeddings"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class implements Rotary Positional Embeddings (RoPE)</span>
 <span class="sd">    proposed in https://arxiv.org/abs/2104.09864.</span>
@@ -461,7 +461,7 @@
 <span class="sd">            the rotation angles</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">,</span>
@@ -473,7 +473,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rope_init</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span>
             <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
@@ -481,7 +481,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Create position indexes `[0, 1, ..., max_seq_len - 1]`</span>
         <span class="n">seq_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
             <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">device</span>
@@ -496,7 +496,7 @@
         <span class="n">cache</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RotaryPositionalEmbeddings.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="RotaryPositionalEmbeddings.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -552,7 +552,7 @@
         <span class="k">return</span> <span class="n">x_out</span><span class="o">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">VisionRotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VisionRotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class implements two-dimensional Rotary Positional Embeddings (RoPE) for images</span>
 <span class="sd">    based on the axial frequency 2D RoPE described in https://arxiv.org/pdf/2403.13298.</span>
@@ -575,7 +575,7 @@
 <span class="sd">            False if is in the beginning of the sequence. RoPE is zeroed out for the CLS token. Default is True.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -590,7 +590,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span> <span class="o">=</span> <span class="n">append_cls_token</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rope_init</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span>
             <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
@@ -598,7 +598,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">build_rope_cache</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Create position indices for each patch in the tile</span>
         <span class="n">patches_per_tile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span><span class="o">**</span><span class="mi">2</span>
         <span class="n">patch_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
@@ -638,7 +638,7 @@
         <span class="n">cache</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">freqs</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">freqs</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

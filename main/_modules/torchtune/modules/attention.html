@@ -434,18 +434,18 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.attention_utils</span> <span class="kn">import</span> <span class="n">_MaskType</span><span class="p">,</span> <span class="n">_sdpa_or_flex_attention</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.kv_cache</span> <span class="kn">import</span> <span class="n">KVCache</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.attention_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_MaskType</span><span class="p">,</span> <span class="n">_sdpa_or_flex_attention</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.kv_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">KVCache</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="MultiHeadAttention"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiHeadAttention"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">MultiHeadAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-headed attention layer with support for grouped query</span>
 <span class="sd">    attention (GQA) introduced in https://arxiv.org/abs/2305.13245v1.</span>
 
@@ -509,7 +509,7 @@
 <span class="sd">        ValueError: if q_norm is defined without k_norm or vice versa</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -574,7 +574,7 @@
         <span class="c1"># perform normal forward passes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="o">=</span> <span class="kc">False</span>
 
-<div class="viewcode-block" id="MultiHeadAttention.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.setup_cache">[docs]</a>    <span class="k">def</span> <span class="nf">setup_cache</span><span class="p">(</span>
+<div class="viewcode-block" id="MultiHeadAttention.setup_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.setup_cache">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">setup_cache</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup key value caches for attention calculation. If called</span>
@@ -600,7 +600,7 @@
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="o">=</span> <span class="kc">True</span></div>
 
-<div class="viewcode-block" id="MultiHeadAttention.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.reset_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiHeadAttention.reset_cache"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.reset_cache">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the key value caches.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -608,7 +608,7 @@
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="MultiHeadAttention.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="MultiHeadAttention.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

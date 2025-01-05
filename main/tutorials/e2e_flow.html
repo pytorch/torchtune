@@ -758,7 +758,7 @@ To quantize the fine-tuned model after installing torchao we can run the followi
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># we also support `int8_weight_only()` and `int8_dynamic_activation_int8_weight()`, see</span>
 <span class="c1"># https://github.com/pytorch/ao/tree/main/torchao/quantization#other-available-quantization-techniques</span>
 <span class="c1"># for a full list of techniques that we support</span>
-<span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize_</span><span class="p">,</span> <span class="n">int4_weight_only</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.quant_api</span><span class="w"> </span><span class="kn">import</span> <span class="n">quantize_</span><span class="p">,</span> <span class="n">int4_weight_only</span>
 <span class="n">quantize_</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">int4_weight_only</span><span class="p">())</span>
 </pre></div>
 </div>
@@ -779,8 +779,8 @@ with interoperability with other libraries since torchtune doesn’t add yet ano
 <p><strong>Case 1: Hugging Face using base model + trained adapters</strong></p>
 <p>Here we load the base model from Hugging Face model hub. Then we load the adapters on top of it using <a class="reference external" href="https://huggingface.co/docs/peft/v0.6.1/en/package_reference/peft_model">PeftModel</a>.
 It will look for the files <code class="docutils literal notranslate"><span class="pre">adapter_model.safetensors</span></code> for the weights and <code class="docutils literal notranslate"><span class="pre">adapter_config.json</span></code> for where to insert them.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">peft</span> <span class="kn">import</span> <span class="n">PeftModel</span>
-<span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeftModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
 
 <span class="c1">#TODO: update it to your chosen epoch</span>
 <span class="n">trained_model_path</span> <span class="o">=</span> <span class="s2">&quot;/tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0&quot;</span>
@@ -797,7 +797,7 @@ It will look for the files <code class="docutils literal notranslate"><span clas
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">original_model_name</span><span class="p">)</span>
 
 <span class="c1"># Function to generate text</span>
-<span class="k">def</span> <span class="nf">generate_text</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_text</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -808,7 +808,7 @@ It will look for the files <code class="docutils literal notranslate"><span clas
 </div>
 <p><strong>Case 2: Hugging Face using merged weights</strong></p>
 <p>In this case, Hugging Face will check in <code class="docutils literal notranslate"><span class="pre">model.safetensors.index.json</span></code> for which files it should load.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
 
 <span class="c1">#TODO: update it to your chosen epoch</span>
 <span class="n">trained_model_path</span> <span class="o">=</span> <span class="s2">&quot;/tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0&quot;</span>
@@ -822,7 +822,7 @@ It will look for the files <code class="docutils literal notranslate"><span clas
 
 
 <span class="c1"># Function to generate text</span>
-<span class="k">def</span> <span class="nf">generate_text</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_text</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -843,9 +843,9 @@ adapter weights to succesfully load it.</p>
 </pre></div>
 </div>
 <p>Now we can run the following script:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">vllm</span> <span class="kn">import</span> <span class="n">LLM</span><span class="p">,</span> <span class="n">SamplingParams</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">vllm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLM</span><span class="p">,</span> <span class="n">SamplingParams</span>
 
-<span class="k">def</span> <span class="nf">print_outputs</span><span class="p">(</span><span class="n">outputs</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_outputs</span><span class="p">(</span><span class="n">outputs</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
         <span class="n">prompt</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">prompt</span>
         <span class="n">generated_text</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
@@ -878,7 +878,7 @@ adapter weights to succesfully load it.</p>
 <h3>Upload your model to the Hugging Face Hub<a class="headerlink" href="#upload-your-model-to-the-hugging-face-hub" title="Permalink to this heading">¶</a></h3>
 <p>Your new model is working great and you want to share it with the world. The easiest way to do this
 is utilizing the <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/guides/upload">huggingface_hub</a>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">huggingface_hub</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">huggingface_hub</span>
 <span class="n">api</span> <span class="o">=</span> <span class="n">huggingface_hub</span><span class="o">.</span><span class="n">HfApi</span><span class="p">()</span>
 
 <span class="c1">#TODO: update it to your chosen epoch</span>

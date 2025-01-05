@@ -506,7 +506,7 @@ arguments:</p>
 to <code class="code docutils literal notranslate"><span class="pre">False</span></code>.</p>
 <p>Once you’ve specified the <code class="code docutils literal notranslate"><span class="pre">_component_</span></code> in your config, you can create an
 instance of the specified object in your recipe’s setup like so:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">config</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 
 <span class="c1"># Access the dataset field and create the object instance</span>
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
@@ -518,7 +518,7 @@ instance of the specified object in your recipe’s setup like so:</p>
 you’ll notice that we’re missing a required positional argument, the tokenizer.
 Since this is another configurable torchtune object, let’s understand how to handle
 this by taking a look at the <a class="reference internal" href="../generated/torchtune.config.instantiate.html#torchtune.config.instantiate" title="torchtune.config.instantiate"><code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate()</span></code></a> API.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">instantiate</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">instantiate</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">,</span>
     <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -539,17 +539,17 @@ keyword arguments not specified in the config if we’d like:</p>
 </pre></div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Note the API of the tokenizer we specified - we need to pass in a path</span>
-<span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Llama2Tokenizer</span><span class="p">:</span>
 
 <span class="c1"># Note the API of the dataset we specified - we need to pass in a model tokenizer</span>
 <span class="c1"># and any optional keyword arguments</span>
-<span class="k">def</span> <span class="nf">alpaca_dataset</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">alpaca_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SFTDataset</span><span class="p">:</span>
 
-<span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 
 <span class="c1"># Since we&#39;ve already specified the path in the config, we don&#39;t need to pass</span>
 <span class="c1"># it in</span>

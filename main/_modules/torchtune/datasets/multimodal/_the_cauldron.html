@@ -434,14 +434,14 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data._messages</span> <span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets._sft</span> <span class="kn">import</span> <span class="n">SFTDataset</span><span class="p">,</span> <span class="n">SFTTransform</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets._sft</span><span class="w"> </span><span class="kn">import</span> <span class="n">SFTDataset</span><span class="p">,</span> <span class="n">SFTTransform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
 
 
-<span class="k">class</span> <span class="nc">TheCauldronToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TheCauldronToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Construct messages from a sample formatted similarly to</span>
 <span class="sd">    `The Cauldron dataset &lt;https://huggingface.co/datasets/HuggingFaceM4/the_cauldron&gt;`_.</span>
@@ -496,7 +496,7 @@
 <span class="sd">        ValueError: If ``column_map`` is provided and ``texts`` not in ``column_map``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -515,7 +515,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;texts&quot;</span><span class="p">:</span> <span class="s2">&quot;texts&quot;</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="s2">&quot;images&quot;</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="c1"># Dataset images to be prepended to the first user message</span>
         <span class="n">img_content</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">]]:</span>
@@ -551,7 +551,7 @@
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span>
 
 
-<div class="viewcode-block" id="the_cauldron_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.multimodal.the_cauldron_dataset.html#torchtune.datasets.multimodal.the_cauldron_dataset">[docs]</a><span class="k">def</span> <span class="nf">the_cauldron_dataset</span><span class="p">(</span>
+<div class="viewcode-block" id="the_cauldron_dataset"><a class="viewcode-back" href="../../../../generated/torchtune.datasets.multimodal.the_cauldron_dataset.html#torchtune.datasets.multimodal.the_cauldron_dataset">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">the_cauldron_dataset</span><span class="p">(</span>
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Transform</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">subset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;orcvqa&quot;</span><span class="p">,</span>
@@ -667,7 +667,7 @@
     <span class="k">return</span> <span class="n">ds</span></div>
 
 
-<span class="k">def</span> <span class="nf">the_cauldron_transform</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">the_cauldron_transform</span><span class="p">(</span>
     <span class="n">model_transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Transform</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">texts_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;texts&quot;</span><span class="p">,</span>
     <span class="n">images_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span>

@@ -441,7 +441,7 @@ for Messages, see the API ref for <a class="reference internal" href="../generat
 <section id="creating-messages">
 <span id="id1"></span><h2>Creating Messages<a class="headerlink" href="#creating-messages" title="Permalink to this heading">¶</a></h2>
 <p>Messages can be created via the standard class constructor or directly from a dictionary.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
@@ -469,8 +469,8 @@ for Messages, see the API ref for <a class="reference internal" href="../generat
 <h3>Images in Messages<a class="headerlink" href="#images-in-messages" title="Permalink to this heading">¶</a></h3>
 <p>For multimodal datasets, you need to add the image as a <a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image" title="(in Pillow (PIL Fork) v11.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a> to the corresponding <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>.
 To add it to the beginning of the message, simply prepend it to the content list.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PIL</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">PIL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">img_msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
@@ -489,8 +489,8 @@ To add it to the beginning of the message, simply prepend it to the content list
 appropriately.</p>
 <p>In many cases, you will have an image path instead of a raw <a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image" title="(in Pillow (PIL Fork) v11.1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code></a>. You can use the <a class="reference internal" href="../generated/torchtune.data.load_image.html#torchtune.data.load_image" title="torchtune.data.load_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_image()</span></code></a>
 utility for both local paths and remote paths.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PIL</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">load_image</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">PIL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">load_image</span>
 
 <span class="n">image_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/image.jpg&quot;</span>
 <span class="n">img_msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
@@ -509,8 +509,8 @@ utility for both local paths and remote paths.</p>
 <p>If your dataset contain image tags, or placeholder text to indicate where in the text the image should be inserted,
 you can use the <a class="reference internal" href="../generated/torchtune.data.format_content_with_images.html#torchtune.data.format_content_with_images" title="torchtune.data.format_content_with_images"><code class="xref py py-func docutils literal notranslate"><span class="pre">format_content_with_images()</span></code></a> to split the text into the correct content list
 that you can pass into the content field of Message.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PIL</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">format_content_with_images</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">PIL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_content_with_images</span>
 
 <span class="n">content</span> <span class="o">=</span> <span class="n">format_content_with_images</span><span class="p">(</span>
     <span class="s2">&quot;&lt;|image|&gt;hello &lt;|image|&gt;world&quot;</span><span class="p">,</span>
@@ -531,7 +531,7 @@ that you can pass into the content field of Message.</p>
 <h3>Message transforms<a class="headerlink" href="#message-transforms" title="Permalink to this heading">¶</a></h3>
 <p>Message transforms are convenient utilities to format raw data into a list of torchtune <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>
 objects.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">InputOutputToMessages</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">InputOutputToMessages</span>
 
 <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;What is your name?&quot;</span><span class="p">,</span>
@@ -553,8 +553,8 @@ objects.</p>
 <p>Prompt templates provide a way to format messages into a structured text template. You can simply call any class that inherits
 from <a class="reference internal" href="../generated/torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface" title="torchtune.data.PromptTemplateInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">PromptTemplateInterface</span></code></a> on a list of Messages and it will add the appropriate text to the content
 list.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">MistralChatTemplate</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">MistralChatTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
@@ -574,8 +574,8 @@ list.</p>
 </section>
 <section id="accessing-text-content-in-messages">
 <h2>Accessing text content in messages<a class="headerlink" href="#accessing-text-content-in-messages" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">MistralChatTemplate</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">MistralChatTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
@@ -593,8 +593,8 @@ list.</p>
 </section>
 <section id="accessing-images-in-messages">
 <h2>Accessing images in messages<a class="headerlink" href="#accessing-images-in-messages" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">import</span> <span class="nn">PIL</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">PIL</span>
 
 <span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
@@ -617,8 +617,8 @@ list.</p>
 <h2>Tokenizing messages<a class="headerlink" href="#tokenizing-messages" title="Permalink to this heading">¶</a></h2>
 <p>All model tokenizers have a <code class="docutils literal notranslate"><span class="pre">tokenize_messsages</span></code> method that converts a list of
 <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> objects into token IDs and a loss mask.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.mistral</span> <span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span>

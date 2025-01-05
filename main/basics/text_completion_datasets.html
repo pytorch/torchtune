@@ -453,8 +453,8 @@ Text completion datasets are simply expected to contain a column, “text”, wh
 <span class="o">]</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">text_completion_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">text_completion_dataset</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3.1-8B/original/tokenizer.model&quot;</span><span class="p">,</span>
@@ -507,8 +507,8 @@ After we were clear of the river Oceanus, and had got out into the open sea, we 
 Then, when the child of morning, rosy-fingered Dawn, appeared, I sent some men to Circe&#39;s house to fetch the body of Elpenor. We cut firewood from a wood where the headland jutted out into the sea, and after we had wept over him and lamented him we performed his funeral rites. When his body and armour had been burned to ashes, we raised a cairn, set a stone over it, and at the top of the cairn we fixed the oar that he had been used to row with.
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">text_completion_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">text_completion_dataset</span>
 
 <span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3.1-8B/original/tokenizer.model&quot;</span><span class="p">,</span>
@@ -543,8 +543,8 @@ Then, when the child of morning, rosy-fingered Dawn, appeared, I sent some men t
 <section id="loading-text-completion-datasets-from-hugging-face">
 <h2>Loading text completion datasets from Hugging Face<a class="headerlink" href="#loading-text-completion-datasets-from-hugging-face" title="Permalink to this heading">¶</a></h2>
 <p>To load in a text completion dataset from Hugging Face you’ll need to pass in the dataset repo name to <code class="docutils literal notranslate"><span class="pre">source</span></code>. For most HF datasets, you will also need to specify the <code class="docutils literal notranslate"><span class="pre">split</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.gemma</span> <span class="kn">import</span> <span class="n">gemma_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">text_completion_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.gemma</span><span class="w"> </span><span class="kn">import</span> <span class="n">gemma_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">text_completion_dataset</span>
 
 <span class="n">g_tokenizer</span> <span class="o">=</span> <span class="n">gemma_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/gemma-7b/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">text_completion_dataset</span><span class="p">(</span>

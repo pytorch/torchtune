@@ -435,25 +435,25 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="kn">from</span> <span class="nn">torch.distributed._composable.fsdp</span> <span class="kn">import</span> <span class="n">CPUOffloadPolicy</span><span class="p">,</span> <span class="n">fully_shard</span>
-<span class="kn">from</span> <span class="nn">torch.distributed._tensor</span> <span class="kn">import</span> <span class="n">distribute_tensor</span><span class="p">,</span> <span class="n">DTensor</span>
-<span class="kn">from</span> <span class="nn">torch.distributed._tensor.placement_types</span> <span class="kn">import</span> <span class="n">DTensorSpec</span><span class="p">,</span> <span class="n">TensorMeta</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.checkpoint.state_dict</span> <span class="kn">import</span> <span class="n">_init_optim_state</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.fsdp</span> <span class="kn">import</span> <span class="n">ShardingStrategy</span>
-<span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Optimizer</span>
-<span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_device</span><span class="p">,</span> <span class="n">get_logger</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed._composable.fsdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">CPUOffloadPolicy</span><span class="p">,</span> <span class="n">fully_shard</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed._tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">distribute_tensor</span><span class="p">,</span> <span class="n">DTensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed._tensor.placement_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">DTensorSpec</span><span class="p">,</span> <span class="n">TensorMeta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint.state_dict</span><span class="w"> </span><span class="kn">import</span> <span class="n">_init_optim_state</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.fsdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShardingStrategy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optimizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes.nf4tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_device</span><span class="p">,</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
@@ -461,12 +461,12 @@
 <span class="n">_valid_distributed_single_node_nnodes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;1:1&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">]</span>
 
 
-<span class="k">def</span> <span class="nf">_get_sharding_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ShardingStrategy</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_sharding_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ShardingStrategy</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper function to convert sharding strategy strings to ShardingStrategy enum.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ShardingStrategy</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.is_distributed.html#torchtune.training.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.is_distributed.html#torchtune.training.is_distributed">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if all environment variables required to initialize torch.distributed are set</span>
 <span class="sd">    and distributed is properly installed. This indicates a distributed run.</span>
 <span class="sd">    https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization</span>
@@ -489,7 +489,7 @@
     <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">port</span> <span class="ow">and</span> <span class="n">addr</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">rank</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">avlb</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_broadcast_tensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">src</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_broadcast_tensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">src</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Broadcasts a tensor from a source to all other processes.</span>
 
 <span class="sd">    Args:</span>
@@ -509,7 +509,7 @@
         <span class="k">return</span> <span class="n">tensor</span>
 
 
-<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed">[docs]</a><span class="k">def</span> <span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize process group required for ``torch.distributed``.</span>
 
 <span class="sd">    Args:</span>
@@ -530,7 +530,7 @@
         <span class="k">return</span> <span class="kc">False</span></div>
 
 
-<span class="k">def</span> <span class="nf">set_torch_num_threads</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_torch_num_threads</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sets the number of threads used by torch to utilize all physical CPU</span>
 <span class="sd">    cores for intra-op parallelism. Currently, this function sets num_threads</span>
@@ -550,7 +550,7 @@
     <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. &quot;</span>
     <span class="s2">&quot;Please use `torchtune.utils.get_world_size_and_rank` instead.&quot;</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that gets the current world size (aka total number</span>
 <span class="sd">    of ranks) and rank number of the current process in the default process group.</span>
 
@@ -563,7 +563,7 @@
         <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
 
 
-<span class="k">def</span> <span class="nf">validate_no_params_on_meta_device</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_no_params_on_meta_device</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Utility to validate that model has no params or buffers on meta device.</span>
 <span class="sd">    If a meta param or buffer is found, an error indicating the param name will</span>
@@ -580,7 +580,7 @@
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected param or buffer </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> on meta device.&quot;</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">load_from_full_model_state_dict</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_from_full_model_state_dict</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
     <span class="n">full_sd</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
@@ -656,7 +656,7 @@
     <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sharded_sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_gather_nf4_tensor</span><span class="p">(</span><span class="n">sharded_param</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_gather_nf4_tensor</span><span class="p">(</span><span class="n">sharded_param</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manually gather NF4Tensor parameter since it does not support all_gather</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -680,7 +680,7 @@
     <span class="k">return</span> <span class="n">full_param</span>
 
 
-<div class="viewcode-block" id="gather_cpu_state_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.gather_cpu_state_dict.html#torchtune.training.gather_cpu_state_dict">[docs]</a><span class="k">def</span> <span class="nf">gather_cpu_state_dict</span><span class="p">(</span>
+<div class="viewcode-block" id="gather_cpu_state_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.gather_cpu_state_dict.html#torchtune.training.gather_cpu_state_dict">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">gather_cpu_state_dict</span><span class="p">(</span>
     <span class="n">sharded_sd</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">],</span>  <span class="c1"># noqa</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -717,7 +717,7 @@
     <span class="k">return</span> <span class="n">cpu_state_dict</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_full_optimizer_state_dict</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_full_optimizer_state_dict</span><span class="p">(</span>
     <span class="n">opt</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">,</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -766,7 +766,7 @@
         <span class="k">return</span> <span class="p">{}</span>
 
 
-<span class="k">def</span> <span class="nf">load_from_full_optimizer_state_dict</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_from_full_optimizer_state_dict</span><span class="p">(</span>
     <span class="n">opt</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">,</span>
     <span class="n">full_sd</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
@@ -813,7 +813,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">get_shard_conditions</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_shard_conditions</span><span class="p">(</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">names_to_match</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -862,7 +862,7 @@
     <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="k">def</span> <span class="nf">shard_model</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">shard_model</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
     <span class="n">shard_conditions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]],</span>
     <span class="o">*</span><span class="p">,</span>

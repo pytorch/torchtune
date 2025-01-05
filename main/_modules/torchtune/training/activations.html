@@ -434,19 +434,19 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.algorithms._checkpoint.checkpoint_wrapper</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.algorithms._checkpoint.checkpoint_wrapper</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">checkpoint_wrapper</span> <span class="k">as</span> <span class="n">ptd_checkpoint_wrapper</span><span class="p">,</span>
     <span class="n">CheckpointImpl</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torch.utils.checkpoint</span> <span class="kn">import</span> <span class="n">checkpoint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="n">checkpoint</span>
 
 
 <span class="c1"># Uses PTD FSDP AC wrapper</span>
 <span class="c1"># currently selective per layer checkpointing are supported</span>
-<span class="k">def</span> <span class="nf">checkpoint_wrapper</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">ac_mode</span><span class="p">,</span> <span class="n">ac_style</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">checkpoint_wrapper</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">ac_mode</span><span class="p">,</span> <span class="n">ac_style</span><span class="p">):</span>
 
     <span class="k">if</span> <span class="n">ac_mode</span> <span class="o">==</span> <span class="s2">&quot;full&quot;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ptd_checkpoint_wrapper</span><span class="p">(</span>
@@ -493,7 +493,7 @@
         <span class="p">)</span>
 
 
-<div class="viewcode-block" id="apply_selective_activation_checkpointing"><a class="viewcode-back" href="../../../generated/torchtune.training.apply_selective_activation_checkpointing.html#torchtune.training.apply_selective_activation_checkpointing">[docs]</a><span class="k">def</span> <span class="nf">apply_selective_activation_checkpointing</span><span class="p">(</span>
+<div class="viewcode-block" id="apply_selective_activation_checkpointing"><a class="viewcode-back" href="../../../generated/torchtune.training.apply_selective_activation_checkpointing.html#torchtune.training.apply_selective_activation_checkpointing">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">apply_selective_activation_checkpointing</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">ac_mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">ac_option</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>

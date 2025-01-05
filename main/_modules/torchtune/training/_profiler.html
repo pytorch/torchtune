@@ -435,21 +435,21 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 
-<span class="kn">import</span> <span class="nn">datetime</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.distributed</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span>
 
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
-<span class="kn">from</span> <span class="nn">torch._C._profiler</span> <span class="kn">import</span> <span class="n">_ExperimentalConfig</span>
-<span class="kn">from</span> <span class="nn">torch.profiler</span> <span class="kn">import</span> <span class="n">tensorboard_trace_handler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch._C._profiler</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ExperimentalConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.profiler</span><span class="w"> </span><span class="kn">import</span> <span class="n">tensorboard_trace_handler</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;INFO&quot;</span><span class="p">)</span>
 
@@ -476,13 +476,13 @@
 <span class="n">DEFAULT_PROFILE_DIR</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;profiler_output&quot;</span>
 
 
-<span class="k">def</span> <span class="nf">_warn</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_warn</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">trace_handler</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">trace_handler</span><span class="p">(</span>
     <span class="n">prof</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">profiler</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;self_cuda_time_total&quot;</span><span class="p">,</span>
@@ -573,7 +573,7 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
 
 
-<span class="k">class</span> <span class="nc">DummyProfiler</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DummyProfiler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Drop-in replacement for torch.profiler.profile that functions as a nullcontext / object</span>
 <span class="sd">    with no-op methods for ``start``, ``stop``, and ``step``.</span>
@@ -595,23 +595,23 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
 
-<div class="viewcode-block" id="setup_torch_profiler"><a class="viewcode-back" href="../../../generated/torchtune.training.setup_torch_profiler.html#torchtune.training.setup_torch_profiler">[docs]</a><span class="k">def</span> <span class="nf">setup_torch_profiler</span><span class="p">(</span>
+<div class="viewcode-block" id="setup_torch_profiler"><a class="viewcode-back" href="../../../generated/torchtune.training.setup_torch_profiler.html#torchtune.training.setup_torch_profiler">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_torch_profiler</span><span class="p">(</span>
     <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">cuda</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>

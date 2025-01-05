@@ -434,13 +434,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
 
 
-<div class="viewcode-block" id="ForwardKLLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss">[docs]</a><span class="k">class</span> <span class="nc">ForwardKLLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="ForwardKLLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ForwardKLLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The Kullback-Leibler divergence loss for valid indexes.</span>
 <span class="sd">    Implementation of https://github.com/jongwooko/distillm/blob/17c0f98bc263b1861a02d5df578c84aea652ee65/distillm/losses.py</span>
@@ -451,11 +451,11 @@
 <span class="sd">            Default: -100.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
 
-<div class="viewcode-block" id="ForwardKLLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="ForwardKLLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">student_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -489,7 +489,7 @@
         <span class="k">return</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="ForwardKLWithChunkedOutputLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss">[docs]</a><span class="k">class</span> <span class="nc">ForwardKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="ForwardKLWithChunkedOutputLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ForwardKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Forward KL with chunked outputs that saves memory by only upcasting one chunk at a time.</span>
 
@@ -508,13 +508,13 @@
 <span class="sd">            Default: -100</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fkl_loss</span> <span class="o">=</span> <span class="n">ForwardKLLoss</span><span class="p">(</span><span class="n">ignore_index</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ForwardKLWithChunkedOutputLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="ForwardKLWithChunkedOutputLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">student_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>

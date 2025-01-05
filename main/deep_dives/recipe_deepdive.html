@@ -563,7 +563,7 @@ from checkpoint (if applicable)</p></li>
 <p>The recipe class carries the core logic for training a model. Each class implements a relevant
 interface and exposes a set of APIs. For fine-tuning, the structure of this class is as follows:</p>
 <p>Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">get_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
@@ -571,7 +571,7 @@ interface and exposes a set of APIs. For fine-tuning, the structure of this clas
 </pre></div>
 </div>
 <p>Load checkpoint, update recipe state from checkpoint, initialize components and load state dicts from checkpoint</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
 
     <span class="n">ckpt_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">checkpointer</span><span class="p">)</span>
 
@@ -587,7 +587,7 @@ interface and exposes a set of APIs. For fine-tuning, the structure of this clas
 </pre></div>
 </div>
 <p>Run forward and backward across all epochs and save checkpoint at end of each epoch</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">curr_epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs_run</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_epochs</span><span class="p">):</span>
@@ -614,7 +614,7 @@ interface and exposes a set of APIs. For fine-tuning, the structure of this clas
 </pre></div>
 </div>
 <p>Cleanup recipe state</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">metric_loggers</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="o">...</span>
@@ -631,7 +631,7 @@ You can learn all about configs in our <a class="reference internal" href="confi
 your recipe to enable running from the command-line with <a class="reference internal" href="../tune_cli.html#cli-label"><span class="std std-ref">tune</span></a> with config
 and CLI override parsing.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@config</span><span class="o">.</span><span class="n">parse</span>
-<span class="k">def</span> <span class="nf">recipe_main</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">recipe_main</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">recipe</span> <span class="o">=</span> <span class="n">FullFinetuneRecipe</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
     <span class="n">recipe</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
     <span class="n">recipe</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>

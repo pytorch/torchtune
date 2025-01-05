@@ -434,17 +434,17 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">PromptTemplate</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.models.clip</span> <span class="kn">import</span> <span class="n">CLIPImageTransform</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">ModelTokenizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.transforms</span> <span class="kn">import</span> <span class="n">Transform</span><span class="p">,</span> <span class="n">VisionCrossAttentionMask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.clip</span><span class="w"> </span><span class="kn">import</span> <span class="n">CLIPImageTransform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span><span class="p">,</span> <span class="n">VisionCrossAttentionMask</span>
 
 
-<div class="viewcode-block" id="Llama3VisionTransform"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform">[docs]</a><span class="k">class</span> <span class="nc">Llama3VisionTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="Llama3VisionTransform"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Llama3VisionTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This transform combines the transforms for the different modalities of Llama 3.2 Vision. It</span>
 <span class="sd">    is made up of the following transforms:</span>
@@ -491,7 +491,7 @@
 <span class="sd">        torch.Size([4, 3, 224, 224])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -533,14 +533,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">base_vocab_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">base_vocab_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">base_vocab_size</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">vocab_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vocab_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span>
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -548,7 +548,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="n">add_bos</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Llama3VisionTransform.decode"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span>
+<div class="viewcode-block" id="Llama3VisionTransform.decode"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">truncate_at_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -573,7 +573,7 @@
             <span class="n">skip_special_tokens</span><span class="o">=</span><span class="n">skip_special_tokens</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Llama3VisionTransform.tokenize_message"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_message">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_message</span><span class="p">(</span>
+<div class="viewcode-block" id="Llama3VisionTransform.tokenize_message"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_message">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_message</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span>
         <span class="n">tokenize_header</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -596,7 +596,7 @@
             <span class="n">tokenize_end</span><span class="o">=</span><span class="n">tokenize_end</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Llama3VisionTransform.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
+<div class="viewcode-block" id="Llama3VisionTransform.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_messages">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -616,7 +616,7 @@
             <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

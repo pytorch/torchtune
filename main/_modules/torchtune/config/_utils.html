@@ -434,18 +434,18 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
-<span class="kn">from</span> <span class="nn">importlib</span> <span class="kn">import</span> <span class="n">import_module</span>
-<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">ModuleType</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">argparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">Namespace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_module</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModuleType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.config._errors</span> <span class="kn">import</span> <span class="n">InstantiationError</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">log_rank_zero</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">InstantiationError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">log_rank_zero</span>
 
 
-<div class="viewcode-block" id="log_config"><a class="viewcode-back" href="../../../generated/torchtune.config.log_config.html#torchtune.config.log_config">[docs]</a><span class="k">def</span> <span class="nf">log_config</span><span class="p">(</span><span class="n">recipe_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="log_config"><a class="viewcode-back" href="../../../generated/torchtune.config.log_config.html#torchtune.config.log_config">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="n">recipe_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Logs the resolved config (merged YAML file and CLI overrides) to rank zero.</span>
 
@@ -460,11 +460,11 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_has_component</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">DictConfig</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_has_component</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">DictConfig</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">OmegaConf</span><span class="o">.</span><span class="n">is_dict</span><span class="p">(</span><span class="n">node</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">dict</span><span class="p">))</span> <span class="ow">and</span> <span class="s2">&quot;_component_&quot;</span> <span class="ow">in</span> <span class="n">node</span>
 
 
-<span class="k">def</span> <span class="nf">_get_component_from_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_component_from_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return an object by name or dotted path, importing as necessary.</span>
 <span class="sd">    The base functionality relies on ``getattr()`` and handles all</span>
@@ -503,7 +503,7 @@
         <span class="k">raise</span> <span class="n">InstantiationError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Error loading &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;:</span><span class="se">\n</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="n">exc_import</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Are you sure that module &#39;</span><span class="si">{</span><span class="n">part0</span><span class="si">}</span><span class="s2">&#39; is installed?&quot;</span>
-        <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc_import</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc_import</span>
     <span class="c1"># Subsequent components can be checked via getattr() on first module</span>
     <span class="c1"># It can either be an attribute that we can return or a submodule that we</span>
     <span class="c1"># can import and continue searching</span>
@@ -524,22 +524,22 @@
                     <span class="k">raise</span> <span class="n">InstantiationError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;Error loading &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;:</span><span class="se">\n</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="n">exc_import</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                         <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Are you sure that &#39;</span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">&#39; is importable from module &#39;</span><span class="si">{</span><span class="n">parent_dotpath</span><span class="si">}</span><span class="s2">&#39;?&quot;</span>
-                    <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc_import</span>
+                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc_import</span>
                 <span class="c1"># Any other error trying to import module can be raised as</span>
                 <span class="c1"># InstantiationError</span>
                 <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc_import</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="n">InstantiationError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;Error loading &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;:</span><span class="se">\n</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="n">exc_import</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc_import</span>
+                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc_import</span>
             <span class="c1"># If the component is not an attribute nor a module, it doesn&#39;t exist</span>
             <span class="k">raise</span> <span class="n">InstantiationError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Error loading &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;:</span><span class="se">\n</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="n">exc_attr</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Are you sure that &#39;</span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">&#39; is an attribute of &#39;</span><span class="si">{</span><span class="n">parent_dotpath</span><span class="si">}</span><span class="s2">&#39;?&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc_attr</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc_attr</span>
     <span class="k">return</span> <span class="n">obj</span>
 
 
-<span class="k">def</span> <span class="nf">_merge_yaml_and_cli_args</span><span class="p">(</span><span class="n">yaml_args</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">cli_args</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">DictConfig</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_merge_yaml_and_cli_args</span><span class="p">(</span><span class="n">yaml_args</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span> <span class="n">cli_args</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">DictConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Takes the direct output of argparse&#39;s parse_known_args which returns known</span>
 <span class="sd">    args as a Namespace and unknown args as a dotlist (in our case, yaml args and</span>
@@ -590,7 +590,7 @@
             <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Could not find key </span><span class="si">{</span><span class="n">dotpath</span><span class="si">}</span><span class="s2"> in yaml config to remove&quot;</span>
-                <span class="p">)</span> <span class="kn">from</span> <span class="kc">None</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
             <span class="k">continue</span>
         <span class="c1"># Get other overrides that should be specified as key=value</span>
         <span class="k">try</span><span class="p">:</span>
@@ -598,7 +598,7 @@
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Command-line overrides must be in the form of key=value, got </span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="kc">None</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
         <span class="c1"># If a cli arg overrides a yaml arg with a _component_ field, update the</span>
         <span class="c1"># key string to reflect this</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">yaml_kwargs</span> <span class="ow">and</span> <span class="n">_has_component</span><span class="p">(</span><span class="n">yaml_kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
@@ -623,7 +623,7 @@
     <span class="k">return</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">yaml_conf</span><span class="p">,</span> <span class="n">cli_conf</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_remove_key_by_dotpath</span><span class="p">(</span><span class="n">nested_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">dotpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_remove_key_by_dotpath</span><span class="p">(</span><span class="n">nested_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">dotpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Removes a key specified by dotpath from a nested dict. Errors should handled by</span>
 <span class="sd">    the calling function.</span>
@@ -634,14 +634,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">dotpath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">delete_non_component</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_non_component</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">_has_component</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Removing components from CLI is not supported: ~</span><span class="si">{</span><span class="n">dotpath</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">recurse_and_delete</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">path</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">recurse_and_delete</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">path</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">delete_non_component</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>

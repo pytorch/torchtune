@@ -434,20 +434,20 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">shutil</span>
-<span class="kn">import</span> <span class="nn">string</span>
-<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
-<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">string</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">safetensors</span> <span class="kn">import</span> <span class="n">safe_open</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_open</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
@@ -503,7 +503,7 @@
 <span class="n">RNG_KEY</span> <span class="o">=</span> <span class="s2">&quot;rng_state&quot;</span>
 
 
-<div class="viewcode-block" id="ModelType"><a class="viewcode-back" href="../../../../generated/torchtune.training.ModelType.html#torchtune.training.ModelType">[docs]</a><span class="k">class</span> <span class="nc">ModelType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelType"><a class="viewcode-back" href="../../../../generated/torchtune.training.ModelType.html#torchtune.training.ModelType">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ModelType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;ModelType is used by the checkpointer to distinguish between different model architectures.</span>
 
 <span class="sd">    If you are adding a new model that follows a different format than those in the repo already,</span>
@@ -545,7 +545,7 @@
     <span class="n">CLIP_TEXT</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;clip_text&quot;</span></div>
 
 
-<div class="viewcode-block" id="FormattedCheckpointFiles"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles">[docs]</a><span class="k">class</span> <span class="nc">FormattedCheckpointFiles</span><span class="p">:</span>
+<div class="viewcode-block" id="FormattedCheckpointFiles"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FormattedCheckpointFiles</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class gives a more concise way to represent a list of filenames of the format ``file_{i}_of_{n_files}.pth``.</span>
 
@@ -556,7 +556,7 @@
 <span class="sd">            possibly with leading zeroes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">filename_format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">max_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -566,7 +566,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_filename_format</span><span class="p">()</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FormattedCheckpointFiles&quot;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FormattedCheckpointFiles&quot;</span><span class="p">:</span>
         <span class="k">if</span> <span class="s2">&quot;filename_format&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">or</span> <span class="s2">&quot;max_filename&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Must pass &#39;filename_format&#39; and &#39;max_filename&#39; keys to generate checkpoint filenames&quot;</span>
@@ -580,7 +580,7 @@
             <span class="n">max_filename</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;max_filename&quot;</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_validate_filename_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_filename_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">n_format_placeholders</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">Formatter</span><span class="p">()</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span><span class="p">)</span>
@@ -591,7 +591,7 @@
                 <span class="s2">&quot;Filename format string must have exactly two placeholders, e.g. &#39;file_</span><span class="si">{i}</span><span class="s2">_of_</span><span class="si">{n_files}</span><span class="s2">.pth&#39;&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="FormattedCheckpointFiles.build_checkpoint_filenames"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles.build_checkpoint_filenames">[docs]</a>    <span class="k">def</span> <span class="nf">build_checkpoint_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="FormattedCheckpointFiles.build_checkpoint_filenames"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles.build_checkpoint_filenames">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">build_checkpoint_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Builds a list of checkpoint filenames from the filename format and max filename.</span>
 
@@ -614,7 +614,7 @@
         <span class="p">]</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Utility to recover and validate the path for a given file within a given directory.</span>
 
@@ -640,7 +640,7 @@
     <span class="k">return</span> <span class="n">file_path</span>
 
 
-<span class="k">def</span> <span class="nf">safe_torch_load</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">safe_torch_load</span><span class="p">(</span>
     <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -679,11 +679,11 @@
                 <span class="n">weights_only</span><span class="o">=</span><span class="n">weights_only</span><span class="p">,</span>
             <span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to load checkpoint from </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">. &quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to load checkpoint from </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">. &quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
     <span class="k">return</span> <span class="n">state_dict</span>
 
 
-<div class="viewcode-block" id="update_state_dict_for_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.training.update_state_dict_for_classifier.html#torchtune.training.update_state_dict_for_classifier">[docs]</a><span class="k">def</span> <span class="nf">update_state_dict_for_classifier</span><span class="p">(</span>
+<div class="viewcode-block" id="update_state_dict_for_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.training.update_state_dict_for_classifier.html#torchtune.training.update_state_dict_for_classifier">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">update_state_dict_for_classifier</span><span class="p">(</span>
     <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="n">model_named_parameters</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span>
     <span class="n">force_override</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -734,7 +734,7 @@
 
 
 <span class="c1"># TODO: add test</span>
-<span class="k">def</span> <span class="nf">get_largest_iter_folder</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_largest_iter_folder</span><span class="p">(</span>
     <span class="nb">dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 
@@ -758,7 +758,7 @@
 
 
 <span class="c1"># TODO: instead of copying, make it a symlink when we start using HF cache</span>
-<span class="k">def</span> <span class="nf">copy_files</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">copy_files</span><span class="p">(</span>
     <span class="n">input_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
@@ -827,7 +827,7 @@
     <span class="k">return</span>
 
 
-<span class="k">def</span> <span class="nf">get_recipe_checkpoint_path</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_recipe_checkpoint_path</span><span class="p">(</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -865,7 +865,7 @@
     <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">get_adapter_checkpoint_path</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_adapter_checkpoint_path</span><span class="p">(</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -905,7 +905,7 @@
     <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">adapter_checkpoint_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">adapter_checkpoint_path</span> <span class="k">else</span> <span class="kc">None</span>
 
 
-<span class="k">def</span> <span class="nf">get_model_checkpoint_path</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_model_checkpoint_path</span><span class="p">(</span>
     <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
@@ -949,7 +949,7 @@
 <span class="sd">         PosixPath(&#39;/path/to/output/{largest_epoch}/model-00002-of-00002.safetensors&#39;)]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">validate_checkpoint_files</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_checkpoint_files</span><span class="p">(</span>
         <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
         <span class="n">input_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span>
         <span class="n">missing_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1004,7 +1004,7 @@
     <span class="k">return</span> <span class="n">checkpoint_paths</span>
 
 
-<span class="k">def</span> <span class="nf">check_outdir_not_in_ckptdir</span><span class="p">(</span><span class="n">ckpt_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_outdir_not_in_ckptdir</span><span class="p">(</span><span class="n">ckpt_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.</span>
 <span class="sd">    This is necessary to avoid making copies of copies when geting config files from ckpt_dir.</span>

@@ -501,8 +501,8 @@ Between these two steps, training can proceed exactly as before.</p>
 <section id="applying-qat-to-llama3-models">
 <span id="apply-qat-label"></span><h2>Applying QAT to Llama3 models<a class="headerlink" href="#applying-qat-to-llama3-models" title="Permalink to this heading">¶</a></h2>
 <p>We can easily apply the above QAT transformations to Llama3 in torchtune for fine-tuning:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.training.quantization</span> <span class="kn">import</span> <span class="n">Int8DynActInt4WeightQATQuantizer</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_8b</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.training.quantization</span><span class="w"> </span><span class="kn">import</span> <span class="n">Int8DynActInt4WeightQATQuantizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_8b</span>
 
 <span class="n">model</span> <span class="o">=</span> <span class="n">llama3_8b</span><span class="p">()</span>
 

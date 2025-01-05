@@ -463,8 +463,8 @@ in the text, <code class="docutils literal notranslate"><span class="pre">&quot;
 <span class="p">]</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">llama3_2_vision_transform</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets.multimodal</span> <span class="kn">import</span> <span class="n">multimodal_chat_dataset</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_2_vision_transform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets.multimodal</span><span class="w"> </span><span class="kn">import</span> <span class="n">multimodal_chat_dataset</span>
 
 <span class="n">model_transform</span> <span class="o">=</span> <span class="n">Llama3VisionTransform</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
@@ -530,8 +530,8 @@ and the user-assistant conversations are in another column.</p>
 <p>You simply need to pass in the dataset repo name to <code class="docutils literal notranslate"><span class="pre">source</span></code>, which is then passed into Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.
 For most datasets, you will also need to specify the <code class="docutils literal notranslate"><span class="pre">split</span></code> and/or the subset via <code class="docutils literal notranslate"><span class="pre">name</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span> <span class="nn">torchtune.models.llama3_2_vision</span> <span class="kn">import</span> <span class="n">llama3_2_vision_transform</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets.multimodal</span> <span class="kn">import</span> <span class="n">multimodal_chat_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_2_vision_transform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets.multimodal</span><span class="w"> </span><span class="kn">import</span> <span class="n">multimodal_chat_dataset</span>
 
 <span class="n">model_transform</span> <span class="o">=</span> <span class="n">llama3_2_vision_transform</span><span class="p">(</span>
     <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
@@ -578,8 +578,8 @@ for more details on loading local or remote files. See <a class="reference inter
 <p>In many cases, your dataset will contain paths to the images instead of the raw images themselves. <code class="xref py py-func docutils literal notranslate"><span class="pre">multimodal_chat_dataset()</span></code>
 will automatically handle this for you, but if you are writing a custom message transform for a custom multimodal dataset
 (see <a class="reference internal" href="message_transforms.html#custom-message-transform"><span class="std std-ref">Custom message transforms</span></a>), you can use the <a class="reference internal" href="../generated/torchtune.data.load_image.html#torchtune.data.load_image" title="torchtune.data.load_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_image()</span></code></a> utility directly.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">load_image</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_image</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="p">[</span>
@@ -602,7 +602,7 @@ will automatically handle this for you, but if you are writing a custom message 
 </div>
 <p>Then, you can add the PIL image directly to the content of the related message. Only PIL images are supported as image content
 in <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>, not image paths or urls.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">user_message</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;conversations&quot;</span><span class="p">]:</span>
@@ -628,8 +628,8 @@ to prepend the full path where your images are downloaded locally.</p>
 <section id="interleaving-images-in-text">
 <h2>Interleaving images in text<a class="headerlink" href="#interleaving-images-in-text" title="Permalink to this heading">¶</a></h2>
 <p>torchtune supports adding multiple images in any locations in the text, as long as your model supports it.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PIL</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">PIL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 
 <span class="n">image_dog</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;RGB&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="n">image_cat</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;RGB&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
@@ -658,8 +658,8 @@ to prepend the full path where your images are downloaded locally.</p>
 As an example, see <cite>ShareGPT4V &lt;https://huggingface.co/datasets/Lin-Chen/ShareGPT4V&gt;</cite>, which uses <code class="docutils literal notranslate"><span class="pre">&quot;&lt;image&gt;&quot;</span></code>.
 You can easily create the interleaved message content similar to above with the utility <a class="reference internal" href="../generated/torchtune.data.format_content_with_images.html#torchtune.data.format_content_with_images" title="torchtune.data.format_content_with_images"><code class="xref py py-func docutils literal notranslate"><span class="pre">format_content_with_images()</span></code></a>,
 which replaces the image placeholder tags with the passed in images.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PIL</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">format_content_with_images</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">PIL</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">format_content_with_images</span>
 
 <span class="n">image_dog</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;RGB&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="n">image_cat</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;RGB&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
