@@ -33,6 +33,10 @@ _FROM_HF = {
     "model.layers.{}.self_attn.k_proj.weight": "layers.{}.attn.k_proj.weight",
     "model.layers.{}.self_attn.v_proj.weight": "layers.{}.attn.v_proj.weight",
     "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attn.output_proj.weight",
+    "model.layers.{}.self_attn.q_proj.bias": "layers.{}.attn.q_proj.bias",
+    "model.layers.{}.self_attn.k_proj.bias": "layers.{}.attn.k_proj.bias",
+    "model.layers.{}.self_attn.v_proj.bias": "layers.{}.attn.v_proj.bias",
+    "model.layers.{}.self_attn.o_proj.bias": "layers.{}.attn.output_proj.bias",
     "model.layers.{}.self_attn.rotary_emb.inv_freq": None,
     "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
     "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
@@ -140,7 +144,13 @@ def hf_to_tune(
     if head_dim is None:
         head_dim = dim // num_heads
 
-    def _permute(t, n_heads):
+    def _permute(t, n_heads, bias):
+        if bias:
+            return (
+                t.view(n_heads, 2, head_dim // 2)
+                .transpose(1, 2)
+                .reshape((head_dim * n_heads),)
+            )
         return (
             t.view(n_heads, 2, head_dim // 2, dim)
             .transpose(1, 2)
@@ -151,9 +161,9 @@ def hf_to_tune(
         if "rotary_emb.inv_freq" not in key:  # Skip loading the position embeddings
             new_key = get_mapped_key(key, _FROM_HF)
             if "q_proj" in key:
-                value = _permute(value, num_heads)
+                value = _permute(value, num_heads, "bias" in key)
             elif "k_proj" in key:
-                value = _permute(value, num_kv_heads)
+                value = _permute(value, num_kv_heads, "bias" in key)
 
             converted_state_dict[new_key] = value
     return converted_state_dict
@@ -187,7 +197,13 @@ def tune_to_hf(
     if head_dim is None:
         head_dim = dim // num_heads
 
-    def _permute(t, n_heads):
+    def _permute(t, n_heads, bias):
+        if bias:
+            return (
+                t.view(n_heads, head_dim // 2, 2)
+                .transpose(1, 2)
+                .reshape((head_dim * n_heads))
+            )
         return (
             t.view(n_heads, head_dim // 2, 2, dim)
             .transpose(1, 2)
@@ -197,9 +213,9 @@ def tune_to_hf(
     for key, value in state_dict.items():
         new_key = get_mapped_key(key, inverted_mapping_dict)
         if "q_proj" in key:
-            value = _permute(value, num_heads)
+            value = _permute(value, num_heads, "bias" in key)
         elif "k_proj" in key:
-            value = _permute(value, num_kv_heads)
+            value = _permute(value, num_kv_heads, "bias" in key)
         converted_state_dict[new_key] = value
 
     return converted_state_dict
