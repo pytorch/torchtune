@@ -179,95 +179,30 @@ def load_from_full_model_state_dict(
     - `is_rank_zero` matters if only rank 0 pass in non-empty `full_sd` and
        we need to broadcast from rank 0
     """
-    # There are some changes at `set_model_state_dict` to adjust multiple devices from local_state in TorchTune,
-    # keey version check until PyTorch changes are on stable.
-    if _USE_DISTRIBUTED_STATE_DICT_API:
-        has_nf4 = any(
-            hasattr(param, "_local_tensor")
-            and isinstance(param._local_tensor, NF4Tensor)
-            for param in model.parameters()
-        )
-        # has_nf4 = True
+    # PyTorch nightly versions from December 20, 2024, support the following features:
+    # - `set_model_state_dict` with the `cpu_offload` option
+    # - Multiple devices in local state dict
+    # - Relative optimizations for improved memory performance
+    # Please keep the version check `_USE_DISTRIBUTED_STATE_DICT_API` until these changes are
+    # released in the PyTorch stable version.
+    has_nf4 = any(
+        hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
+        for param in model.parameters()
+    )
+    if _USE_DISTRIBUTED_STATE_DICT_API and not has_nf4:
         meta_sharded_sd = model.state_dict()
-        if has_nf4:
-            sharded_sd = {}
-            for param_name, full_tensor in full_sd.items():
-                sharded_meta_param = meta_sharded_sd.get(param_name)
-                full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
-                if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
-                    sharded_meta_param._local_tensor, NF4Tensor
-                ):
-                    block_size = sharded_meta_param._local_tensor.block_size
-                    scaler_block_size = (
-                        sharded_meta_param._local_tensor.scaler_block_size
-                    )
-                    full_tensor = to_nf4(
-                        full_tensor,
-                        block_size=block_size,
-                        scaler_block_size=scaler_block_size,
-                    )
-                    # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
-                    # otherwise `distribute_tensor(DTensor(local=NF4))`
-                    # requires dispatching `c10d.scatter_``
-                    # long-term solution is `swap_tensor`
-                    mesh = sharded_meta_param.device_mesh
-                    if mesh.ndim > 1:
-                        raise NotImplementedError(
-                            f"only support 1D FSDP but got {mesh.ndim=}"
-                        )
-                    shard_mesh_dim = 0
-                    shard_world_size = mesh.size(shard_mesh_dim)
-                    shard_rank = cast(
-                        torch.distributed.ProcessGroup, mesh.get_group(shard_mesh_dim)
-                    ).rank()
-                    chunk = list(torch.chunk(full_tensor, shard_world_size, dim=0))[
-                        shard_rank
-                    ]
-                    sharded_param = full_tensor.new_zeros(chunk.size())
-                    sharded_param[: chunk.size(0)].copy_(chunk)
-
-                    # TODO: change to from_local API (need to add view support for NF4)
-                    sharded_tensor = DTensor(
-                        local_tensor=sharded_param,
-                        spec=DTensorSpec(
-                            mesh=sharded_meta_param.device_mesh,
-                            placements=sharded_meta_param.placements,
-                            tensor_meta=TensorMeta(
-                                shape=sharded_meta_param.size(),
-                                dtype=sharded_meta_param.dtype,
-                                stride=sharded_meta_param.stride(),
-                            ),
-                        ),
-                        requires_grad=sharded_meta_param.requires_grad,
-                    )
-
-                elif not hasattr(sharded_meta_param, "device_mesh"):
-                    # In cases where parts of the model aren't sharded, some parameters will be plain tensors
-                    sharded_tensor = full_tensor
-                else:
-                    sharded_tensor = distribute_tensor(
-                        full_tensor,
-                        sharded_meta_param.device_mesh,
-                        sharded_meta_param.placements,
-                    )
-                if cpu_offload:
-                    sharded_tensor = sharded_tensor.cpu()
-                sharded_sd[param_name] = nn.Parameter(sharded_tensor)
-            # choose `assign=True` since we cannot call `copy_` on meta tensor
-            return model.load_state_dict(sharded_sd, strict=strict, assign=True)
-        else:
-            for param_name in full_sd.keys():
-                sharded_meta_param = meta_sharded_sd.get(param_name)
-                full_sd[param_name] = full_sd[param_name].to(sharded_meta_param.dtype)
-            options = StateDictOptions(
-                full_state_dict=True,
-                broadcast_from_rank0=True,
-                strict=strict,
-                cpu_offload=cpu_offload,
-            )
-            return set_model_state_dict(
-                model=model, model_state_dict=full_sd, options=options
-            )
+        for param_name in full_sd.keys():
+            sharded_meta_param = meta_sharded_sd.get(param_name)
+            full_sd[param_name] = full_sd[param_name].to(sharded_meta_param.dtype)
+        options = StateDictOptions(
+            full_state_dict=True,
+            broadcast_from_rank0=True,
+            strict=strict,
+            cpu_offload=cpu_offload,
+        )
+        return set_model_state_dict(
+            model=model, model_state_dict=full_sd, options=options
+        )
     else:
         meta_sharded_sd = model.state_dict()
         sharded_sd = {}
@@ -363,18 +298,20 @@ def gather_cpu_state_dict(
     model: "FSDPModule",  # noqa
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-    trainable_only: bool = False,
+    adapter_weights_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
     Returning non-empty result only on rank0 to avoid peaking CPU memory
-    TODO: add support for NF4Tensor
+    Currenltly we can used distributed state dict API to process model without NF4Tensor. Otherwise, we need to
+    manually gather any NF4 tensors until all-gather is supported in the NF4Tensor subclass
+    TODO: add support for NF4Tensor at distributed state dict API
 
     Args:
-        model (FSDPModule): Model to generate fqn for cpu_state_dict
+        model (FSDPModule): Model to generate fully qualified names for cpu_state_dict
         is_rank_zero (bool): flag to check if the process is on rank 0
         device (Optional[torch.device]): device to use for sharded tensors. Default: None
-        trainable_only (bool): flag to check if only trainable parameters should be returned. Default: False
+        adapter_weights_only (bool): flag to check if only trainable parameters should be returned. Default: False
 
     Returns:
         Dict[str, Any]: State dict on CPU
@@ -411,7 +348,7 @@ def gather_cpu_state_dict(
             cpu_offload=True,
         )
         cpu_state_dict = get_model_state_dict(model=model, options=options)
-        if trainable_only:
+        if adapter_weights_only:
             cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
         if is_rank_zero:
             return cpu_state_dict

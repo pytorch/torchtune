@@ -702,7 +702,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._model,
             self._is_rank_zero,
             device=self._device,
-            trainable_only=self._save_adapter_weights_only,
+            adapter_weights_only=self._save_adapter_weights_only,
         )
         if self._is_rank_zero:
             log.info(

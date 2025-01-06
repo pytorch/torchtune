@@ -659,7 +659,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._model,
             self._is_rank_zero,
             device=self._device,
-            trainable_only=self._save_adapter_weights_only,
+            adapter_weights_only=self._save_adapter_weights_only,
         )
         utils.log_rank_zero(
             log,
