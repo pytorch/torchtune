@@ -23,6 +23,8 @@ def chat_dataset(
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
+    packer_num_workers: int = 12,
+    packer_prebatch_size: int = 32,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
@@ -183,5 +185,10 @@ def chat_dataset(
             raise ValueError(
                 "PackedDataset requires a max_seq_len to be set on the tokenizer."
             )
-        return PackedDataset(ds, max_seq_len=tokenizer.max_seq_len)
+        return PackedDataset(
+            ds,
+            max_seq_len=tokenizer.max_seq_len,
+            num_workers=packer_num_workers,
+            prebatch_size=packer_prebatch_size,
+        )
     return ds
