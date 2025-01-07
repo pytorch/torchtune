@@ -7,7 +7,7 @@ from typing import List
 
 import torch
 import torch.nn.functional as F
-from torch import Tensor, nn
+from torch import nn, Tensor
 
 from torchtune.modules.attention import MultiHeadAttention
 
