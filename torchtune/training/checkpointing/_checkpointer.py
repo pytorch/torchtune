@@ -17,9 +17,9 @@ import torch
 import torch.distributed as dist
 from safetensors.torch import save_file
 from torch.distributed.checkpoint import (
+    async_save,
     FileSystemReader,
     FileSystemWriter,
-    async_save,
     load,
     save,
 )
@@ -29,19 +29,19 @@ from torchtune.models import convert_weights
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG_FNAME,
     ADAPTER_MODEL_FNAME,
-    RECIPE_STATE_DIRNAME,
-    REPO_ID_FNAME,
-    SAFETENSOR_INDEX_FNAME,
-    SHARD_FNAME,
-    SUFFIXES_TO_NOT_COPY,
-    TORCH_INDEX_FNAME,
-    ModelType,
     check_outdir_not_in_ckptdir,
     copy_files,
     get_adapter_checkpoint_path,
     get_model_checkpoint_path,
     get_recipe_checkpoint_path,
+    ModelType,
+    RECIPE_STATE_DIRNAME,
+    REPO_ID_FNAME,
     safe_torch_load,
+    SAFETENSOR_INDEX_FNAME,
+    SHARD_FNAME,
+    SUFFIXES_TO_NOT_COPY,
+    TORCH_INDEX_FNAME,
 )
 from torchtune.utils._logging import get_logger, log_rank_zero
 
@@ -109,9 +109,11 @@ class _CheckpointerInterface(Protocol):
 
     """
 
-    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: ...
+    def load_checkpoint(self, **kwargs) -> Dict[str, Any]:
+        ...
 
-    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: ...
+    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None:
+        ...
 
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
@@ -813,14 +815,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
-                state_dict[training.ADAPTER_KEY] = (
-                    convert_weights.tune_to_peft_adapter_weights(
-                        state_dict[training.ADAPTER_KEY],
-                        num_heads=self._config["num_attention_heads"],
-                        num_kv_heads=self._config["num_key_value_heads"],
-                        dim=self._config["hidden_size"],
-                        head_dim=self._config.get("head_dim", None),
-                    )
+                state_dict[
+                    training.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
+                    state_dict[training.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
                 output_path = Path.joinpath(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
@@ -856,11 +858,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
             else:
-                state_dict[training.ADAPTER_CONFIG] = (
-                    convert_weights.tune_to_peft_adapter_config(
-                        adapter_config=state_dict[training.ADAPTER_CONFIG],
-                        base_model_name_or_path=self.repo_id,
-                    )
+                state_dict[
+                    training.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    adapter_config=state_dict[training.ADAPTER_CONFIG],
+                    base_model_name_or_path=self.repo_id,
                 )
 
                 output_path = Path.joinpath(
