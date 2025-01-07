@@ -53,7 +53,7 @@ jobs:
       - name: Install remaining dependencies
         run: |
           python -m pip install -e ".[dev]"
-          python -m pip install lm-eval==0.4.5
+          python -m pip install lm-eval>=0.4.5
       - name: Run recipe and unit tests with coverage
         run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov

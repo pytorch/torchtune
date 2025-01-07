@@ -7,7 +7,7 @@
 from typing import Any, Callable, Dict, Mapping, Optional
 
 from torchtune.data._messages import Message
-from torchtune.datasets._sft import SFTDataset
+from torchtune.datasets._sft import SFTDataset, SFTTransform
 from torchtune.modules.transforms import Transform
 
 
@@ -124,7 +124,7 @@ class TheCauldronToMessages(Transform):
 def the_cauldron_dataset(
     model_transform: Transform,
     *,
-    subset: str,
+    subset: str = "orcvqa",
     source: str = "HuggingFaceM4/the_cauldron",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
@@ -138,8 +138,8 @@ def the_cauldron_dataset(
     `The Cauldron <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_
     from Hugging Face Datasets.
 
-    The Cauldron consists of numerous datasets. You must specify one of the datasets
-    using the ``subset`` argument.
+    The Cauldron consists of numerous datasets. You can specify one of the datasets
+    using the ``subset`` argument. The default value is the ``orcvqa`` dataset.
 
     The model transform is expected to be a callable that applies pre-processing steps specific
     to a model. For multimodal datasets, this is expected to be at minimum a tokenizer and
@@ -181,8 +181,8 @@ def the_cauldron_dataset(
             transforms on the keys. It should consist of at minimum two components: text tokenization (called
             on the "messages" field) and image transform (called on the "images" field). The keys returned by
             the model transform should be aligned with the expected inputs into the model.
-        subset (str): name of the subset of the dataset to load. See the `dataset card
-            <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_ for options.
+        subset (str): name of the subset of the dataset to load. Default is `orcvqa`, see the `dataset card
+            <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_ for other options.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See `Hugging Face's
@@ -235,3 +235,47 @@ def the_cauldron_dataset(
     )
 
     return ds
+
+
+def the_cauldron_transform(
+    model_transform: Optional[Transform] = None,
+    texts_col: str = "texts",
+    images_col: str = "images",
+    new_system_prompt: Optional[str] = None,
+) -> SFTTransform:
+    """
+    Support for family of image + text datasets similar to
+    `The Cauldron <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_
+    from Hugging Face Datasets.
+
+    This function instantiates a :class:`~torchtune.datasets.SFTTransform` only (not the dataset).
+    See :func:`~torchtune.datasets.the_cauldron_dataset` for more details.
+
+    The model transform is expected to be a callable that applies pre-processing steps specific
+    to a model. For multimodal datasets, this is expected to be at minimum a tokenizer and
+    an image transform. The tokenizer will convert text sequences into token IDs after the dataset
+    is converted to a list of :class:`~torchtune.data.Message`. The image transform will load the
+    image and process it in accordance to the model's requirements.
+
+    Args:
+        model_transform (Optional[Transform]): model-specific transform class that takes in a sample dict and applies custom
+            transforms on the keys. It should consist of at minimum two components: text tokenization (called
+            on the "messages" field) and image transform (called on the "images" field). The keys returned by
+            the model transform should be aligned with the expected inputs into the model. Default is None.
+        texts_col (str): name of the column containing the text data. Default is "texts".
+        images_col (str): name of the column containing the image data. Default is "images".
+        new_system_prompt (Optional[str]): if specified, prepend a system message. This can
+            serve as instructions to guide the model response. Setting this will OVERRIDE any system
+            messages already present in the dataset. Default is None.
+
+    Returns:
+        :class:`~torchtune.datasets.SFTTransform` - Callable that transforms samples into The Cauldron format.
+    """
+    column_map = {"texts": texts_col, "images": images_col}
+    return SFTTransform(
+        message_transform=TheCauldronToMessages(
+            column_map=column_map,
+            new_system_prompt=new_system_prompt,
+        ),
+        model_transform=model_transform,
+    )

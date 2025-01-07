@@ -7,6 +7,8 @@
 # To launch, run the following command from root torchtune directory:
 #    tune run dev/generate_v2 --config llama3_2_vision/generation_v2
 
+output_dir: ./ # Not needed
+
 # Model arguments
 model:
   _component_: torchtune.models.llama3_2_vision.llama3_2_vision_11b
@@ -25,7 +27,7 @@ checkpointer:
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
     max_filename: "00005"
-  output_dir: ./
+  output_dir: ${output_dir}
   model_type: LLAMA3_VISION
 
 # Device

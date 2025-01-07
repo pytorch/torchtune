@@ -130,7 +130,10 @@ _quantizer_mode_to_enable_fake_quant["4w-qat"] = enable_4w_fake_quant
 
 
 # int4 weight-only
-Int4WeightOnlyQATQuantizerModuleSwap = Int4WeightOnlyQATQuantizer
+class Int4WeightOnlyQATQuantizerModuleSwap(Int4WeightOnlyQATQuantizer):
+    pass
+
+
 disable_4w_fake_quant_module_swap = disable_4w_fake_quant
 enable_4w_fake_quant_module_swap = enable_4w_fake_quant
 _quantizer_to_mode[Int4WeightOnlyQATQuantizerModuleSwap] = "4w-qat-module-swap"
@@ -142,7 +145,10 @@ _quantizer_mode_to_enable_fake_quant[
 ] = enable_4w_fake_quant_module_swap
 
 # int8 dynamic activations + int4 weight
-Int8DynActInt4WeightQATQuantizerModuleSwap = Int8DynActInt4WeightQATQuantizer
+class Int8DynActInt4WeightQATQuantizerModuleSwap(Int8DynActInt4WeightQATQuantizer):
+    pass
+
+
 disable_8da4w_fake_quant_module_swap = disable_8da4w_fake_quant
 enable_8da4w_fake_quant_module_swap = enable_8da4w_fake_quant
 _quantizer_to_mode[Int8DynActInt4WeightQATQuantizerModuleSwap] = "8da4w-qat-module-swap"

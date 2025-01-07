@@ -1,64 +1,60 @@
-# Config for multi-device knowledge distillation in knowledge_distillation_distributed.py
+# Config for single device knowledge distillation in kd_single_device.py
 # using a teacher and student model
 #
 # This config assumes that you've ran the following commands before launching KD:
 # First download the student and teacher models
-#   tune download meta-llama/Llama-3.2-1B-Instruct --output-dir /tmp/Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth"
-#   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth"
+#   tune download Qwen/Qwen2-0.5B-Instruct --output-dir /tmp/Qwen2-0.5B-Instruct
+#   tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct
 #
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora
+#   tune run lora_finetune_single_device --config qwen2/1.5B_lora_single_device
 #
-# To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed --config llama3_2/knowledge_distillation_distributed
+# To launch on a single device, run the following command from root:
+#   tune run knowledge_distillation_single_device --config qwen2/1.5_to_0.5B_KD_lora_single_device
 #
-# This config works best for distilling on 2+ devices.
+# This config works only for distilling on a single device.
 
+
+output_dir: /tmp/torchtune/qwen2_1_5_to_0_5B/KD_lora_single_device # /tmp may be deleted by your system. Change it to your preference.
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3_2.lora_llama3_2_1b
+  _component_: torchtune.models.qwen2.lora_qwen2_0_5b
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
-  apply_lora_to_output: False
-  lora_rank: 64
-  lora_alpha: 128
-  lora_dropout: 0.0
+  lora_rank: 32  # higher increases accuracy and memory
+  lora_alpha: 64  # usually alpha=2*rank
 
 teacher_model:
-  _component_: torchtune.models.llama3_1.llama3_1_8b
+  _component_: torchtune.models.qwen2.qwen2_1_5b
 
-# Tokenizer
 tokenizer:
-  _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Llama-3.2-1B-Instruct/original/tokenizer.model
+  _component_: torchtune.models.qwen2.qwen2_tokenizer
+  path: /tmp/Qwen2-0.5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2-0.5B-Instruct/merges.txt
   max_seq_len: null
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Llama-3.2-1B-Instruct/
+  checkpoint_dir: /tmp/Qwen2-0.5B-Instruct
   checkpoint_files: [
     model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-3.2-1B-Instruct/
-  model_type: LLAMA3
-resume_from_checkpoint: False
-save_adapter_weights_only: False
+  output_dir: ${output_dir}
+  model_type: QWEN2
 
-# Teacher checkpoint
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
-    model-00001-of-00004.safetensors,
-    model-00002-of-00004.safetensors,
-    model-00003-of-00004.safetensors,
-    model-00004-of-00004.safetensors
+    model.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
-  model_type: LLAMA3
+  output_dir: ${output_dir}
+  model_type: QWEN2
+
+resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
@@ -66,12 +62,11 @@ dataset:
   packed: False  # True increases speed
 seed: null
 shuffle: True
-batch_size: 4
+batch_size: 8
 
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
-  fused: True
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:
@@ -88,27 +83,27 @@ kd_ratio: 0.5
 # Training
 epochs: 1
 max_steps_per_epoch: null
-compile: False  # pytorch compile, set to true for better perf/memory
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+gradient_accumulation_steps: 8  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging
-output_dir: /tmp/kd_output
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 
 # Environment
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
 
-# Show case the usage of pytorch profiler
-# Set enabled to False as it's only needed for debugging training
+
+
+# Profiler (disabled)
 profiler:
   _component_: torchtune.training.setup_torch_profiler
-
   enabled: False
 
   #Output directory of trace artifacts
@@ -127,6 +122,6 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 5
+  warmup_steps: 3
   active_steps: 2
   num_cycles: 1
