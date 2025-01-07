@@ -9,7 +9,7 @@ from torchtune.models.t5._encoder import T5Encoder
 from torchtune.models.t5._tokenizer import T5Tokenizer
 
 
-def t5_v1p1_xxl_encoder(max_seq_len: int = 512) -> T5Encoder:
+def t5_v1_1_xxl_encoder(max_seq_len: int = 512) -> T5Encoder:
     """
     Builder for the T5 v1.1 XXL (11B parameters) encoder.
 
