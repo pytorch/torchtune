@@ -7,7 +7,7 @@ from typing import List
 
 import torch
 import torch.nn.functional as F
-from torch import nn, Tensor
+from torch import Tensor, nn
 
 from torchtune.modules.attention import MultiHeadAttention
 
@@ -49,7 +49,7 @@ class FluxAutoencoder(nn.Module):
 
         channels = [ch_base * mult for mult in ch_mults]
 
-        self.encoder = Encoder(
+        self.encoder = FluxEncoder(
             ch_in=ch_in,
             ch_z=ch_z,
             channels=channels,
@@ -58,7 +58,7 @@ class FluxAutoencoder(nn.Module):
             shift_factor=shift_factor,
         )
 
-        self.decoder = Decoder(
+        self.decoder = FluxDecoder(
             ch_out=ch_out,
             ch_z=ch_z,
             channels=list(reversed(channels)),
@@ -104,7 +104,7 @@ class FluxAutoencoder(nn.Module):
         return self.decoder(z)
 
 
-class Encoder(nn.Module):
+class FluxEncoder(nn.Module):
     """
     The encoder half of the Flux diffusion model's image autoencoder.
 
@@ -132,8 +132,8 @@ class Encoder(nn.Module):
 
         self.conv_in = nn.Conv2d(ch_in, channels[0], kernel_size=3, stride=1, padding=1)
 
-        self.down = nn.Sequential(
-            *[
+        self.down = nn.ModuleList(
+            [
                 DownBlock(
                     n_layers=n_layers_per_down_block,
                     ch_in=channels[i - 1] if i > 0 else channels[0],
@@ -157,14 +157,15 @@ class Encoder(nn.Module):
             Tensor: latent encodings (shape = [bsz, ch_z, latent resolution, latent resolution])
         """
         h = self.conv_in(x)
-        h = self.down(h)
+        for block in self.down:
+            h = block(h)
         h = self.mid(h)
         h = self.end(h)
         z = diagonal_gaussian(h)
         return self.scale_factor * (z - self.shift_factor)
 
 
-class Decoder(nn.Module):
+class FluxDecoder(nn.Module):
     """
     The encoder half of the Flux diffusion model's image autoencoder.
 
@@ -194,8 +195,8 @@ class Decoder(nn.Module):
 
         self.mid = mid_block(channels[0])
 
-        self.up = nn.Sequential(
-            *[
+        self.up = nn.ModuleList(
+            [
                 UpBlock(
                     n_layers=n_layers_per_up_block,
                     ch_in=channels[i - 1] if i > 0 else channels[0],
@@ -219,7 +220,8 @@ class Decoder(nn.Module):
         z = z / self.scale_factor + self.shift_factor
         h = self.conv_in(z)
         h = self.mid(h)
-        h = self.up(h)
+        for block in self.up:
+            h = block(h)
         x = self.end(h)
         return x
 

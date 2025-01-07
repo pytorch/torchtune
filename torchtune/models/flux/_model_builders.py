@@ -6,7 +6,7 @@
 from torchtune.models.flux._autoencoder import FluxAutoencoder
 
 
-def flux_autoencoder() -> FluxAutoencoder:
+def flux_1_autoencoder() -> FluxAutoencoder:
     """
     The image autoencoder for all current Flux diffusion models:
     - FLUX.1-dev
