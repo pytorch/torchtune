@@ -170,6 +170,7 @@ class InputOutputToMessages(Transform):
     Raises:
         ValueError: If ``column_map`` is provided and ``input`` not in ``column_map``, or
             ``output`` not in ``column_map``.
+        ValueError: If ``image_dir`` is provided but ``image`` not in ``column_map``.
     """
 
     def __init__(
@@ -196,6 +197,14 @@ class InputOutputToMessages(Transform):
         else:
             self.column_map = {"input": "input", "output": "output", "image": "image"}
 
+        # Ensure that if a user seems to want to construct a multimodal transform, they provide
+        # a proper column_mapping
+        if "image" not in self.column_map.keys() and image_dir is not None:
+            raise ValueError(
+                f"image_dir is specified as {image_dir} but 'image' is not in column_map. "
+                "Please specify an 'image' key in column_map."
+            )
+
         self.image_dir = image_dir
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -206,8 +215,13 @@ class InputOutputToMessages(Transform):
         if is_multimodal:
             image_path = sample[self.column_map["image"]]
             if isinstance(image_path, str):
+                # Convert image_path to Path obj
+                image_path = Path(image_path)
+
+                # If image_dir is not None, prepend image_dir to image_path
                 if self.image_dir is not None:
                     image_path = self.image_dir / image_path
+
                 # Load if not loaded
                 pil_image = load_image(image_path)
             else:

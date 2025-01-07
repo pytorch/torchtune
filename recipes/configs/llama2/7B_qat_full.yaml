@@ -14,6 +14,8 @@
 #   tune run --nnodes 1 --nproc_per_node 4 qat_distributed --config llama2/7B_qat_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 
 
+output_dir: /tmp/torchtune/llama2_7B/qat_full # /tmp may be deleted by your system. Change it to your preference.
+
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
@@ -39,7 +41,7 @@ checkpointer:
     pytorch_model-00002-of-00002.bin
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-2-7b-hf
+  output_dir: ${output_dir}
   model_type: LLAMA2
 resume_from_checkpoint: False
 
@@ -53,8 +55,8 @@ optimizer:
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1  # Use to increase virtual batch size
-compile: False  # pytorch compile, set to true for better perf/memory
+gradient_accumulation_steps: 1  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 
 # QAT arguments
@@ -75,10 +77,10 @@ dtype: bf16
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
-  log_dir: ${output_dir}
-output_dir: /tmp/alpaca-llama2-finetune
+  log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+
 
 # Profiler (disabled)
 profiler:
