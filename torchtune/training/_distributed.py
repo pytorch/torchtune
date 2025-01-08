@@ -26,6 +26,7 @@ from torch.distributed.checkpoint.state_dict import (
     StateDictOptions,
 )
 from torch.distributed.fsdp import ShardingStrategy
+from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
@@ -40,7 +41,7 @@ _log: logging.Logger = get_logger()
 _valid_distributed_single_node_nnodes = ["1:1", "1"]
 
 torch_version = torch.__version__
-_USE_DISTRIBUTED_STATE_DICT_API = (
+_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
     "dev" not in torch_version and torch_version_ge("2.6.0")
 ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 
@@ -170,27 +171,39 @@ def load_from_full_model_state_dict(
     device: torch.device,
     strict: bool = False,
     cpu_offload: bool = False,
-):
+) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
     and loading it into FSDP model
-    - 'full' means plain tensor
-    - 'sharded' means `DTensor` where reach rank has a shard of the plain tensor
-    - `is_rank_zero` matters if only rank 0 pass in non-empty `full_sd` and
-       we need to broadcast from rank 0
+    Args:
+        model (FSDPModule): Model to generate fully qualified names for cpu_state_dict
+        full_sd (Dict[str, Any]): a full state dict to load into the model
+        device (torch.device): device used to move full state dict tensors
+        strict (bool): flag to check if to load the model in strict mode
+        cpu_offload (bool): flag to check if offload to CPU is enabled
+
+    Returns:
+        ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
+            * **missing_keys** is a list of str containing the missing keys
+            * **unexpected_keys** is a list of str containing the unexpected keys
+
+    Raises:
+        NotImplementedError: If got FSDP with more than 1D.
     """
     # PyTorch nightly versions from December 20, 2024, support the following features:
     # - `set_model_state_dict` with the `cpu_offload` option
     # - Multiple devices in local state dict
     # - Relative optimizations for improved memory performance
-    # Please keep the version check `_USE_DISTRIBUTED_STATE_DICT_API` until these changes are
+    # Please keep the version check `_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE` until these changes are
     # released in the PyTorch stable version.
     has_nf4 = any(
         hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
         for param in model.parameters()
     )
-    if _USE_DISTRIBUTED_STATE_DICT_API and not has_nf4:
-        meta_sharded_sd = model.state_dict()
+    meta_sharded_sd = model.state_dict()
+    # NF4Tensor is not supported in `set_model_state_dict` right now, running with the privious logic right
+    # now, would support in the future and remove the following code
+    if _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4:
         for param_name in full_sd.keys():
             sharded_meta_param = meta_sharded_sd.get(param_name)
             full_sd[param_name] = full_sd[param_name].to(sharded_meta_param.dtype)
@@ -204,7 +217,6 @@ def load_from_full_model_state_dict(
             model=model, model_state_dict=full_sd, options=options
         )
     else:
-        meta_sharded_sd = model.state_dict()
         sharded_sd = {}
         for param_name, full_tensor in full_sd.items():
             sharded_meta_param = meta_sharded_sd.get(param_name)
@@ -390,7 +402,7 @@ def load_from_full_optimizer_state_dict(
     Converting full optimizer state to sharded state dict
     and loading it into optimizer
     """
-    if _USE_DISTRIBUTED_STATE_DICT_API:
+    if _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE:
         options = StateDictOptions(
             full_state_dict=True,
             broadcast_from_rank0=True,
