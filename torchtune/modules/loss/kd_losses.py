@@ -137,4 +137,7 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
                 student_chunk, teacher_chunk, label_chunk, normalize=False
             )
 
+        if torch.sum(mask.view(-1), dim=0) == 0:
+            return torch.tensor(0.0, device=student_logits[0].device)
+
         return total_fkl_loss / torch.sum(mask.view(-1), dim=0)
