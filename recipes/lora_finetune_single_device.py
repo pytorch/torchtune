@@ -310,6 +310,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             collate_fn=collate_name,
         )
 
+        if "dataset_validation" in cfg:
+            self._sampler_val, self._dataloader_val = self._setup_data(
+                cfg_dataset=cfg.dataset_validation,
+                shuffle=cfg.shuffle,
+                batch_size=cfg.batch_size,
+                collate_fn=collate_name,
+            )
+
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
 
@@ -670,6 +678,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
+                # TRAINING LOOP
                 # Update the sampler to ensure data is correctly shuffled across epochs
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
@@ -777,6 +786,38 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     "Checkpoint saved in {:.2f} seconds.".format(
                         time.perf_counter() - start_save_checkpoint
                     )
+                )
+
+                # VALIDATION LOOP
+                self._sampler_val.set_epoch(curr_epoch)
+
+                pbar = tqdm(total=len(self._dataloader_val))
+                val_losses = []
+                for idx, batch in enumerate(self._dataloader_val):
+                    utils.batch_to_device(batch, self._device)
+
+                    current_loss = self._loss_step(batch)
+                    val_losses.append(current_loss.item())
+
+                    pbar.update(1)
+                    pbar.set_description(
+                        f"{curr_epoch + 1}|{idx}|Loss: {current_loss.item()}"
+                    )
+
+                    log_dict = {
+                        "val_loss": current_loss.item(),
+                    }
+                    self._metric_logger.log_dict(
+                        log_dict,
+                        step=(curr_epoch + 1) * idx,
+                    )
+
+                self._metric_logger.log_dict(
+                    {
+                        "avg_val_loss": sum(val_losses) / len(val_losses),
+                        "epoch": curr_epoch + 1,
+                    },
+                    step=self.global_step,
                 )
 
     def cleanup(self) -> None:
