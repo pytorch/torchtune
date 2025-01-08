@@ -7,7 +7,7 @@
 import pytest
 import torch
 
-from torchtune.models.flux._autoencoder import FluxAutoencoder
+from torchtune.models.flux import flux_1_autoencoder
 from torchtune.training.seed import set_seed
 
 BSZ = 32
@@ -26,7 +26,7 @@ def random():
 class TestFluxAutoencoder:
     @pytest.fixture
     def model(self):
-        model = FluxAutoencoder(
+        model = flux_1_autoencoder(
             resolution=RESOLUTION,
             ch_in=CH_IN,
             ch_out=3,

@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
+from typing import List, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -19,54 +19,21 @@ class FluxAutoencoder(nn.Module):
     The image autoencoder for Flux diffusion models.
 
     Args:
-        resolution (int): The height/width of the square input image.
-        ch_in (int): The number of channels of the input image.
-        ch_out (int): The number of channels of the output image.
-        ch_base (int): The base number of channels.
-            This gets multiplied by `ch_mult` values to get the number of inner channels during downsampling/upsampling.
-        ch_mults (List[int]): The channel multiple per downsample/upsample block.
-            This gets multiplied by `ch_base` to get the number of inner channels during downsampling/upsampling.
-        ch_z (int): The number of latent channels (dimension of the latent vector `z`).
-        n_layers_per_resample_block (int): Number of resnet layers per downsample/upsample block.
-        scale_factor (float): Constant for scaling `z`.
-        shift_factor (float): Constant for shifting `z`.
+        img_shape (Tuple[int, int, int]): The shape of the input image (without the batch dimension).
+        encoder (nn.Module): The encoder module.
+        decoder (nn.Module): The decoder module.
     """
 
     def __init__(
         self,
-        resolution: int,
-        ch_in: int,
-        ch_out: int,
-        ch_base: int,
-        ch_mults: List[int],
-        ch_z: int,
-        n_layers_per_resample_block: int,
-        scale_factor: float,
-        shift_factor: float,
+        img_shape: Tuple[int, int, int],
+        encoder: nn.Module,
+        decoder: nn.Module,
     ):
         super().__init__()
-        self.img_shape = (ch_in, resolution, resolution)
-
-        channels = [ch_base * mult for mult in ch_mults]
-
-        self.encoder = FluxEncoder(
-            ch_in=ch_in,
-            ch_z=ch_z,
-            channels=channels,
-            n_layers_per_down_block=n_layers_per_resample_block,
-            scale_factor=scale_factor,
-            shift_factor=shift_factor,
-        )
-
-        self.decoder = FluxDecoder(
-            ch_out=ch_out,
-            ch_z=ch_z,
-            channels=list(reversed(channels)),
-            # decoder gets one more layer per up block than the encoder's down blocks
-            n_layers_per_up_block=n_layers_per_resample_block + 1,
-            scale_factor=scale_factor,
-            shift_factor=shift_factor,
-        )
+        self._img_shape = img_shape
+        self.encoder = encoder
+        self.decoder = decoder
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -88,7 +55,7 @@ class FluxAutoencoder(nn.Module):
         Returns:
             Tensor: latent encodings (shape = [bsz, ch_z, latent resolution, latent resolution])
         """
-        assert x.shape[1:] == self.img_shape
+        assert x.shape[1:] == self._img_shape
         return self.encoder(x)
 
     def decode(self, z: Tensor) -> Tensor:
