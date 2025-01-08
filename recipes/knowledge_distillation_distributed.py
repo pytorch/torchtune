@@ -461,7 +461,6 @@ class KDRecipeDistributed(FTRecipeInterface):
                 model,
                 lora_weights_state_dict,
                 self._device,
-                self._is_rank_zero,
                 cpu_offload=fsdp_cpu_offload,
             )
         else:
@@ -486,7 +485,6 @@ class KDRecipeDistributed(FTRecipeInterface):
             model,
             base_model_state_dict,
             self._device,
-            self._is_rank_zero,
             cpu_offload=fsdp_cpu_offload,
         )
         for m in model.modules():
@@ -574,7 +572,6 @@ class KDRecipeDistributed(FTRecipeInterface):
             model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
@@ -611,6 +608,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             training.load_from_full_optimizer_state_dict(
+                self._model,
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -705,13 +703,14 @@ class KDRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            self._model,
             self._is_rank_zero,
             device=self._device,
         )
 
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
+                self._model,
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
