@@ -458,6 +458,10 @@ _ALL_RECIPES = [
                 file_path="qwen2/evaluation.yaml",
             ),
             Config(
+                name="qwen2_5/evaluation",
+                file_path="qwen2_5/evaluation.yaml",
+            ),
+            Config(
                 name="gemma/evaluation",
                 file_path="gemma/evaluation.yaml",
             ),
@@ -472,6 +476,10 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2/evaluation",
                 file_path="llama3_2/evaluation.yaml",
+            ),
+            Config(
+                name="code_llama2/evaluation",
+                file_path="code_llama2/evaluation.yaml",
             ),
         ],
         supports_distributed=False,

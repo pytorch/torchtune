@@ -83,7 +83,7 @@ class SFTDataset(Dataset):
             ``load_dataset`` for more details.
         message_transform (Transform): callable that keys into the desired fields in the sample
             and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
-            of messages are stored in the ``"messages"`` key.
+            of messages are stored in the ``"messages"`` key. See :ref:`message_transform_usage_label` for details.
         model_transform (Transform): callable that applies model-specific pre-processing to the sample after the list of
             messages is created from ``message_transform``. This includes tokenization and any modality-specific
             transforms. It is expected to return at minimum ``"tokens"`` and ``"mask"`` keys.
