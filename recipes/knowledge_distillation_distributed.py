@@ -461,7 +461,6 @@ class KDRecipeDistributed(FTRecipeInterface):
                 model,
                 lora_weights_state_dict,
                 self._device,
-                self._is_rank_zero,
                 cpu_offload=fsdp_cpu_offload,
             )
         else:
@@ -486,7 +485,6 @@ class KDRecipeDistributed(FTRecipeInterface):
             model,
             base_model_state_dict,
             self._device,
-            self._is_rank_zero,
             cpu_offload=fsdp_cpu_offload,
         )
         for m in model.modules():
@@ -574,7 +572,6 @@ class KDRecipeDistributed(FTRecipeInterface):
             model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
@@ -611,6 +608,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             training.load_from_full_optimizer_state_dict(
+                self._model,
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -705,13 +703,14 @@ class KDRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            self._model,
             self._is_rank_zero,
             device=self._device,
         )
 
         if intermediate_checkpoint:
             opt_state_dict = training.get_full_optimizer_state_dict(
+                self._model,
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
@@ -770,7 +769,6 @@ class KDRecipeDistributed(FTRecipeInterface):
     def _loss_step(
         self, batch: Dict[str, torch.Tensor]
     ) -> (torch.Tensor, torch.Tensor):
-
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
@@ -876,7 +874,8 @@ class KDRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_class_loss)
                     torch.distributed.all_reduce(running_kd_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
-                    training.scale_grads(self._model, 1 / num_tokens)
+                    # We multiply by world_size to undo FSDP2 gradient normalization.
+                    training.scale_grads(self._model, world_size / num_tokens)
                     class_loss_to_log = running_class_loss.item() / num_tokens
                     kd_loss_to_log = running_kd_loss.item() / num_tokens
                     self._optimizer.step()
