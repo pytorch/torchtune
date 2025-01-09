@@ -17,7 +17,7 @@ def random():
 
 
 class TestForwardKLWithChunkedOutputLoss:
-    def test_forward_kl_loss(self):
+    def setup_forward_kl_loss(self, set_all_masks_zero: bool = False):
         # Create a sample input and label
         ignore_index = -100
         batch_size = 3
@@ -33,7 +33,10 @@ class TestForwardKLWithChunkedOutputLoss:
 
         # add random ignore index to random tokens in the label
         random_indices = torch.randint(0, num_tokens, (batch_size, num_tokens))
-        labels[random_indices < num_tokens // 5] = ignore_index
+        if set_all_masks_zero:
+            labels[:] = ignore_index
+        else:
+            labels[random_indices < num_tokens // 5] = ignore_index
 
         # chunked FKL
         chunked_fkl_loss = ForwardKLWithChunkedOutputLoss(
@@ -51,6 +54,31 @@ class TestForwardKLWithChunkedOutputLoss:
         teacher_logits = teacher_logits.reshape(-1, teacher_logits.size(-1))
         labels = labels.reshape(-1)
         standard_loss = fkl_loss(logits, teacher_logits, labels)
+        return chunked_loss, standard_loss
+
+    def test_forward_kl_loss(self):
+
+        chunked_loss, standard_loss = self.setup_forward_kl_loss(
+            set_all_masks_zero=False
+        )
+
+        # Assert
+        assert_expected(chunked_loss, standard_loss, rtol=1e-2, atol=1e-2)
+
+    def test_forward_kl_loss_zero_masks(self):
+
+        # set all masks to zero
+        chunked_loss, standard_loss = self.setup_forward_kl_loss(
+            set_all_masks_zero=True
+        )
+
+        # Assert
+        assert_expected(
+            chunked_loss,
+            torch.tensor(0.0, device=chunked_loss.device),
+            rtol=1e-2,
+            atol=1e-2,
+        )
 
         # Assert
         assert_expected(chunked_loss, standard_loss, rtol=1e-2, atol=1e-2)
