@@ -253,6 +253,7 @@ def setup_torch_profiler(
         enabled (bool): Enable pytorch profiler. Default is False.
         cpu (bool): Enable cpu profiling. Default is True.
         cuda (bool): Enable cuda profiling. Default is True.
+        xpu (bool): Enable xpu profiling. Default is True.
         profile_memory (bool): Profile memory usage. Default is False.
         with_stack (bool): Profile stack. Default is False.
         record_shapes (bool): Record shapes. Default is True.
@@ -282,7 +283,7 @@ def setup_torch_profiler(
     if len(activities) == 0:
         _warn("No activities specified, defaulting to CPU + CUDA")
         activities = DEFAULT_PROFILER_ACTIVITIES
-        cpu = cuda = xpu = True
+        cpu = cuda = True
 
     # Check for schedule
     # 1) If no schedule is provided, set to DEFAULT_SCHEDULE
