@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Union
 
 import torch
 from torch import nn
+from torch.distributed.device_mesh import DeviceMesh
+
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params
@@ -92,6 +94,15 @@ class DeepFusionModel(nn.Module):
         else:
             trainable_params -= set(get_fusion_params(self))
         set_trainable_params(self, trainable_params)
+
+    def distribute(self, device_mesh: DeviceMesh) -> None:
+        """
+        Distribute the DeepFusionModel's decoder across a device mesh.
+
+        Args:
+            device_mesh (DeviceMesh): device mesh to distribute the DeepFusionModel's decoder across.
+        """
+        self.decoder.distribute(device_mesh)
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
