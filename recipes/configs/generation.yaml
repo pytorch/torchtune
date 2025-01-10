@@ -7,18 +7,17 @@ output_dir: ./ # Not needed
 
 # Model arguments
 model:
-  _component_: torchtune.models.llama3.llama3_8b
+  _component_: torchtune.models.llama2.llama2_7b
 
 checkpointer:
-  _component_: torchtune.training.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-2-7b-hf/
   checkpoint_files: [
-    consolidated.00.pth
+    pytorch_model-00001-of-00002.bin,
+    pytorch_model-00002-of-00002.bin,
   ]
-  recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: LLAMA3
-resume_from_checkpoint: False
+  model_type: LLAMA2
 
 device: cuda
 dtype: bf16
@@ -27,8 +26,8 @@ seed: 1234
 
 # Tokenizer arguments
 tokenizer:
-  _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /tmp/Llama-2-7b-hf/tokenizer.model
   max_seq_len: null
   prompt_template: null
 
