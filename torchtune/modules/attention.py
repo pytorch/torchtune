@@ -11,6 +11,12 @@ import torch
 from torch import nn
 from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
 from torchtune.modules.kv_cache import KVCache
+from torch.distributed.device_mesh import DeviceMesh
+from torch.distributed.tensor.parallel import (
+    ColwiseParallel,
+    parallelize_module,
+    RowwiseParallel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +150,17 @@ class MultiHeadAttention(nn.Module):
         # perform normal forward passes
         self.cache_enabled = False
 
+    def distribute(self, device_mesh: DeviceMesh) -> None:
+        """Distribute the module across a device mesh.
+        Args:
+            device_mesh (DeviceMesh): The device mesh to distribute the module across.
+        """
+        self.tp_degree = device_mesh.size()
+        parallelize_module(self.q_proj, device_mesh, ColwiseParallel())
+        parallelize_module(self.k_proj, device_mesh, ColwiseParallel())
+        parallelize_module(self.v_proj, device_mesh, ColwiseParallel())
+        parallelize_module(self.output_proj, device_mesh, RowwiseParallel())
+
     def setup_cache(
         self, batch_size: int, dtype: torch.dtype, max_seq_len: int
     ) -> None:
@@ -161,10 +178,14 @@ class MultiHeadAttention(nn.Module):
                 "Key value caches are already setup. You cannot call ``setup_caches()`` twice. Skipping."
             )
         else:
+            num_kv_heads = self.num_kv_heads
+            # If TP is enabled, the heads would be divided and assigned to different ranks
+            if hasattr(self, "tp_degree"):
+                num_kv_heads = self.num_kv_heads // self.tp_degree
             self.kv_cache = KVCache(
                 batch_size=batch_size,
                 max_seq_len=max_seq_len,
-                num_kv_heads=self.num_kv_heads,
+                num_kv_heads=num_kv_heads,
                 head_dim=self.head_dim,
                 dtype=dtype,
             )
@@ -235,7 +256,7 @@ class MultiHeadAttention(nn.Module):
 
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads
-        q = q.view(b, s_x, self.num_kv_heads * q_per_kv, self.head_dim)
+        q = q.view(b, s_x, -1, self.head_dim)
 
         # Apply positional embeddings
         if self.pos_embeddings is not None:
@@ -285,7 +306,11 @@ class MultiHeadAttention(nn.Module):
         # as the query tensor by copying values across the relevant dim
         # k,v shape: [b, n_kv, s, h_d] -> [b, n_h, s, h_d]
         if self.num_heads != self.num_kv_heads:
-            expand_shape = (b, self.num_kv_heads, q_per_kv, -1, self.head_dim)
+            # If TP is enabled, the heads would be divided and assigned to different ranks
+            if hasattr(self, "tp_degree"):
+                expand_shape = (b, self.num_kv_heads // self.tp_degree, q_per_kv, -1, self.head_dim)        
+            else:    # k,v shape: [b, n_kv, s, h_d] -> [b, n_h, s, h_d]
+                expand_shape = (b, self.num_kv_heads, q_per_kv, -1, self.head_dim)
             k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
             v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
 

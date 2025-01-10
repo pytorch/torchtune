@@ -166,7 +166,7 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
 
 
 def load_from_full_model_state_dict(
-    model: "FSDPModule",  # noqa
+    model: nn.Module,
     full_sd: Dict[str, Any],
     device: torch.device,
     strict: bool = False,
@@ -174,9 +174,9 @@ def load_from_full_model_state_dict(
 ) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
-    and loading it into FSDP model
+    and loading it into the sharded model
     Args:
-        model (FSDPModule): Model to generate fully qualified names for cpu_state_dict
+        model (Module): Sharaded model to generate fully qualified names for cpu_state_dict
         full_sd (Dict[str, Any]): a full state dict to load into the model
         device (torch.device): device used to move full state dict tensors
         strict (bool): flag to check if to load the model in strict mode
@@ -188,7 +188,7 @@ def load_from_full_model_state_dict(
             * **unexpected_keys** is a list of str containing the unexpected keys
 
     Raises:
-        NotImplementedError: If got FSDP with more than 1D.
+        NotImplementedError: If got parallelism dimension with more than 1D.
     """
     # PyTorch nightly versions from December 20, 2024, support the following features:
     # - `set_model_state_dict` with the `cpu_offload` option
@@ -201,7 +201,7 @@ def load_from_full_model_state_dict(
         for param in model.parameters()
     )
     meta_sharded_sd = model.state_dict()
-    # NF4Tensor is not supported in `set_model_state_dict` right now, running with the privious logic right
+    # NF4Tensor is not supported in `set_model_state_dict` right now, running with the previous logic right
     # now, would support in the future and remove the following code
     if _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4:
         for param_name in full_sd.keys():
@@ -238,7 +238,7 @@ def load_from_full_model_state_dict(
                 mesh = sharded_meta_param.device_mesh
                 if mesh.ndim > 1:
                     raise NotImplementedError(
-                        f"only support 1D FSDP but got {mesh.ndim=}"
+                        f"only support 1D parallelism but got {mesh.ndim=}"
                     )
                 shard_mesh_dim = 0
                 shard_world_size = mesh.size(shard_mesh_dim)

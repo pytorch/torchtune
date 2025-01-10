@@ -434,6 +434,17 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="dev/generate_v2_distributed",
+        file_path="dev/generate_v2_distributed.py",
+        configs=[
+            Config(
+                name="llama3/70B_generation_distributed",
+                file_path="llama3/70B_generation_distributed.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="dev/early_exit_finetune_distributed",
         file_path="dev/early_exit_finetune_distributed.py",
         configs=[

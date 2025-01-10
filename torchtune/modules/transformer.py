@@ -10,6 +10,13 @@ import torch
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
+from torch.distributed._tensor import Replicate
+from torch.distributed.device_mesh import DeviceMesh
+from torch.distributed.tensor.parallel import (
+    ColwiseParallel,
+    parallelize_module,
+    RowwiseParallel,
+)
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -42,6 +49,15 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.mlp_norm = mlp_norm or nn.Identity()
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
+
+    def distribute(self, device_mesh: DeviceMesh) -> None:
+        """Distribute the TransformerSelfAttentionLayer across a device mesh.
+
+        Args:
+            device_mesh (DeviceMesh): The device mesh to distribute the TransformerSelfAttentionLayer across.
+        """
+        self.attn.distribute(device_mesh)
+        self.mlp.distribute(device_mesh)
 
     def setup_caches(
         self,
@@ -397,6 +413,30 @@ class TransformerDecoder(nn.Module):
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
         self.num_output_chunks = num_output_chunks
+
+    def distribute(self, device_mesh: DeviceMesh) -> None:
+        """
+        Distribute the transformer decoder across a device mesh.
+
+        Args:
+            device_mesh (DeviceMesh): device mesh to distribute the transformer decoder across.
+        """
+        if self.tok_embeddings:
+            parallelize_module(
+                self.tok_embeddings,
+                device_mesh,
+                RowwiseParallel(input_layouts=Replicate()),
+            )
+
+        for layer in self.layers:
+            layer.distribute(device_mesh)
+
+        if self.output:
+            parallelize_module(
+                self.output,
+                device_mesh,
+                ColwiseParallel(output_layouts=Replicate()),
+            )
 
     def setup_caches(
         self,
