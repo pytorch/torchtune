@@ -769,7 +769,6 @@ class KDRecipeDistributed(FTRecipeInterface):
     def _loss_step(
         self, batch: Dict[str, torch.Tensor]
     ) -> (torch.Tensor, torch.Tensor):
-
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
@@ -875,7 +874,8 @@ class KDRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_class_loss)
                     torch.distributed.all_reduce(running_kd_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
-                    training.scale_grads(self._model, 1 / num_tokens)
+                    # We multiply by world_size to undo FSDP2 gradient normalization.
+                    training.scale_grads(self._model, world_size / num_tokens)
                     class_loss_to_log = running_class_loss.item() / num_tokens
                     kd_loss_to_log = running_kd_loss.item() / num_tokens
                     self._optimizer.step()
