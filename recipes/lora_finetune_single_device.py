@@ -310,7 +310,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             collate_fn=collate_name,
         )
 
-        if "dataset_validation" in cfg:
+        self.run_validation = "dataset_validation" in cfg
+        if self.run_validation:
             self._sampler_val, self._dataloader_val = self._setup_data(
                 cfg_dataset=cfg.dataset_validation,
                 shuffle=cfg.shuffle,
@@ -789,6 +790,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 )
 
                 # VALIDATION LOOP
+                if not self.run_validation:
+                    continue
                 self._sampler_val.set_epoch(curr_epoch)
 
                 pbar = tqdm(total=len(self._dataloader_val))
@@ -812,13 +815,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         step=(curr_epoch + 1) * idx,
                     )
 
-                self._metric_logger.log_dict(
-                    {
-                        "avg_val_loss": sum(val_losses) / len(val_losses),
-                        "epoch": curr_epoch + 1,
-                    },
-                    step=self.global_step,
-                )
+                if self.run_validation:
+                    self._metric_logger.log_dict(
+                        {
+                            "avg_val_loss": sum(val_losses) / len(val_losses),
+                            "epoch": curr_epoch + 1,
+                        },
+                        step=self.global_step,
+                    )
 
     def cleanup(self) -> None:
         self._metric_logger.close()
