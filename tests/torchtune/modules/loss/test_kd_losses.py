@@ -17,7 +17,7 @@ def random():
 
 
 class TestForwardKLWithChunkedOutputLoss:
-    def setup_forward_kl_loss(self, set_all_masks_zero: bool = False):
+    def setup_forward_kl_loss(self, ignore_all_tokens: bool = False):
         # Create a sample input and label
         ignore_index = -100
         batch_size = 3
@@ -33,7 +33,7 @@ class TestForwardKLWithChunkedOutputLoss:
 
         # add random ignore index to random tokens in the label
         random_indices = torch.randint(0, num_tokens, (batch_size, num_tokens))
-        if set_all_masks_zero:
+        if ignore_all_tokens:
             labels[:] = ignore_index
         else:
             labels[random_indices < num_tokens // 5] = ignore_index
@@ -59,7 +59,7 @@ class TestForwardKLWithChunkedOutputLoss:
     def test_forward_kl_loss(self):
 
         chunked_loss, standard_loss = self.setup_forward_kl_loss(
-            set_all_masks_zero=False
+            ignore_all_tokens=False
         )
 
         # Assert
@@ -68,9 +68,7 @@ class TestForwardKLWithChunkedOutputLoss:
     def test_forward_kl_loss_zero_masks(self):
 
         # set all masks to zero
-        chunked_loss, standard_loss = self.setup_forward_kl_loss(
-            set_all_masks_zero=True
-        )
+        chunked_loss, standard_loss = self.setup_forward_kl_loss(ignore_all_tokens=True)
 
         # Assert
         assert_expected(
