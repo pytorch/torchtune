@@ -15,7 +15,7 @@ import torch.distributed as dist
 from torch import nn
 
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
-from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed._tensor import distribute_tensor, DTensor, Replicate
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
@@ -25,7 +25,13 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
+from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.tensor.parallel import (
+    ColwiseParallel,
+    parallelize_module,
+    RowwiseParallel,
+)
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -166,7 +172,7 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
 
 
 def load_from_full_model_state_dict(
-    model: nn.Module,
+    model: "FSDPModule",  # noqa
     full_sd: Dict[str, Any],
     device: torch.device,
     strict: bool = False,
@@ -174,9 +180,9 @@ def load_from_full_model_state_dict(
 ) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
-    and loading it into the sharded model
+    and loading it into FSDP model
     Args:
-        model (Module): Sharaded model to generate fully qualified names for cpu_state_dict
+        model (FSDPModule): Model to generate fully qualified names for cpu_state_dict
         full_sd (Dict[str, Any]): a full state dict to load into the model
         device (torch.device): device used to move full state dict tensors
         strict (bool): flag to check if to load the model in strict mode
@@ -188,7 +194,7 @@ def load_from_full_model_state_dict(
             * **unexpected_keys** is a list of str containing the unexpected keys
 
     Raises:
-        NotImplementedError: If got parallelism dimension with more than 1D.
+        NotImplementedError: If got FSDP with more than 1D.
     """
     # PyTorch nightly versions from December 20, 2024, support the following features:
     # - `set_model_state_dict` with the `cpu_offload` option
@@ -238,7 +244,7 @@ def load_from_full_model_state_dict(
                 mesh = sharded_meta_param.device_mesh
                 if mesh.ndim > 1:
                     raise NotImplementedError(
-                        f"only support 1D parallelism but got {mesh.ndim=}"
+                        f"only support 1D FSDP but got {mesh.ndim=}"
                     )
                 shard_mesh_dim = 0
                 shard_world_size = mesh.size(shard_mesh_dim)
@@ -546,3 +552,54 @@ def shard_model(
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)
+
+
+def apply_tp(
+    model: nn.Module,
+    tp_mesh: DeviceMesh,
+) -> nn.Module:
+    """Apply tensor parallelism."""
+    # Parallelize the token embedding and the last linear proj layer
+    parallelize_module(
+        model,
+        tp_mesh,
+        {
+            "tok_embeddings": RowwiseParallel(
+                input_layouts=Replicate(),
+            ),
+            "output": ColwiseParallel(
+                output_layouts=Replicate(),
+            ),
+        },
+    )
+
+    # Apply tensor parallelism to every transformer block
+    print(f"{model.layers=}")
+
+    for transformer_block in model.layers:
+        layer_plan = {
+            "attn.q_proj": ColwiseParallel(),
+            "attn.k_proj": ColwiseParallel(),
+            "attn.v_proj": ColwiseParallel(),
+            "attn.output_proj": RowwiseParallel(),
+            "mlp.w1": ColwiseParallel(),
+            "mlp.w2": RowwiseParallel(),
+            "mlp.w3": ColwiseParallel(),
+        }
+
+        # Adjust attention module to use the local number of heads
+        attn_layer = transformer_block.attn
+        assert attn_layer.num_heads % tp_mesh.size() == 0
+        assert attn_layer.num_kv_heads % tp_mesh.size() == 0
+        assert attn_layer.embed_dim % tp_mesh.size() == 0
+        attn_layer.num_heads = attn_layer.num_heads // tp_mesh.size()
+        attn_layer.num_kv_heads = attn_layer.num_kv_heads // tp_mesh.size()
+        attn_layer.embed_dim = attn_layer.embed_dim // tp_mesh.size()
+
+        parallelize_module(
+            module=transformer_block,
+            device_mesh=tp_mesh,
+            parallelize_plan=layer_plan,
+        )
+
+    return model

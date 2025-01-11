@@ -99,7 +99,8 @@ class InferenceRecipe:
         tp_degree = dist.get_world_size()  # Using all GPUs for TP
         tp_mesh_shape = (tp_degree,)
         tp_device_mesh = dist.init_device_mesh("cuda", tp_mesh_shape)
-        model.distribute(tp_device_mesh)
+        model = training.apply_tp(model, tp_device_mesh)
+        # model.distribute(tp_device_mesh)
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
