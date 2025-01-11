@@ -644,7 +644,7 @@ file to our fine-tuned checkpoint files.</p>
 </div>
 <p>Running generation with our LoRA-finetuned model, we see the following output:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>generate<span class="w"> </span>--config<span class="w"> </span>./custom_generation_config.yaml<span class="w"> </span><span class="se">\</span>
-<span class="nv">prompt</span><span class="o">=</span><span class="s2">&quot;Hello, my name is&quot;</span>
+prompt.user<span class="o">=</span><span class="s2">&quot;Hello, my name is&quot;</span>
 
 <span class="o">[</span>generate.py:122<span class="o">]</span><span class="w"> </span>Hello,<span class="w"> </span>my<span class="w"> </span>name<span class="w"> </span>is<span class="w"> </span>Sarah<span class="w"> </span>and<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span>a<span class="w"> </span>busy<span class="w"> </span>working<span class="w"> </span>mum<span class="w"> </span>of<span class="w"> </span>two<span class="w"> </span>young<span class="w"> </span>children,<span class="w"> </span>living<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w"> </span>North<span class="w"> </span>East<span class="w"> </span>of<span class="w"> </span>England.
 ...
