@@ -26,15 +26,15 @@ def phi4_mini() -> TransformerDecoder:
         such as sliding window attention.
 
     Returns:
-        TransformerDecoder: Instantiation of Phi4 Mini 4K Instruct Model
+        TransformerDecoder: Instantiation of Phi4 Mini 16K Instruct Model
     """
     return phi3(
         vocab_size=100_352,
-        num_layers=32,
-        num_heads=32,
-        num_kv_heads=32,
-        embed_dim=3072,
-        intermediate_dim=8192,
+        num_layers=40,
+        num_heads=20,
+        num_kv_heads=10,
+        embed_dim=5120,
+        intermediate_dim=17920,
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
@@ -73,7 +73,7 @@ def lora_phi4_mini(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Builder for creating a Phi4 Mini (3.8b) model with LoRA enabled.
+    Builder for creating a Phi4 (14b) model with LoRA enabled.
 
     The Phi4 defaults are the same as in :func:`~torchtune.models.phi4.phi4_mini`,
     while LoRA default params are based on
@@ -102,11 +102,11 @@ def lora_phi4_mini(
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
         vocab_size=100_352,
-        num_layers=32,
-        num_heads=32,
-        num_kv_heads=32,
-        embed_dim=3072,
-        intermediate_dim=8192,
+        num_layers=40,
+        num_heads=20,
+        num_kv_heads=10,
+        embed_dim=5120,
+        intermediate_dim=17920,
         max_seq_len=16384,
         attn_dropout=0.0,
         norm_eps=1e-5,
