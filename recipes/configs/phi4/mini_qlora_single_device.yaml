@@ -1,9 +1,9 @@
 # Config for single device QLoRA with lora_finetune_single_device.py
-# using a Phi3 mini (3.8B) model
+# using a Phi4 (14B) model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-4-mini-16k-instruct --output-dir /tmp/Phi-4-mini-16k-instruct --hf-token <HF_TOKEN>
+#   tune download microsoft/phi-4 --output-dir /tmp/phi-4 --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config phi4/mini_qlora_single_device
@@ -30,20 +30,24 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi4.phi4_mini_tokenizer
-  path: /tmp/Phi-4-mini-16k-instruct/tokenizer.model
+  path: /tmp/phi-4/tokenizer.model
   max_seq_len: null
 
 # Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Phi-4-mini-16k-instruct
+  checkpoint_dir: /tmp/phi-4
   checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors
+    model-00001-of-00006.safetensors,
+    model-00002-of-00006.safetensors,
+    model-00003-of-00006.safetensors,
+    model-00004-of-00006.safetensors,
+    model-00005-of-00006.safetensors,
+    model-00006-of-00006.safetensors,
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: PHI4_MINI
+  model_type: PHI3_MINI
 resume_from_checkpoint: False
 save_adapter_weights_only: False
 
@@ -95,7 +99,7 @@ profiler:
   enabled: False
 
   # Output directory of trace artifacts
-  output_dir: /tmp/Phi-4-mini-16k-instruct/profiling_outputs
+  output_dir: /tmp/phi-4/profiling_outputs
 
   #`torch.profiler.ProfilerActivity` types to trace
   cpu: True

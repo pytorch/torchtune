@@ -1,9 +1,9 @@
 # Config for multi-device full finetuning in full_finetune_distributed.py
-# using a Phi3 Mini 4K Instruct
+# using a Phi4 16K Instruct
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-4-mini-16k-instruct --output-dir /tmp/Phi-4-mini-16k-instruct --hf-token <HF_TOKEN>
+#   tune download microsoft/phi-4 --output-dir /tmp/phi-4 --hf-token <HF_TOKEN>
 #
 # Run this config on 4 GPUs using the following:
 #  tune run --nproc_per_node 4 full_finetune_distributed --config phi4/mini_full
@@ -26,20 +26,24 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi4.phi4_mini_tokenizer
-  path: /tmp/Phi-4-mini-16k-instruct/tokenizer.model
+  path: /tmp/phi-4/tokenizer.model
   max_seq_len: null
 
 # Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Phi-4-mini-16k-instruct
+  checkpoint_dir: /tmp/phi-4
   checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors
+    model-00001-of-00006.safetensors,
+    model-00002-of-00006.safetensors,
+    model-00003-of-00006.safetensors,
+    model-00004-of-00006.safetensors,
+    model-00005-of-00006.safetensors,
+    model-00006-of-00006.safetensors,
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: PHI4_MINI
+  model_type: PHI3_MINI
 resume_from_checkpoint: False
 
 # Dataset

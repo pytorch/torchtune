@@ -31,7 +31,7 @@ PHI4_SPECIAL_TOKENS = {
 
 for token_id in range(100266, 100351):
     if token_id == 100276:
-        continue 
+        continue
     PHI4_SPECIAL_TOKENS[f"<|dummy_{87 - (100350 - token_id)}|>"] = token_id + 1
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -100,7 +100,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
     @property
     def vocab_size(self):
         return self.tt_model.vocab_size
-    
+
     @property
     def base_vocab_size(self) -> int:
         return self.tt_model.base_vocab_size
@@ -138,7 +138,6 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             else:
                 ids_for_decode.append(token_id)
         return self.tt_model.decode(ids_for_decode)
-
 
     def tokenize_messages(
         self,

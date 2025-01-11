@@ -12,7 +12,7 @@ model:
 # Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Phi-4-mini-16k-instruct
+  checkpoint_dir: /tmp/phi-4
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors
@@ -25,7 +25,7 @@ resume_from_checkpoint: False
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi4.phi4_mini_tokenizer
-  path: /tmp/Phi-4-mini-16k-instruct/tokenizer.model
+  path: /tmp/phi-4/tokenizer.model
   max_seq_len: null
 
 # Environment
