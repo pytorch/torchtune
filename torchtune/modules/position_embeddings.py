@@ -254,7 +254,7 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         # reshape the cache for broadcasting
         rope_cache = self.cache.view(1, 1, seq_len, 1, h_d // 2, 2)
 
-        # tensor has shape [b, max_num_tiles, s, n_h, h_d // 2, 2]
+        # tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]
         x_out = torch.stack(
             [
                 xshaped[..., 0] * rope_cache[..., 0]
@@ -265,6 +265,6 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
             -1,
         )
 
-        # tensor has shape [b, s, n_h, h_d]
+        # Squash tile dimension back into sequence dimension - tensor has shape [b, s, n_h, h_d]
         x_out = x_out.reshape(bsz, self.max_num_tiles * seq_len, n_h, h_d)
         return x_out.type_as(x)
