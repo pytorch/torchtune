@@ -7,7 +7,14 @@
 import pytest
 import torch
 from tests.test_utils import assert_expected
-from torchtune.modules.loss import ForwardKLLoss, ForwardKLWithChunkedOutputLoss, ReverseKLLoss, ReverseKLWithChunkedOutputLoss, SymmetricKLLoss, SymmetricKLWithChunkedOutputLoss
+from torchtune.modules.loss import (
+    ForwardKLLoss,
+    ForwardKLWithChunkedOutputLoss,
+    ReverseKLLoss,
+    ReverseKLWithChunkedOutputLoss,
+    SymmetricKLLoss,
+    SymmetricKLWithChunkedOutputLoss,
+)
 from torchtune.training.seed import set_seed
 
 
@@ -115,6 +122,7 @@ class TestForwardKLWithChunkedOutputLoss:
         assert_expected(chunked_loss, expected_loss, rtol=1e-2, atol=1e-2)
         assert_expected(standard_loss, expected_loss, rtol=1e-2, atol=1e-2)
 
+
 class TestReverseKLWithChunkedOutputLoss:
     def test_reverse_kl_loss(self):
         # Create a sample input and label
@@ -213,6 +221,7 @@ class TestReverseKLWithChunkedOutputLoss:
         # assert
         assert_expected(chunked_loss, expected_loss, rtol=1e-2, atol=1e-2)
         assert_expected(standard_loss, expected_loss, rtol=1e-2, atol=1e-2)
+
 
 class TestSymmetricKLWithChunkedOutputLoss:
     def test_symmetric_kl_loss(self):

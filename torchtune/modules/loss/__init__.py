@@ -5,7 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 
 from .ce_chunked_output_loss import CEWithChunkedOutputLoss
-from .kd_losses import ForwardKLLoss, ForwardKLWithChunkedOutputLoss, ReverseKLLoss, ReverseKLWithChunkedOutputLoss, SymmetricKLLoss, SymmetricKLWithChunkedOutputLoss
+from .kd_losses import (
+    ForwardKLLoss,
+    ForwardKLWithChunkedOutputLoss,
+    ReverseKLLoss,
+    ReverseKLWithChunkedOutputLoss,
+    SymmetricKLLoss,
+    SymmetricKLWithChunkedOutputLoss,
+)
 
 __all__ = [
     "CEWithChunkedOutputLoss",
