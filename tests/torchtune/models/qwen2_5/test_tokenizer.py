@@ -98,4 +98,3 @@ def _test_tokenize_messages(
     assert expected_tokens == tokens
     formatted_messages = tokenizer.decode(tokens)
     assert expected_formatted_messages == formatted_messages
-    
