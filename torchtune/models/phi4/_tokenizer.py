@@ -150,7 +150,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         returning a list of tokens and a list of masks.
 
         Example:
-            >>> tokenizer = Phi3MiniTokenizer(tokenizer_path, max_seq_len)
+            >>> tokenizer = Phi4MiniTokenizer(tokenizer_path, max_seq_len)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
