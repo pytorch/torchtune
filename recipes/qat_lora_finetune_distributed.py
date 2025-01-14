@@ -644,7 +644,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=self.seed
         )
 
         dataloader = DataLoader(

@@ -662,7 +662,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             num_replicas=world_size,
             rank=rank,
             shuffle=shuffle,
-            seed=0,
+            seed=self.seed,
         )
         dataloader = DataLoader(
             dataset=ds,

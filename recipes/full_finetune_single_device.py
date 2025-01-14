@@ -573,7 +573,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
+            seed=self.seed,
         )
         dataloader = DataLoader(
             dataset=ds,

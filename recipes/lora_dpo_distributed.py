@@ -504,7 +504,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=self.seed
         )
 
         dataloader = DataLoader(
