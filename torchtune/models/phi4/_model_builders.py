@@ -75,9 +75,7 @@ def lora_phi4_mini(
     """
     Builder for creating a Phi4 (14b) model with LoRA enabled.
 
-    The Phi4 defaults are the same as in :func:`~torchtune.models.phi4.phi4_mini`,
-    while LoRA default params are based on
-    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+    The Phi4 defaults are the same as in :func:`~torchtune.models.phi4.phi4_mini`.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
