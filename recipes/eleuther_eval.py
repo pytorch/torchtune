@@ -547,9 +547,11 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Log metrics
         self.logger.info(f"Eval completed in {t1:.02f} seconds.")
-        self.logger.info(
-            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
-        )
+        if self.device.type != "cpu":
+            torch_device = utils.get_torch_device_namespace()
+            self.logger.info(
+                f"Max memory allocated: {torch_device.max_memory_allocated() / 1e9:.02f} GB"
+            )
         formatted_output = make_table(output)
         self.logger.info(f"\n\n{formatted_output}\n")
 
