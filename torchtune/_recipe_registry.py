@@ -305,6 +305,27 @@ _ALL_RECIPES = [
         ],
         supports_distributed=False,
     ),
+
+    Recipe(
+        name="lora_CE_single_device",
+        file_path="lora_CE_single_device.py",
+        configs=[
+            Config(name="llama3_2/3B_lora_dpo_single_device", file_path="llama3_2/3B_lora_dpo_single_device.yaml"),
+            Config(name="llama3_1/8B_lora_dpo_single_device", file_path="llama3_1/8B_lora_dpo_single_device.yaml"),
+        ],
+        supports_distributed=False,
+    ),
+
+    Recipe(
+        name="traj_lora_dpo_single_device",
+        file_path="traj_lora_dpo_single_device.py",
+        configs=[
+            Config(name="llama3_2/3B_lora_dpo_single_device", file_path="llama3_2/3B_lora_dpo_single_device.yaml"),
+            Config(name="llama3_1/8B_lora_dpo_single_device", file_path="llama3_1/8B_lora_dpo_single_device.yaml")
+        ],
+        supports_distributed=False,
+
+    ),
     Recipe(
         name="lora_dpo_distributed",
         file_path="lora_dpo_distributed.py",

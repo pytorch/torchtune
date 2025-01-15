@@ -92,6 +92,54 @@ class DPOLoss(nn.Module):
         )
 
         return losses, chosen_rewards, rejected_rewards
+    
+
+class CELoss(nn.Module):
+    """
+    Cross-Entropy (CE) Loss Module for comparing policy and reference log probabilities
+    and computing loss based on preference labels.
+
+    Args:
+        beta (float): Temperature parameter to scale the log-ratio. Default is 0.1.
+    """
+
+    def __init__(self, beta: float = 0.1):
+        super().__init__()
+        self.beta = beta  # Scaling parameter for the log-ratio
+        self.celoss = nn.BCELoss(reduction='none')  # Binary Cross-Entropy loss without reduction
+
+    def forward(
+        self,
+        policy_chosen_logps: torch.Tensor,
+        reference_chosen_logps: torch.Tensor,
+        labels: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Compute the CE loss for a batch of policy and reference model log probabilities.
+
+        Args:
+            policy_chosen_logps (torch.Tensor): Log probabilities of the policy model
+                for the chosen responses. Shape: (batch_size)
+            reference_chosen_logps (torch.Tensor): Log probabilities of the reference model
+                for the chosen responses. Shape: (batch_size)
+            labels (torch.Tensor): Ground truth labels indicating preferences. Shape: (batch_size)
+
+        Returns:
+            torch.Tensor: The mean CE loss for the batch.
+        """
+        # Calculate log-ratio
+        logratio = policy_chosen_logps - reference_chosen_logps
+
+        # Compute rewards as a sigmoid function of the log-ratio
+        rewards = (self.beta * logratio).sigmoid()  # Use sigmoid to convert to [0, 1] range
+
+        # Compute per-sample binary cross-entropy loss
+        losses = self.celoss(rewards, labels.float())
+
+        # Compute mean loss
+        loss = losses.mean()
+
+        return loss
 
 
 class RSOLoss(nn.Module):

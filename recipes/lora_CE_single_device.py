@@ -1,4 +1,3 @@
-
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -19,9 +18,9 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo, padded_collate_traj_dpo
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo, padded_collate_traj_CE
 from torchtune.datasets import ConcatDataset
-from torchtune.datasets import multi_conversation_dataset
+from torchtune.datasets import multi_conversation_dataset, CE_multi_conversation_dataset
 from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
@@ -212,7 +211,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._model_compile = cfg.compile
-        import pdb; pdb.set_trace()
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
@@ -377,16 +375,16 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         Map-style Datasets which fit into memory and an option for random shuffling.
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
-            ds = ConcatDataset(datasets=datasets)
-        else:
-            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+        # if isinstance(cfg_dataset, ListConfig):
+        #     datasets = [
+        #         config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+        #         for single_cfg_dataset in cfg_dataset
+        #     ]
+        #     ds = ConcatDataset(datasets=datasets)
+        # else:
+        #     ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        #ds= multi_conversation_dataset(tokenizer=self._tokenizer)
+        ds= CE_multi_conversation_dataset(tokenizer=self._tokenizer)
 
         sampler = DistributedSampler(
             ds,
@@ -402,7 +400,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
             collate_fn=partial(
-                padded_collate_traj_dpo,
+                padded_collate_traj_CE,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
@@ -488,17 +486,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         all_log_probs = rlhf.get_batch_log_probs(all_logits, concatenated_labels)
     
         return (all_log_probs, all_logits)
-    
-    def _skip_max_seq_len_samples(self, input_ids):
-        max_inp=0
-        for inp in input_ids:
-            if len(inp)>max_inp:
-                max_inp=len(inp)
-        
-        if max_inp>5900:
-            return False
-        else:
-            return True
 
     def train(self) -> None:
         """
@@ -615,7 +602,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, desc="Training")
 
             positive_trajectory_length = 0
-            negative_trajectory_length = 0
 
             for idx, batch in enumerate(self._dataloader):
                 if (
@@ -624,19 +610,14 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 ):
                     break
 
-                input_ids, labels, ratio = batch
-
-                if self._skip_max_seq_len_samples(input_ids):
-                    max_len_samples += 1
-                    continue
+                input_ids, labels = batch
 
                 policy_chosen_sum = torch.tensor([], device=self._device)
-                policy_rejected_sum = torch.tensor([], device=self._device)
+                
                 reference_chosen_sum = torch.tensor([], device=self._device)
-                reference_rejected_sum = torch.tensor([], device=self._device)
+            
 
-                positive_trajectory_length += ratio[0]
-                negative_trajectory_length += ratio[1]
+                positive_trajectory_length += len(labels)
 
                 for index in range(len(input_ids)):
                     log_policy_probs, policy_logits = self.concatenated_forward(
@@ -650,30 +631,22 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                         )
                         del reference_logits
 
-                    if index < ratio[0]:
-                        policy_chosen_sum = torch.concat(
+                    policy_chosen_sum = torch.concat(
                             [policy_chosen_sum, log_policy_probs.unsqueeze(0)]
                         )
-                        reference_chosen_sum = torch.concat(
+                    reference_chosen_sum = torch.concat(
                             [reference_chosen_sum, reference_log_probs.unsqueeze(0)]
                         )
-                    else:
-                        policy_rejected_sum = torch.concat(
-                            [policy_rejected_sum, log_policy_probs.unsqueeze(0)]
-                        )
-                        reference_rejected_sum = torch.concat(
-                            [reference_rejected_sum, reference_log_probs.unsqueeze(0)]
-                        )
+                    
 
-                loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                loss = self._loss_fn(
                 policy_chosen_sum.sum(),
-                policy_rejected_sum.sum(),
-                reference_chosen_sum.sum(),
-                reference_rejected_sum.sum(),
+                reference_chosen_sum.sum(), 
+                labels=torch.tensor(1, device=self._device)
                 )
 
                 loss = loss.mean()
-                reward_accuracies = (chosen_rewards > rejected_rewards).float()
+                
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
@@ -695,10 +668,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     )
 
                     avg_positive_length = positive_trajectory_length / self._gradient_accumulation_steps
-                    avg_negative_length = negative_trajectory_length / self._gradient_accumulation_steps
+        
 
                     positive_trajectory_length = 0
-                    negative_trajectory_length = 0
+                    
 
                     if self.global_step % self._log_every_n_steps == 0:
                         time_per_step = time.perf_counter() - t0
@@ -707,14 +680,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                         "loss": loss_to_log,
                         "idx": idx,
                         "positive_trajectory_length": avg_positive_length,
-                        "negative_trajectory_length": avg_negative_length,
                         "lr": self._optimizer.param_groups[0]["lr"],
                         "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                        "rewards/chosen": chosen_rewards.mean().cpu(),
-                        "rewards/rejected": rejected_rewards.mean().cpu(),
-                        "rewards/accuracies": reward_accuracies.mean().cpu(),
-                        "rewards/margins": (chosen_rewards - rejected_rewards).mean().cpu(),
-                        "log_probs/rejected": policy_rejected_sum.detach().mean().cpu(),
                         "log_probs/chosen": policy_chosen_sum.detach().mean().cpu(),
                         }
 
