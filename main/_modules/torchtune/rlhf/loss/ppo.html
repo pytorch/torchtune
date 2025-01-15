@@ -530,7 +530,9 @@
         <span class="n">policy_losses_clipped</span> <span class="o">=</span> <span class="o">-</span><span class="n">advantages</span> <span class="o">*</span> <span class="n">clipped_ratios</span>
         <span class="n">policy_losses_unclipped</span> <span class="o">=</span> <span class="o">-</span><span class="n">advantages</span> <span class="o">*</span> <span class="n">ratios</span>
 
-        <span class="n">clipfrac</span> <span class="o">=</span> <span class="p">(</span><span class="n">policy_losses_clipped</span> <span class="o">&gt;</span> <span class="n">policy_losses_unclipped</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">clipfrac</span> <span class="o">=</span> <span class="p">(</span><span class="n">policy_losses_clipped</span> <span class="o">&gt;</span> <span class="n">policy_losses_unclipped</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">pi_logprobs</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
         <span class="n">clipfrac</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">clipfrac</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">padding_masks</span> <span class="ow">is</span> <span class="kc">None</span>

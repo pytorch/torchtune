@@ -524,10 +524,6 @@
 <span class="sd">        - response_len: model response length</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># 1. calculate kl between logprobs and reflogprobs</span>
-    <span class="c1"># 2. calculate kl reward using adaptive scaling value</span>
-    <span class="c1"># 3. calculate total reward by summing above</span>
-    <span class="c1"># return all</span>
     <span class="n">kl</span> <span class="o">=</span> <span class="n">logprobs</span> <span class="o">-</span> <span class="n">ref_logprobs</span>
     <span class="n">kl_reward</span> <span class="o">=</span> <span class="o">-</span><span class="n">kl_coeff</span> <span class="o">*</span> <span class="n">kl</span>
 
@@ -537,9 +533,9 @@
     <span class="c1"># https://github.com/openai/lm-human-preferences/blob/cbfd210bb8b08f6bc5c26878c10984b90f516c66/lm_human_preferences/train_policy.py#L153</span>
 
     <span class="k">if</span> <span class="n">valid_score_idxs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">total_reward</span><span class="p">[</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">scores</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">valid_score_idxs</span>
-        <span class="p">]</span> <span class="o">+=</span> <span class="n">scores</span>
+        <span class="n">total_reward</span><span class="o">.</span><span class="n">scatter_add_</span><span class="p">(</span>
+            <span class="mi">1</span><span class="p">,</span> <span class="n">valid_score_idxs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">scores</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">total_reward</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">scores</span>
 
@@ -561,17 +557,17 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor: The mean tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="o">/</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">masked_var</span><span class="p">(</span>
-    <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">unbiased</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">centered_values</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">unbiased</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute variance of tensor with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py</span>
-
+<span class="sd">    Compute variance of mean-centered tensor with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py</span>
+<span class="sd">    We use ``centered_values`` to avoid repeated calls to ``masked_mean``.</span>
 <span class="sd">    Args:</span>
-<span class="sd">        x (torch.Tensor): The input tensor.</span>
+<span class="sd">        centered_values (torch.Tensor): The mean-centered tensor e.g. ``x - masked_mean(x)``.</span>
 <span class="sd">        mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``</span>
 <span class="sd">            should participate in the mean calculation.</span>
 <span class="sd">        unbiased (bool): Whether to use the unbiased variance.</span>
@@ -579,21 +575,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor: The variance tensor.</span>
 
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If the sum of the mask is zero.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mean</span> <span class="o">=</span> <span class="n">masked_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
-    <span class="n">centered_values</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">mean</span>
     <span class="n">var</span> <span class="o">=</span> <span class="n">masked_mean</span><span class="p">(</span><span class="n">centered_values</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">mask</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">unbiased</span><span class="p">:</span>
-        <span class="n">mask_sum</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">mask_sum</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;The sum of the mask is zero, which can happen when ``ppo_batch_size=1``;&quot;</span>
-                <span class="s2">&quot;try increase the ``ppo_batch_size`` or ``gradient_accumulation_steps``&quot;</span>
-            <span class="p">)</span>
-        <span class="c1"># note that if mask_sum == 1, then there is a division by zero issue</span>
-        <span class="c1"># to avoid it you just need to use a larger minibatch_size</span>
+        <span class="n">mask_sum</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-8</span>
         <span class="n">bessel_correction</span> <span class="o">=</span> <span class="n">mask_sum</span> <span class="o">/</span> <span class="p">(</span><span class="n">mask_sum</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">var</span> <span class="o">=</span> <span class="n">var</span> <span class="o">*</span> <span class="n">bessel_correction</span>
     <span class="k">return</span> <span class="n">var</span>
@@ -606,16 +591,16 @@
 <span class="sd">    Whiten (normalises) values, optionally with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py</span>
 <span class="sd">    Args:</span>
 <span class="sd">        x (torch.Tensor): The input tensor.</span>
-<span class="sd">        mask (Optional[torch.Tensor]): The bool mask tensor, where True indicates the corresponding value in ``x``</span>
-<span class="sd">            should participate in the mean calculation. Default None.</span>
-<span class="sd">        shift_mean (bool): Whether to shift normalised values by the mean.</span>
+<span class="sd">        mask (Optional[torch.Tensor]): The bool mask tensor with the same shape as ``x``, and where True indicates</span>
+<span class="sd">            the corresponding value in ``x`` should participate in the mean calculation. Default None.</span>
+<span class="sd">        shift_mean (bool): Whether to shift normalised values by the mean. Default True.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor: The whitened tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">mean</span> <span class="o">=</span> <span class="n">masked_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
-        <span class="n">var</span> <span class="o">=</span> <span class="n">masked_var</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">var</span><span class="p">()</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="n">masked_var</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mean</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">mean</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">x</span><span class="o">.</span><span class="n">var</span><span class="p">()</span>
     <span class="n">whitened</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">var</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
@@ -676,11 +661,9 @@
     <span class="n">returns</span> <span class="o">=</span> <span class="n">advantages</span> <span class="o">+</span> <span class="n">values</span>
 
     <span class="c1"># normalize advantages across the batch of trajectories to reduce variance</span>
+    <span class="n">advantages</span> <span class="o">=</span> <span class="n">whiten</span><span class="p">(</span><span class="n">advantages</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">masks</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">masks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">advantages</span> <span class="o">=</span> <span class="n">whiten</span><span class="p">(</span><span class="n">advantages</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">masks</span><span class="p">)</span>
         <span class="n">advantages</span><span class="p">[</span><span class="o">~</span><span class="n">masks</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">advantages</span> <span class="o">=</span> <span class="n">whiten</span><span class="p">(</span><span class="n">advantages</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">advantages</span><span class="p">,</span> <span class="n">returns</span></div>
 </pre></div>

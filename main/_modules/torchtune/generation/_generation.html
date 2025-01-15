@@ -542,15 +542,15 @@
 <span class="sd">            - tokens (torch.Tensor): tensor with the generated tokens,</span>
 <span class="sd">                with shape [bsz x 1].</span>
 <span class="sd">            - logits (torch.Tensor): tensor with the logits associated with the generated tokens,</span>
-<span class="sd">                with shape [bsz x seq_length x vocab_size].</span>
+<span class="sd">                with shape [bsz x 1 x vocab_size].</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># model produces logits in [bsz, seq_length, vocab_size]</span>
     <span class="c1"># we want to take the last token&#39;s logits as the input to the next model call</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="n">sample</span><span class="p">(</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">),</span>
-        <span class="n">logits</span><span class="p">,</span>
+        <span class="n">sample</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">),</span>
+        <span class="n">logits</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
     <span class="p">)</span></div>
 
 
@@ -637,7 +637,7 @@
     <span class="k">return</span> <span class="p">((</span><span class="n">padding_mask</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">padding_mask</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="generate"><a class="viewcode-back" href="../../../generated/torchtune.generation.generate.html#torchtune.generation.generate">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">inference_mode</span><span class="p">()</span>
+<div class="viewcode-block" id="generate"><a class="viewcode-back" href="../../../generated/torchtune.generation.generate.html#torchtune.generation.generate">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
     <span class="n">prompt</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -689,7 +689,7 @@
 <span class="sd">                with shape ``[bsz x seq_len + num_generated_tokens]`` where ``num_generated_tokens``</span>
 <span class="sd">                may be less than ``max_generated_tokens`` if ``stop_tokens`` are provided.</span>
 <span class="sd">            - logits (torch.Tensor): tensor with the logits associated with the generated tokens,</span>
-<span class="sd">                with shape ``[bsz x seq_len + num_generated_tokens x vocab_size]``.</span>
+<span class="sd">                with shape ``[bsz x num_generated_tokens x vocab_size]``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">prompt</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">prompt</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">prompt</span>
 
@@ -803,8 +803,8 @@
         <span class="c1"># if incremental decoding is enabled, we can use the current position</span>
         <span class="c1"># otherwise, we take the whole sequence up to the current position</span>
         <span class="k">if</span> <span class="n">incremental_decoding</span><span class="p">:</span>
-            <span class="n">curr_input_pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="p">[:,</span> <span class="n">curr_pos</span><span class="p">]</span>
-            <span class="n">curr_masks</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[:,</span> <span class="n">curr_pos</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">curr_input_pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="p">[:,</span> <span class="n">curr_pos</span><span class="p">]</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+            <span class="n">curr_masks</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[:,</span> <span class="n">curr_pos</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">generated_tokens</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
             <span class="n">curr_input_pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">curr_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
@@ -825,11 +825,8 @@
             <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated_tokens</span><span class="p">,</span> <span class="n">tokens</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">generated_logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">curr_pos</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">incremental_decoding</span><span class="p">:</span>
-            <span class="n">generated_logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">generated_logits</span> <span class="o">=</span> <span class="n">logits</span>
 
         <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">stop_token_reached</span> <span class="o">=</span> <span class="n">update_stop_tokens_tracker</span><span class="p">(</span>
@@ -841,7 +838,7 @@
     <span class="c1"># mask out generated tokens in seqs that already hit a stop token</span>
     <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">generated_tokens</span> <span class="o">*=</span> <span class="n">stop_token_mask</span>
-        <span class="n">generated_logits</span> <span class="o">*=</span> <span class="n">stop_token_mask</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">generated_logits</span> <span class="o">*=</span> <span class="n">stop_token_mask</span><span class="p">[:,</span> <span class="o">-</span><span class="n">generated_logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">generated_tokens</span><span class="p">,</span> <span class="n">generated_logits</span></div>
 </pre></div>
