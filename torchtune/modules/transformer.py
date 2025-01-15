@@ -344,8 +344,9 @@ class TransformerDecoder(nn.Module):
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
-        AssertionError: num_layers is set and layer is a list
-        AssertionError: num_layers is not set and layer is an nn.Module
+        AssertionError:
+            If ``num_layers`` is set and layer is a list, **or**
+            ``num_layers`` is not set and layer is an ``nn.Module``.
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -519,10 +520,11 @@ class TransformerDecoder(nn.Module):
             input_pos (Optional[torch.Tensor]): Input tensor position IDs.
 
         Raises:
-            ValueError: if seq_len of x is bigger than max_seq_len
-            ValueError: if the model has caches which have been setup with self-attention layers and ``mask`` is not provided.
-            ValueError: if the model has caches which have been setup with encoder layers and ``encoder_mask`` is not provided.
-            ValueError: if the model has caches which have been setup ``input_pos`` is not provided.
+            ValueError:
+                If seq_len of x is bigger than max_seq_len, **or**
+                if the model has caches which have been setup with self-attention layers and ``mask`` is not provided, **or**
+                if the model has caches which have been setup with encoder layers and ``encoder_mask`` is not provided, **or**
+                if the model has caches which have been setup ``input_pos`` is not provided.
         """
 
         if seq_len > self.max_seq_len:
