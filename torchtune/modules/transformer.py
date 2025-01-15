@@ -419,12 +419,11 @@ class TransformerDecoder(nn.Module):
             encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
             decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
-
         has_encoder_layers = any(
             isinstance(m, TransformerCrossAttentionLayer) for m in self.modules()
         )
         has_decoder_layers = any(
-            isinstance(l, TransformerSelfAttentionLayer) for l in self.layers
+            isinstance(m, TransformerSelfAttentionLayer) for m in self.modules()
         )
 
         if has_encoder_layers:
@@ -438,7 +437,6 @@ class TransformerDecoder(nn.Module):
                 self.decoder_max_cache_seq_len = decoder_max_seq_len
             else:
                 self.decoder_max_cache_seq_len = self.max_seq_len
-
         for layer in self.layers:
             layer.setup_caches(
                 batch_size,
