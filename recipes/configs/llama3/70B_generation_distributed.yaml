@@ -7,6 +7,8 @@
 # To launch, run the following command from root torchtune directory:
 #    tune run --nproc_per_node 8 dev/generate_v2_distributed --config llama3/70B_generation_distributed.yaml
 
+output_dir: ./
+
 # Model arguments
 model:
   _component_: torchtune.models.llama3.llama3_70b
@@ -26,7 +28,7 @@ checkpointer:
     filename_format: model-{}-of-{}.safetensors
     max_filename: "00030"
   recipe_checkpoint: null
-  output_dir: ./
+  output_dir: ${output_dir}
   model_type: LLAMA3
 
 # Device
