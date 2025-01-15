@@ -168,9 +168,10 @@ class InputOutputToMessages(Transform):
             on a remote url. For text-only, leave as None. Default is None.
 
     Raises:
-        ValueError: If ``column_map`` is provided and ``input`` not in ``column_map``, or
-            ``output`` not in ``column_map``.
-        ValueError: If ``image_dir`` is provided but ``image`` not in ``column_map``.
+        ValueError:
+            If ``column_map`` is provided and ``input`` not in ``column_map``, or
+                ``output`` not in ``column_map``, **or**
+            if ``image_dir`` is provided but ``image`` not in ``column_map``.
     """
 
     def __init__(

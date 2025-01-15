@@ -50,10 +50,11 @@ class Gemma2Attention(nn.Module):
         softcapping (Optional[float]): capping value used for soft caping, if None no capping is performed
         query_pre_attn_scalar (Optional[int]): value used for pre attention normalisation, if None head_dim is used instead
     Raises:
-        ValueError: If ``num_heads % num_kv_heads != 0``
-        ValueError: If ``embed_dim % num_heads != 0``
-        ValueError: If ``attn_dropout < 0`` or ``attn_dropout > 1``
-        ValueError: if q_norm is defined without k_norm or vice versa
+        ValueError:
+            If ``num_heads % num_kv_heads != 0``, **or**
+            if ``embed_dim % num_heads != 0``, **or**
+            if ``attn_dropout < 0`` or ``attn_dropout > 1``, **or**
+            if ``q_norm`` is defined without k_norm or vice versa
     """
 
     def __init__(
@@ -156,7 +157,11 @@ class Gemma2Attention(nn.Module):
             self.cache_enabled = True
 
     def reset_cache(self):
-        """Reset the key value caches."""
+        """Reset the key value caches.
+
+        Raises:
+            RuntimeError: if key value caches are not already setup.
+        """
         if self.kv_cache is None:
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
@@ -196,6 +201,7 @@ class Gemma2Attention(nn.Module):
                 If none, assume the index of the token is its position id. Default is None.
 
         Raises:
+            NotImplementedError: If ``mask`` is provided, but mask is not an instance of ``torch.Tensor``.
             ValueError: If no ``y`` input and ``kv_cache`` is not enabled.
 
         Returns:
