@@ -224,23 +224,18 @@
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
                   <span class="dropdown-title">Governing Board</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/credits">
                   <span class="dropdown-title">Cloud Credit Program</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/tac">
                   <span class="dropdown-title">Technical Advisory Council</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/staff">
                   <span class="dropdown-title">Staff</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
                   <span class="dropdown-title">Contact Us</span>
-                  <p></p>
                 </a>
               </div>
             </div>
@@ -579,12 +574,13 @@
 <span class="sd">            **kwargs (Dict[str, Any]): Additional keyword arguments.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if loaded local or global embedding n_tokens_per_tile is not derived</span>
-<span class="sd">                from a squared grid.</span>
-<span class="sd">            ValueError: if after interpolation, the shape of the loaded local embedding</span>
-<span class="sd">                is not compatible with the current embedding.</span>
-<span class="sd">            ValueError: if after interpolation, the shape of the loaded global embedding</span>
-<span class="sd">                is not compatible with the current embedding.</span>
+<span class="sd">            ValueError:</span>
+<span class="sd">                If loaded local or global embedding n_tokens_per_tile is not derived</span>
+<span class="sd">                    from a squared grid, **or**</span>
+<span class="sd">                if after interpolation, the shape of the loaded local embedding</span>
+<span class="sd">                    is not compatible with the current embedding, **or**</span>
+<span class="sd">                if after interpolation, the shape of the loaded global embedding</span>
+<span class="sd">                    is not compatible with the current embedding.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># process local_token_positional_embedding</span>
@@ -983,9 +979,10 @@
 <span class="sd">            **kwargs (Dict[str, Any]): Additional keyword arguments.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if the shape of the loaded embedding is not compatible with the current embedding.</span>
-<span class="sd">            ValueError: if max_num_tiles_x, max_num_tiles_y are not equal.</span>
-<span class="sd">            ValueError: if after interpolation, the shape of the loaded embedding is not compatible with the current embedding.</span>
+<span class="sd">            ValueError:</span>
+<span class="sd">                If the shape of the loaded embedding is not compatible with the current embedding, **or**</span>
+<span class="sd">                if ``max_num_tiles_x``, ``max_num_tiles_y`` are not equal, **or**</span>
+<span class="sd">                if after interpolation, the shape of the loaded embedding is not compatible with the current embedding.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">embedding</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;embedding&quot;</span><span class="p">)</span>

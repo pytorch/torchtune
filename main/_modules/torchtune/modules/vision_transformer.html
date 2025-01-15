@@ -224,23 +224,18 @@
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
                   <span class="dropdown-title">Governing Board</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/credits">
                   <span class="dropdown-title">Cloud Credit Program</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/tac">
                   <span class="dropdown-title">Technical Advisory Council</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/staff">
                   <span class="dropdown-title">Staff</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
                   <span class="dropdown-title">Contact Us</span>
-                  <p></p>
                 </a>
               </div>
             </div>
@@ -643,9 +638,10 @@
 <span class="sd">            Default is False, which adds CLS token to the beginning of the sequence.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If `tile_size` is not greater than 0.</span>
-<span class="sd">        ValueError: If `patch_size` is not greater than 0.</span>
-<span class="sd">        ValueError: If `len(out_indices)` is greater than `num_layers`.</span>
+<span class="sd">        ValueError:</span>
+<span class="sd">            If `tile_size` is not greater than 0, **or**</span>
+<span class="sd">            if `patch_size` is not greater than 0, **or**</span>
+<span class="sd">            if `len(out_indices)` is greater than `num_layers`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>

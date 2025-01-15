@@ -224,23 +224,18 @@
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
                   <span class="dropdown-title">Governing Board</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/credits">
                   <span class="dropdown-title">Cloud Credit Program</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/tac">
                   <span class="dropdown-title">Technical Advisory Council</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/staff">
                   <span class="dropdown-title">Staff</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
                   <span class="dropdown-title">Contact Us</span>
-                  <p></p>
                 </a>
               </div>
             </div>
@@ -738,10 +733,11 @@
 <span class="sd">        None</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        AssertionError: if base_missing contains any base model keys.</span>
-<span class="sd">        AssertionError: if base_unexpected is nonempty.</span>
-<span class="sd">        AssertionError: if lora_missing contains any LoRA keys.</span>
-<span class="sd">        AssertionError: if lora_unexpected is nonempty.</span>
+<span class="sd">        AssertionError:</span>
+<span class="sd">            If base_missing contains any base model keys, **or**</span>
+<span class="sd">            if base_unexpected is nonempty, **or**</span>
+<span class="sd">            if lora_missing contains any LoRA keys, **or**</span>
+<span class="sd">            if lora_unexpected is nonempty.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">lora_modules</span> <span class="o">=</span> <span class="n">get_lora_module_names</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="p">,</span> <span class="n">apply_lora_to_mlp</span><span class="p">,</span> <span class="n">apply_lora_to_output</span>

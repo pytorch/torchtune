@@ -224,23 +224,18 @@
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
                   <span class="dropdown-title">Governing Board</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/credits">
                   <span class="dropdown-title">Cloud Credit Program</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/tac">
                   <span class="dropdown-title">Technical Advisory Council</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/staff">
                   <span class="dropdown-title">Staff</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
                   <span class="dropdown-title">Contact Us</span>
-                  <p></p>
                 </a>
               </div>
             </div>
@@ -737,8 +732,9 @@
 <span class="sd">            if ``output.weight != model.output.weight``.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        AssertionError: if ``state_dict`` does not contain ``output.weight``.</span>
-<span class="sd">        AssertionError: if ``model_named_parameters`` does not contain ``output.weight``.</span>
+<span class="sd">        AssertionError:</span>
+<span class="sd">            If ``state_dict`` does not contain ``output.weight``, **or**</span>
+<span class="sd">            if ``model_named_parameters`` does not contain ``output.weight``.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">output_weight</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">model_named_parameters</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output.weight&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>

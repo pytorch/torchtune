@@ -227,23 +227,18 @@
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
                   <span class="dropdown-title">Governing Board</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/credits">
                   <span class="dropdown-title">Cloud Credit Program</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/tac">
                   <span class="dropdown-title">Technical Advisory Council</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/staff">
                   <span class="dropdown-title">Staff</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
                   <span class="dropdown-title">Contact Us</span>
-                  <p></p>
                 </a>
               </div>
             </div>
@@ -516,12 +511,10 @@ Default value is 0.0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">num_heads</span> <span class="pre">%</span> <span class="pre">num_kv_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code></p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">embed_dim</span> <span class="pre">%</span> <span class="pre">num_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code></p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&lt;</span> <span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&gt;</span> <span class="pre">1</span></code></p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if q_norm is defined without k_norm or vice versa</p></li>
-</ul>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">num_heads</span> <span class="pre">%</span> <span class="pre">num_kv_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code>, <strong>or</strong>
+    if <code class="docutils literal notranslate"><span class="pre">embed_dim</span> <span class="pre">%</span> <span class="pre">num_heads</span> <span class="pre">!=</span> <span class="pre">0</span></code>, <strong>or</strong>
+    if <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&lt;</span> <span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">attn_dropout</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>, <strong>or</strong>
+    if q_norm is defined without k_norm or vice versa</p>
 </dd>
 </dl>
 <dl class="py method">

@@ -224,23 +224,18 @@
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
                   <span class="dropdown-title">Governing Board</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/credits">
                   <span class="dropdown-title">Cloud Credit Program</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/tac">
                   <span class="dropdown-title">Technical Advisory Council</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/staff">
                   <span class="dropdown-title">Staff</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
                   <span class="dropdown-title">Contact Us</span>
-                  <p></p>
                 </a>
               </div>
             </div>
@@ -537,9 +532,13 @@
 <span class="sd">            Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            AssertionError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.</span>
 <span class="sd">            ValueError: if the batch size of the new key (or value) tensor is greater than the batch size</span>
 <span class="sd">                used during cache setup.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This function will raise an ``AssertionError`` if the sequence length of ``k_val``</span>
+<span class="sd">                is longer than the maximum cache sequence length.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">bsz</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">k_val</span><span class="o">.</span><span class="n">shape</span>
         <span class="k">if</span> <span class="n">bsz</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>

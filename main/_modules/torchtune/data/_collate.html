@@ -224,23 +224,18 @@
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
                   <span class="dropdown-title">Governing Board</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/credits">
                   <span class="dropdown-title">Cloud Credit Program</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/tac">
                   <span class="dropdown-title">Technical Advisory Council</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/staff">
                   <span class="dropdown-title">Staff</span>
-                  <p></p>
                 </a>
                 <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
                   <span class="dropdown-title">Contact Us</span>
-                  <p></p>
                 </a>
               </div>
             </div>
@@ -534,13 +529,14 @@
 <span class="sd">            padding values.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].</span>
+<span class="sd">        torch.Tensor: The padded tensor of input ids with shape ``[batch_size, max_seq_len]``.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: if ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;.</span>
-<span class="sd">        ValueError: if ``keys_to_pad`` is empty, or is not a list, or is not a subset of keys in the batch.</span>
-<span class="sd">        ValueError: if ``padding_idx`` is provided as a dictionary, but the keys are not identical to</span>
-<span class="sd">            ``keys_to_pad``.</span>
+<span class="sd">        ValueError:</span>
+<span class="sd">            If ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;, **or**</span>
+<span class="sd">            if ``keys_to_pad`` is empty, or is not a list, **or**</span>
+<span class="sd">            if ``keys_to_pad`` is not a subset of keys in the batch, **or**</span>
+<span class="sd">            if ``padding_idx`` is provided as a dictionary, but the keys are not identical to ``keys_to_pad``</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; a = [1, 2, 3]</span>
@@ -602,9 +598,9 @@
         <span class="n">output_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad_fn</span><span class="p">(</span>
             <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
             <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">padding_value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
-            <span class="k">else</span> <span class="n">padding_idx</span><span class="p">,</span>
+            <span class="n">padding_value</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">padding_idx</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">padding_idx</span>
+            <span class="p">),</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">output_dict</span></div>
 
@@ -727,8 +723,9 @@
 <span class="sd">            - aspect_ratio: Tensor of shape (bsz, max_num_images, 2)</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: if ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;.</span>
-<span class="sd">        ValueError: if pad_max_tiles is set to a value less than the largest number of tiles in an image.</span>
+<span class="sd">        ValueError:</span>
+<span class="sd">            If ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;, **or**</span>
+<span class="sd">            if pad_max_tiles is set to a value less than the largest number of tiles in an image.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; image_id = 1</span>
