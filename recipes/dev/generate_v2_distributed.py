@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 import torch
 import torch.distributed as dist
 from omegaconf import DictConfig, OmegaConf
+from torch.distributed.tensor.parallel import parallelize_module
 
 from torchtune import config, training, utils
 from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
@@ -95,12 +96,15 @@ class InferenceRecipe:
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg.model)
 
-        # Set up tenosr parallel
+        # Set up tenosr parallel device mesh
         tp_degree = dist.get_world_size()  # Using all GPUs for TP
         tp_mesh_shape = (tp_degree,)
         tp_device_mesh = dist.init_device_mesh("cuda", tp_mesh_shape)
-        model = training.apply_tp(model, tp_device_mesh)
-        # model.distribute(tp_device_mesh)
+
+        # Get TP plan and apply TP
+        tp_plan = training.get_tp_plan(cfg.model)
+        training.adjust_attention_for_tp(model, tp_device_mesh)
+        parallelize_module(model, tp_device_mesh, parallelize_plan=tp_plan)
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():

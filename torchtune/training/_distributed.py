@@ -27,11 +27,8 @@ from torch.distributed.checkpoint.state_dict import (
 )
 from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
-from torch.distributed.tensor.parallel import (
-    ColwiseParallel,
-    parallelize_module,
-    RowwiseParallel,
-)
+from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
+from torch.distributed.tensor.parallel.style import ParallelStyle
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -50,6 +47,18 @@ torch_version = torch.__version__
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
     "dev" not in torch_version and torch_version_ge("2.6.0")
 ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
+
+BASE_LLAMA_TP_PLAN = {
+    "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
+    "output": ColwiseParallel(output_layouts=Replicate()),
+    "layers.*.attn.q_proj": ColwiseParallel(),
+    "layers.*.attn.k_proj": ColwiseParallel(),
+    "layers.*.attn.v_proj": ColwiseParallel(),
+    "layers.*.attn.output_proj": RowwiseParallel(),
+    "layers.*.mlp.w1": ColwiseParallel(),
+    "layers.*.mlp.w2": RowwiseParallel(),
+    "layers.*.mlp.w3": ColwiseParallel(),
+}
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -554,39 +563,35 @@ def shard_model(
     fully_shard(model, **fsdp_kwargs)
 
 
-def apply_tp(
+def get_tp_plan(model_type: str) -> Dict[str, ParallelStyle]:
+    """
+    Get the TP plan for a given model type.
+
+    Args:
+        model_type (str): The model type to get the TP plan for.
+
+    Returns:
+        Dict[str, str]: A dictionary mapping layer names to their corresponding TP plan.
+    """
+    # For now, we only support base TP plan, will add more plan later
+    return BASE_LLAMA_TP_PLAN
+
+
+def adjust_attention_for_tp(
     model: nn.Module,
     tp_mesh: DeviceMesh,
 ) -> nn.Module:
-    """Apply tensor parallelism."""
-    # Parallelize the token embedding and the last linear proj layer
-    parallelize_module(
-        model,
-        tp_mesh,
-        {
-            "tok_embeddings": RowwiseParallel(
-                input_layouts=Replicate(),
-            ),
-            "output": ColwiseParallel(
-                output_layouts=Replicate(),
-            ),
-        },
-    )
+    """
+    Adjusts the number of attention heads and dimension in the model to account for tensor parallelism.
 
-    # Apply tensor parallelism to every transformer block
-    print(f"{model.layers=}")
+    Args:
+        model (nn.Module): Model to adjust.
+        tp_mesh (DeviceMesh): Tensor parallelism mesh.
 
+    Returns:
+        nn.Module: Adjusted model.
+    """
     for transformer_block in model.layers:
-        layer_plan = {
-            "attn.q_proj": ColwiseParallel(),
-            "attn.k_proj": ColwiseParallel(),
-            "attn.v_proj": ColwiseParallel(),
-            "attn.output_proj": RowwiseParallel(),
-            "mlp.w1": ColwiseParallel(),
-            "mlp.w2": RowwiseParallel(),
-            "mlp.w3": ColwiseParallel(),
-        }
-
         # Adjust attention module to use the local number of heads
         attn_layer = transformer_block.attn
         assert attn_layer.num_heads % tp_mesh.size() == 0
@@ -595,11 +600,4 @@ def apply_tp(
         attn_layer.num_heads = attn_layer.num_heads // tp_mesh.size()
         attn_layer.num_kv_heads = attn_layer.num_kv_heads // tp_mesh.size()
         attn_layer.embed_dim = attn_layer.embed_dim // tp_mesh.size()
-
-        parallelize_module(
-            module=transformer_block,
-            device_mesh=tp_mesh,
-            parallelize_plan=layer_plan,
-        )
-
     return model

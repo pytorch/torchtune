@@ -9,12 +9,7 @@ from typing import Optional
 
 import torch
 from torch import nn
-from torch.distributed.device_mesh import DeviceMesh
-from torch.distributed.tensor.parallel import (
-    ColwiseParallel,
-    parallelize_module,
-    RowwiseParallel,
-)
+
 
 class FeedForward(nn.Module):
     """This class implements the feed-forward network derived from Llama2.
@@ -41,11 +36,6 @@ class FeedForward(nn.Module):
         self.w2 = down_proj
         self.w3 = up_proj
         self.activation = activation
-
-    def distribute(self, device_mesh: DeviceMesh) -> None:
-        parallelize_module(self.w1, device_mesh, ColwiseParallel())
-        parallelize_module(self.w2, device_mesh, RowwiseParallel())
-        parallelize_module(self.w3, device_mesh, ColwiseParallel())
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

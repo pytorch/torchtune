@@ -9,14 +9,14 @@ from typing import Optional
 
 import torch
 from torch import nn
-from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
-from torchtune.modules.kv_cache import KVCache
 from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
     parallelize_module,
     RowwiseParallel,
 )
+from torchtune.modules.attention_utils import _MaskType, _sdpa_or_flex_attention
+from torchtune.modules.kv_cache import KVCache
 
 logger = logging.getLogger(__name__)
 
@@ -308,8 +308,14 @@ class MultiHeadAttention(nn.Module):
         if self.num_heads != self.num_kv_heads:
             # If TP is enabled, the heads would be divided and assigned to different ranks
             if hasattr(self, "tp_degree"):
-                expand_shape = (b, self.num_kv_heads // self.tp_degree, q_per_kv, -1, self.head_dim)        
-            else:    # k,v shape: [b, n_kv, s, h_d] -> [b, n_h, s, h_d]
+                expand_shape = (
+                    b,
+                    self.num_kv_heads // self.tp_degree,
+                    q_per_kv,
+                    -1,
+                    self.head_dim,
+                )
+            else:  # k,v shape: [b, n_kv, s, h_d] -> [b, n_h, s, h_d]
                 expand_shape = (b, self.num_kv_heads, q_per_kv, -1, self.head_dim)
             k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
             v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
