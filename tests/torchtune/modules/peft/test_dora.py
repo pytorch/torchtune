@@ -404,10 +404,11 @@ class TestDistributedDoRALinear(FSDPTest):
                     @ adapter_state_dict[f"{layer}.lora_a.weight"]
                 )
             expected_magnitude = torch.linalg.norm(weight, axis=1).to(device=device)
-            device_mesh = torch.distributed.init_device_mesh("cuda", (2,))
             actual_magnitude = getattr(ffn, layer).magnitude.full_tensor()
             # to explicit replicate the tensor before comparing with DTensor
-            actual_magnitude = DTensor.from_local(
-                actual_magnitude, device_mesh=device_mesh, placements=[Replicate()]
-            )
+            if isinstance(expected_magnitude, DTensor):
+                device_mesh = torch.distributed.init_device_mesh("cuda", (2,))
+                actual_magnitude = DTensor.from_local(
+                    actual_magnitude, device_mesh=device_mesh, placements=[Replicate()]
+                )
             torch.testing.assert_close(expected_magnitude, actual_magnitude)
