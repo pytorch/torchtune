@@ -22,6 +22,7 @@ Scalar = Union[torch.Tensor, ndarray, int, float]
 
 log = get_logger("DEBUG")
 
+
 def save_config(config):
     try:
         output_config_fname = Path(
@@ -30,13 +31,10 @@ def save_config(config):
                 "torchtune_config.yaml",
             )
         )
+        log.info(f"Writing resolved config to {output_config_fname}")
         OmegaConf.save(config, output_config_fname)
-        log.info(f"Logging {output_config_fname}")
     except Exception as e:
-        log.warning(
-            f"Error saving {output_config_fname} to disk.\nError: \n{e}."
-        )
-
+        log.warning(f"Error saving {output_config_fname} to disk.\nError: \n{e}.")
 
 
 class MetricLoggerInterface(Protocol):
