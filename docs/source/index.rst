@@ -113,6 +113,7 @@ torchtune tutorials.
    recipes/recipes_overview
    recipes/lora_finetune_single_device
    recipes/qat_distributed
+   recipes/dpo
 
 .. toctree::
    :glob:
@@ -131,6 +132,8 @@ torchtune tutorials.
    basics/message_transforms
    basics/tokenizers
    basics/prompt_templates
+   basics/packing
+   basics/custom_components
 
 .. toctree::
    :glob:
@@ -144,9 +147,8 @@ torchtune tutorials.
    tutorials/qlora_finetune
    tutorials/qat_finetune
    tutorials/e2e_flow
-   tutorials/datasets
-   tutorials/memory_optimizations
    tutorials/llama_kd_tutorial
+   tutorials/memory_optimizations
 
 .. toctree::
    :glob:

@@ -18,11 +18,11 @@ def _create_component(
     _component_: Callable[..., Any],
     args: Tuple[Any, ...],
     kwargs: Dict[str, Any],
-):
+) -> Any:
     return _component_(*args, **kwargs)
 
 
-def _instantiate_node(node: Dict[str, Any], *args: Tuple[Any, ...]):
+def _instantiate_node(node: Dict[str, Any], *args: Any) -> Any:
     """
     Creates the object specified in _component_ field with provided positional args
     and kwargs already merged. Raises an InstantiationError if _component_ is not specified.
@@ -40,8 +40,8 @@ def _instantiate_node(node: Dict[str, Any], *args: Tuple[Any, ...]):
 
 def instantiate(
     config: DictConfig,
-    *args: Tuple[Any, ...],
-    **kwargs: Dict[str, Any],
+    *args: Any,
+    **kwargs: Any,
 ) -> Any:
     """
     Given a DictConfig with a _component_ field specifying the object to instantiate and
@@ -60,8 +60,8 @@ def instantiate(
         config (DictConfig): a single field in the OmegaConf object parsed from the yaml file.
             This is expected to have a _component_ field specifying the path of the object
             to instantiate.
-        *args (Tuple[Any, ...]): positional arguments to pass to the object to instantiate.
-        **kwargs (Dict[str, Any]): keyword arguments to pass to the object to instantiate.
+        *args (Any): positional arguments to pass to the object to instantiate.
+        **kwargs (Any): keyword arguments to pass to the object to instantiate.
 
     Examples:
         >>> config.yaml:

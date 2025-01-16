@@ -76,10 +76,6 @@ def get_rewards_ppo(
         - response_len: model response length
     """
 
-    # 1. calculate kl between logprobs and reflogprobs
-    # 2. calculate kl reward using adaptive scaling value
-    # 3. calculate total reward by summing above
-    # return all
     kl = logprobs - ref_logprobs
     kl_reward = -kl_coeff * kl
 
@@ -89,9 +85,9 @@ def get_rewards_ppo(
     # https://github.com/openai/lm-human-preferences/blob/cbfd210bb8b08f6bc5c26878c10984b90f516c66/lm_human_preferences/train_policy.py#L153
 
     if valid_score_idxs is not None:
-        total_reward[
-            torch.arange(scores.shape[0], device=scores.device), valid_score_idxs
-        ] += scores
+        total_reward.scatter_add_(
+            1, valid_score_idxs.unsqueeze(-1), scores.unsqueeze(-1)
+        )
     else:
         total_reward[:, -1] += scores
 
@@ -113,17 +109,17 @@ def masked_mean(
     Returns:
         torch.Tensor: The mean tensor.
     """
-    return (x * mask).sum(dim=dim) / mask.sum(dim=dim)
+    return (x * mask).sum(dim=dim) / (mask.sum(dim=dim) + 1e-8)
 
 
 def masked_var(
-    x: torch.Tensor, mask: torch.Tensor, unbiased: bool = True
+    centered_values: torch.Tensor, mask: torch.Tensor, unbiased: bool = True
 ) -> torch.Tensor:
     """
-    Compute variance of tensor with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
-
+    Compute variance of mean-centered tensor with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
+    We use ``centered_values`` to avoid repeated calls to ``masked_mean``.
     Args:
-        x (torch.Tensor): The input tensor.
+        centered_values (torch.Tensor): The mean-centered tensor e.g. ``x - masked_mean(x)``.
         mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
             should participate in the mean calculation.
         unbiased (bool): Whether to use the unbiased variance.
@@ -131,21 +127,10 @@ def masked_var(
     Returns:
         torch.Tensor: The variance tensor.
 
-    Raises:
-        ValueError: If the sum of the mask is zero.
     """
-    mean = masked_mean(x, mask)
-    centered_values = x - mean
     var = masked_mean(centered_values.pow(2), mask)
     if unbiased:
-        mask_sum = mask.sum()
-        if mask_sum == 0:
-            raise ValueError(
-                "The sum of the mask is zero, which can happen when ``ppo_batch_size=1``;"
-                "try increase the ``ppo_batch_size`` or ``gradient_accumulation_steps``"
-            )
-        # note that if mask_sum == 1, then there is a division by zero issue
-        # to avoid it you just need to use a larger minibatch_size
+        mask_sum = mask.sum() + 1e-8
         bessel_correction = mask_sum / (mask_sum - 1)
         var = var * bessel_correction
     return var
@@ -158,16 +143,16 @@ def whiten(
     Whiten (normalises) values, optionally with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
     Args:
         x (torch.Tensor): The input tensor.
-        mask (Optional[torch.Tensor]): The bool mask tensor, where True indicates the corresponding value in ``x``
-            should participate in the mean calculation. Default None.
-        shift_mean (bool): Whether to shift normalised values by the mean.
+        mask (Optional[torch.Tensor]): The bool mask tensor with the same shape as ``x``, and where True indicates
+            the corresponding value in ``x`` should participate in the mean calculation. Default None.
+        shift_mean (bool): Whether to shift normalised values by the mean. Default True.
 
     Returns:
         torch.Tensor: The whitened tensor.
     """
     if mask is not None:
         mean = masked_mean(x, mask)
-        var = masked_var(x, mask) if mask.any() else x.var()
+        var = masked_var(x - mean, mask)
     else:
         mean, var = x.mean(), x.var()
     whitened = (x - mean) * torch.rsqrt(var + 1e-8)
@@ -228,10 +213,8 @@ def estimate_advantages(
     returns = advantages + values
 
     # normalize advantages across the batch of trajectories to reduce variance
+    advantages = whiten(advantages, mask=masks)
     if masks is not None:
-        advantages = whiten(advantages, mask=masks)
         advantages[~masks] = 0.0
-    else:
-        advantages = whiten(advantages)
 
     return advantages, returns

@@ -29,6 +29,12 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
+from torchtune.training.checkpointing._utils import (
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+    SHARD_FNAME,
+)
+
 
 class TestFullFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self):
@@ -36,6 +42,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
+            "enable_activation_offloading=False",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -45,7 +52,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             "lr_scheduler.num_warmup_steps=0",
             "lr_scheduler.num_cycles=0",
             "log_every_n_steps=1",
-            "clip_grad_norm=100",
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, model_type):
@@ -93,7 +99,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             --config {config} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
-            optimizer_in_bwd={optimizer_in_bwd} \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -108,7 +113,14 @@ class TestFullFinetuneSingleDeviceRecipe:
 
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
-
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same.
+        if not optimizer_in_bwd:
+            cmd.append("clip_grad_norm=100")
+            cmd.append("optimizer_in_bwd=False")
+        else:
+            cmd.append("optimizer_in_bwd=True")
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -167,15 +179,21 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+        suffix = ".safetensors"
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        )
         cmd_2 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
             batch_size=8 \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={tmpdir} \
-            checkpointer.checkpoint_files=[{os.path.join(tmpdir, "hf_model_0001_0.pt")}]\
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \

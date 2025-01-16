@@ -22,26 +22,30 @@ class FrozenNF4Linear(nn.Linear):
     Args:
         in_dim (int): input dimension
         out_dim (int): output dimension
+        bias (bool): whether to include bias in the linear layer. Default: False
         device (Optional[torch.device]): device to use for the underlying weight. If ``None``, uses the default
             device given by `torch.get_default_device()`.
-        bias (bool): whether to include bias in the linear layer. Default: False
-        **kwargs: any additional arguments to pass to the underlying Linear layer.
-
+        dtype (Optional[torch.dtype]): dtype to use for the underlying weight. If ``None``, uses the default
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
     """
 
     def __init__(
         self,
         in_dim: int,
         out_dim: int,
-        device: Optional[torch.device] = None,
         bias: bool = False,
-        **kwargs,
+        device: Optional[torch.device] = None,
+        dtype: Optional[torch.dtype] = None,
+        **quantization_kwargs,
     ):
-        super().__init__(in_dim, out_dim, device=device, bias=bias, **kwargs)
+        super().__init__(in_dim, out_dim, bias=bias, device=device, dtype=dtype)
         self.weight.requires_grad_(False)
         if self.bias is not None:
             self.bias.requires_grad_(False)
-        nf4_weight = to_nf4(self.weight)
+        nf4_weight = to_nf4(self.weight, **quantization_kwargs)
         # re-register self.weight as the nf4 weight, so that the nf4 weight
         # shows up as expected in .parameters, state_dict, etc.
         torch.utils.swap_tensors(

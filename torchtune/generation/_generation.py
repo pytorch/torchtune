@@ -67,7 +67,7 @@ def generate_next_token(
     model: TransformerDecoder,
     input_pos: torch.Tensor,
     x: torch.Tensor,
-    q: torch.Tensor,
+    q: Optional[torch.Tensor] = None,
     *,
     mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
@@ -82,7 +82,7 @@ def generate_next_token(
             with shape [bsz x seq_length].
         x (torch.Tensor): tensor with the token IDs associated with the given prompt,
             with shape [bsz x seq_length].
-        q (torch.Tensor): randomly sampled tensor for softmax sampling trick.
+        q (Optional[torch.Tensor]): randomly sampled tensor for softmax sampling trick.
             See https://github.com/pytorch-labs/gpt-fast/blob/32971d3129541c5bfb4f715abc33d1c5f408d204/generate.py#L40
         mask (Optional[torch.Tensor]): attention mask with shape [bsz x seq_length x seq_length],
             default None.
@@ -94,15 +94,15 @@ def generate_next_token(
             - tokens (torch.Tensor): tensor with the generated tokens,
                 with shape [bsz x 1].
             - logits (torch.Tensor): tensor with the logits associated with the generated tokens,
-                with shape [bsz x seq_length x vocab_size].
+                with shape [bsz x 1 x vocab_size].
 
     """
     # model produces logits in [bsz, seq_length, vocab_size]
     # we want to take the last token's logits as the input to the next model call
-    logits = model(x, input_pos=input_pos, mask=mask)
+    logits = model(x, input_pos=input_pos, mask=mask)[:, -1]
     return (
-        sample(logits[:, -1].clone(), temperature=temperature, top_k=top_k, q=q),
-        logits,
+        sample(logits.clone(), temperature=temperature, top_k=top_k, q=q),
+        logits.unsqueeze(1),
     )
 
 
@@ -139,7 +139,7 @@ def get_causal_mask_from_padding_mask(
             - [bsz, seq_length, target_seq_len] if ``target_seq_len`` was specified.
 
     Raises:
-        AssertionError: if ``target_seq_len > seq_len``, the sequence length of the padding mask.
+        AssertionError: if ``target_seq_len < seq_len``, the sequence length of the padding mask.
 
     Example:
         >>> padding_mask = torch.tensor([[False, True, True, True]])
@@ -189,7 +189,7 @@ def get_position_ids_from_padding_mask(
     return ((padding_mask.cumsum(-1) - 1) * padding_mask).to(torch.int)
 
 
-@torch.inference_mode()
+@torch.no_grad()
 def generate(
     model: TransformerDecoder,
     prompt: torch.Tensor,
@@ -241,7 +241,7 @@ def generate(
                 with shape ``[bsz x seq_len + num_generated_tokens]`` where ``num_generated_tokens``
                 may be less than ``max_generated_tokens`` if ``stop_tokens`` are provided.
             - logits (torch.Tensor): tensor with the logits associated with the generated tokens,
-                with shape ``[bsz x seq_len + num_generated_tokens x vocab_size]``.
+                with shape ``[bsz x num_generated_tokens x vocab_size]``.
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
 
@@ -302,9 +302,11 @@ def generate(
         # tensors are of identical shape to the prompt
         curr_masks = masks[:, :prompt_length, :prompt_length]
 
-    q = torch.empty(
-        (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-    ).exponential_(1, generator=rng)
+    q = None
+    if rng is not None:
+        q = torch.empty(
+            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+        ).exponential_(1, generator=rng)
     tokens, generated_logits = generate_next_token(
         model,
         input_pos=input_pos[:, :prompt_length].squeeze(),
@@ -353,16 +355,18 @@ def generate(
         # if incremental decoding is enabled, we can use the current position
         # otherwise, we take the whole sequence up to the current position
         if incremental_decoding:
-            curr_input_pos = input_pos[:, curr_pos]
-            curr_masks = masks[:, curr_pos, None, :]
+            curr_input_pos = input_pos[:, curr_pos].contiguous()
+            curr_masks = masks[:, curr_pos, None, :].contiguous()
         else:
             tokens = generated_tokens.clone()
             curr_input_pos = input_pos[:, : curr_pos + 1]
             curr_masks = masks[:, : curr_pos + 1, : curr_pos + 1]
 
-        q = torch.empty(
-            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-        ).exponential_(1, generator=rng)
+        q = None
+        if rng is not None:
+            q = torch.empty(
+                (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+            ).exponential_(1, generator=rng)
         tokens, logits = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
@@ -373,11 +377,8 @@ def generate(
             q=q,
         )
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
+        generated_logits = torch.cat([generated_logits, logits], dim=1)
         curr_pos += 1
-        if incremental_decoding:
-            generated_logits = torch.cat([generated_logits, logits], dim=1)
-        else:
-            generated_logits = logits
 
         if stop_tokens is not None:
             stop_token_reached = update_stop_tokens_tracker(
@@ -389,6 +390,6 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
-        generated_logits *= stop_token_mask[:, :-1, None]
+        generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
 
     return generated_tokens, generated_logits

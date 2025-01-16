@@ -115,9 +115,9 @@ def packed_block_causal_mask(
     seq_lens: List[torch.Tensor],
 ) -> _MaskType:
     """
-    Create a block causal document mask for a batch of packed sequences. If on
-    torch version >= 2.5.0, this is done by creating a mask_mod function with the
-    block causal logic and passing this into :func:`torch.nn.attention.flex_attention.create_block_mask`.
+    Create a block causal document mask for a batch of packed sequences. If
+    flex attention is supported by the current hardware, block causal logic and
+    passing this into :func:`torch.nn.attention.flex_attention.create_block_mask`.
     The resultant BlockMask is a compressed representation of the full block causal
     mask. If on an older version, a standard 2D block causal mask is created and returned.
 
