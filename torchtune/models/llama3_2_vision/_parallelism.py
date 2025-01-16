@@ -4,16 +4,23 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
-from torch.distributed._tensor import Replicate, Shard
 from typing import Any, Dict
+
+from torch.distributed._tensor import Replicate, Shard
+from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
 
 
 # Define the Tensor Parallel plan for Llama3.2 vision model
 LLAMA3_2_VISION_TP_PLAN = {
-    "decoder.tok_embeddings.embedding": RowwiseParallel(input_layouts=Replicate(), output_layouts=Shard(1)),
-    "decoder.tok_embeddings.fusion_embedding": RowwiseParallel(input_layouts=Replicate(), output_layouts=Shard(1)),
-    "decoder.output": ColwiseParallel(input_layouts=Shard(1), output_layouts=Replicate()),
+    "decoder.tok_embeddings.embedding": RowwiseParallel(
+        input_layouts=Replicate(), output_layouts=Shard(1)
+    ),
+    "decoder.tok_embeddings.fusion_embedding": RowwiseParallel(
+        input_layouts=Replicate(), output_layouts=Shard(1)
+    ),
+    "decoder.output": ColwiseParallel(
+        input_layouts=Shard(1), output_layouts=Replicate()
+    ),
     "decoder.layers.*.layer.attn.q_proj": ColwiseParallel(),
     "decoder.layers.*.layer.attn.k_proj": ColwiseParallel(),
     "decoder.layers.*.layer.attn.v_proj": ColwiseParallel(),
@@ -29,6 +36,7 @@ LLAMA3_2_VISION_TP_PLAN = {
     "decoder.layers.*.fusion_layer.mlp.w2": RowwiseParallel(),
     "decoder.layers.*.fusion_layer.mlp.w3": ColwiseParallel(),
 }
+
 
 def llama3_2_vision_tp_plan() -> Dict[str, Any]:
     """

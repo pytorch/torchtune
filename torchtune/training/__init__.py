@@ -10,7 +10,6 @@ from torchtune.training._activation_offloading import (
 )
 from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
-    shard_attention_params_for_tp,
     gather_cpu_state_dict,
     get_full_optimizer_state_dict,
     get_shard_conditions,
@@ -21,6 +20,7 @@ from torchtune.training._distributed import (
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
     set_torch_num_threads,
+    shard_attention_params_for_tp,
     shard_model,
     validate_no_params_on_meta_device,
 )

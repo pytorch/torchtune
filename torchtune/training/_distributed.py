@@ -9,8 +9,6 @@ import logging
 import os
 from itertools import chain
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple
-from torchtune.modules.model_fusion import DeepFusionModel
-
 
 import torch
 import torch.distributed as dist
@@ -35,8 +33,8 @@ from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.model_fusion import DeepFusionModel, FusionLayer
 from torchtune.modules.peft import get_adapter_state_dict
-from torchtune.modules.model_fusion import FusionLayer
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 from torchtune.utils._version import torch_version_ge
@@ -554,32 +552,6 @@ def shard_model(
     fully_shard(model, **fsdp_kwargs)
 
 
-def get_tp_plan(model_type: str) -> Dict[str, ParallelStyle]:
-    """
-    Get the TP plan for a given model type.
-
-    Args:
-        model_type (str): The model type to get the TP plan for.
-
-    Returns:
-        Dict[str, str]: A dictionary mapping layer names to their corresponding TP plan.
-
-    Raises:
-        ValueError: If trying to get the TP plan for non llama models.
-    """
-    # For now, we only support base TP plan, will add more plan later
-    if model_type == "LLAMA3_VISION":
-        from torchtune.models.llama3_2_vision._parallelism import LLAMA_3_2_VISION_TP_PLAN
-
-        return LLAMA_3_2_VISION_TP_PLAN
-    elif model_type == "LLAMA3":
-        from torchtune.models.llama3._parallelism import BASE_LLAMA_TP_PLAN
-
-        return BASE_LLAMA_TP_PLAN
-    else:
-        raise ValueError("TP is only supported for llama type models right now.")
-
-
 def shard_attention_params_for_tp(
     model: nn.Module,
     tp_mesh: DeviceMesh,
@@ -621,14 +593,18 @@ def shard_attention_params_for_tp(
     tp_size = tp_mesh.size()
     for layer in model.layers:
         # Adjust attention module to use the local number of heads
-        attention_layers = ([layer.attn] if not isinstance(layer, FusionLayer) else [layer.fusion_layer.attn, layer.layer.attn])
+        attention_layers = (
+            [layer.attn]
+            if not isinstance(layer, FusionLayer)
+            else [layer.fusion_layer.attn, layer.layer.attn]
+        )
         for attn in attention_layers:
             if attn.num_heads % tp_size != 0:
                 raise ValueError(
                     f"Number of attention heads ({attn.num_heads}) must be divisible by "
                     f"tensor parallel size ({tp_size})."
                 )
-            if attn.num_kv_heads %tp_size != 0:
+            if attn.num_kv_heads % tp_size != 0:
                 raise ValueError(
                     f"Number of KV heads ({attn.num_kv_heads}) must be divisible by "
                     f"tensor parallel size ({tp_size})."

@@ -21,8 +21,8 @@ from ._model_builders import (  # noqa
     qlora_llama3_2_vision_11b,
     qlora_llama3_2_vision_90b,
 )
-from ._transform import Llama3VisionTransform
 from ._parallelism import llama3_2_vision_tp_plan
+from ._transform import Llama3VisionTransform
 
 __all__ = [
     "llama3_2_vision_11b",

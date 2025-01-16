@@ -4,9 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
-from torch.distributed._tensor import Replicate
 from typing import Any, Dict
+
+from torch.distributed._tensor import Replicate
+from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
 
 
 # Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
@@ -21,6 +22,7 @@ BASE_LLAMA_TP_PLAN = {
     "layers.*.mlp.w2": RowwiseParallel(),
     "layers.*.mlp.w3": ColwiseParallel(),
 }
+
 
 def base_llama_tp_plan() -> Dict[str, Any]:
     """

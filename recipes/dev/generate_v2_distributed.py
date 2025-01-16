@@ -69,7 +69,7 @@ class InferenceRecipe:
     Recipe for generating tokens from a dense Transformer-based LLM.
     This works for text-only generation and image-text generation.
 
-    Supports distributed inference using Tensor Paralellism(TP) for 
+    Supports distributed inference using Tensor Paralellism(TP) for
     large models that don't fit on a single GPU. For more information
     on TP, see: https://pytorch.org/docs/stable/distributed.tensor.parallel.html.
 
@@ -104,9 +104,13 @@ class InferenceRecipe:
         tp_mesh_shape = (tp_degree,)
         tp_device_mesh = dist.init_device_mesh("cuda", tp_mesh_shape)
 
-        # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell 
+        # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
         training.shard_attention_params_for_tp(model, tp_device_mesh)
-        parallelize_module(model, tp_device_mesh, parallelize_plan=training.get_tp_plan(cfg.checkpointer.model_type))
+        parallelize_module(
+            model,
+            tp_device_mesh,
+            parallelize_plan=training.get_tp_plan(cfg.checkpointer.model_type),
+        )
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
