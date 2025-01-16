@@ -34,7 +34,7 @@ def _set_float32_precision(precision: str = "high") -> None:
         precision (str): The setting to determine which datatypes to use for matrix multiplication and convolution operations.
     """
     # Not relevant for non-CUDA or non-NPU devices
-    if not torch.cuda.is_available() or not is_npu_available:
+    if not (torch.cuda.is_available() or is_npu_available):
         return
     # set precision for matrix multiplications
     torch.set_float32_matmul_precision(precision)
