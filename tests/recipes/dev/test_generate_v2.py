@@ -10,9 +10,16 @@ from pathlib import Path
 
 import pytest
 
+import torch
+
 from tests.common import TUNE_PATH
 from tests.recipes.utils import MODEL_TEST_CONFIGS, write_hf_ckpt_config
-from tests.test_utils import CKPT_MODEL_PATHS, mps_ignored_test, TOKENIZER_PATHS
+from tests.test_utils import (
+    CKPT_MODEL_PATHS,
+    gpu_test,
+    mps_ignored_test,
+    TOKENIZER_PATHS,
+)
 
 
 class TestGenerateV2:
@@ -58,6 +65,57 @@ class TestGenerateV2:
         expected_output = (
             "Country maior Connection Kohćutsójcustomulas Sometimes Security"
         )
+
+        logs = caplog.text
+        assert expected_output in logs
+
+    @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
+    def test_llama2_generate_with_quantization(self, caplog, monkeypatch, tmpdir):
+        ckpt = "llama2_tune"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS["llama2"])
+        ckpt_dir = ckpt_path.parent
+
+        # Config file needed for model conversion.
+        write_hf_ckpt_config(ckpt_dir)
+
+        cmd = f"""
+        tune run dev/generate_v2 \
+            --config llama2/generation_v2 \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            device=cuda \
+            dtype=bf16 \
+            max_new_tokens=10 \
+            seed=123 \
+            quantization_method._component_=torchao.quantization.quant_api.int4_weight_only \
+        """.split()
+
+        model_config = MODEL_TEST_CONFIGS["llama2"]
+        cmd = cmd + model_config
+
+        import os
+
+        os.environ["TORCH_COMPILE_BACKEND"] = "eager"
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # this is gibberish b/c the model is random weights, but it's
+        # the expected value for what we currently have in V2
+        # this test should catch any changes to the generate recipe that affect output
+        expected_output = (
+            "Halfotherтература retir pushingroad Chem CURLorientationocation Stadium"
+        )
+
+        torch._dynamo.reset()
+        del os.environ["TORCH_COMPILE_BACKEND"]
 
         logs = caplog.text
         assert expected_output in logs

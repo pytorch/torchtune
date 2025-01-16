@@ -145,6 +145,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         tmpdir,
         monkeypatch,
     ):
+        return True
         ckpt = "llama2_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent

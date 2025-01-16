@@ -11,6 +11,10 @@ output_dir: ./ # Not needed
 # Model arguments
 model:
   _component_: torchtune.models.llama2.llama2_7b
+# You can turn uncomment the following lines to enable quantization for faster inference and potentially lower VRAM
+# quantization_method:
+#   _component_: torchao.quantization.quant_api.int4_weight_only # int4_weight_only is a good balance of speed and memory
+#   use_hqq: False # Turn on to use Half-Quadratic Quantization
 
 # Transform arguments
 tokenizer:
@@ -29,16 +33,16 @@ checkpointer:
   output_dir: ${output_dir}
   model_type: LLAMA2
 
+# Generation arguments
+prompt:
+  system: You are a helpful and creative AI assistant.
+  user: What is the capital of France?
+max_new_tokens: 500
+temperature: 0.6 # 0.8 and 0.6 are popular values to try
+top_k: 300
+
 # Device
 device: cuda
 dtype: bf16
 seed: 1234
 log_level: INFO
-
-# Generation arguments
-prompt:
-  system: You are a helpful and creative AI assistant.
-  user: What is the capital of France?
-max_new_tokens: 200
-temperature: 0.6 # 0.8 and 0.6 are popular values to try
-top_k: 300
