@@ -109,7 +109,7 @@ class InferenceRecipe:
         parallelize_module(
             model,
             tp_device_mesh,
-            parallelize_plan=training.get_tp_plan(cfg.checkpointer.model_type),
+            parallelize_plan=config.instantiate(cfg.tensor_parallel_plan),
         )
 
         with training.set_default_dtype(self._dtype), self._device:

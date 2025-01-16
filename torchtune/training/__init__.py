@@ -13,7 +13,6 @@ from torchtune.training._distributed import (
     gather_cpu_state_dict,
     get_full_optimizer_state_dict,
     get_shard_conditions,
-    get_tp_plan,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
@@ -77,7 +76,6 @@ from torchtune.training.seed import set_seed
 __all__ = [
     "get_act_offloading_ctx_manager",
     "shard_attention_params_for_tp",
-    "get_tp_plan",
     "apply_selective_activation_checkpointing",
     "get_dtype",
     "set_default_dtype",
