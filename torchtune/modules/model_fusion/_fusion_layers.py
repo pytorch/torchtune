@@ -271,12 +271,8 @@ class FusionEmbedding(nn.Module):
         fusion_tokens = torch.masked_select(input, ~mask) - vocab_size
 
         # [batch_size * num_tokens, embed_dim]
-        # self.embedding = self.embedding.to(input.device)
-        # self.fusion_embedding = self.fusion_embedding.to(input.device)
-        print(f"{self.embedding.weight.device=}")
         embeds = self.embedding(tokens)
         # [batch_size * num_fusion_tokens, embed_dim]
-        print(f"{self.fusion_embedding.weight.device=}")
         fusion_embeds = self.fusion_embedding(fusion_tokens)
 
         # [batch_size x seq_length x embed_dim]

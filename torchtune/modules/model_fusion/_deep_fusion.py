@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Union
 
 import torch
 from torch import nn
-
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params

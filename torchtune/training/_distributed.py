@@ -596,32 +596,37 @@ def adjust_attention_for_tp(
     Adjusts the number of attention heads and dimension in the model to account for tensor parallelism.
 
     Args:
-        model (nn.Module): Model to adjust.
+        model (nn.Module): The model whose attention will be adjusted.
         tp_mesh (DeviceMesh): Tensor parallelism mesh.
 
     Returns:
-        nn.Module: Model with updated attention heads and dimension.
-    """
-    # In the case of Early Fusion or Deep Fusion models
-    if hasattr(model, "layers") is False:
-        model = model.decoder
-    for layer in model.layers:
-        # Adjust attention module to use the local number of heads
-        if isinstance(layer, FusionLayer):
-            layer.layer.attn.num_heads = layer.layer.attn.num_heads // tp_mesh.size()
-            layer.layer.attn.num_kv_heads = layer.layer.attn.num_kv_heads // tp_mesh.size()
-            layer.layer.attn.embed_dim = layer.layer.attn.embed_dim // tp_mesh.size()
+        nn.Module: Model with adjusted attention heads and dimension.
 
-            layer.fusion_layer.attn.num_heads = layer.fusion_layer.attn.num_heads // tp_mesh.size()
-            layer.fusion_layer.attn.num_kv_heads = layer.fusion_layer.attn.num_kv_heads // tp_mesh.size()
-            layer.fusion_layer.attn.embed_dim = layer.fusion_layer.attn.embed_dim // tp_mesh.size()
-        else:
-            attn_layer = layer.attn
-            # TODO: look for the module of type TransformerSelfAttentionLayer
-            assert attn_layer.num_heads % tp_mesh.size() == 0
-            assert attn_layer.num_kv_heads % tp_mesh.size() == 0
-            assert attn_layer.embed_dim % tp_mesh.size() == 0
-            attn_layer.num_heads = attn_layer.num_heads // tp_mesh.size()
-            attn_layer.num_kv_heads = attn_layer.num_kv_heads // tp_mesh.size()
-            attn_layer.embed_dim = attn_layer.embed_dim // tp_mesh.size()
+    Example:
+        >>> # Create a model and device mesh for tensor parallelism
+        >>> model = TransformerDecoder(
+        ...     num_heads=32,
+        ...     num_kv_heads=32,
+        ...     embed_dim=4096
+        ... )
+        >>> tp_mesh = DeviceMesh("cuda", torch.arange(2))  # 2 GPUs
+        >>> # Adjust attention for tensor parallelism
+        >>> model = adjust_attention_for_tp(model, tp_mesh)
+        >>> # Now each GPU has:
+        >>> # num_heads = 16 (32/2)
+        >>> # num_kv_heads = 16 (32/2)
+        >>> # embed_dim = 2048 (4096/2)
+    """
+    # Consider the case of Early Fusion or Deep Fusion models
+    transformer_decoder = getattr(model, 'decoder', model)
+    for layer in transformer_decoder.layers:
+        # Adjust attention module to use the local number of heads
+        attention_layers = ([layer.attn] if not isinstance(layer, FusionLayer) else [layer.fusion_layer.attn, layer.layer.attn])
+        for attn in attention_layers:
+            assert attn.num_heads % tp_mesh.size() == 0
+            assert attn.num_kv_heads % tp_mesh.size() == 0
+            assert attn.embed_dim % tp_mesh.size() == 0
+            attn.num_heads = attn.num_heads // tp_mesh.size()
+            attn.num_kv_heads = attn.num_kv_heads // tp_mesh.size()
+            attn.embed_dim = attn.embed_dim // tp_mesh.size()
     return model

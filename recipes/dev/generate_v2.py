@@ -113,10 +113,10 @@ class InferenceRecipe:
             f"Time for inference: {total_time:.02f} sec total, {tokens_per_second:.02f} tokens/sec"
         )
         self._logger.info(
-            f"Bandwidth achieved: {model_size * tokens_per_second / 1e9:.02f} GB/s"
+            f"Bandwidth achieved: {model_size * tokens_per_second / 1024 / 1024:.02f} GB/s"
         )
         self._logger.info(
-            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
+            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1024 / 1024:.02f} GB"
         )
 
     @torch.inference_mode()
