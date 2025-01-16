@@ -209,7 +209,6 @@ class InferenceRecipe:
         # 6. Prefill step
         generated_tokens = []
         t0 = time.perf_counter()
-        print(f"{prompt.device=}")
         logits = self.model(prompt, **batch)[:, -1]
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())
