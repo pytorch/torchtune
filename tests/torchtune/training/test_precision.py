@@ -57,8 +57,7 @@ class TestPrecisionUtils:
             get_dtype(torch.bfloat16)
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
-    @mock.patch("torchtune.training.precision.is_npu_available", return_value=True)
-    def test_set_float32_precision(self, mock_npu_available) -> None:
+    def test_set_float32_precision(self) -> None:
         setattr(  # noqa: B010
             torch.backends, "__allow_nonbracketed_mutation_flag", True
         )
