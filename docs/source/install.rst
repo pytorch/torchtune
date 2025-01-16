@@ -88,4 +88,4 @@ to the package *without* installing via ``git clone``, you can install with the 
 If you already have PyTorch installed, torchtune will default to using that version. However, if you want to
 use the nightly version of PyTorch, you can append the ``--force-reinstall`` option to the above command. If you
 opt for this install method, you will likely need to change the "cpu" suffix in the index url to match your CUDA
-version. For example, if you are running CUDA 12, your index url would be "https://download.pytorch.org/whl/nightly/cu121".
+version. For example, if you are running CUDA 12, your index url would be "https://download.pytorch.org/whl/nightly/cu126".

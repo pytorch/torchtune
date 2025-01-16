@@ -111,9 +111,11 @@ class InferenceRecipe:
         self._logger.info(
             f"Bandwidth achieved: {model_size * tokens_per_second / 1e9:.02f} GB/s"
         )
-        self._logger.info(
-            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
-        )
+        if self._device.type != "cpu":
+            torch_device = utils.get_torch_device_namespace()
+            self._logger.info(
+                f"Max memory allocated: {torch_device.max_memory_allocated() / 1e9:.02f} GB"
+            )
 
     @torch.inference_mode()
     def generate(self, cfg: DictConfig):
