@@ -13,6 +13,9 @@ output_dir: ./
 model:
   _component_: torchtune.models.llama3_2_vision.llama3_2_vision_90b
 
+tensor_parallel_plan:
+  _component_: torchtune.models.llama3_2_vision.llama3_2_vision_tp_plan
+
 # Transform arguments
 tokenizer:
   _component_: torchtune.models.llama3_2_vision.llama3_2_vision_transform

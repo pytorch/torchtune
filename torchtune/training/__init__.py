@@ -10,7 +10,7 @@ from torchtune.training._activation_offloading import (
 )
 from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
-    adjust_attention_for_tp,
+    shard_attention_params_for_tp,
     gather_cpu_state_dict,
     get_full_optimizer_state_dict,
     get_shard_conditions,
@@ -76,7 +76,7 @@ from torchtune.training.seed import set_seed
 
 __all__ = [
     "get_act_offloading_ctx_manager",
-    "adjust_attention_for_tp",
+    "shard_attention_params_for_tp",
     "get_tp_plan",
     "apply_selective_activation_checkpointing",
     "get_dtype",

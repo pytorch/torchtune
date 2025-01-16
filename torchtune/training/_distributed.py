@@ -51,18 +51,6 @@ _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
     "dev" not in torch_version and torch_version_ge("2.6.0")
 ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 
-BASE_LLAMA_TP_PLAN = {
-    "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
-    "output": ColwiseParallel(output_layouts=Replicate()),
-    "layers.*.attn.q_proj": ColwiseParallel(),
-    "layers.*.attn.k_proj": ColwiseParallel(),
-    "layers.*.attn.v_proj": ColwiseParallel(),
-    "layers.*.attn.output_proj": RowwiseParallel(),
-    "layers.*.mlp.w1": ColwiseParallel(),
-    "layers.*.mlp.w2": RowwiseParallel(),
-    "layers.*.mlp.w3": ColwiseParallel(),
-}
-
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
     """Helper function to convert sharding strategy strings to ShardingStrategy enum."""
@@ -581,28 +569,36 @@ def get_tp_plan(model_type: str) -> Dict[str, ParallelStyle]:
     """
     # For now, we only support base TP plan, will add more plan later
     if model_type == "LLAMA3_VISION":
-        from torchtune.models.llama3_2_vision._model_builders import LLAMA_DEEP_FUSION_VISION_TP_PLAN
+        from torchtune.models.llama3_2_vision._parallelism import LLAMA_3_2_VISION_TP_PLAN
 
-        return LLAMA_DEEP_FUSION_VISION_TP_PLAN
+        return LLAMA_3_2_VISION_TP_PLAN
     elif model_type == "LLAMA3":
+        from torchtune.models.llama3._parallelism import BASE_LLAMA_TP_PLAN
+
         return BASE_LLAMA_TP_PLAN
     else:
         raise ValueError("TP is only supported for llama type models right now.")
 
 
-def adjust_attention_for_tp(
+def shard_attention_params_for_tp(
     model: nn.Module,
     tp_mesh: DeviceMesh,
 ) -> nn.Module:
     """
-    Adjusts the number of attention heads and dimension in the model to account for tensor parallelism.
+    Shard attention parameters (heads, kv_heads, embed_dim) across tensor parallel devices.
+    Each device will handle a portion of the attention computations by having its parameters
+    scaled down by the tp device mesh size.
 
     Args:
-        model (nn.Module): The model whose attention will be adjusted.
+        model (nn.Module): The model whose attention parameters will be sharded.
         tp_mesh (DeviceMesh): Tensor parallelism mesh.
 
     Returns:
-        nn.Module: Model with adjusted attention heads and dimension.
+        nn.Module: Model with sharded attention parameters.
+
+    Raises:
+        ValueError: If the number of attention heads, kv heads, or embed dim is not divisible by
+        the tp device mesh size.
 
     Example:
         >>> # Create a model and device mesh for tensor parallelism
@@ -619,17 +615,30 @@ def adjust_attention_for_tp(
         >>> # num_kv_heads = 16 (32/2)
         >>> # embed_dim = 2048 (4096/2)
     """
-    # Consider the case of Early Fusion or Deep Fusion models
+    # Consider the case of Deep Fusion models
     if isinstance(model, DeepFusionModel):
-        model = model.docoder
+        model = model.decoder
+    tp_size = tp_mesh.size()
     for layer in model.layers:
         # Adjust attention module to use the local number of heads
         attention_layers = ([layer.attn] if not isinstance(layer, FusionLayer) else [layer.fusion_layer.attn, layer.layer.attn])
         for attn in attention_layers:
-            assert attn.num_heads % tp_mesh.size() == 0
-            assert attn.num_kv_heads % tp_mesh.size() == 0
-            assert attn.embed_dim % tp_mesh.size() == 0
-            attn.num_heads = attn.num_heads // tp_mesh.size()
-            attn.num_kv_heads = attn.num_kv_heads // tp_mesh.size()
-            attn.embed_dim = attn.embed_dim // tp_mesh.size()
+            if attn.num_heads % tp_size != 0:
+                raise ValueError(
+                    f"Number of attention heads ({attn.num_heads}) must be divisible by "
+                    f"tensor parallel size ({tp_size})."
+                )
+            if attn.num_kv_heads %tp_size != 0:
+                raise ValueError(
+                    f"Number of KV heads ({attn.num_kv_heads}) must be divisible by "
+                    f"tensor parallel size ({tp_size})."
+                )
+            if attn.embed_dim % tp_size != 0:
+                raise ValueError(
+                    f"Embedding dimension ({attn.embed_dim}) must be divisible by "
+                    f"tensor parallel size ({tp_size})."
+                )
+            attn.num_heads = attn.num_heads // tp_size
+            attn.num_kv_heads = attn.num_kv_heads // tp_size
+            attn.embed_dim = attn.embed_dim // tp_size
     return model

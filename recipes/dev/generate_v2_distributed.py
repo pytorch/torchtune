@@ -69,10 +69,13 @@ class InferenceRecipe:
     Recipe for generating tokens from a dense Transformer-based LLM.
     This works for text-only generation and image-text generation.
 
+    Supports distributed inference using Tensor Paralellism(TP) for 
+    large models that don't fit on a single GPU. For more information
+    on TP, see: https://pytorch.org/docs/stable/distributed.tensor.parallel.html.
+
     This *does not* currently support the following features:
         - torch.compile
         - quantization through torchao
-        - multi-GPU generation
         - batch generation
     """
 
@@ -81,7 +84,7 @@ class InferenceRecipe:
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._logger = utils.get_logger(cfg.log_level)
         # Set up distributed env
-        dist.init_process_group("cuda:nccl,cpu:gloo")
+        dist.init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
         _, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
         training.set_seed(seed=cfg.seed)
@@ -96,15 +99,14 @@ class InferenceRecipe:
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg.model)
 
-        # Set up tenosr parallel device mesh
+        # Set up tensor parallel device mesh
         tp_degree = dist.get_world_size()  # Using all GPUs for TP
         tp_mesh_shape = (tp_degree,)
         tp_device_mesh = dist.init_device_mesh("cuda", tp_mesh_shape)
 
-        # Get TP plan and apply TP
-        tp_plan = training.get_tp_plan(cfg.checkpointer.model_type)
-        training.adjust_attention_for_tp(model, tp_device_mesh)
-        parallelize_module(model, tp_device_mesh, parallelize_plan=tp_plan)
+        # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell 
+        training.shard_attention_params_for_tp(model, tp_device_mesh)
+        parallelize_module(model, tp_device_mesh, parallelize_plan=training.get_tp_plan(cfg.checkpointer.model_type))
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
