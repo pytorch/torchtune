@@ -22,6 +22,22 @@ Scalar = Union[torch.Tensor, ndarray, int, float]
 
 log = get_logger("DEBUG")
 
+def save_config(config):
+    try:
+        output_config_fname = Path(
+            os.path.join(
+                config.output_dir,
+                "torchtune_config.yaml",
+            )
+        )
+        OmegaConf.save(config, output_config_fname)
+        log.info(f"Logging {output_config_fname}")
+    except Exception as e:
+        log.warning(
+            f"Error saving {output_config_fname} to disk.\nError: \n{e}."
+        )
+
+
 
 class MetricLoggerInterface(Protocol):
     """Abstract metric logger."""
@@ -98,6 +114,9 @@ class DiskLogger(MetricLoggerInterface):
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._file.write(f"Step {step} | {name}:{data}\n")
         self._file.flush()
+
+    def log_config(self, config: DictConfig) -> None:
+        save_config(config)
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         self._file.write(f"Step {step} | ")
