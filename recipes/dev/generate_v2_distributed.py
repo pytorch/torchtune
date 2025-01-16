@@ -81,7 +81,7 @@ class InferenceRecipe:
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._logger = utils.get_logger(cfg.log_level)
         # Set up distributed env
-        dist.init_process_group("cuda:nccl")
+        dist.init_process_group("cuda:nccl,cpu:gloo")
         _, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
         training.set_seed(seed=cfg.seed)
@@ -102,7 +102,7 @@ class InferenceRecipe:
         tp_device_mesh = dist.init_device_mesh("cuda", tp_mesh_shape)
 
         # Get TP plan and apply TP
-        tp_plan = training.get_tp_plan(cfg.model)
+        tp_plan = training.get_tp_plan(cfg.checkpointer.model_type)
         training.adjust_attention_for_tp(model, tp_device_mesh)
         parallelize_module(model, tp_device_mesh, parallelize_plan=tp_plan)
 
@@ -209,6 +209,7 @@ class InferenceRecipe:
         # 6. Prefill step
         generated_tokens = []
         t0 = time.perf_counter()
+        print(f"{prompt.device=}")
         logits = self.model(prompt, **batch)[:, -1]
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())

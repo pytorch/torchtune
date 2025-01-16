@@ -34,6 +34,7 @@ from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import get_adapter_state_dict
+from torchtune.modules.model_fusion import FusionLayer
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 from torchtune.utils._version import torch_version_ge
@@ -572,9 +573,19 @@ def get_tp_plan(model_type: str) -> Dict[str, ParallelStyle]:
 
     Returns:
         Dict[str, str]: A dictionary mapping layer names to their corresponding TP plan.
+
+    Raises:
+        ValueError: If trying to get the TP plan for non llama models.
     """
     # For now, we only support base TP plan, will add more plan later
-    return BASE_LLAMA_TP_PLAN
+    if model_type == "LLAMA3_VISION":
+        from torchtune.models.llama3_2_vision._model_builders import LLAMA_DEEP_FUSION_VISION_TP_PLAN
+
+        return LLAMA_DEEP_FUSION_VISION_TP_PLAN
+    elif model_type == "LLAMA3":
+        return BASE_LLAMA_TP_PLAN
+    else:
+        raise ValueError("TP is only supported for llama type models right now.")
 
 
 def adjust_attention_for_tp(
@@ -589,15 +600,28 @@ def adjust_attention_for_tp(
         tp_mesh (DeviceMesh): Tensor parallelism mesh.
 
     Returns:
-        nn.Module: Adjusted model.
+        nn.Module: Model with updated attention heads and dimension.
     """
-    for transformer_block in model.layers:
+    # In the case of Early Fusion or Deep Fusion models
+    if hasattr(model, "layers") is False:
+        model = model.decoder
+    for layer in model.layers:
         # Adjust attention module to use the local number of heads
-        attn_layer = transformer_block.attn
-        assert attn_layer.num_heads % tp_mesh.size() == 0
-        assert attn_layer.num_kv_heads % tp_mesh.size() == 0
-        assert attn_layer.embed_dim % tp_mesh.size() == 0
-        attn_layer.num_heads = attn_layer.num_heads // tp_mesh.size()
-        attn_layer.num_kv_heads = attn_layer.num_kv_heads // tp_mesh.size()
-        attn_layer.embed_dim = attn_layer.embed_dim // tp_mesh.size()
+        if isinstance(layer, FusionLayer):
+            layer.layer.attn.num_heads = layer.layer.attn.num_heads // tp_mesh.size()
+            layer.layer.attn.num_kv_heads = layer.layer.attn.num_kv_heads // tp_mesh.size()
+            layer.layer.attn.embed_dim = layer.layer.attn.embed_dim // tp_mesh.size()
+
+            layer.fusion_layer.attn.num_heads = layer.fusion_layer.attn.num_heads // tp_mesh.size()
+            layer.fusion_layer.attn.num_kv_heads = layer.fusion_layer.attn.num_kv_heads // tp_mesh.size()
+            layer.fusion_layer.attn.embed_dim = layer.fusion_layer.attn.embed_dim // tp_mesh.size()
+        else:
+            attn_layer = layer.attn
+            # TODO: look for the module of type TransformerSelfAttentionLayer
+            assert attn_layer.num_heads % tp_mesh.size() == 0
+            assert attn_layer.num_kv_heads % tp_mesh.size() == 0
+            assert attn_layer.embed_dim % tp_mesh.size() == 0
+            attn_layer.num_heads = attn_layer.num_heads // tp_mesh.size()
+            attn_layer.num_kv_heads = attn_layer.num_kv_heads // tp_mesh.size()
+            attn_layer.embed_dim = attn_layer.embed_dim // tp_mesh.size()
     return model
