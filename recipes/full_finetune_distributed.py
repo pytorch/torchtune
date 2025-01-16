@@ -547,7 +547,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
@@ -602,6 +601,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 for param in opt_state_dict.keys():
                     try:
                         training.load_from_full_optimizer_state_dict(
+                            self._model,
                             self._optim_ckpt_wrapper.state_dict()[param],
                             opt_state_dict[param],
                             self._device,
@@ -617,6 +617,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
             if opt_state_dict:
                 training.load_from_full_optimizer_state_dict(
+                    self._model,
                     optimizer,
                     opt_state_dict,
                     self._device,
@@ -765,7 +766,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if self._optimizer_in_bwd:
                     torch.distributed.all_reduce(num_tokens)
                     torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss / num_tokens
+
+                    # We multiply by world_size to undo FSDP2 gradient normalization.
+                    current_loss = current_loss * (world_size / num_tokens)
 
                 current_loss.backward()
 
@@ -777,12 +780,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
-                        training.scale_grads(self._model, 1 / num_tokens)
+                        # We multiply by world_size to undo FSDP2 gradient normalization.
+                        training.scale_grads(self._model, world_size / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
                                 max_norm=float(self._clip_grad_norm),
-                            )
+                            ).full_tensor()
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 

@@ -9,9 +9,12 @@ from functools import partial
 import pytest
 
 import torch
+
+import torch.distributed
 from tests.test_utils import fixed_init_model, gpu_test
 from torch import nn
 from torch.distributed._composable.fsdp import fully_shard
+from torch.distributed._tensor import DTensor, Replicate
 from torch.testing._internal.common_fsdp import FSDPTest
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
@@ -347,7 +350,6 @@ class TestDistributedDoRALinear(FSDPTest):
                 ffn,
                 adapter_state_dict,
                 device,
-                is_rank_zero,
             )
             if is_rank_zero:
                 for dora_linear in [ffn.w1, ffn.w2, ffn.w3]:
@@ -377,7 +379,6 @@ class TestDistributedDoRALinear(FSDPTest):
             ffn,
             base_model_state_dict,
             device,
-            is_rank_zero,
         )
 
         # After this, everything should be off meta device
@@ -404,4 +405,10 @@ class TestDistributedDoRALinear(FSDPTest):
                 )
             expected_magnitude = torch.linalg.norm(weight, axis=1).to(device=device)
             actual_magnitude = getattr(ffn, layer).magnitude.full_tensor()
+            # to explicit replicate the tensor before comparing with DTensor
+            if isinstance(expected_magnitude, DTensor):
+                device_mesh = torch.distributed.init_device_mesh("cuda", (2,))
+                actual_magnitude = DTensor.from_local(
+                    actual_magnitude, device_mesh=device_mesh, placements=[Replicate()]
+                )
             torch.testing.assert_close(expected_magnitude, actual_magnitude)

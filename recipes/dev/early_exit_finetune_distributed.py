@@ -556,7 +556,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
@@ -757,7 +756,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            self._model,
             self._is_rank_zero,
             device=self._device,
         )
@@ -773,6 +772,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 log.info("Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._model,
                     self._optimizer,
                     self._is_rank_zero,
                     device=self._device,
@@ -781,7 +781,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 opt_state_dict = {}
                 for param, opt in self._optim_ckpt_wrapper.optim_map.items():
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
+                        self._model, opt, self._is_rank_zero, device=self._device
                     )
             if self._is_rank_zero:
                 log.info(
@@ -951,7 +951,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
                                 max_norm=float(self._clip_grad_norm),
-                            )
+                            ).full_tensor()
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 

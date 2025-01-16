@@ -24,7 +24,7 @@ from torchtune.modules import (
     VisionRotaryPositionalEmbeddings,
 )
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-from torchtune.modules.peft import LORA_ATTN_MODULES, DoRALinear, LoRALinear
+from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 from torchtune.modules.vision_transformer import CLSProjection, VisionTransformer
 
 
@@ -43,6 +43,7 @@ def clip_vision_encoder(
     max_num_tiles: int = 4,
     in_channels: int = 3,
     append_cls_token: bool = False,
+    use_tile_pos_embed: bool = True,
 ) -> VisionTransformer:
     """
     Builds the vision encoder associated with the clip model. This includes:
@@ -78,6 +79,8 @@ def clip_vision_encoder(
         in_channels (int): The number of image input channels.
         append_cls_token (bool): If True, adds CLS token embedding to the end of the sequence in the vision transformer.
             Default is False, which adds CLS token to the beginning of the sequence.
+        use_tile_pos_embed (bool): If True, use pre-tile, post-tile, and tiled token positional embeddings, if max_num_tiles > 1.
+            If False, only use standard token positional embeddings.
 
     Returns:
         A `VisionTransformer` object.
@@ -88,10 +91,6 @@ def clip_vision_encoder(
     if embed_dim % num_heads != 0:
         raise ValueError(
             f"embed_dim must be divisible by num_heads, got {embed_dim} and {num_heads}"
-        )
-    if use_rope and max_num_tiles != 1:
-        raise ValueError(
-            f"2D RoPE is only supported for max_num_tiles = 1, got {max_num_tiles}"
         )
 
     head_dim = embed_dim // num_heads
@@ -105,6 +104,7 @@ def clip_vision_encoder(
         VisionRotaryPositionalEmbeddings(
             patch_size=patch_size,
             tile_size=tile_size,
+            max_num_tiles=max_num_tiles,
             dim=head_dim // 2,
             base=10_000,
             append_cls_token=append_cls_token,
@@ -143,13 +143,7 @@ def clip_vision_encoder(
     )
 
     # position embeddings
-    if max_num_tiles == 1:
-        pre_tile_pos_embed = None
-        post_tile_pos_embed = None
-        token_pos_embedding = TokenPositionalEmbedding(
-            embed_dim=embed_dim, patch_size=patch_size, tile_size=tile_size
-        )
-    else:
+    if use_tile_pos_embed and max_num_tiles > 1:
         pre_tile_pos_embed = TilePositionalEmbedding(
             max_num_tiles=max_num_tiles, embed_dim=embed_dim
         )
@@ -161,6 +155,12 @@ def clip_vision_encoder(
             embed_dim=embed_dim,
             patch_size=patch_size,
             tile_size=tile_size,
+        )
+    else:
+        pre_tile_pos_embed = None
+        post_tile_pos_embed = None
+        token_pos_embedding = TokenPositionalEmbedding(
+            embed_dim=embed_dim, patch_size=patch_size, tile_size=tile_size
         )
 
     return VisionTransformer(

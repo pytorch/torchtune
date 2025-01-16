@@ -26,7 +26,6 @@ from torch.distributed.checkpoint import (
 
 from torchtune import training
 from torchtune.models import convert_weights
-
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG_FNAME,
     ADAPTER_MODEL_FNAME,
@@ -599,6 +598,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 dim=self._config["hidden_size"],
                 head_dim=self._config.get("head_dim", None),
             )
+        elif self._model_type == ModelType.T5_ENCODER:
+            from torchtune.models.t5._convert_weights import t5_encoder_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = t5_encoder_hf_to_tune(
+                merged_state_dict,
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -938,7 +943,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
     Raises:
         ValueError: If ``checkpoint_files`` is not a list of length 1
-        ValueError: If ``should_load_recipe_state`` is True but ``recipe_checkpoint`` is None
     """
 
     def __init__(
