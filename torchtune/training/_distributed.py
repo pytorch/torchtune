@@ -9,13 +9,15 @@ import logging
 import os
 from itertools import chain
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple
+from torchtune.modules.model_fusion import DeepFusionModel
+
 
 import torch
 import torch.distributed as dist
 from torch import nn
 
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
-from torch.distributed._tensor import distribute_tensor, DTensor, Replicate
+from torch.distributed._tensor import distribute_tensor, DTensor, Replicate, Shard
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
@@ -618,8 +620,9 @@ def adjust_attention_for_tp(
         >>> # embed_dim = 2048 (4096/2)
     """
     # Consider the case of Early Fusion or Deep Fusion models
-    transformer_decoder = getattr(model, 'decoder', model)
-    for layer in transformer_decoder.layers:
+    if isinstance(model, DeepFusionModel):
+        model = model.docoder
+    for layer in model.layers:
         # Adjust attention module to use the local number of heads
         attention_layers = ([layer.attn] if not isinstance(layer, FusionLayer) else [layer.fusion_layer.attn, layer.layer.attn])
         for attn in attention_layers:
