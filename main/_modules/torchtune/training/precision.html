@@ -482,7 +482,7 @@
 <span class="sd">        precision (str): The setting to determine which datatypes to use for matrix multiplication and convolution operations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Not relevant for non-CUDA or non-NPU devices</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">is_npu_available</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">or</span> <span class="n">is_npu_available</span><span class="p">):</span>
         <span class="k">return</span>
     <span class="c1"># set precision for matrix multiplications</span>
     <span class="n">torch</span><span class="o">.</span><span class="n">set_float32_matmul_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span>
