@@ -18,8 +18,8 @@ from torchtune.training._distributed import (
     is_distributed,
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
-    set_torch_num_threads,
     prepare_mha_for_tp,
+    set_torch_num_threads,
     shard_model,
     validate_no_params_on_meta_device,
 )

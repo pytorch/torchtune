@@ -30,9 +30,9 @@ from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
-from torchtune.modules.attention import MultiHeadAttention
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 from torchtune.utils._version import torch_version_ge
