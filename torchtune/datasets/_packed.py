@@ -90,6 +90,9 @@ class PackedDataset(Dataset):
         split_across_pack: bool = False,
     ) -> None:
         self.ds = ds
+        import pdb
+
+        pdb.set_trace()
         self.max_seq_len = max_seq_len
         self.padding_idx = padding_idx
         self.max_packs = max_packs
