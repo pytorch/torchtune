@@ -19,7 +19,7 @@ from torchtune.training._distributed import (
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
     set_torch_num_threads,
-    shard_attention_params_for_tp,
+    prepare_mha_for_tp,
     shard_model,
     validate_no_params_on_meta_device,
 )
@@ -75,7 +75,7 @@ from torchtune.training.seed import set_seed
 
 __all__ = [
     "get_act_offloading_ctx_manager",
-    "shard_attention_params_for_tp",
+    "prepare_mha_for_tp",
     "apply_selective_activation_checkpointing",
     "get_dtype",
     "set_default_dtype",

@@ -15,7 +15,6 @@ import torch.distributed as dist
 from torch import nn
 
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
-from torch.distributed._tensor import distribute_tensor, DTensor, Replicate, Shard
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
@@ -33,8 +32,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
-from torchtune.modules.transformer import TransformerSelfAttentionLayer, TransformerCrossAttentionLayer
-from torchtune.modules.model_fusion._fusion_layers import FusionLayer
+from torchtune.modules.attention import MultiHeadAttention
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 from torchtune.utils._version import torch_version_ge
@@ -552,7 +550,7 @@ def shard_model(
     fully_shard(model, **fsdp_kwargs)
 
 
-def shard_attention_params_for_tp(
+def prepare_mha_for_tp(
     model: nn.Module,
     tp_mesh: DeviceMesh,
 ) -> nn.Module:
@@ -591,31 +589,25 @@ def shard_attention_params_for_tp(
     if isinstance(model, DeepFusionModel):
         model = model.decoder
     tp_size = tp_mesh.size()
-    for layer in model.layers:
-        # Adjust attention module to use the local number of heads
-        attention_layers = (
-            [layer.attn]
-            if not isinstance(layer, FusionLayer)
-            else [layer.fusion_layer.attn, layer.layer.attn]
-        )
-        for attn in attention_layers:
+    for m in list(model.modules()):
+        if isinstance(m, MultiHeadAttention):
             # Adjust attention module to use the local number of heads
-            if attn.num_heads % tp_size != 0:
+            if m.num_heads % tp_size != 0:
                 raise ValueError(
-                    f"Number of attention heads ({attn.num_heads}) must be divisible by "
+                    f"Number of attention heads ({m.num_heads}) must be divisible by "
                     f"tensor parallel size ({tp_size})."
                 )
-            if attn.num_kv_heads % tp_size != 0:
+            if m.num_kv_heads % tp_size != 0:
                 raise ValueError(
-                    f"Number of KV heads ({attn.num_kv_heads}) must be divisible by "
+                    f"Number of KV heads ({m.num_kv_heads}) must be divisible by "
                     f"tensor parallel size ({tp_size})."
                 )
-            if attn.embed_dim % tp_size != 0:
+            if m.embed_dim % tp_size != 0:
                 raise ValueError(
-                    f"Embedding dimension ({attn.embed_dim}) must be divisible by "
+                    f"Embedding dimension ({m.embed_dim}) must be divisible by "
                     f"tensor parallel size ({tp_size})."
                 )
-            attn.num_heads = attn.num_heads // tp_size
-            attn.num_kv_heads = attn.num_kv_heads // tp_size
-            attn.embed_dim = attn.embed_dim // tp_size
+            m.num_heads = m.num_heads // tp_size
+            m.num_kv_heads = m.num_kv_heads // tp_size
+            m.embed_dim = m.embed_dim // tp_size
     return model

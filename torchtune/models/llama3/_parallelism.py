@@ -6,15 +6,15 @@
 
 from typing import Dict
 
-from torch.distributed._tensor import Replicate, Shard
+from torch.distributed._tensor import Replicate
 from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
 from torch.distributed.tensor.parallel.style import ParallelStyle
 
 
 # Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
 BASE_LLAMA_TP_PLAN = {
-    "tok_embeddings": RowwiseParallel(input_layouts=Replicate(), output_layouts=Shard(1)),
-    "output": ColwiseParallel(input_layouts=Shard(1), output_layouts=Replicate()),
+    "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
+    "output": ColwiseParallel(output_layouts=Replicate()),
     "layers.*.attn.q_proj": ColwiseParallel(),
     "layers.*.attn.k_proj": ColwiseParallel(),
     "layers.*.attn.v_proj": ColwiseParallel(),
