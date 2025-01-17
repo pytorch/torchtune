@@ -159,7 +159,7 @@ class InferenceRecipe:
         if self._device.type != "cpu":
             torch_device = utils.get_torch_device_namespace()
             self._logger.info(
-                f"Max memory allocated: {torch_device.max_memory_allocated() / (1024**3):.02f} GB"
+                f"Max memory allocated: {torch_device.max_memory_allocated() / (1024**3):.02f} GiB"
             )
 
     @torch.inference_mode()
