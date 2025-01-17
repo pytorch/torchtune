@@ -284,8 +284,9 @@ def update_state_dict_for_classifier(
             if ``output.weight != model.output.weight``.
 
     Raises:
-        AssertionError: if ``state_dict`` does not contain ``output.weight``.
-        AssertionError: if ``model_named_parameters`` does not contain ``output.weight``.
+        AssertionError:
+            If ``state_dict`` does not contain ``output.weight``, **or**
+            if ``model_named_parameters`` does not contain ``output.weight``.
 
     """
     output_weight = dict(model_named_parameters).get("output.weight", None)

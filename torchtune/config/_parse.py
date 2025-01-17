@@ -57,7 +57,7 @@ class TuneRecipeArgumentParser(argparse.ArgumentParser):
 
         config = OmegaConf.load(namespace.config)
         assert "config" not in config, "Cannot use 'config' within a config file"
-        self.set_defaults(**config)
+        self.set_defaults(**OmegaConf.to_container(config, resolve=False))
 
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
         del namespace.config
