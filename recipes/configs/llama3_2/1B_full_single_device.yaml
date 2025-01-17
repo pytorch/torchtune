@@ -29,12 +29,14 @@ model:
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path:  /tmp/Llama-3.2-1B-Instruct/original/tokenizer.model
-  max_seq_len: null
+  max_seq_len: 512
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: False  # True increases speed
+  - _component_: torchtune.datasets.alpaca_dataset
+    packed: True  # True increases speed
+  - _component_: torchtune.datasets.alpaca_cleaned_dataset
+    packed: True
 seed: null
 shuffle: True
 
@@ -53,7 +55,7 @@ resume_from_checkpoint: False
 batch_size: 4
 epochs: 1
 optimizer:
-  _component_: bitsandbytes.optim.PagedAdamW8bit
+  _component_: torch.optim.AdamW
   lr: 2e-5
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

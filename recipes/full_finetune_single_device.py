@@ -557,18 +557,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 config.instantiate(single_cfg_dataset, self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
-            import pdb
-
-            pdb.set_trace()
             ds = ConcatDataset(datasets=datasets)
-            packed = ds.packed
+            packed = getattr(ds, "packed", False)
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
-
-        import pdb
-
-        pdb.set_trace()
 
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
