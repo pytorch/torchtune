@@ -555,31 +555,29 @@ def prepare_mha_for_tp(
     tp_mesh: DeviceMesh,
 ) -> nn.Module:
     """
-    Shard attention parameters (heads, kv_heads, embed_dim) across tensor parallel devices.
-    Each device will handle a portion of the attention computations by having its parameters
-    scaled down by the tp device mesh size.
+    Utility to scale MultiHeadAttention parameters(num_heads, num_kv_heads, embed_dim) across
+    tensor parallel devices. Each device will handle a portion of the attention computations.
 
     Args:
-        model (nn.Module): The model whose attention parameters will be sharded.
-        tp_mesh (DeviceMesh): Tensor parallelism mesh.
+        model (nn.Module): Model whose attention parameters will be scaled by TP size.
+        tp_mesh (DeviceMesh): Tensor parallel device mesh.
 
     Returns:
-        nn.Module: Model with sharded attention parameters.
+        nn.Module: The model with scaled MultiHeadAttention parameters.
 
     Raises:
-        ValueError: If the number of attention heads, kv heads, or embed dim is not divisible by
-        the tp device mesh size.
+        ValueError: If attention heads, kv heads, or embed dimension is not divisible by TP size.
 
-    Example:
-        >>> # Create a model and device mesh for tensor parallelism
+    Examples:
+        >>> from torchtune.modules import TransformerDecoder
+        >>> from torch.distributed.device_mesh import DeviceMesh
         >>> model = TransformerDecoder(
-        ...     num_heads=32,
-        ...     num_kv_heads=32,
-        ...     embed_dim=4096
-        ... )
+                num_heads=32,
+                num_kv_heads=32,
+                embed_dim=4096,
+            )
         >>> tp_mesh = DeviceMesh("cuda", torch.arange(2))  # 2 GPUs
-        >>> # Adjust attention for tensor parallelism
-        >>> model = adjust_attention_for_tp(model, tp_mesh)
+        >>> model = prepare_mha_for_tp(model, tp_mesh)
         >>> # Now each GPU has:
         >>> # num_heads = 16 (32/2)
         >>> # num_kv_heads = 16 (32/2)
