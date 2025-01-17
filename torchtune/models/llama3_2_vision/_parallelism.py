@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict
+from typing import Dict
 
 from torch.distributed._tensor import Replicate, Shard
 from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
+from torch.distributed.tensor.parallel.style import ParallelStyle
 
 
 # Define the Tensor Parallel plan for Llama3.2 vision model
@@ -38,7 +39,7 @@ LLAMA3_2_VISION_TP_PLAN = {
 }
 
 
-def llama3_2_vision_tp_plan() -> Dict[str, Any]:
+def llama3_2_vision_tp_plan() -> Dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3.2 vision model.
 
