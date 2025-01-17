@@ -27,14 +27,14 @@ from torch.distributed.checkpoint.state_dict import (
 )
 from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
-from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
-from torch.distributed.tensor.parallel.style import ParallelStyle
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.model_fusion import DeepFusionModel, FusionLayer
+from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
+from torchtune.modules.transformer import TransformerSelfAttentionLayer, TransformerCrossAttentionLayer
+from torchtune.modules.model_fusion._fusion_layers import FusionLayer
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 from torchtune.utils._version import torch_version_ge
@@ -599,6 +599,7 @@ def shard_attention_params_for_tp(
             else [layer.fusion_layer.attn, layer.layer.attn]
         )
         for attn in attention_layers:
+            # Adjust attention module to use the local number of heads
             if attn.num_heads % tp_size != 0:
                 raise ValueError(
                     f"Number of attention heads ({attn.num_heads}) must be divisible by "
