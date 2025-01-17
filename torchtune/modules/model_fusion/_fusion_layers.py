@@ -201,6 +201,7 @@ class FusionEmbedding(nn.Module):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
         self.fusion_embedding = nn.Embedding(fusion_vocab_size, embed_dim)
+        print(f"during init, {self.embedding.weight.device=} and {self.fusion_embedding.weight.device=}")
         self.dim = embed_dim
         self.num_embeddings = vocab_size + fusion_vocab_size
         # TODO: Support merging the embeddings after finetuning
@@ -232,7 +233,9 @@ class FusionEmbedding(nn.Module):
         if state_dict:
             key = prefix + "weight"
             new_key = prefix + "embedding.weight"
+            print(f"{new_key=} and {key=}")
             state_dict[new_key] = state_dict[key]
+            print(f"{state_dict[new_key].device=} and {state_dict[key].device=}")
             del state_dict[key]
 
     def fusion_params(self) -> List[str]:
@@ -270,10 +273,12 @@ class FusionEmbedding(nn.Module):
         # num_fusion_tokens = (input >= vocab_size).sum()
         fusion_tokens = torch.masked_select(input, ~mask) - vocab_size
 
+        print(f"{self.embedding.weight.device=} and {self.fusion_embedding.weight.device=}")
         # [batch_size * num_tokens, embed_dim]
         embeds = self.embedding(tokens)
         # [batch_size * num_fusion_tokens, embed_dim]
         fusion_embeds = self.fusion_embedding(fusion_tokens)
+        print(f"{tokens=} and {self.embedding.weight.device=}, and {fusion_tokens=}, {self.fusion_embedding.weight.device=}")
 
         # [batch_size x seq_length x embed_dim]
         out = self._fused_embed(bs, seq_len)
