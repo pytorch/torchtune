@@ -300,7 +300,6 @@ def llama3_vision_hf_to_tune(
                 learned_embedding = "decoder.tok_embeddings.fusion_embedding.weight"
                 converted_state_dict[learned_embedding] = value[vocab_size:]
                 value = value[:vocab_size]
-                print("Saving fusion embedding weights into state dict!")
         elif "vision_model" in key:
             if (
                 "tile_pos_embed.embedding" in new_key

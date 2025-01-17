@@ -69,7 +69,7 @@ class InferenceRecipe:
     Recipe for generating tokens from a dense Transformer-based LLM.
     This works for text-only generation and image-text generation.
 
-    Supports (single node) distributed inference using Tensor Paralellism(TP) for
+    Supports distributed inference using Tensor Paralellism(TP) for
     large models that don't fit on a single GPU. For more information
     on TP, see: https://pytorch.org/docs/stable/distributed.tensor.parallel.html.
 
