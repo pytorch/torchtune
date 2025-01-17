@@ -441,6 +441,14 @@ _ALL_RECIPES = [
                 name="llama3/70B_generation_distributed",
                 file_path="llama3/70B_generation_distributed.yaml",
             ),
+            Config(
+                name="llama3_1/70B_generation_distributed",
+                file_path="llama3_1/70B_generation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_3/70B_generation_distributed",
+                file_path="llama3_3/70B_generation_distributed.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
