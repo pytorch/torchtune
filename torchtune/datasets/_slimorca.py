@@ -10,7 +10,7 @@ from torchtune.data import ShareGPTToMessages
 from torchtune.datasets._packed import PackedDataset
 
 from torchtune.datasets._sft import SFTDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 def slimorca_dataset(

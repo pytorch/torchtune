@@ -10,8 +10,8 @@ from torchtune.data import Message, PromptTemplate
 
 from torchtune.models.clip import CLIPImageTransform
 from torchtune.models.llama3 import llama3_tokenizer
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform, VisionCrossAttentionMask
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 class Llama3VisionTransform(ModelTokenizer, Transform):

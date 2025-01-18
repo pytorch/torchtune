@@ -8,8 +8,8 @@ from typing import Any, Callable, Dict, Mapping, Optional
 
 from torchtune.data import Message
 from torchtune.datasets._preference import PreferenceDataset
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 class StackExchangePairedToMessages(Transform):

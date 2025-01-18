@@ -69,11 +69,13 @@ class SFTDataset(Dataset):
     multimodal datasets requires processing the images in a way specific to the vision
     encoder being used by the model and is agnostic to the specific dataset.
 
-    Tokenization is handled by the ``model_transform``. All :class:`~torchtune.modules.tokenizers.ModelTokenizer`
-    can be treated as a ``model_transform`` since it uses the model-specific tokenizer to
-    transform the list of messages outputted from the ``message_transform`` into tokens
-    used by the model for training. Text-only datasets will simply pass the :class:`~torchtune.modules.tokenizers.ModelTokenizer`
-    into ``model_transform``. Tokenizers handle prompt templating, if configured.
+    Tokenization is handled by the ``model_transform``. All
+    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` can be treated as
+    a ``model_transform`` since it uses the model-specific tokenizer to transform the
+    list of messages outputted from the ``message_transform`` into tokens used by the
+    model for training. Text-only datasets will simply pass the
+    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` into ``model_transform``.
+    Tokenizers handle prompt templating, if configured.
 
     Args:
         source (str): path to dataset repository on Hugging Face. For local datasets,

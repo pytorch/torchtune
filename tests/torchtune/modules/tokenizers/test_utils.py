@@ -9,7 +9,7 @@ import pytest
 from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 
-from torchtune.modules.tokenizers import tokenize_messages_no_special_tokens
+from torchtune.modules.transforms.tokenizers import tokenize_messages_no_special_tokens
 
 
 class TestTokenizerUtils:

@@ -7,12 +7,12 @@
 from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate
-from torchtune.modules.tokenizers import (
+from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,
 )
-from torchtune.modules.transforms import Transform
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
