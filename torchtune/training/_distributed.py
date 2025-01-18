@@ -25,11 +25,14 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
+from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.attention import MultiHeadAttention
+from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
@@ -201,7 +204,7 @@ def load_from_full_model_state_dict(
         for param in model.parameters()
     )
     meta_sharded_sd = model.state_dict()
-    # NF4Tensor is not supported in `set_model_state_dict` right now, running with the privious logic right
+    # NF4Tensor is not supported in `set_model_state_dict` right now, running with the previous logic right
     # now, would support in the future and remove the following code
     if _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4:
         for param_name in full_sd.keys():
@@ -546,3 +549,64 @@ def shard_model(
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)
+
+
+def prepare_mha_for_tp(
+    model: nn.Module,
+    tp_mesh: DeviceMesh,
+) -> nn.Module:
+    """
+    Utility to scale MultiHeadAttention parameters(num_heads, num_kv_heads, embed_dim) across
+    tensor parallel devices. Each device will handle a portion of the attention computations.
+
+    Args:
+        model (nn.Module): Model whose attention parameters will be scaled by TP size.
+        tp_mesh (DeviceMesh): Tensor parallel device mesh.
+
+    Returns:
+        nn.Module: The model with scaled MultiHeadAttention parameters.
+
+    Raises:
+        ValueError: If attention heads, kv heads, or embed dimension is not divisible by TP size.
+
+    Examples:
+        >>> from torchtune.modules import TransformerDecoder
+        >>> from torch.distributed.device_mesh import DeviceMesh
+        >>> model = TransformerDecoder(
+                num_heads=32,
+                num_kv_heads=32,
+                embed_dim=4096,
+            )
+        >>> tp_mesh = DeviceMesh("cuda", torch.arange(2))  # 2 GPUs
+        >>> model = prepare_mha_for_tp(model, tp_mesh)
+        >>> # Now each GPU has:
+        >>> # num_heads = 16 (32/2)
+        >>> # num_kv_heads = 16 (32/2)
+        >>> # embed_dim = 2048 (4096/2)
+    """
+    # Consider the case of Deep Fusion models
+    if isinstance(model, DeepFusionModel):
+        model = model.decoder
+    tp_size = tp_mesh.size()
+    for m in list(model.modules()):
+        if isinstance(m, MultiHeadAttention):
+            # Adjust attention module to use the local number of heads
+            if m.num_heads % tp_size != 0:
+                raise ValueError(
+                    f"Number of attention heads ({m.num_heads}) must be divisible by "
+                    f"tensor parallel size ({tp_size})."
+                )
+            if m.num_kv_heads % tp_size != 0:
+                raise ValueError(
+                    f"Number of KV heads ({m.num_kv_heads}) must be divisible by "
+                    f"tensor parallel size ({tp_size})."
+                )
+            if m.embed_dim % tp_size != 0:
+                raise ValueError(
+                    f"Embedding dimension ({m.embed_dim}) must be divisible by "
+                    f"tensor parallel size ({tp_size})."
+                )
+            m.num_heads = m.num_heads // tp_size
+            m.num_kv_heads = m.num_kv_heads // tp_size
+            m.embed_dim = m.embed_dim // tp_size
+    return model

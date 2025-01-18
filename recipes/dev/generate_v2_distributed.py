@@ -9,7 +9,9 @@ import time
 from typing import Any, Dict, List
 
 import torch
+import torch.distributed as dist
 from omegaconf import DictConfig, OmegaConf
+from torch.distributed.tensor.parallel import parallelize_module
 
 from torchtune import config, training, utils
 from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
@@ -67,10 +69,13 @@ class InferenceRecipe:
     Recipe for generating tokens from a dense Transformer-based LLM.
     This works for text-only generation and image-text generation.
 
+    Supports distributed inference using Tensor Paralellism(TP) for
+    large models that don't fit on a single GPU. For more information
+    on TP, see: https://pytorch.org/docs/stable/distributed.tensor.parallel.html.
+
     This *does not* currently support the following features:
         - torch.compile
         - quantization through torchao
-        - multi-GPU generation
         - batch generation
     """
 
@@ -78,6 +83,10 @@ class InferenceRecipe:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._logger = utils.get_logger(cfg.log_level)
+        # Set up distributed env
+        dist.init_process_group(backend="nccl")
+        _, rank = utils.get_world_size_and_rank()
+        self._is_rank_zero = rank == 0
         training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
@@ -86,12 +95,44 @@ class InferenceRecipe:
         _checkpointer = config.instantiate(cfg.checkpointer)
         _ckpt_dict = _checkpointer.load_checkpoint()
 
-        # Instantiate model
-        with training.set_default_dtype(self._dtype), self._device:
+        # Instantiate model on meta device
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg.model)
-        model.load_state_dict(_ckpt_dict[training.MODEL_KEY])
+
+        # Set up tensor parallel device mesh
+        tp_degree = dist.get_world_size()  # Using all GPUs for TP
+        tp_mesh_shape = (tp_degree,)
+        tp_device_mesh = dist.init_device_mesh("cuda", tp_mesh_shape)
+
+        # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
+        training.prepare_mha_for_tp(model, tp_device_mesh)
+        parallelize_module(
+            model,
+            tp_device_mesh,
+            parallelize_plan=config.instantiate(cfg.parallelize_plan),
+        )
+
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
+        training.load_from_full_model_state_dict(
+            model=model,
+            full_sd=_ckpt_dict[training.MODEL_KEY],
+            device=self._device,
+            strict=True,
+            cpu_offload=False,
+        )
+
         self.model = model
-        self._logger.info(f"Model was initialized with precision {self._dtype}.")
+        if self._is_rank_zero:
+            self._logger.info(
+                f"Model was initialized with precision {self._dtype} and TP degree {tp_degree}."
+            )
 
         # Instantiate transforms
         self.model_transform = config.instantiate(cfg.tokenizer)
@@ -205,11 +246,13 @@ class InferenceRecipe:
 
         # 8. Translate tokens back to text
         decoded = self.model_transform.decode(generated_tokens)
-        self._logger.info(f"\n\n{decoded}\n")
+        if self._is_rank_zero:
+            self._logger.info(f"\n\n{decoded}\n")
 
         # 9. Log metrics
         tokens_per_second = len(generated_tokens) / t
-        self.log_metrics(total_time=t, tokens_per_second=tokens_per_second)
+        if self._is_rank_zero:
+            self.log_metrics(total_time=t, tokens_per_second=tokens_per_second)
 
 
 @config.parse
