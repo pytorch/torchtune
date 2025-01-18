@@ -46,7 +46,7 @@ def save_config(config: DictConfig) -> Path:
         OmegaConf.save(config, output_config_fname)
         return output_config_fname
     except Exception as e:
-        log.warning(f"Error saving config to {output_config_fname}.\nError: \n{e}.")
+        log.warning(f"Error saving config.\nError: \n{e}.")
 
 
 class MetricLoggerInterface(Protocol):
@@ -421,7 +421,8 @@ class CometLogger(MetricLoggerInterface):
             ) from e
 
         # Remove 'log_dir' from kwargs as it is not a valid argument for comet_ml.ExperimentConfig
-        del kwargs["log_dir"]
+        if "log_dir" in kwargs:
+            del kwargs["log_dir"]
 
         _, self.rank = get_world_size_and_rank()
 
