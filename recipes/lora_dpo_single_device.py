@@ -247,6 +247,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            seed=cfg.get("seed", 0),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -369,6 +370,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        seed: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -389,7 +391,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=self.seed,
+            seed=seed,
         )
         dataloader = DataLoader(
             dataset=ds,

@@ -292,6 +292,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            seed=cfg.get("seed", 0),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -638,6 +639,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
+        seed: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -662,7 +664,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             num_replicas=world_size,
             rank=rank,
             shuffle=shuffle,
-            seed=self.seed,
+            seed=seed,
         )
         dataloader = DataLoader(
             dataset=ds,

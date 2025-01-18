@@ -335,6 +335,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
+            seed=cfg.get("seed", 0),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -619,6 +620,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
+        seed: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
@@ -644,7 +646,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=self.seed
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=seed
         )
 
         dataloader = DataLoader(
