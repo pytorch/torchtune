@@ -473,11 +473,14 @@
     <span class="n">set_optimizer_state_dict</span><span class="p">,</span>
     <span class="n">StateDictOptions</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.device_mesh</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeviceMesh</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.fsdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShardingStrategy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules.module</span><span class="w"> </span><span class="kn">import</span> <span class="n">_IncompatibleKeys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optimizer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes.nf4tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.attention</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiHeadAttention</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepFusionModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_adapter_state_dict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_device</span><span class="p">,</span> <span class="n">get_logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
@@ -649,7 +652,7 @@
         <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
     <span class="p">)</span>
     <span class="n">meta_sharded_sd</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
-    <span class="c1"># NF4Tensor is not supported in `set_model_state_dict` right now, running with the privious logic right</span>
+    <span class="c1"># NF4Tensor is not supported in `set_model_state_dict` right now, running with the previous logic right</span>
     <span class="c1"># now, would support in the future and remove the following code</span>
     <span class="k">if</span> <span class="n">_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has_nf4</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="n">full_sd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -994,6 +997,67 @@
 
     <span class="c1"># Finally shard the entire model to account for any stragglers</span>
     <span class="n">fully_shard</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">fsdp_kwargs</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_mha_for_tp</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">tp_mesh</span><span class="p">:</span> <span class="n">DeviceMesh</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility to scale MultiHeadAttention parameters(num_heads, num_kv_heads, embed_dim) across</span>
+<span class="sd">    tensor parallel devices. Each device will handle a portion of the attention computations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (nn.Module): Model whose attention parameters will be scaled by TP size.</span>
+<span class="sd">        tp_mesh (DeviceMesh): Tensor parallel device mesh.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        nn.Module: The model with scaled MultiHeadAttention parameters.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If attention heads, kv heads, or embed dimension is not divisible by TP size.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.modules import TransformerDecoder</span>
+<span class="sd">        &gt;&gt;&gt; from torch.distributed.device_mesh import DeviceMesh</span>
+<span class="sd">        &gt;&gt;&gt; model = TransformerDecoder(</span>
+<span class="sd">                num_heads=32,</span>
+<span class="sd">                num_kv_heads=32,</span>
+<span class="sd">                embed_dim=4096,</span>
+<span class="sd">            )</span>
+<span class="sd">        &gt;&gt;&gt; tp_mesh = DeviceMesh(&quot;cuda&quot;, torch.arange(2))  # 2 GPUs</span>
+<span class="sd">        &gt;&gt;&gt; model = prepare_mha_for_tp(model, tp_mesh)</span>
+<span class="sd">        &gt;&gt;&gt; # Now each GPU has:</span>
+<span class="sd">        &gt;&gt;&gt; # num_heads = 16 (32/2)</span>
+<span class="sd">        &gt;&gt;&gt; # num_kv_heads = 16 (32/2)</span>
+<span class="sd">        &gt;&gt;&gt; # embed_dim = 2048 (4096/2)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Consider the case of Deep Fusion models</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">DeepFusionModel</span><span class="p">):</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span>
+    <span class="n">tp_size</span> <span class="o">=</span> <span class="n">tp_mesh</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">MultiHeadAttention</span><span class="p">):</span>
+            <span class="c1"># Adjust attention module to use the local number of heads</span>
+            <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">%</span> <span class="n">tp_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Number of attention heads (</span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">num_heads</span><span class="si">}</span><span class="s2">) must be divisible by &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;tensor parallel size (</span><span class="si">{</span><span class="n">tp_size</span><span class="si">}</span><span class="s2">).&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">num_kv_heads</span> <span class="o">%</span> <span class="n">tp_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Number of KV heads (</span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">num_kv_heads</span><span class="si">}</span><span class="s2">) must be divisible by &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;tensor parallel size (</span><span class="si">{</span><span class="n">tp_size</span><span class="si">}</span><span class="s2">).&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">%</span> <span class="n">tp_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Embedding dimension (</span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">embed_dim</span><span class="si">}</span><span class="s2">) must be divisible by &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;tensor parallel size (</span><span class="si">{</span><span class="n">tp_size</span><span class="si">}</span><span class="s2">).&quot;</span>
+                <span class="p">)</span>
+            <span class="n">m</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">//</span> <span class="n">tp_size</span>
+            <span class="n">m</span><span class="o">.</span><span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">num_kv_heads</span> <span class="o">//</span> <span class="n">tp_size</span>
+            <span class="n">m</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="n">tp_size</span>
+    <span class="k">return</span> <span class="n">model</span>
 </pre></div>
 
              </article>
