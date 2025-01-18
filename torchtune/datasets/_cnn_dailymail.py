@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Optional
 
 from torchtune.datasets._text_completion import TextCompletionDataset
 
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 def cnn_dailymail_articles_dataset(

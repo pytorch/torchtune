@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Mapping, Set, Tuple
 
 import regex as re
 
-from torchtune.modules.tokenizers._utils import BaseTokenizer
+from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
 
 WORD_BOUNDARY = "</w>"
 
