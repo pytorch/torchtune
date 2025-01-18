@@ -10,20 +10,24 @@ import copy
 
 import pytest
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 from packaging import version
 from tests.test_utils import gpu_test
 from torch.distributed import launcher
-
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
+from torch.testing._internal.common_distributed import MultiProcessTestCase
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, training
 from torchtune.models.llama2._component_builders import lora_llama2
-from torchtune.modules import TransformerSelfAttentionLayer
+from torchtune.models.llama3_1._component_builders import llama3_mlp
+from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
+from torchtune.modules import RMSNorm, TransformerSelfAttentionLayer
+from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
@@ -379,3 +383,57 @@ class TestFullyShardState(FSDPTest):
             result.append(None)
         torch.distributed.broadcast_object_list(result, src=0)
         return result[0]
+
+
+class TestTensorParalell(MultiProcessTestCase):
+    @property
+    def world_size(self) -> int:
+        return 2
+
+    @gpu_test(gpu_count=2)
+    def test_prepare_mha_for_tp(self) -> None:
+        """Test tensor parallelism preparation for multi-head attention."""
+        # Create a device mesh for tensor parallelism
+        mesh = dist.init_device_mesh("cuda", mesh_shape=(2,))
+
+        # Parameters for TransformerSelfAttentionLayer
+        embed_dim = 64
+        hidden_dim = 64
+        num_heads = 4
+        num_kv_heads = 4
+        max_seq_len = 128
+        rope_base = 500000
+        head_dim = embed_dim // num_heads
+        rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+        self_attn = MultiHeadAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            max_seq_len=max_seq_len,
+            attn_dropout=0.0,
+        )
+        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+        decoder_layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim, eps=1e-5),
+            mlp_norm=RMSNorm(dim=embed_dim, eps=1e-5),
+        )
+
+        orig_num_heads = self_attn.num_heads
+        orig_num_kv_heads = self_attn.num_kv_heads
+        orig_embed_dim = self_attn.embed_dim
+
+        # Apply tensor parallelism preparation
+        decoder_layer = training.prepare_mha_for_tp(decoder_layer, mesh)
+
+        # Verify that parameters were scaled correctly
+        assert decoder_layer.attn.num_heads == orig_num_heads // 2
+        assert decoder_layer.attn.num_kv_heads == orig_num_kv_heads // 2
+        assert decoder_layer.attn.embed_dim == orig_embed_dim // 2
