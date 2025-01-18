@@ -335,6 +335,29 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
+        # Setup the validation dataset
+        self.run_validation = "dataset_validation" in cfg
+        if self.run_validation:
+            self._sampler_val, self._dataloader_val = self._setup_data(
+                cfg_dataset=cfg.dataset_validation,
+                shuffle=cfg.shuffle,
+                batch_size=cfg.batch_size,
+                collate_fn=collate_name,
+            )
+
+        self.run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
+        if self.run_validation:
+            if self.run_val_every_n_steps is None:
+                log.warning(
+                    f"""Validation is enabled but run_val_every_n_steps is not set.
+                    Will be set to steps_per_epoch. ({self._steps_per_epoch})"""
+                )
+                self.run_val_every_n_steps = self._steps_per_epoch
+            elif self.run_val_every_n_steps < 1:
+                raise ValueError("run_val_every_n_steps must be greater than 0.")
+
+        self.max_validation_batches = cfg.get("max_validation_batches", -1)
+
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
@@ -652,6 +675,43 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return loss
 
+    def validate(self, curr_epoch) -> None:
+        pbar = tqdm(total=max(len(self._dataloader_val), self.max_validation_batches))
+        val_losses = []
+        for idx, batch in enumerate(self._dataloader_val):
+            if (
+                self.max_validation_batches > 0
+                and idx == self.max_validation_batches - 1
+            ):
+                break
+            utils.batch_to_device(batch, self._device)
+
+            current_loss = self._loss_step(batch)
+            val_losses.append(current_loss.item())
+
+            pbar.update(1)
+            pbar.set_description(
+                f"{curr_epoch + 1}|{idx}| Validation Loss: {current_loss.item()}"
+            )
+
+            # This bit allows to see the loss for each batch. Not sure about step indexing.
+            log_dict = {
+                "val_loss": current_loss.item(),
+            }
+            self._metric_logger.log_dict(
+                log_dict,
+                step=(curr_epoch + 1) * idx + idx,
+            )
+
+        if self.run_validation:
+            self._metric_logger.log_dict(
+                {
+                    "avg_val_loss": sum(val_losses) / len(val_losses),
+                    "epoch": curr_epoch + 1,
+                },
+                step=self.global_step,
+            )
+
     def train(self) -> None:
         """
         The core training loop.
@@ -778,6 +838,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         time.perf_counter() - start_save_checkpoint
                     )
                 )
+
+                if (
+                    self.run_validation
+                    and self.global_step % self.run_val_every_n_steps == 0
+                ):
+                    self.validate(curr_epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()
