@@ -5,7 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 from typing import Any, Dict, List
 
-from torchtune.modules.tokenizers._sentencepiece import SentencePieceBaseTokenizer
+from torchtune.modules.transforms.tokenizers._sentencepiece import (
+    SentencePieceBaseTokenizer,
+)
 
 
 class T5Tokenizer(SentencePieceBaseTokenizer):
