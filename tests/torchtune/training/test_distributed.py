@@ -10,33 +10,31 @@ import copy
 
 import pytest
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 from packaging import version
 from tests.test_utils import gpu_test
 from torch.distributed import launcher
-import torch.distributed as dist
-from torch.testing._internal.common_distributed import MultiProcessTestCase
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
+from torch.testing._internal.common_distributed import MultiProcessTestCase
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, training
 from torchtune.models.llama2._component_builders import lora_llama2
-from torchtune.modules import TransformerSelfAttentionLayer
+from torchtune.models.llama3_1._component_builders import llama3_mlp
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
+from torchtune.modules import RMSNorm, TransformerSelfAttentionLayer
 from torchtune.modules.attention import MultiHeadAttention
-from torchtune.modules import RMSNorm
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
     LoRALinear,
     set_trainable_params,
 )
-from torchtune.models.llama3_1._component_builders import (
-    llama3_mlp,
-)
+
 
 class TestDistributed:
     def test_init_distributed(self) -> None:
@@ -431,7 +429,7 @@ class TestTensorParalell(MultiProcessTestCase):
         orig_num_heads = self_attn.num_heads
         orig_num_kv_heads = self_attn.num_kv_heads
         orig_embed_dim = self_attn.embed_dim
-        
+
         # Apply tensor parallelism preparation
         decoder_layer = training.prepare_mha_for_tp(decoder_layer, mesh)
 
