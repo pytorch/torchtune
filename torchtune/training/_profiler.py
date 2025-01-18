@@ -111,7 +111,7 @@ def trace_handler(
         log.info(f"Finished dumping traces in {time.monotonic() - begin:.2f} seconds")
 
     # Memory timeline sometimes fails to export
-    if prof.profile_memory:
+    if prof.profile_memory and torch.cuda.is_available():
         if rank == 0:
             try:
                 prof.export_memory_timeline(
@@ -185,6 +185,7 @@ def setup_torch_profiler(
     enabled: bool = False,
     cpu: bool = True,
     cuda: bool = True,
+    xpu: bool = True,
     profile_memory: bool = DEFAULT_TRACE_OPTS["profile_memory"],
     with_stack: bool = DEFAULT_TRACE_OPTS["with_stack"],
     record_shapes: bool = DEFAULT_TRACE_OPTS["record_shapes"],
@@ -252,6 +253,7 @@ def setup_torch_profiler(
         enabled (bool): Enable pytorch profiler. Default is False.
         cpu (bool): Enable cpu profiling. Default is True.
         cuda (bool): Enable cuda profiling. Default is True.
+        xpu (bool): Enable xpu profiling. Default is True.
         profile_memory (bool): Profile memory usage. Default is False.
         with_stack (bool): Profile stack. Default is False.
         record_shapes (bool): Record shapes. Default is True.
@@ -276,6 +278,8 @@ def setup_torch_profiler(
         activities.append(torch.profiler.ProfilerActivity.CPU)
     if cuda:
         activities.append(torch.profiler.ProfilerActivity.CUDA)
+    if xpu:
+        activities.append(torch.profiler.ProfilerActivity.XPU)
     if len(activities) == 0:
         _warn("No activities specified, defaulting to CPU + CUDA")
         activities = DEFAULT_PROFILER_ACTIVITIES
@@ -372,6 +376,7 @@ def setup_torch_profiler(
             "output_dir": output_dir,
             "cpu": cpu,
             "cuda": cuda,
+            "xpu": xpu,
             "profile_memory": profile_memory,
             "with_stack": with_stack,
             "record_shapes": record_shapes,
