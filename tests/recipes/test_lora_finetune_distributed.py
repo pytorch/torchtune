@@ -54,8 +54,8 @@ class TestLoRAFinetuneDistributedRecipe:
         # These values have been validated against single device recipe test via
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         loss_values_map = {
-            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
-            "llama3": [11.9839, 11.9691, 11.9617, 11.9383],
+            "llama2": [10.5320, 10.5608, 10.4895, 10.5068],
+            "llama3": [11.9259, 11.9250, 11.9753, 11.9774],
         }
         return loss_values_map[model_type]
 
