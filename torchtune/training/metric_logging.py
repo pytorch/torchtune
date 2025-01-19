@@ -42,7 +42,6 @@ def save_config(config: DictConfig) -> Path:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         output_config_fname = output_dir / "torchtune_config.yaml"
-        log.info(f"Writing config to {output_config_fname}")
         OmegaConf.save(config, output_config_fname)
         return output_config_fname
     except Exception as e:
@@ -259,7 +258,6 @@ class WandBLogger(MetricLoggerInterface):
             # Also try to save the config as a file
             output_config_fname = save_config(config)
             try:
-                log.info(f"Uploading {output_config_fname} to W&B under Files")
                 self._wandb.save(
                     output_config_fname, base_path=output_config_fname.parent
                 )
@@ -459,7 +457,6 @@ class CometLogger(MetricLoggerInterface):
             # Also try to save the config as a file
             output_config_fname = save_config(config)
             try:
-                log.info(f"Uploading {output_config_fname} to Comet as an asset.")
                 self.experiment.log_asset(
                     output_config_fname, file_name=output_config_fname.name
                 )
