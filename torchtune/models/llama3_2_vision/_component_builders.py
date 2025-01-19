@@ -179,9 +179,9 @@ def llama3_2_vision_decoder(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     hidden_dim = intermediate_dim or scale_hidden_dim_for_mlp(embed_dim)
-    layers = []
-
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+
+    layers = nn.ModuleList()
     for idx in range(1, num_layers + 1):
 
         # Self attention layers for text decoder
@@ -543,9 +543,9 @@ def lora_llama3_2_vision_decoder(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     hidden_dim = intermediate_dim or scale_hidden_dim_for_mlp(embed_dim)
-    layers = []
-
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    
+    layers = nn.ModuleList()
     for idx in range(1, num_layers + 1):
 
         # Self attention layers for text decoder

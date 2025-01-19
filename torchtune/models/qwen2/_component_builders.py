@@ -82,27 +82,32 @@ def qwen2(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = Qwen2RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = MultiHeadAttention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        head_dim=head_dim,
-        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=True),
-        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
-        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
-        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-        pos_embeddings=rope,
-        kv_cache=None,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-    )
-    mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-    )
+
+    layers = nn.ModuleList()
+    for _ in range(num_layers):
+        self_attn = MultiHeadAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=True),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            kv_cache=None,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+        )
+        mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+        layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+            mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
+
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     if tie_word_embeddings:
         output_proj = TiedLinear(tok_embeddings)
@@ -110,8 +115,7 @@ def qwen2(
         output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layers=layer,
-        num_layers=num_layers,
+        layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
         head_dim=head_dim,
@@ -199,41 +203,43 @@ def lora_qwen2(
         ValueError: if ``apply_lora_to_output`` and ``tie_word_embeddings``.
 
     """
-
-    self_attn = lora_qwen2_self_attention(
-        lora_modules=lora_attn_modules,
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-        rope_base=rope_base,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=lora_dropout,
-        use_dora=use_dora,
-        quantize_base=quantize_base,
-    )
-
-    if apply_lora_to_mlp:
-        mlp = lora_qwen2_mlp(
-            dim=embed_dim,
-            hidden_dim=intermediate_dim,
+    layers = nn.ModuleList()
+    for _ in range(num_layers):
+        self_attn = lora_qwen2_self_attention(
+            lora_modules=lora_attn_modules,
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            max_seq_len=max_seq_len,
+            attn_dropout=attn_dropout,
+            rope_base=rope_base,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
-            quantize_base=quantize_base,
-            use_dora=use_dora,
             lora_dropout=lora_dropout,
+            use_dora=use_dora,
+            quantize_base=quantize_base,
         )
-    else:
-        mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
 
-    layer = TransformerSelfAttentionLayer(
-        attn=self_attn,
-        mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
-    )
+        if apply_lora_to_mlp:
+            mlp = lora_qwen2_mlp(
+                dim=embed_dim,
+                hidden_dim=intermediate_dim,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                quantize_base=quantize_base,
+                use_dora=use_dora,
+                lora_dropout=lora_dropout,
+            )
+        else:
+            mlp = qwen2_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+
+        layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+            mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
@@ -254,8 +260,7 @@ def lora_qwen2(
         )
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
-        layers=layer,
-        num_layers=num_layers,
+        layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
         head_dim=(embed_dim // num_heads),
