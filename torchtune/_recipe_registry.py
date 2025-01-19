@@ -28,6 +28,22 @@ _ALL_RECIPES = [
         file_path="full_finetune_single_device.py",
         configs=[
             Config(
+                name="falcon3/1B_full_single_device",
+                file_path="falcon3/1B_full_single_device.yaml",
+            ),
+            Config(
+                name="falcon3/3B_full_single_device",
+                file_path="falcon3/3B_full_single_device.yaml",
+            ),
+            Config(
+                name="falcon3/7B_full_single_device",
+                file_path="falcon3/7B_full_single_device.yaml",
+            ),
+            Config(
+                name="falcon3/10B_full_single_device",
+                file_path="falcon3/10B_full_single_device.yaml",
+            ),
+            Config(
                 name="llama2/7B_full_low_memory",
                 file_path="llama2/7B_full_low_memory.yaml",
             ),
@@ -98,6 +114,10 @@ _ALL_RECIPES = [
         name="full_finetune_distributed",
         file_path="full_finetune_distributed.py",
         configs=[
+            Config(name="falcon3/1B_full", file_path="falcon3/1B_full.yaml"),
+            Config(name="falcon3/3B_full", file_path="falcon3/3B_full.yaml"),
+            Config(name="falcon3/7B_full", file_path="falcon3/7B_full.yaml"),
+            Config(name="falcon3/10B_full", file_path="falcon3/10B_full.yaml"),
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
             Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
@@ -136,6 +156,22 @@ _ALL_RECIPES = [
         name="lora_finetune_single_device",
         file_path="lora_finetune_single_device.py",
         configs=[
+            Config(
+                name="falcon3/1B_lora_single_device",
+                file_path="falcon3/1B_lora_single_device.yaml",
+            ),
+            Config(
+                name="falcon3/3B_lora_single_device",
+                file_path="falcon3/3B_lora_single_device.yaml",
+            ),
+            Config(
+                name="falcon3/7B_lora_single_device",
+                file_path="falcon3/7B_lora_single_device.yaml",
+            ),
+            Config(
+                name="falcon3/10B_lora_single_device",
+                file_path="falcon3/10B_lora_single_device.yaml",
+            ),
             Config(
                 name="llama2/7B_lora_single_device",
                 file_path="llama2/7B_lora_single_device.yaml",
@@ -340,6 +376,10 @@ _ALL_RECIPES = [
         name="lora_finetune_distributed",
         file_path="lora_finetune_distributed.py",
         configs=[
+            Config(name="falcon3/1B_lora", file_path="falcon3/1B_lora.yaml"),
+            Config(name="falcon3/3B_lora", file_path="falcon3/3B_lora.yaml"),
+            Config(name="falcon3/7B_lora", file_path="falcon3/7B_lora.yaml"),
+            Config(name="falcon3/10B_lora", file_path="falcon3/10B_lora.yaml"),
             Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
             Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
             Config(name="llama2/70B_lora", file_path="llama2/70B_lora.yaml"),
@@ -468,6 +508,10 @@ _ALL_RECIPES = [
         file_path="eleuther_eval.py",
         configs=[
             Config(name="eleuther_evaluation", file_path="eleuther_evaluation.yaml"),
+            Config(
+                name="falcon3/evaluation",
+                file_path="falcon3/evaluation.yaml",
+            ),
             Config(
                 name="llama3_2_vision/11B_evaluation",
                 file_path="llama3_2_vision/11B_evaluation.yaml",
