@@ -51,37 +51,39 @@ def t5_encoder(
     """
     token_embedding = nn.Embedding(vocab_size, embed_dim)
 
-    attn = T5EncoderSelfAttention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        head_dim=head_dim,
-        q_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-        k_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-        v_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-    )
+    layers = nn.ModuleList()
+    for _ in range(num_layers):
+        attn = T5EncoderSelfAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+        )
 
-    mlp = FeedForward(
-        gate_proj=nn.Linear(embed_dim, mlp_dim, bias=False),
-        down_proj=nn.Linear(mlp_dim, embed_dim, bias=False),
-        up_proj=nn.Linear(embed_dim, mlp_dim, bias=False),
-        activation=nn.GELU(),
-    )
+        mlp = FeedForward(
+            gate_proj=nn.Linear(embed_dim, mlp_dim, bias=False),
+            down_proj=nn.Linear(mlp_dim, embed_dim, bias=False),
+            up_proj=nn.Linear(embed_dim, mlp_dim, bias=False),
+            activation=nn.GELU(),
+        )
 
-    layer = T5EncoderLayer(
-        attn=attn,
-        mlp=mlp,
-        sa_norm=RMSNorm(embed_dim, eps=norm_eps),
-        mlp_norm=RMSNorm(embed_dim, eps=norm_eps),
-    )
+        layer = T5EncoderLayer(
+            attn=attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(embed_dim, eps=norm_eps),
+            mlp_norm=RMSNorm(embed_dim, eps=norm_eps),
+        )
+        layers.append(layer)
 
     final_norm = RMSNorm(embed_dim, eps=norm_eps)
 
     return T5Encoder(
         token_embedding=token_embedding,
-        layer=layer,
+        layers=layers,
         final_norm=final_norm,
-        num_layers=num_layers,
         num_heads=num_heads,
         rel_pos_num_buckets=rel_pos_num_buckets,
         rel_pos_max_dist=rel_pos_max_dist,
