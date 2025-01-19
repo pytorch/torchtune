@@ -85,7 +85,8 @@ def llama3_2(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
-    layers = []
+    
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
@@ -109,7 +110,6 @@ def llama3_2(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
@@ -207,7 +207,8 @@ def lora_llama3_2(
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     head_dim = embed_dim // num_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
-    layers = []
+    
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = lora_llama3_2_self_attention(
             lora_modules=lora_attn_modules,
@@ -245,7 +246,7 @@ def lora_llama3_2(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
+        
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     if apply_lora_to_output:
