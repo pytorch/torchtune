@@ -88,7 +88,7 @@ def llama2(
     rope = RotaryPositionalEmbeddings(
         dim=head_dim, max_seq_len=max_seq_len, base=rope_base
     )
-    layers = []
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
@@ -112,7 +112,6 @@ def llama2(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
@@ -220,7 +219,7 @@ def lora_llama2(
         intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     )
 
-    layers = []
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = lora_llama2_self_attention(
             lora_modules=lora_attn_modules,
@@ -258,7 +257,6 @@ def lora_llama2(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
@@ -524,7 +522,7 @@ def llama2_classifier(
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
     
-    layers = []
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
@@ -548,7 +546,6 @@ def llama2_classifier(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     output_proj = nn.Linear(embed_dim, num_classes, bias=False)
@@ -632,7 +629,7 @@ def lora_llama2_classifier(
         intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     )
 
-    layers = []
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = lora_llama2_self_attention(
             lora_modules=lora_attn_modules,
@@ -668,7 +665,6 @@ def lora_llama2_classifier(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
