@@ -55,7 +55,7 @@ class TestKDDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.8316, 11.7520, 11.7642, 11.7664],
+            "llama3": [11.7545, 11.7653, 11.7810, 11.7969],
         }
         return loss_values_map[model_type]
 

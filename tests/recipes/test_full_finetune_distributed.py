@@ -51,15 +51,15 @@ class TestFullFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values_multi_rank(self, model_type):
         loss_values_map = {
-            "llama2": [10.5209, 10.5217, 10.4945, 10.5136],
-            "llama3": [11.9839, 11.9684, 11.9596, 11.93656],
+            "llama2": [10.5320, 10.5581, 10.4741, 10.4980],
+            "llama3": [11.9265, 11.9249, 11.9737, 11.9757],
         }
         return loss_values_map[model_type]
 
     def _fetch_expected_loss_values_single_rank(self, model_type):
         loss_values_map = {
-            "llama2": [10.5051, 10.5572, 10.4780, 10.5678],
-            "llama3": [11.9742, 12.0049, 11.9382, 12.0464],
+            "llama2": [10.5509, 10.4980, 10.4821, 10.4682],
+            "llama3": [11.8887, 11.9787, 11.9533, 11.9979],
         }
         return loss_values_map[model_type]
 

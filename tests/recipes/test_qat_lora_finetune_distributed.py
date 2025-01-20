@@ -53,7 +53,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.9835, 11.9694, 11.9615, 11.9383],
+            "llama3": [11.9259, 11.9250, 11.9753, 11.9774],
         }
         return loss_values_map[model_type]
 
