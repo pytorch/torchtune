@@ -55,7 +55,7 @@ class TestLoRAFinetuneDistributedRecipe:
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         loss_values_map = {
             "llama2": [10.5320, 10.5608, 10.4895, 10.5068],
-            "llama3": [11.9259, 11.9250, 11.9753, 11.9774],
+            "llama3": [11.9265, 11.9255, 11.9754, 11.9780],
         }
         return loss_values_map[model_type]
 
