@@ -19,6 +19,7 @@ from tests.test_utils import (
 from torchtune.data._messages import (
     ChosenRejectedToMessages,
     InputOutputToMessages,
+    mask_messages,
     Message,
     OpenAIToMessages,
     ShareGPTToMessages,
@@ -186,6 +187,33 @@ class TestInputOutputToMessages:
         ]
         assert_dialogue_equal(actual["messages"], expected)
 
+    @pytest.mark.parametrize(
+        "masking_strategy, expected_masks",
+        [
+            ("train_on_all", [False, False]),
+            ("train_on_assistant", [True, False]),
+            ("train_on_last", [True, False]),
+        ],
+    )
+    def test_call_masking_strategy(self, sample, masking_strategy, expected_masks):
+        transform = InputOutputToMessages(
+            column_map={"input": "maybe_input", "output": "maybe_output"},
+            masking_strategy=masking_strategy,
+        )
+        actual = transform(sample)
+        expected = [
+            Message(
+                role="user", content="hello world", masked=expected_masks[0], eot=True
+            ),
+            Message(
+                role="assistant",
+                content="hello world",
+                masked=expected_masks[1],
+                eot=True,
+            ),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
     def test_system_prompt(self, sample):
         transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"},
@@ -267,6 +295,55 @@ class TestChosenRejectedToMessages:
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
 
+    @pytest.mark.parametrize(
+        "masking_strategy, expected_masks",
+        [
+            ("train_on_all", [[False, False], [False, False]]),
+            ("train_on_assistant", [[True, False], [True, False]]),
+            ("train_on_last", [[True, False], [True, False]]),
+        ],
+    )
+    def test_call_masking_strategy(self, sample, masking_strategy, expected_masks):
+        transform = ChosenRejectedToMessages(
+            column_map={
+                "chosen": "maybe_chosen",
+                "rejected": "maybe_rejected",
+            },
+            masking_strategy=masking_strategy,
+        )
+        actual = transform(sample)
+        expected_chosen = [
+            Message(
+                role="user",
+                content="hello world",
+                masked=expected_masks[0][0],
+                eot=True,
+            ),
+            Message(
+                role="assistant",
+                content="hello world",
+                masked=expected_masks[0][1],
+                eot=True,
+            ),
+        ]
+        assert_dialogue_equal(actual["chosen"], expected_chosen)
+
+        expected_rejected = [
+            Message(
+                role="user",
+                content="hello world",
+                masked=expected_masks[1][0],
+                eot=True,
+            ),
+            Message(
+                role="assistant",
+                content="bye world",
+                masked=expected_masks[1][1],
+                eot=True,
+            ),
+        ]
+        assert_dialogue_equal(actual["rejected"], expected_rejected)
+
     def test_system_prompt(self, sample):
         transform = ChosenRejectedToMessages(
             column_map={
@@ -332,6 +409,19 @@ class TestShareGPTToMessages:
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
+
+    @pytest.mark.parametrize(
+        "masking_strategy, expected_message",
+        [
+            ("train_on_all", MESSAGE_SAMPLE_TRAIN_ON_INPUT),
+            ("train_on_assistant", MESSAGE_SAMPLE),
+            ("train_on_last", MESSAGE_SAMPLE),
+        ],
+    )
+    def test_call_masking_strategy(self, masking_strategy, expected_message):
+        transform = ShareGPTToMessages(masking_strategy=masking_strategy)
+        converted_messages = transform(self.samples)
+        assert_dialogue_equal(converted_messages["messages"], expected_message)
 
     def test_system_prompt(self):
         transform = ShareGPTToMessages(new_system_prompt="you are a robot")
@@ -422,6 +512,45 @@ class TestOpenAIToMessages:
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
+
+    @mock.patch("torchtune.data._messages.load_image")
+    @pytest.mark.parametrize(
+        "masking_strategy, is_multimodal, expected_message",
+        [
+            ("train_on_all", False, MESSAGE_SAMPLE_TRAIN_ON_INPUT),
+            ("train_on_assistant", False, MESSAGE_SAMPLE),
+            ("train_on_last", False, MESSAGE_SAMPLE),
+            ("train_on_all", True, None),
+            ("train_on_assistant", True, None),
+            ("train_on_last", True, None),
+        ],
+    )
+    def test_call_masking_strategy(
+        self, mock_load_image, masking_strategy, is_multimodal, expected_message
+    ):
+        test_img = Image.new(mode="RGB", size=(4, 4))
+        mock_load_image.return_value = test_img
+        transform = OpenAIToMessages(masking_strategy=masking_strategy)
+        if is_multimodal:
+            converted_messages = transform(self.image_samples)
+            assert_dialogue_equal(
+                converted_messages["messages"],
+                [
+                    MESSAGE_SAMPLE[0],
+                    Message(
+                        role="user",
+                        content=[
+                            {"type": "text", "content": CHAT_SAMPLE["user"]},
+                            {"type": "image", "content": test_img},
+                        ],
+                        masked=True,
+                    ),
+                    MESSAGE_SAMPLE[2],
+                ],
+            )
+        else:
+            converted_messages = transform(self.samples)
+            assert_dialogue_equal(converted_messages["messages"], expected_message)
 
     def test_system_prompt(self):
         transform = OpenAIToMessages(new_system_prompt="you are a robot")
@@ -542,3 +671,31 @@ def test_validate_messages():
         match="Assistant message before expected user message at index 0 in messages",
     ):
         validate_messages(messages)
+
+
+@pytest.mark.parametrize(
+    "masking_strategy, messages_count, expected_masks",
+    [
+        ("train_on_all", 3, [True, False, False]),
+        ("train_on_assistant", 3, [True, True, False]),
+        ("train_on_last", 3, [True, True, False]),
+        ("train_on_all", 5, [True, False, False, False, False]),
+        ("train_on_assistant", 5, [True, True, False, True, False]),
+        ("train_on_last", 5, [True, True, True, True, False]),
+    ],
+)
+def test_mask_messages(masking_strategy, messages_count, expected_masks):
+    messages = [
+        Message(role="system", content="hello"),
+        Message(role="user", content="hello"),
+        Message(role="assistant", content="world"),
+        Message(role="user", content="hello"),
+        Message(role="assistant", content="world"),
+    ]
+
+    input_messages = messages[:messages_count]
+    mask_messages(input_messages, masking_strategy=masking_strategy)
+    expected_messages = messages[:messages_count]
+    for index in range(messages_count):
+        expected_messages[index].masked = expected_masks[index]
+    assert_dialogue_equal(input_messages, expected_messages)
