@@ -114,7 +114,7 @@ def gemma2(
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     
-    layers = nn.ModuleList()
+    layers = torch.nn.ModuleList()
     for layer_idx in range(num_layers):
         
         mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
