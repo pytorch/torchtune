@@ -471,6 +471,31 @@
 <span class="n">log</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save the OmegaConf configuration to a YAML file at `{config.output_dir}/torchtune_config.yaml`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config (DictConfig): The OmegaConf config object to be saved. It must contain an `output_dir` attribute</span>
+<span class="sd">            specifying where the configuration file should be saved.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path: The path to the saved configuration file.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        If the specified `output_dir` does not exist, it will be created.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;torchtune_config.yaml&quot;</span>
+        <span class="n">OmegaConf</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">output_config_fname</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output_config_fname</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving config.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+
 <span class="k">class</span><span class="w"> </span><span class="nc">MetricLoggerInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract metric logger.&quot;&quot;&quot;</span>
 
@@ -490,7 +515,7 @@
         <span class="k">pass</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Logs the config</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Logs the config as file</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            config (DictConfig): config to log</span>
@@ -547,6 +572,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="DiskLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="DiskLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | &quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">payload</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -566,6 +594,9 @@
 
 <div class="viewcode-block" id="StdoutLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StdoutLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="StdoutLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> | &quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
@@ -631,6 +662,10 @@
         <span class="c1"># Use dir if specified, otherwise use log_dir.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dir&quot;</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">)</span>
 
+        <span class="c1"># create log_dir if missing</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">)</span>
+
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">run</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -667,23 +702,16 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                 <span class="n">resolved</span><span class="p">,</span> <span class="n">allow_val_change</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config_allow_val_change</span>
             <span class="p">)</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                        <span class="n">config</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span>
-                        <span class="s2">&quot;torchtune_config.yaml&quot;</span><span class="p">,</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-                <span class="n">OmegaConf</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">output_config_fname</span><span class="p">)</span>
 
-                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Logging </span><span class="si">{</span><span class="n">output_config_fname</span><span class="si">}</span><span class="s2"> to W&amp;B under Files&quot;</span><span class="p">)</span>
+            <span class="c1"># Also try to save the config as a file</span>
+            <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
                     <span class="n">output_config_fname</span><span class="p">,</span> <span class="n">base_path</span><span class="o">=</span><span class="n">output_config_fname</span><span class="o">.</span><span class="n">parent</span>
                 <span class="p">)</span>
-
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Error saving </span><span class="si">{</span><span class="n">output_config_fname</span><span class="si">}</span><span class="s2"> to W&amp;B.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Error uploading </span><span class="si">{</span><span class="n">output_config_fname</span><span class="si">}</span><span class="s2"> to W&amp;B.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span>
                     <span class="s2">&quot;Don&#39;t worry the config will be logged the W&amp;B workspace&quot;</span>
                 <span class="p">)</span></div>
 
@@ -752,6 +780,9 @@
 <div class="viewcode-block" id="TensorBoardLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> <span class="n">new_style</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorBoardLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorBoardLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">payload</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -835,13 +866,16 @@
                 <span class="s2">&quot;Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type=&#39;stdout&#39;.&quot;</span>
             <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
+        <span class="c1"># Remove &#39;log_dir&#39; from kwargs as it is not a valid argument for comet_ml.ExperimentConfig</span>
+        <span class="k">if</span> <span class="s2">&quot;log_dir&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;log_dir&quot;</span><span class="p">]</span>
+
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
 
         <span class="c1"># Declare it early so further methods don&#39;t crash in case of</span>
         <span class="c1"># Experiment Creation failure due to mis-named configuration for</span>
         <span class="c1"># example</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="o">=</span> <span class="kc">None</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="o">=</span> <span class="n">comet_ml</span><span class="o">.</span><span class="n">start</span><span class="p">(</span>
                 <span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span>
@@ -869,24 +903,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_parameters</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
 
             <span class="c1"># Also try to save the config as a file</span>
+            <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_log_config_as_file</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_asset</span><span class="p">(</span>
+                    <span class="n">output_config_fname</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="n">output_config_fname</span><span class="o">.</span><span class="n">name</span>
+                <span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving Config to disk.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                <span class="k">return</span></div>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_log_config_as_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
-        <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">config</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">,</span>
-                <span class="s2">&quot;torchtune_config.yaml&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">OmegaConf</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">output_config_fname</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">log_asset</span><span class="p">(</span>
-            <span class="n">output_config_fname</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="s2">&quot;torchtune_config.yaml&quot;</span>
-        <span class="p">)</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to upload config to Comet assets. Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CometLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.close">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
