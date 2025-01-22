@@ -20,7 +20,6 @@ from torchtune.models.llama3_2_vision._component_builders import (  # noqa
 from torchtune.models.llama3_2_vision._transform import Llama3VisionTransform
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 
 
 def llama3_2_vision_transform(

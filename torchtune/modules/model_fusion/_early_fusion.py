@@ -185,7 +185,9 @@ class EarlyFusionModel(nn.Module):
 
     def _decoder_embed(self, tokens) -> Tuple[torch.Tensor, torch.Tensor]:
         """Embed the text-only tokens with the decoder's tok_embeddings"""
-        encoder_token_ids = torch.tensor(list(self.encoder_tokens.values()))
+        encoder_token_ids = torch.tensor(
+            list(self.encoder_tokens.values()), device=tokens.device
+        )
         # [bsz, seq_len], True indicates the token is not an encoder special token
         is_text = ~torch.isin(tokens, encoder_token_ids)
         text_tokens = torch.masked_select(tokens, is_text)
