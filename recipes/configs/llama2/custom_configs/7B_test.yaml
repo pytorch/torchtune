@@ -18,15 +18,10 @@
 # or 7B_qlora_single_device.yaml
 
 # Add some high level XP naming configs
-run_name: all_scale_query_end_brand_lower__dropout_0.05__rank_24__alpha_32
+xp_name: dev_test
 base_model_path: /nfs/scratch/qhsu/models/base
-base_model_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.binrawr]
-output_dir_parent: /nfs/scratch/qhsu/models/finetuned/mops
-dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling__all_scale_query_end_brand_lower
-optimizer_lr: 1e-4
-optimizer_weight_decay: 0.01
-lr_num_warmup_steps: 40
-max_tokens: 850
+output_dir_parent: /nfs/scratch/qhsu/models/finetuned
+dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling_esci_mini
 
 # Model Arguments
 model:
@@ -44,13 +39,13 @@ tokenizer:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ${base_model_path}
-  checkpoint_files: ${base_model_files}
+  checkpoint_dir: ${base_model_path}/Llama-2-7b-hf
+  checkpoint_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
   # checkpoint_dir: ${output_dir_parent}/amazon_esci__dropout_0.05__rank_24__alpha_32
   # checkpoint_files: [hf_model_0001_1.pt, hf_model_0002_1.pt]
   adapter_checkpoint:
   recipe_checkpoint:
-  output_dir: ${output_dir_parent}/${run_name}
+  output_dir: ${output_dir_parent}/${xp_name}
   model_type: LLAMA2
 resume_from_checkpoint: False
 save_adapter_weights_only: True
@@ -62,9 +57,9 @@ dataset:
   source: ${dataset_source}
   from_disk: True
   text_column: prompt
-  label_column: esci_label
+  label_column: completion
   split: train
-  max_seq_len: ${max_tokens}
+  max_seq_len: 850
   packed: False
 seed: null
 shuffle: True
@@ -77,9 +72,9 @@ val_dataset:
   source: ${dataset_source}
   from_disk: True
   text_column: prompt
-  label_column: esci_label
+  label_column: completion
   split: test
-  max_seq_len: ${max_tokens}
+  max_seq_len: 850
   packed: False
 val_batch_size: 32
 # validate_every_n_steps: 2 # Not working
@@ -87,29 +82,29 @@ val_batch_size: 32
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
-  weight_decay: ${optimizer_weight_decay}
-  lr: ${optimizer_lr}
+  weight_decay: 0.01
+  lr: 1e-4
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: ${lr_num_warmup_steps}
+  num_warmup_steps: 40
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
 
 # Training
-epochs: 3
+epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 32
 clip_grad_norm: 1.0
 # Logging
-output_dir: ${output_dir_parent}/${run_name}/logs
+output_dir: ${output_dir_parent}/${xp_name}/logs
 # enable logging to the built-in CometLogger
 metric_logger:
   _component_: torchtune.training.metric_logging.CometLogger
   # the Comet project to log to
-  project: llama-query-product-relevance-mops
-  experiment_name: ${run_name}
-  # tags: [lora, llama2_7B, completion, distributed]
+  project: llama-query-product-relevance-dev
+  experiment_name: ${xp_name}
+  tags: [lora, llama2_7B, completion, distributed]
 log_every_n_steps: 5
 log_peak_memory_stats: True
 

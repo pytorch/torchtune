@@ -18,15 +18,21 @@
 # or 7B_qlora_single_device.yaml
 
 # Add some high level XP naming configs
-xp_name: add_attributes__dropout_0.05__rank_24__alpha_32
-xp_key: 9f933a75d89d42d9859a72d656dcbf3e
+xp_name: may_baseline_huggingface
+xp_key: d2b8c31e46b7428c8483f2377df32297
 base_model_path: /nfs/scratch/qhsu/models/base/Llama-2-7b-hf
 base_model_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
 output_dir_parent: /nfs/scratch/qhsu/models/finetuned
 checkpoint_epoch: 0
-eval_prefix: mops_2k
-eval_dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling__add_attributes
-eval_dataset_split: mops_dataset_2k
+eval_prefix: scale_robust
+eval_dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling_scale_orig_prod_eval_set_robust_final
+eval_dataset_split: scale_robust_final_test
+# eval_prefix: mops_2k
+# eval_dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling_mops_orig_prod_eval_set_2k
+# eval_dataset_split: eval
+# eval_prefix: mops_6k
+# eval_dataset_source: /nfs/scratch/qhsu/dataset/relevance_labeling_mops_orig_prod_eval_set_6k
+# eval_dataset_split: eval
 
 # Model Arguments
 model:
