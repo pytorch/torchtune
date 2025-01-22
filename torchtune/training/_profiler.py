@@ -27,6 +27,7 @@ PROFILER_KEY = "profiler"
 DEFAULT_PROFILER_ACTIVITIES = {
     torch.profiler.ProfilerActivity.CPU,
     torch.profiler.ProfilerActivity.CUDA,
+    torch.profiler.ProfilerActivity.XPU,
 }
 
 DEFAULT_SCHEDULE: dict = {
@@ -283,7 +284,7 @@ def setup_torch_profiler(
     if len(activities) == 0:
         _warn("No activities specified, defaulting to CPU + CUDA")
         activities = DEFAULT_PROFILER_ACTIVITIES
-        cpu = cuda = True
+        cpu = cuda = xpu = True
 
     # Check for schedule
     # 1) If no schedule is provided, set to DEFAULT_SCHEDULE
