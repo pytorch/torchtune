@@ -187,6 +187,11 @@ def padded_collate_sft(
         >>> collated["labels"]
         >>> tensor([[4, 5, 6], [10, -100, -100]])
     """
+    # let's pull out any batch elements which don't need any padding
+    # and convert to tensors
+    batch_keys = [k for k in batch[0].keys() if k not in ["tokens", "labels"]]
+    output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
+
     input_ids = pad_sequence(
         [torch.tensor(x["tokens"]) for x in batch],
         batch_first=True,
@@ -212,7 +217,7 @@ def padded_collate_sft(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return {"tokens": input_ids.long(), "labels": labels.long()}
+    return {"tokens": input_ids.long(), "labels": labels.long(), **output_dict}
 
 
 # TODO: Generalize this to support any type of encoder input, right now this assumes

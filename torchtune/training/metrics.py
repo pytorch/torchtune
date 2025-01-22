@@ -14,15 +14,15 @@ def compute_classification_metrics(
     tokens: torch.Tensor,
     labels: torch.Tensor,
     logits: torch.Tensor,
-    batch,
     tokenizer,
     running_metrics: Dict[str, Any],
+    sample_weights: torch.Tensor = None,
 ) -> Dict[str, Any]:
     """
     Compute metrics for the given logits and labels.
     """
-    if "sample_weights" in batch:
-        sample_weights = batch["sample_weights"].to(labels.device)
+    if sample_weights is not None:
+        sample_weights = sample_weights.to(labels.device)
     else:
         # samples_weights are all 1 of size label
         sample_weights = torch.ones(labels.shape[0], device=labels.device)

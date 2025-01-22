@@ -26,7 +26,6 @@ from torch.distributed.checkpoint import (
 
 from torchtune import training
 from torchtune.models import convert_weights
-
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG_FNAME,
     ADAPTER_MODEL_FNAME,
@@ -390,7 +389,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
             and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
-        adapter_config (Optional[str]): Path to the adapter configuration file. Default is None
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
             and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
             Default is None.
@@ -410,7 +408,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         model_type: str,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
-        adapter_config: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         safe_serialization: bool = True,
@@ -462,8 +459,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             should_load_recipe_state=self._should_load_recipe_state,
             pattern=r"^epoch_(\d+)",
         )
-
-        self._adapter_config = Path(adapter_config) if adapter_config else None
 
         # resume recipe_state ckpt
         self._recipe_checkpoint = get_recipe_checkpoint_path(
@@ -603,6 +598,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 dim=self._config["hidden_size"],
                 head_dim=self._config.get("head_dim", None),
             )
+        elif self._model_type == ModelType.T5_ENCODER:
+            from torchtune.models.t5._convert_weights import t5_encoder_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = t5_encoder_hf_to_tune(
+                merged_state_dict,
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -615,12 +616,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
             converted_state_dict[training.ADAPTER_KEY] = adapter_state_dict
-
-        if self._adapter_config:
-            adapter_config = json.loads(self._adapter_config.read_text())
-            converted_state_dict[
-                training.ADAPTER_CONFIG
-            ] = convert_weights.peft_to_tune_adapter_config(adapter_config)
 
         if self._should_load_recipe_state:
             recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
@@ -948,7 +943,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
     Raises:
         ValueError: If ``checkpoint_files`` is not a list of length 1
-        ValueError: If ``should_load_recipe_state`` is True but ``recipe_checkpoint`` is None
     """
 
     def __init__(

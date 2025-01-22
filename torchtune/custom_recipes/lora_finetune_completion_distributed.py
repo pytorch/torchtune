@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 import gc
 import pprint
 import sys
@@ -29,20 +28,15 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import (
-    DummyProfiler,
-    NoOpManager,
-    OffloadActivations,
-    PROFILER_KEY,
-)
+from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.metrics import compute_classification_metrics
 from tqdm import tqdm
 
@@ -76,9 +70,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             back during the backward pass. As always, there is a tradeoff--these savings in memory can
             come at the cost of training performance and CPU resources. To recover some runtime cost,
             we've added an option to enable offloading on a different stream to permit overlapping with
-            the computation. This option is currently only available on PyTorch nightly 2.5.0.dev20240907
-            or later and will be enabled by default if an acceptable torch version is found. Activation
-            offloading can be used in conjunction with activation checkpointing.
+            the computation. This option is currently only available on PyTorch 2.5.0 or later and will be
+            enabled by default if an acceptable torch version is found. Activation offloading can be used in
+            conjunction with activation checkpointing.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -124,6 +118,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
+        is_eval_mode (bool): Whether to run in evaluation mode. Defaults to False.
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
@@ -131,9 +126,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
-    def __init__(self, cfg: DictConfig) -> None:
+    def __init__(self, cfg: DictConfig, is_eval_mode: bool = False) -> None:
+        self.is_eval_mode = is_eval_mode
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
@@ -142,26 +139,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = training.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         self._is_rank_zero = rank == 0
 
         # logging attributes
-        self._output_dir = cfg.output_dir
+        # self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        # training attributes
-        self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading and self._device.type != "cuda":
-            raise RuntimeError(
-                "enable_activation_offloading should only be enabled for training on CUDA"
+        if self._log_peak_memory_stats and self._device.type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
+            self._log_peak_memory_stats = False
 
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
@@ -174,7 +165,33 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._gradient_accumulation_steps = cfg.get("gradient_accumulation_steps", 1)
+
+        # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -184,7 +201,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -247,18 +264,52 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         if self._is_rank_zero:
-            self._metric_logger = config.instantiate(cfg.metric_logger)
+            if cfg.get("metric_logger"):
+                self._metric_logger = config.instantiate(cfg.metric_logger)
 
-            # log config with parameter override
-            self._metric_logger.log_config(cfg)
+                # log config with parameter override
+                self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+
+        self.checkpoint_epoch = cfg.get("checkpoint_epoch", 0)
+        print(f"checkpoint_epoch: {self.checkpoint_epoch}")
+
+        # REVIEW IF STILL NEEDED #
+        # Merge adapter weights with base model weights
+        # find faster way to do this
+        # if training.ADAPTER_KEY in checkpoint_dict:
+        #     if training.ADAPTER_CONFIG not in checkpoint_dict:
+        #         raise ValueError(
+        #             "Adapter weights found in checkpoint but adapter config not found."
+        #         )
+        #     tmp_state_dict = {
+        #         **checkpoint_dict[training.MODEL_KEY],
+        #         **checkpoint_dict[training.ADAPTER_KEY],
+        #     }
+
+        #     # cast to float32 since bfloat16 has really slow calculations for torch.matmul
+        #     # model will cast back to bfloat16 later on
+        #     if self._dtype == torch.bfloat16:
+        #         tmp_state_dict = {
+        #             k: v.to(torch.float32) for k, v in tmp_state_dict.items()
+        #         }
+
+        #     merged_state_dict = get_merged_lora_ckpt(
+        #         tmp_state_dict,
+        #         rank=checkpoint_dict[training.ADAPTER_CONFIG]["r"],
+        #         alpha=checkpoint_dict[training.ADAPTER_CONFIG]["lora_alpha"],
+        #     )
+
+        #     checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+
         self._compile = cfg.get("compile", False)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
@@ -270,14 +321,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
-        self._optimizer = self._setup_optimizer(
-            cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(
-                checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
-        )
+        if not self.is_eval_mode:
+            self._optimizer = self._setup_optimizer(
+                cfg_optimizer=cfg.optimizer,
+                opt_state_dict=(
+                    checkpoint_dict[training.OPT_KEY]
+                    if self._resume_from_checkpoint
+                    else None
+                ),
+            )
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -288,63 +340,78 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
-            cfg_dataset=cfg.dataset,
-            shuffle=cfg.shuffle,
-            batch_size=cfg.batch_size,
-            collate_fn=collate_name,
-        )
 
-        self._val_sampler, self._val_dataloader = self._setup_data(
-            cfg_dataset=cfg.val_dataset,
-            shuffle=False,
-            batch_size=cfg.val_batch_size,
-            collate_fn=collate_name,
-        )
+        if self.is_eval_mode:
+            self._eval_sampler, self._eval_dataloader = self._setup_data(
+                cfg_dataset=cfg.eval_dataset,
+                shuffle=False,
+                batch_size=cfg.eval_batch_size,
+                collate_fn=collate_name,
+            )
+            self.eval_prefix = cfg.get("eval_prefix", "eval")
+            self._steps_per_eval_epoch = len(self._eval_dataloader)
+            self.eval_ignore_labels_cache = torch.full(
+                (cfg.eval_batch_size, 1),
+                self._loss_fn.ignore_index,
+                device=self._device,
+            )
+        else:
+            self._sampler, self._dataloader = self._setup_data(
+                cfg_dataset=cfg.dataset,
+                shuffle=cfg.shuffle,
+                batch_size=cfg.batch_size,
+                collate_fn=collate_name,
+            )
 
-        # Finally update the recipe state which can only be correctly set after all of the
-        # other components have been initialized and updated.
+            self._val_sampler, self._val_dataloader = self._setup_data(
+                cfg_dataset=cfg.val_dataset,
+                shuffle=False,
+                batch_size=cfg.val_batch_size,
+                collate_fn=collate_name,
+            )
 
-        # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader and the max_steps_per_epoch param set by the user and is used
-        # for logging and tracking training state. This should be computed after the dataloader
-        # has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
-            self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
-        self._steps_per_val_epoch = len(self._val_dataloader)
+            # Finally update the recipe state which can only be correctly set after all of the
+            # other components have been initialized and updated.
 
-        # Learning rate scheduler can only be set up after number of steps
-        # has been computed
-        self._lr_scheduler = self._setup_lr_scheduler(
-            cfg_lr_scheduler=cfg.lr_scheduler,
-            num_training_steps=self.total_epochs * self._steps_per_epoch,
-            last_epoch=self.global_step - 1,
-        )
+            # Number of training steps in each epoch depends on the number of batches produced
+            # by the dataloader and the max_steps_per_epoch param set by the user and is used
+            # for logging and tracking training state. This should be computed after the dataloader
+            # has been setup
+            self._steps_per_epoch = (
+                len(self._dataloader) // self._gradient_accumulation_steps
+            )
+            if (
+                self.max_steps_per_epoch is not None
+                and self.max_steps_per_epoch < self._steps_per_epoch
+            ):
+                self._steps_per_epoch = self.max_steps_per_epoch
+            self.global_step = self.epochs_run * self._steps_per_epoch
+            self._steps_per_val_epoch = len(self._val_dataloader)
+
+            # Learning rate scheduler can only be set up after number of steps
+            # has been computed
+            self._lr_scheduler = self._setup_lr_scheduler(
+                cfg_lr_scheduler=cfg.lr_scheduler,
+                num_training_steps=self.total_epochs * self._steps_per_epoch,
+                last_epoch=self.global_step - 1,
+            )
+
+            # Used to ignore labels for loss computation
+            self.ignore_labels_cache = torch.full(
+                (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+            )
+            self.val_ignore_labels_cache = torch.full(
+                (cfg.val_batch_size, 1), self._loss_fn.ignore_index, device=self._device
+            )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
-        self.val_ignore_labels_cache = torch.full(
-            (cfg.val_batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -402,9 +469,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
+        utils.log_rank_zero(
+            log, f" Profiler config after instantiation: {profiler_cfg}"
+        )
         if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
-
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
             if profiler_cfg["enabled"]:
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
@@ -439,17 +507,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        self.adapter_params = get_adapter_params(model)
-        set_trainable_params(model, self.adapter_params)
+        set_trainable_params(model, get_adapter_params(model))
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
@@ -493,10 +560,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
-                    m.lora_a.to_empty(device=lora_device)
-                    m.lora_b.to_empty(device=lora_device)
+                    m.to_empty(device=lora_device)
                     m.initialize_parameters()
-                # RoPE is not covered in state dict
+
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
@@ -507,13 +573,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._is_rank_zero,
             cpu_offload=fsdp_cpu_offload,
         )
-        is_dora = False
         for m in model.modules():
             if hasattr(m, "initialize_dora_magnitude"):
-                is_dora = True
                 m.initialize_dora_magnitude()
-        if is_dora:
-            load_dora_magnitudes(model)
+
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
@@ -526,27 +589,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
-        self.activations_handling_ctx = contextlib.nullcontext()
-        if enable_activation_offloading:
-            self.activations_handling_ctx = OffloadActivations()
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
+        )
 
-            # Below is our hack to disable offloading the last output Linear in every
-            # step, as the cost for offloading the activation and then soon after bringing
-            # it back is expensive. Moreover, due to heuristics in our streaming API,
-            # we actually use more memory if we offload it as it interferes with chunkedCE.
-            if hasattr(model, "output") and isinstance(model.output, nn.Module):
-                noop_ctx = NoOpManager()
-                model.output.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.output.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
-
+        # log
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -566,8 +619,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        if self._is_rank_zero:
-            log.info("Optimizer is initialized.")
+        utils.log_rank_zero(log, "Optimizer is initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -582,8 +634,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -598,7 +649,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -637,8 +688,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -662,20 +712,39 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
+
+        utils.log_rank_zero(
+            log,
+            "Saving checkpoint. This may take some time. Retrieving full model state dict...",
+        )
+        start = time.perf_counter()
+
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.get_full_model_state_dict(
-            self._model,
+        state_dict = self._model.state_dict()
+        if self._save_adapter_weights_only:
+            state_dict = get_adapter_state_dict(state_dict, device=None)
+
+        cpu_state_dict = training.gather_cpu_state_dict(
+            state_dict,
             self._is_rank_zero,
             device=self._device,
-            trainable_only=self._save_adapter_weights_only,
+        )
+        utils.log_rank_zero(
+            log,
+            f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
         )
 
         if intermediate_checkpoint:
+            utils.log_rank_zero(log, "Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
+            )
+            utils.log_rank_zero(
+                log,
+                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
             )
         else:
             opt_state_dict = None
@@ -683,17 +752,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
+            start = time.perf_counter()
 
-            # Filter out the adapter keys and weights from the model state dict. These will
-            # be saved separately
-            adapter_key_filter = lambda x: x in self.adapter_params
-            adapter_state_dict = {
-                k: v for k, v in cpu_state_dict.items() if adapter_key_filter(k)
-            }
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
+            if self._save_adapter_weights_only:
+                adapter_state_dict = cpu_state_dict
+            else:
+                # Filter out the adapter keys and weights from the model state dict. These will
+                # be saved separately
+                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
 
-            # merge the adapter weights and base weights to create the model checkpoint
-            if not self._save_adapter_weights_only:
                 # cast to float32 since bfloat16 has really slow calculations for torch.matmul
                 # model will cast back to bfloat16 later on
                 if self._dtype == torch.bfloat16:
@@ -701,6 +768,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         k: v.to(torch.float32) for k, v in cpu_state_dict.items()
                     }
 
+                # merge the adapter weights and base weights to create the model checkpoint
                 merged_state_dict = get_merged_lora_ckpt(
                     cpu_state_dict,
                     rank=self._lora_rank,
@@ -714,6 +782,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     }
 
                 checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
@@ -739,13 +808,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "peft_type": "LORA",
             }
             checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
-
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=self._save_adapter_weights_only,
             )
+            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+
+        torch.distributed.barrier()
 
     def train(self) -> None:
         """
@@ -754,14 +825,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
-        running_loss = 0.0
+        running_train_loss = 0.0
         num_tokens = 0
 
         self._profiler.start()
@@ -820,6 +891,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
+                # Remove sample_weights if present since model doesn't expect it
+                sample_weights = batch.pop("sample_weights", None)
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
@@ -839,10 +912,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
 
                 # Compute loss
-                loss = self._loss_fn(logits, labels)
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                running_loss += loss * current_num_tokens
+                current_train_loss = self._loss_fn(logits, labels) * current_num_tokens
                 logits = logits.transpose(1, 2)
 
                 metrics_dict, running_metrics = compute_classification_metrics(
@@ -850,18 +922,25 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     tokens=batch["tokens"],
                     labels=labels,
                     logits=logits,
-                    batch=batch,
                     tokenizer=self._tokenizer,
                     running_metrics=running_metrics,
+                    sample_weights=sample_weights,
                 )
 
                 # free logits otherwise it peaks backward memory
                 del logits
 
+                running_train_loss += current_train_loss
+                current_train_loss.backward()
+
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    loss = running_loss / num_tokens
-                    loss.backward()
+                    # Get total number of tokens across all ranks to normalize gradients
+                    torch.distributed.all_reduce(num_tokens)
+                    # This will ensure that the logged loss matches what we're optimizing
+                    torch.distributed.all_reduce(running_train_loss)
+                    # Manually scale the gradients from unnormalized loss by total # of tokens
+                    training.scale_grads(self._model, 1 / num_tokens)
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
@@ -874,10 +953,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item()
+                    loss_to_log = running_train_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch + 1}|{self.global_step}|" f"train_loss: {loss}"
+                        f"{curr_epoch + 1}|{self.global_step}|"
+                        f"train_loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
@@ -889,13 +969,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "train_loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                             **metrics_dict,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
+
                         if self._clip_grad_norm is not None:
                             log_dict.update({"grad_norm": grad_norm})
                         self._metric_logger.log_dict(
@@ -904,7 +986,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         )
 
                     # Reset running stats for the next step
-                    running_loss = 0
+                    running_train_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
 
@@ -939,8 +1021,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self.epochs_run += 1
 
             # if last epoch, save the model
-            if curr_epoch == (self.total_epochs - 1):
-                self._save_adapter_weights_only = False
+            # if curr_epoch == (self.total_epochs - 1):
+            #     self._save_adapter_weights_only = False
             self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
@@ -952,7 +1034,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         self._val_sampler.set_epoch(curr_epoch)
 
-        _, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         running_val_loss = 0.0
         running_metrics = defaultdict(float)
@@ -971,6 +1053,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
+                # Remove sample_weights if present since model doesn't expect it
+                sample_weights = batch.pop("sample_weights", None)
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
@@ -990,10 +1074,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
 
                 # Compute loss
-                loss = self._loss_fn(logits, labels)
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                running_val_loss += loss * current_num_tokens
+                current_val_loss = self._loss_fn(logits, labels) * current_num_tokens
                 logits = logits.transpose(1, 2)
 
                 metrics_dict, running_metrics = compute_classification_metrics(
@@ -1001,27 +1084,30 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     tokens=batch["tokens"],
                     labels=labels,
                     logits=logits,
-                    batch=batch,
                     tokenizer=self._tokenizer,
                     running_metrics=running_metrics,
+                    sample_weights=sample_weights,
                 )
 
                 # free logits otherwise it peaks backward memory
                 del logits
+
+                running_val_loss += current_val_loss
+
                 pbar.update(1)
                 pbar.set_description(
                     f"{curr_epoch + 1}|{self.global_step}|{idx+1}|"
-                    f"val_batch_loss: {loss}|"
+                    f"val_batch_loss: {current_val_loss}|"
                     f"{pprint.pformat(metrics_dict, compact=True)}"
                 )
 
             # average the losses across all batches
-            running_val_loss /= len(self._val_dataloader)
+            loss_to_log = running_val_loss.item() / num_tokens
 
             # Log validation metrics
             if rank == 0:
                 log_dict = {
-                    "val_loss": running_val_loss,
+                    "val_loss": loss_to_log,
                     **metrics_dict,
                 }
                 if self._log_peak_memory_stats:
@@ -1029,6 +1115,107 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 self._metric_logger.log_dict(
                     log_dict,
                     step=self.global_step,
+                )
+
+    @torch.no_grad()
+    def evaluate(self) -> None:
+        """
+        The evaluation loop.
+        """
+        world_size, rank = utils.get_world_size_and_rank()
+        running_eval_loss = 0.0
+        running_metrics = defaultdict(float)
+        num_tokens = 0
+        pbar = tqdm(total=self._steps_per_eval_epoch, disable=not (rank == 0))
+
+        first_batch = True
+        for idx, batch in enumerate(self._eval_dataloader):
+            with torch.no_grad():
+                if first_batch and rank == 0:
+                    log.info("Batch contents:")
+                    for key, value in batch.items():
+                        if isinstance(value, torch.Tensor):
+                            log.info(f"{key}: shape={value.shape}, dtype={value.dtype}")
+                        else:
+                            log.info(f"{key}: type={type(value)}")
+                    first_batch = False
+
+                utils.batch_to_device(batch, self._device)
+
+                # Calculate the number of unmasked tokens in the current batch
+                # and increment the total number of tokens seen in the step
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
+
+                # Shape [b, s], needed for the loss not the model
+                labels = batch.pop("labels")
+                # Remove sample_weights if present since model doesn't expect it
+                sample_weights = batch.pop("sample_weights", None)
+
+                with self.activations_handling_ctx:
+                    logits = self._model(**batch)
+
+                # Shift labels to compute loss
+                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                # labels = torch.hstack(
+                #     (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                # )
+                # Shift so that tokens < n predict n
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
+
+                # if not isinstance(logits, list):
+                #     labels = labels.reshape(-1)
+                #     logits = logits.reshape(-1, logits.size(-1))
+                logits = logits.transpose(1, 2)
+
+                # Compute loss
+                # Loss is normalized by default so we multiply by the number of tokens
+                # This way we can normalize by the total number of tokens if we're accumulating gradients
+                current_eval_loss = self._loss_fn(logits, labels) * current_num_tokens
+                logits = logits.transpose(1, 2)
+
+                metrics_dict, running_metrics = compute_classification_metrics(
+                    split="",
+                    tokens=batch["tokens"],
+                    labels=labels,
+                    logits=logits,
+                    tokenizer=self._tokenizer,
+                    running_metrics=running_metrics,
+                    sample_weights=sample_weights,
+                )
+
+                # free logits otherwise it peaks backward memory
+                del logits
+
+                running_eval_loss += current_eval_loss
+
+                pbar.update(1)
+                pbar.set_description(
+                    f"{idx+1}| {pprint.pformat(metrics_dict, compact=True)}"
+                )
+
+            # average the losses across all batches
+            loss_to_log = running_eval_loss.item() / num_tokens
+
+        # Log validation metrics
+        if rank == 0:
+            log_dict = {
+                "avg_loss": loss_to_log,
+                **metrics_dict,
+            }
+            log.info("Evaluation Metrics")
+            log.info(log_dict)
+            # if self._log_peak_memory_stats:
+            #     log_dict.update(training.get_memory_stats(device=self._device))
+            if self._metric_logger:
+                self._metric_logger.log_dict(
+                    log_dict,
+                    prefix=self.eval_prefix,
+                    epoch=self.checkpoint_epoch,
                 )
 
     def cleanup(self) -> None:
@@ -1051,17 +1238,24 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
+    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+
+    is_eval_mode = False
+    if cfg.get("eval_mode", False):
+        is_eval_mode = True
 
     config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
 
-    recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
+    recipe = LoRAFinetuneRecipeDistributed(cfg=cfg, is_eval_mode=is_eval_mode)
     recipe.setup(cfg=cfg)
-    recipe.train()
+    if is_eval_mode:
+        recipe.evaluate()
+    else:
+        recipe.train()
     recipe.cleanup()
 
 
