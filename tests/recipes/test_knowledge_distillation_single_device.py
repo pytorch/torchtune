@@ -43,7 +43,7 @@ class TestKDSingleDeviceRecipe:
             "device=cpu",
             f"dtype={dtype_str}",
             "enable_activation_checkpointing=False",
-            "enable_activation_offloading=False",
+            "enable_activation_offloading=True",
             "dataset.train_on_input=False",
             "seed=9",
             f"epochs={epochs}",
