@@ -692,7 +692,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
     def train(self) -> None:
         """
-        The core training loop.
+        The core training loop with WandB integration.
         """
 
         if self._compile:
@@ -706,6 +706,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         running_kd_loss = 0
         num_tokens = 0
 
+        if self.use_wandb:
+            import wandb
+            wandb.init(project="your_project_name", config=self._cfg)
+
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -716,17 +720,17 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 pbar = tqdm(total=self._steps_per_epoch)
                 for idx, batch in enumerate(self._dataloader):
                     if (
-                        self.max_steps_per_epoch is not None
-                        and (idx // self._gradient_accumulation_steps)
-                        == self.max_steps_per_epoch
+                            self.max_steps_per_epoch is not None
+                            and (idx // self._gradient_accumulation_steps)
+                            == self.max_steps_per_epoch
                     ):
                         break
 
                     # Start tracking CUDA memory for active steps for just the first epoch
                     if (
-                        curr_epoch == 0
-                        and self.profiler_profile_memory
-                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                            curr_epoch == 0
+                            and self.profiler_profile_memory
+                            and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                     ):
                         torch.cuda.memory._record_memory_history()
 
@@ -735,7 +739,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     # Calculate the number of unmasked tokens in the current batch
                     # and increment the total number of tokens seen in the step
                     current_num_tokens = (
-                        batch["labels"] != self._loss_fn.ignore_index
+                            batch["labels"] != self._loss_fn.ignore_index
                     ).sum()
                     num_tokens += current_num_tokens
 
@@ -743,8 +747,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     running_class_loss += class_loss * current_num_tokens
                     running_kd_loss += kd_loss * current_num_tokens
                     current_loss = (
-                        1 - self._kd_ratio
-                    ) * class_loss + self._kd_ratio * kd_loss
+                                           1 - self._kd_ratio
+                                   ) * class_loss + self._kd_ratio * kd_loss
                     current_loss.backward()
 
                     # Step with optimizer
@@ -764,8 +768,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         class_loss_to_log = running_class_loss.item() / num_tokens
                         kd_loss_to_log = running_kd_loss.item() / num_tokens
                         loss_to_log = (
-                            1 - self._kd_ratio
-                        ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log
+                                              1 - self._kd_ratio
+                                      ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log
                         pbar.update(1)
                         pbar.set_description(
                             f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -782,14 +786,17 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if (
-                                self._device.type == "cuda"
-                                and self._log_peak_memory_stats
+                                    self._device.type == "cuda"
+                                    and self._log_peak_memory_stats
                             ):
                                 log_dict.update(
                                     training.get_memory_stats(device=self._device)
                                 )
                             if self._clip_grad_norm is not None:
                                 log_dict.update({"grad_norm": grad_norm})
+                            if self.use_wandb:
+                                wandb.log(log_dict)
+
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,
@@ -803,22 +810,23 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
                     # Stop tracking CUDA memory now that active steps are complete
                     if (
-                        curr_epoch == 0
-                        and self.profiler_profile_memory
-                        and idx
-                        == self.profiler_wait_steps
-                        + self.profiler_warmup_steps
-                        + self.profiler_active_steps
+                            curr_epoch == 0
+                            and self.profiler_profile_memory
+                            and idx
+                            == self.profiler_wait_steps
+                            + self.profiler_warmup_steps
+                            + self.profiler_active_steps
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 
                     # Step the profiler
-                    # Note we are stepping each batch, which might not include optimizer step in the trace
-                    # if the schedule cycle doesn't align with gradient accumulation.
                     prof.step()
 
                 self.epochs_run += 1
                 self.save_checkpoint(epoch=curr_epoch)
+
+        if self.use_wandb:
+            wandb.finish()
 
     def cleanup(self) -> None:
         self._metric_logger.close()
