@@ -289,16 +289,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
         )
-        self._ref_model = self._setup_model(
+        self._ref_model = self._setup_reference_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=self._enable_activation_checkpointing,
-            enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=self.load_ref_states(cfg.ref_checkpointer),
-            ac_mode=cfg.get("ac_mode", None),
-            ac_option=cfg.get("ac_option", None),
         )
         self._ref_model.eval()
         for p in self._ref_model.parameters():
@@ -527,10 +523,44 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
+        # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
+        # between ref policy and current policy
+        for module in model.modules():
+            if isinstance(module, torch.nn.Dropout):
+                warn(
+                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
+                )
+                module.p = 0
+
         # synchronize before training begins
         torch.distributed.barrier()
 
         return model
+    
+    def _setup_reference_model(
+        self,
+        cfg_model: DictConfig,
+        fsdp_cpu_offload: bool,
+        reshard_after_forward: bool,
+        model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
+    ) -> nn.Module:
+        """
+        Model initialization has some important considerations:
+           a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
+        """  
+        return self._setup_model(
+            cfg_model,
+            False,
+            False,
+            fsdp_cpu_offload,
+            reshard_after_forward,
+            model_state_dict,
+            custom_sharded_layers
+        )
 
     def _setup_optimizer(
         self,
@@ -834,8 +864,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         _,
                         _,
                     ) = self.concatenated_forward(self._ref_model, batch)
-                assert not reference_chosen_log_probs.requires_grad
-                assert not reference_rejected_log_probs.requires_grad
+
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
                     policy_chosen_log_probs,
                     policy_rejected_log_probs,
