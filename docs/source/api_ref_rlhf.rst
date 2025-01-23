@@ -16,4 +16,3 @@ Components and losses for RLHF algorithms like PPO and DPO.
     loss.PPOLoss
     loss.DPOLoss
     loss.RSOLoss
-    loss.SimPOLoss
