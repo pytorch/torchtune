@@ -93,6 +93,8 @@ class ModelType(Enum):
         QWEN2 (str): Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`
         CLIP_TEXT (str): CLIP text encoder. See :func:`~torchtune.models.clip.clip_text_encoder_large`
         T5_ENCODER (str): T5 text encoder. See :func:`~torchtune.models.t5.t5_v1_1_xxl_encoder`
+        FLUX_AUTOENCODER (str): Flux autoencoder. See :func:`~torchtune.models.flux.flux_1_autoencoder`
+        FLUX_FLOW (str): Flux flow model. See :func:`~torchtune.models.flux.flux_1_dev_flow_model`
 
     Example:
         >>> # Usage in a checkpointer class
@@ -114,6 +116,8 @@ class ModelType(Enum):
     QWEN2: str = "qwen2"
     CLIP_TEXT: str = "clip_text"
     T5_ENCODER: str = "t5_encoder"
+    FLUX_AUTOENCODER: str = "flux_autoencoder"
+    FLUX_FLOW: str = "flux_flow"
 
 
 class FormattedCheckpointFiles:
