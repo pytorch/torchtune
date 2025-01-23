@@ -453,7 +453,6 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft.lora</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoRALinear</span><span class="p">,</span> <span class="n">QATLoRALinear</span>
@@ -592,6 +591,7 @@
     <span class="s2">&quot;4w-qat-module-swap&quot;</span>
 <span class="p">]</span> <span class="o">=</span> <span class="n">enable_4w_fake_quant_module_swap</span>
 
+
 <span class="c1"># int8 dynamic activations + int4 weight</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Int8DynActInt4WeightQATQuantizerModuleSwap</span><span class="p">(</span><span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">):</span>
     <span class="k">pass</span>
@@ -627,12 +627,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Optional[str]: The quantization mode.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mode</span> <span class="o">=</span> <span class="n">_quantizer_to_mode</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">quantizer</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;module-swap&quot;</span> <span class="ow">in</span> <span class="n">mode</span><span class="p">:</span>
-        <span class="n">warn</span><span class="p">(</span>
-            <span class="s2">&quot;*QuantizerModuleSwap is deprecated. Please use the version without &#39;ModuleSwap&#39; instead&quot;</span>
-        <span class="p">)</span>
-    <span class="k">return</span> <span class="n">mode</span></div>
+    <span class="k">return</span> <span class="n">_quantizer_to_mode</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">quantizer</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_disable_fake_quant</span><span class="p">(</span><span class="n">quantizer_mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>

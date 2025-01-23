@@ -707,18 +707,20 @@ and the associated
 <p>Let’s first copy over the config to our local working directory so we can make changes.</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune cp generation ./custom_generation_config.yaml
 Copied file to custom_generation_config.yaml
+$ mkdir /tmp/torchtune/llama3_2_3B/lora_single_device/out
 </pre></div>
 </div>
 <dl class="simple">
 <dt>Let’s modify <code class="docutils literal notranslate"><span class="pre">custom_generation_config.yaml</span></code> to include the following changes. Again, you only need</dt><dd><p>to replace two fields: <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> and <code class="docutils literal notranslate"><span class="pre">checkpoint_files</span></code></p>
 </dd>
 </dl>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0</span>
+<span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/torchtune/llama3_2_3B/lora_single_device/out</span>
 
 <span class="c1"># Tokenizer</span>
 <span class="nt">tokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_tokenizer</span>
-<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${output_dir}/original/tokenizer.model</span>
+<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${checkpoint_dir}/original/tokenizer.model</span>
 <span class="w">    </span><span class="nt">prompt_template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
 
 <span class="nt">model</span><span class="p">:</span>
@@ -727,7 +729,7 @@ Copied file to custom_generation_config.yaml
 
 <span class="nt">checkpointer</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${output_dir}</span>
+<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${checkpoint_dir}</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
 <span class="w">        </span><span class="nv">ft-model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
 <span class="w">        </span><span class="nv">ft-model-00002-of-00002.safetensors</span><span class="p p-Indicator">,</span>
@@ -744,8 +746,8 @@ Copied file to custom_generation_config.yaml
 
 <span class="c1"># Generation arguments; defaults taken from gpt-fast</span>
 <span class="nt">prompt</span><span class="p">:</span>
-<span class="nt">system</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-<span class="nt">user</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Tell</span><span class="nv"> </span><span class="s">me</span><span class="nv"> </span><span class="s">a</span><span class="nv"> </span><span class="s">joke.</span><span class="nv"> </span><span class="s">&quot;</span>
+<span class="w">  </span><span class="nt">system</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">user</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Tell</span><span class="nv"> </span><span class="s">me</span><span class="nv"> </span><span class="s">a</span><span class="nv"> </span><span class="s">joke.</span><span class="nv"> </span><span class="s">&quot;</span>
 <span class="nt">max_new_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
 <span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.6</span><span class="w"> </span><span class="c1"># 0.8 and 0.6 are popular values to try</span>
 <span class="nt">top_k</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
@@ -760,7 +762,7 @@ default settings for sampling with <code class="docutils literal notranslate"><s
 <code class="docutils literal notranslate"><span class="pre">temperature=0.8</span></code>. These parameters control how the probabilities for
 sampling are computed. We recommend inspecting the model with these before playing around with
 these parameters.</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune run generate --config ./custom_generation_config.yaml prompt=&quot;tell me a joke. &quot;
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune run generate --config ./custom_generation_config.yaml prompt.user=&quot;Tell me a joke. &quot;
 Tell me a joke. Here&#39;s a joke for you:
 
 What do you call a fake noodle?
