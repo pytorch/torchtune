@@ -51,12 +51,13 @@ class QuantizationRecipe:
         training.set_seed(seed=cfg.seed)
 
     def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
-        logger.info(
-            "Setting safe_serialization to False. TorchAO quantization is compatible "
-            "only with HuggingFace's non-safetensor serialization and deserialization."
-        )
-        checkpointer_cfg.safe_serialization = False
         self._checkpointer = config.instantiate(checkpointer_cfg)
+        if hasattr(self._checkpointer, "_safe_serialization"):
+            logger.info(
+                "Setting safe_serialization to False. TorchAO quantization is compatible "
+                "only with HuggingFace's non-safetensor serialization and deserialization."
+            )
+            self._checkpointer._safe_serialization = False
         checkpoint_dict = self._checkpointer.load_checkpoint()
         return checkpoint_dict
 
