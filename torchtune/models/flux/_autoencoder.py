@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Tuple
+from typing import List
 
 import torch
 import torch.nn.functional as F
@@ -19,19 +19,16 @@ class FluxAutoencoder(nn.Module):
     The image autoencoder for Flux diffusion models.
 
     Args:
-        img_shape (Tuple[int, int, int]): The shape of the input image (without the batch dimension).
         encoder (nn.Module): The encoder module.
         decoder (nn.Module): The decoder module.
     """
 
     def __init__(
         self,
-        img_shape: Tuple[int, int, int],
         encoder: nn.Module,
         decoder: nn.Module,
     ):
         super().__init__()
-        self._img_shape = img_shape
         self.encoder = encoder
         self.decoder = decoder
 
@@ -55,7 +52,6 @@ class FluxAutoencoder(nn.Module):
         Returns:
             Tensor: latent encodings (shape = [bsz, ch_z, latent resolution, latent resolution])
         """
-        assert x.shape[1:] == self._img_shape
         return self.encoder(x)
 
     def decode(self, z: Tensor) -> Tensor:
