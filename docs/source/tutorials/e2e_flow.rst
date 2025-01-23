@@ -314,8 +314,8 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
     # Generation arguments; defaults taken from gpt-fast
     prompt:
-    system: null
-    user: "Tell me a joke. "
+      system: null
+      user: "Tell me a joke. "
     max_new_tokens: 300
     temperature: 0.6 # 0.8 and 0.6 are popular values to try
     top_k: 300
@@ -332,7 +332,7 @@ these parameters.
 
 .. code-block:: text
 
-    $ tune run generate --config ./custom_generation_config.yaml
+    $ tune run generate --config ./custom_generation_config.yaml prompt.user="Tell me a joke. "
     Tell me a joke. Here's a joke for you:
 
     What do you call a fake noodle?
