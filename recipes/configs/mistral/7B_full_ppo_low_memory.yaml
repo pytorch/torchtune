@@ -27,7 +27,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
-  path: /tmp/Mistral-7B-Instruct-v0.2/tokenizer.model
+  path: /checkpoint/kwiat/tmp/Mistral-7B-Instruct-v0.2/tokenizer.model
   max_seq_len: null
 
 # Dataset
@@ -59,7 +59,7 @@ reward_and_value_model:
 # checkpointer for the policy model - update this if resuming from checkpoint
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
+  checkpoint_dir: /checkpoint/kwiat/tmp/Mistral-7B-Instruct-v0.2/
   checkpoint_files:
     [
       "pytorch_model-00001-of-00003.bin",
@@ -75,7 +75,7 @@ checkpointer:
 # ensure `checkpoint_files` always points to the original policy weights, even if resuming training
 ref_policy_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
+  checkpoint_dir: /checkpoint/kwiat/tmp/Mistral-7B-Instruct-v0.2/
   checkpoint_files:
     [
       "pytorch_model-00001-of-00003.bin",
@@ -90,7 +90,7 @@ ref_policy_checkpointer:
 # from the trained reward model weights
 value_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/RM-Mistral-7B/
+  checkpoint_dir: /checkpoint/kwiat/tmp/RM-Mistral-7B/
   checkpoint_files:
     [
       "model-00001-of-00003.safetensors",
@@ -104,7 +104,7 @@ value_checkpointer:
 # always points to the original reward model weights, even if resuming training
 reward_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/RM-Mistral-7B/
+  checkpoint_dir: /checkpoint/kwiat/tmp/RM-Mistral-7B/
   checkpoint_files:
     [
       "model-00001-of-00003.safetensors",
@@ -115,7 +115,7 @@ reward_checkpointer:
   model_type: REWARD
 
 resume_from_checkpoint: False
-output_dir: /tmp/mistral7b-ppo-finetune
+output_dir: /checkpoint/kwiat/tmp/mistral7b-ppo-finetune
 seed: null
 shuffle: True
 

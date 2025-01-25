@@ -215,6 +215,47 @@ def padded_collate_sft(
     return {"tokens": input_ids.long(), "labels": labels.long()}
 
 
+def padded_collate_rl(
+    batch: List[Dict[str, List[int]]],
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+) -> Dict[str, torch.Tensor | list[str]]:
+    """Pad a batch of sequences to the longest sequence length in the batch, and
+    convert integer lists to tensors.
+
+    Args:
+        batch (List[Dict[str, List[int]]]): A list of dictionaries containing tokens.
+        padding_idx (int): Padding index for input ids. Defaults to 0.
+        ignore_idx (int): Padding index for labels. Defaults to -100.
+
+    Returns:
+        Dict[str, torch.Tensor]: Collated input and label tensors.
+
+    Example:
+        >>> token_pairs = [
+        >>>    {"tokens": [1, 2, 3], "answer": "15"},
+        >>>    {"tokens": [7,], "answer": "bromance"},
+        >>> ]
+        >>> collated = padded_collate(
+        >>>    batch=token_pairs,
+        >>>    padding_idx=padding_idx,
+        >>>    ignore_idx=ignore_idx,
+        >>> )
+        >>> collated["tokens"]
+        >>> tensor([[1, 2, 3], [7, 0, 0]])
+        >>> collated["answers"]
+        >>> ["15", "bromance"]
+    """
+    input_ids = pad_sequence(
+        [torch.tensor(x["tokens"]) for x in batch],
+        batch_first=True,
+        padding_value=padding_idx,
+    )
+
+    answers = [x["answer"] for x in batch]
+
+    return {"tokens": input_ids.long(), "answers": answers}
+
 # TODO: Generalize this to support any type of encoder input, right now this assumes
 # a specific encoder_input signature
 def padded_collate_tiled_images_and_mask(
