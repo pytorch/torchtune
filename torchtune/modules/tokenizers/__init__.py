@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+# flake8: noqa: F401
+
 # NOTE: This file is maintained for backward compatibility purposes.
 # The imports below point to the new location in `torchtune.modules.transforms.tokenizers`.
 # The import paths will be removed in v0.7. Please update your code to use the new path
@@ -27,13 +29,3 @@ warnings.warn(
     DeprecationWarning,
     stacklevel=2,
 )
-
-
-__all__ = [
-    "SentencePieceBaseTokenizer",
-    "TikTokenBaseTokenizer",
-    "ModelTokenizer",
-    "BaseTokenizer",
-    "tokenize_messages_no_special_tokens",
-    "parse_hf_tokenizer_json",
-]
