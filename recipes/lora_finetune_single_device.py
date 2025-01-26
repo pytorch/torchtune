@@ -336,11 +336,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         # Setup the validation dataset
-        self.run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
-        self.run_validation = "dataset_validation" in cfg
+        validation_config = cfg.get("validation")
+        self.run_validation = validation_config is not None
+        self.run_val_every_n_steps = validation_config.get("run_every_n_steps")
         if self.run_validation:
             self._sampler_val, self._dataloader_val = self._setup_data(
-                cfg_dataset=cfg.dataset_validation,
+                cfg_dataset=validation_config.dataset,
                 shuffle=cfg.shuffle,
                 batch_size=cfg.batch_size,
                 collate_fn=collate_name,
@@ -355,7 +356,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             elif self.run_val_every_n_steps < 1:
                 raise ValueError("run_val_every_n_steps must be greater than 0.")
 
-        self.max_validation_batches = cfg.get("max_validation_batches", -1)
+        self.max_validation_batches = validation_config.get(
+            "max_validation_batches", -1
+        )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
