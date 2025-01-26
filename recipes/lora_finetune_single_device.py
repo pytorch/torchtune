@@ -336,6 +336,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         # Setup the validation dataset
+        self.run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
         self.run_validation = "dataset_validation" in cfg
         if self.run_validation:
             self._sampler_val, self._dataloader_val = self._setup_data(
@@ -345,8 +346,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 collate_fn=collate_name,
             )
 
-        self.run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
-        if self.run_validation:
             if self.run_val_every_n_steps is None:
                 log.warning(
                     f"""Validation is enabled but run_val_every_n_steps is not set.
