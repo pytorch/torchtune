@@ -703,15 +703,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 f"{curr_epoch + 1}|{idx}|Validation Loss: {current_loss.item()}"
             )
 
-            # This bit allows to see the loss for each batch. Not sure about step indexing.
-            log_dict = {
-                "val_loss": current_loss.item(),
-            }
-            self._metric_logger.log_dict(
-                log_dict,
-                step=(curr_epoch + 1) * idx + idx,
-            )
-
         self._metric_logger.log_dict(
             {
                 "avg_val_loss": sum(val_losses) / len(val_losses),
