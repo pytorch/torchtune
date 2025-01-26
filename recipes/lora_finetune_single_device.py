@@ -683,7 +683,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         return loss
 
     def validate(self, curr_epoch) -> None:
-        pbar = tqdm(total=min(len(self._dataloader_val), self.max_validation_batches))
+        pbar = tqdm(
+            total=min(len(self._dataloader_val), self.max_validation_batches - 1)
+        )
         val_losses = []
         for idx, batch in enumerate(self._dataloader_val):
             if (
@@ -698,7 +700,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
             pbar.update(1)
             pbar.set_description(
-                f"{curr_epoch + 1}|{idx}| Validation Loss: {current_loss.item()}"
+                f"{curr_epoch + 1}|{idx}|Validation Loss: {current_loss.item()}"
             )
 
             # This bit allows to see the loss for each batch. Not sure about step indexing.
@@ -788,7 +790,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         loss_to_log = running_loss.item() / num_tokens
                         pbar.update(1)
                         pbar.set_description(
-                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                            f"{curr_epoch + 1}|{self.global_step}|Training Loss: {loss_to_log}"
                         )
 
                         # Log per-step metrics
