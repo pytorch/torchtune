@@ -338,8 +338,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Setup the validation dataset
         validation_config = cfg.get("validation")
         self.run_validation = validation_config is not None
+        actual_steps_per_epoch = (
+            self._steps_per_epoch
+            if self.max_steps_per_epoch is None
+            else min(self._steps_per_epoch, self.max_steps_per_epoch)
+        )
         self.run_val_every_n_steps = int(
-            self._steps_per_epoch * validation_config.get("run_every_n_epochs")
+            actual_steps_per_epoch * validation_config.get("run_every_n_epochs", 0)
         )
         if self.run_validation:
             self._sampler_val, self._dataloader_val = self._setup_data(
@@ -358,9 +363,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             elif self.run_val_every_n_steps < 1:
                 raise ValueError("run_val_every_n_steps must be greater than 0.")
 
-        self.max_validation_batches = validation_config.get(
-            "max_validation_batches", -1
-        )
+            self.max_validation_batches = validation_config.get("max_batches", -1)
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
@@ -680,7 +683,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         return loss
 
     def validate(self, curr_epoch) -> None:
-        pbar = tqdm(total=max(len(self._dataloader_val), self.max_validation_batches))
+        pbar = tqdm(total=min(len(self._dataloader_val), self.max_validation_batches))
         val_losses = []
         for idx, batch in enumerate(self._dataloader_val):
             if (
@@ -710,7 +713,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_dict(
             {
                 "avg_val_loss": sum(val_losses) / len(val_losses),
-                "epoch": curr_epoch + 1,
             },
             step=self.global_step,
         )
@@ -737,7 +739,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
 
-                pbar = tqdm(total=self._steps_per_epoch)
+                pbar = tqdm(total=self._steps_per_epoch, position=0)
                 for idx, batch in enumerate(self._dataloader):
                     if (
                         self.max_steps_per_epoch is not None
@@ -816,6 +818,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         num_tokens = 0
                         t0 = time.perf_counter()
 
+                        if (
+                            self.run_validation
+                            and self.global_step % self.run_val_every_n_steps == 0
+                        ):
+                            self.validate(curr_epoch=curr_epoch)
+
                     # Stop tracking CUDA memory now that active steps are complete
                     if (
                         curr_epoch == 0
@@ -841,12 +849,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         time.perf_counter() - start_save_checkpoint
                     )
                 )
-
-                if (
-                    self.run_validation
-                    and self.global_step % self.run_val_every_n_steps == 0
-                ):
-                    self.validate(curr_epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()
