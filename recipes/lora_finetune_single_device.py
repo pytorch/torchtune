@@ -338,7 +338,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Setup the validation dataset
         validation_config = cfg.get("validation")
         self.run_validation = validation_config is not None
-        self.run_val_every_n_steps = validation_config.get("run_every_n_steps")
+        self.run_val_every_n_steps = int(
+            self._steps_per_epoch * validation_config.get("run_every_n_epochs")
+        )
         if self.run_validation:
             self._sampler_val, self._dataloader_val = self._setup_data(
                 cfg_dataset=validation_config.dataset,
