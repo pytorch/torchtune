@@ -169,10 +169,9 @@ class TestFullyShardState(FSDPTest):
             fsdp_optim_to_save.zero_grad()
         expected_model_sd = base_model.state_dict()
         expected_optim_sd = base_optim.state_dict()
-        model_full_sd = training.gather_cpu_state_dict(
-            fsdp_model_to_save.state_dict(), is_rank_zero
-        )
+        model_full_sd = training.gather_cpu_state_dict(fsdp_model_to_save, is_rank_zero)
         optim_full_sd = training.get_full_optimizer_state_dict(
+            fsdp_model_to_save,
             fsdp_optim_to_save,
             is_rank_zero,
         )
@@ -222,12 +221,12 @@ class TestFullyShardState(FSDPTest):
             fsdp_model_to_load,
             copy.deepcopy(base_model.state_dict()),
             torch.device("cuda"),
-            is_rank_zero,
         )
         fsdp_optim_to_load = torch.optim.Adam(
             fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
         )
         training.load_from_full_optimizer_state_dict(
+            fsdp_model_to_load,
             fsdp_optim_to_load,
             # mimic mmap=True where every rank see full SD
             copy.deepcopy(self._broadcast_full_state_dict(optim_full_sd)),
@@ -324,9 +323,7 @@ class TestFullyShardState(FSDPTest):
         fsdp_model_to_save(inp)
 
         expected_model_sd = {k: v.cpu() for k, v in base_model.state_dict().items()}
-        model_full_sd = training.gather_cpu_state_dict(
-            fsdp_model_to_save.state_dict(), is_rank_zero
-        )
+        model_full_sd = training.gather_cpu_state_dict(fsdp_model_to_save, is_rank_zero)
         if is_rank_zero:
             self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
             for key, value in model_full_sd.items():
@@ -357,7 +354,7 @@ class TestFullyShardState(FSDPTest):
                     fully_shard(m)
         fully_shard(fsdp_model_to_load)
         training.load_from_full_model_state_dict(
-            fsdp_model_to_load, expected_model_sd, torch.device("cuda"), is_rank_zero
+            fsdp_model_to_load, expected_model_sd, torch.device("cuda")
         )
         fsdp_model_to_load(inp)
         sharded_model_sd = fsdp_model_to_load.state_dict()

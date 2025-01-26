@@ -4,12 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import math
-import os
 import sys
+import time
 from functools import partial
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -20,11 +21,16 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
+from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
+from torchtune.training import DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
+# enabling compile results in slightly more recompiles than the default cache limit (8)
+# so we set a higher limit here
+torch._dynamo.config.cache_size_limit = 16
 
 
 class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -32,8 +38,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     Full finetuning recipe for RLHF with PPO for dense transformer-based LLMs such as LLama2. This recipe is optimized
     for single GPU training. Training on CPU is not supported.
 
-    This implementation is based on `Learning to summarize from human feedback <https://arxiv.org/abs/2009.01325`_ and
-    `Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback <https://arxiv.org/abs/2204.05862`_.
+    This implementation is based on "Learning to summarize from human feedback" (https://arxiv.org/abs/2009.01325) and
+    "Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback" (https://arxiv.org/abs/2204.05862>).
 
     Features:
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
@@ -175,8 +181,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
-        self._model_compile = cfg.compile
+        self.compile = cfg.compile
         self._optimizer_in_bwd = cfg.optimizer_in_bwd
+
         (
             self._policy_model,
             self._value_model,
@@ -186,7 +193,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_model=cfg.policy_model,
             cfg_reward_value_model=cfg.reward_and_value_model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            compile_model=self._model_compile,
+            compile_model=self.compile,
             policy_state_dict=policy_model_checkpoint_dict[training.MODEL_KEY],
             ref_policy_state_dict=ref_policy_state_dict[training.MODEL_KEY],
             value_model_state_dict=value_model_checkpoint_dict[training.MODEL_KEY],
@@ -213,7 +220,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info("Loss is initialized.")
 
         # sampler and dataloader depends on the tokenizer and should be set
-        # setup afterit is initialized
+        # setup after it is initialized
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
@@ -222,6 +229,21 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._setup_training_parameters(cfg)
         self._setup_training_hyperparameters(cfg)
+
+        # setup a context manager for enabling KV-cacheing during
+        # trajectory generation if enabled in the config
+        self.cache_ctx_manager = lambda enable_kv_cache: (
+            local_kv_cache(
+                self._policy_model,
+                batch_size=self._forward_batch_size,
+                dtype=self._dtype,
+                decoder_max_seq_len=self._tokenizer.max_seq_len
+                + self._max_generated_tokens,
+                device=self._device,
+            )
+            if enable_kv_cache
+            else contextlib.nullcontext()
+        )
 
         if self._resume_from_checkpoint:
             self._update_recipe_state(policy_model_checkpoint_dict)
@@ -232,6 +254,77 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             * self._ppo_epochs
             * (self.batch_size // self._ppo_batch_size)
         )
+
+        # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
+        # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+    def _setup_profiler(
+        self, cfg_profiler: Optional[DictConfig] = None
+    ) -> Union[torch.profiler.profile, DummyProfiler]:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
+                `recipe.main`). Default None.
+
+        Returns:
+            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+
+        .. code-block:: yaml
+            profiler:
+                enabled: bool
+
+                #Output directory of trace artifacts
+                output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            cpu: bool
+            cuda: bool
+
+                #Trace options
+                profile_memory: bool
+                with_stack: bool
+                record_shapes: bool
+                with_flops: bool
+
+            # `torch.profiler.schedule` options:
+            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+            wait_steps: int
+            warmup_steps: int
+            active_steps: int
+            num_cycles: int
+        """
+
+        # Missing profiler section in config, assume disabled
+        if cfg_profiler is None:
+            cfg_profiler = DictConfig({"enabled": False})
+
+        # Check that component is included and set correctly
+        if cfg_profiler.get("_component_", None) is None:
+            cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
+        else:
+            assert (
+                cfg_profiler.get("_component_")
+                == "torchtune.training.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
+
+        profiler, profiler_cfg = config.instantiate(cfg_profiler)
+
+        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+
+        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+        if profiler_cfg["enabled"]:
+            self.profiler_wait_steps = profiler_cfg["wait_steps"]
+            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+            self.profiler_active_steps = profiler_cfg["active_steps"]
+
+        return profiler
 
     def _setup_training_hyperparameters(self, cfg) -> None:
         """
@@ -295,6 +388,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._ppo_backward_batch_size = (
             cfg.ppo_batch_size // self._gradient_accumulation_steps
         )
+        self.enable_kv_cache = cfg.enable_kv_cache
 
         if self.batch_size % self._forward_batch_size != 0:
             raise ValueError(
@@ -423,6 +517,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             reward_model = config.instantiate(cfg_reward_value_model)
             value_model = config.instantiate(cfg_reward_value_model)
 
+        if compile_model:
+            training.compile_model(policy_model)
+            training.compile_model(ref_policy_model)
+            training.compile_model(value_model)
+            training.compile_model(reward_model)
+
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 policy_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
@@ -450,6 +550,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         value_model.load_state_dict(value_model_state_dict)
 
         # Validate models were loaded in with the expected dtype.
+
         training.validate_expected_param_dtype(
             value_model.named_parameters(), dtype=self._dtype
         )
@@ -489,16 +590,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         for p in ref_policy_model.parameters():
             p.requires_grad = False
-
-        # Compile model, if enabled.
-        if compile_model:
-            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-            log.info("Compiling models with torch.compile...")
-
-            policy_model.compile(backend=backend)
-            reward_model.compile(backend=backend)
-            ref_policy_model.compile(backend=backend)
-            value_model.compile(backend=backend)
 
         if self._device.type == "cuda":
             memory_stats = training.get_memory_stats(device=self._device)
@@ -585,7 +676,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
-            # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
             collate_fn=partial(
                 padded_collate,
@@ -688,19 +778,19 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
                 the current trajectory.
         """
-        batch_size, context_length = input_ids.shape
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-        query_responses, logits = generation.generate(
-            model=self._policy_model,
-            prompt=input_ids,
-            max_generated_tokens=self._max_generated_tokens,
-            temperature=self._temperature,
-            top_k=self._top_k,
-            pad_id=self._tokenizer.pad_id,
-            rng=self._rng,
-        )
-
+        with self.cache_ctx_manager(self.enable_kv_cache):
+            query_responses, logits = generation.generate(
+                model=self._policy_model,
+                prompt=input_ids,
+                max_generated_tokens=self._max_generated_tokens,
+                temperature=self._temperature,
+                top_k=self._top_k,
+                pad_id=self._tokenizer.pad_id,
+                rng=self._rng,
+            )
+        _, context_length = input_ids.shape
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
@@ -715,7 +805,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         del query_response_padding_masks
 
         # step 2. estimate logprobs of the responses using the current policy
-        logits = logits[:, context_length - 1 :]
         logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
 
         del logits
@@ -751,7 +840,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # step 5.1 the scores from the reward model are the logits for the last non-padding token in
         # each (query, truncated-response) pair
         seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
-        scores = scores[torch.arange(batch_size), seq_lens + context_length].squeeze(-1)
+        scores = scores.gather(1, (seq_lens + context_length)[:, None, None]).squeeze(
+            (-1, -2)
+        )
 
         # step 5.2 if configured, apply any penalties for sequences without EOS tokens
         # or shorter than a certain length
@@ -775,11 +866,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             seq_lens,
         )
         value_padding_masks = response_padding_masks.clone()
-        value_padding_masks[
-            torch.arange(batch_size, device=value_padding_masks.device),
-            value_seq_idxs,
-        ] = False
-
+        value_padding_masks = value_padding_masks.scatter_(
+            1, value_seq_idxs.unsqueeze(-1), False
+        )
         values[value_padding_masks] = 0.0
 
         return Trajectory(
@@ -798,8 +887,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def generate_trajectory_batched(self, input_ids: torch.Tensor) -> Trajectory:
         """
-        Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
-        See ``generate_trajectory`` for more details.
+        Generates a self.batch_size batch of trajectories using self._forward_batch_size batch sizes.
+        See generate_trajectory for more details.
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
@@ -814,6 +903,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 batch_input_ids = input_ids[
                     batch_start : batch_start + self._forward_batch_size
                 ]
+
                 trajectories.append(self.generate_trajectory(batch_input_ids))
         return Trajectory(*map(torch.cat, zip(*trajectories)))
 
@@ -821,7 +911,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop."""
 
-        if self._model_compile:
+        if self.compile:
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward."
                 "Expect a relatively slow first iteration."
@@ -831,25 +921,33 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._optimizer.zero_grad()
 
         training_completed = False
+        self._profiler.start()
         pbar = tqdm(total=self._total_steps, initial=self._steps_run)
         for curr_epoch in range(self._epochs_run, self._total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for _, batch in enumerate(self._dataloader):
+            for idx, batch in enumerate(self._dataloader):
+
+                # Start tracking CUDA memory for active steps for just the first epoch
+                if (
+                    curr_epoch == 0
+                    and self.profiler_profile_memory
+                    and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                ):
+                    torch.cuda.memory._record_memory_history()
+
                 batch = batch["tokens"].to(self._device)
                 _, context_length = batch.shape
+                num_tokens = batch.numel()
 
-                # step 1. generate the trajectory using:
-                # - the current policy (pi_theta)
-                # - the current value function (V_phi)
-                # - the reference frozen policy model (pi_theta_0)
+                # step 1. generate the trajectory
+                t0_traj = time.perf_counter()
                 trajectory = self.generate_trajectory_batched(batch)
+                traj_time = time.perf_counter() - t0_traj
 
-                # step 2. get the rewards for the current trajectory. these are based on:
-                #   - the divergence between the current policy and the reference policy
-                #   - the scores from the reward model
+                # step 2. get the rewards for the current trajectory
                 rewards, kl, kl_rewards = rlhf.get_rewards_ppo(
                     trajectory.scores,
                     trajectory.logprobs,
@@ -867,7 +965,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     masks=~trajectory.response_padding_masks,
                 )
 
-                # step 4. optimise using the PPO objective over multiple epochs
+                # # step 4. optimise using the PPO objective over multiple epochs
+                t0_ppo = time.perf_counter()
                 ppo_stats: List[PPOStats] = []
                 for _ in range(self._ppo_epochs):
                     batch_idxs = torch.randperm(self.batch_size, device=self._device)
@@ -893,7 +992,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 )
                             )
                             batch_ppo_stats.append(
-                                self._ppo_step(
+                                self.ppo_step(
                                     batch_trajectory,
                                     advantages[backward_batch_idxs],
                                     returns[backward_batch_idxs],
@@ -909,6 +1008,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             self._optimizer.zero_grad(set_to_none=True)
 
                         self.global_step += 1
+                ppo_time = time.perf_counter() - t0_ppo
 
                 # step 5. profit
                 self._steps_run += 1
@@ -918,11 +1018,28 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         PPOStats(*map(torch.stack, zip(*ppo_stats))),
                         kl,
                         kl_rewards,
+                        num_tokens / traj_time,
+                        num_tokens / ppo_time,
                     )
                 self.cleanup_after_step(
                     trajectory, ppo_stats, advantages, returns, kl, kl_rewards
                 )
                 pbar.update(1)
+
+                # Stop tracking CUDA memory now that active steps are complete
+                if (
+                    curr_epoch == 0
+                    and self.profiler_profile_memory
+                    and idx
+                    == self.profiler_wait_steps
+                    + self.profiler_warmup_steps
+                    + self.profiler_active_steps
+                ):
+                    torch.cuda.memory._record_memory_history(enabled=None)
+
+                # Step the profiler
+                self._profiler.step()
+
                 if self._steps_run == self._total_steps:
                     training_completed = True
                     break
@@ -934,9 +1051,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 curr_epoch, is_intermediate_checkpoint=not training_completed
             )
             if training_completed:
+                self._profiler.stop()
                 return
 
-    def _ppo_step(
+        self._profiler.stop()
+
+    def ppo_step(
         self,
         trajectory: Trajectory,
         advantages: torch.Tensor,
@@ -1023,6 +1143,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ppo_stats: PPOStats,
         kl: torch.Tensor,
         kl_rewards: torch.Tensor,
+        tokens_per_second_trajectory: torch.Tensor,
+        tokens_per_second_loss: torch.Tensor,
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.
@@ -1040,6 +1162,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             "ratios": ppo_stats.ratios.mean(),
             "approx_policy_kl": ppo_stats.approx_policy_kls.mean(),
             "response_lengths": trajectory.seq_lens.float().mean(),
+            "tokens_per_second_per_gpu_trajectory": tokens_per_second_trajectory,
+            "tokens_per_second_per_gpu_ppo": tokens_per_second_loss,
         }
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))

@@ -943,7 +943,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
     Raises:
         ValueError: If ``checkpoint_files`` is not a list of length 1
-        ValueError: If ``should_load_recipe_state`` is True but ``recipe_checkpoint`` is None
     """
 
     def __init__(
