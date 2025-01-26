@@ -702,14 +702,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 step=(curr_epoch + 1) * idx + idx,
             )
 
-        if self.run_validation:
-            self._metric_logger.log_dict(
-                {
-                    "avg_val_loss": sum(val_losses) / len(val_losses),
-                    "epoch": curr_epoch + 1,
-                },
-                step=self.global_step,
-            )
+        self._metric_logger.log_dict(
+            {
+                "avg_val_loss": sum(val_losses) / len(val_losses),
+                "epoch": curr_epoch + 1,
+            },
+            step=self.global_step,
+        )
 
     def train(self) -> None:
         """
