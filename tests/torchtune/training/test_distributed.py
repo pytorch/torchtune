@@ -88,6 +88,14 @@ class TestDistributed:
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
             training.validate_no_params_on_meta_device(model)
 
+    def test_get_distributed_backend(self) -> None:
+        assert training.get_distributed_backend("cuda") == "nccl"
+        assert training.get_distributed_backend("cpu") == "gloo"
+        assert (
+            training.get_distributed_backend("cuda", enable_cpu_offload=True)
+            == "cuda:nccl,cpu:gloo"
+        )
+
 
 N_LAYERS = 3
 IN_DIM = 5

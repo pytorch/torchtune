@@ -101,7 +101,7 @@ def get_distributed_backend(device_type: str, enable_cpu_offload: bool = False) 
     Args:
         device_type (str): Device type to get backend for.
         enable_cpu_offload (bool): Flag to check if offload to CPU is enabled. If it is, we will add a GLOO
-            backend to handle CPU training.
+            backend to handle CPU training. Default is False.
 
     Example:
         >>> get_distributed_backend("cuda")
