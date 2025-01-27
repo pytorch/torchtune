@@ -132,7 +132,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
+        if self._log_peak_memory_stats and device_type != "cuda":
             log.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
@@ -149,7 +149,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
-        self.distributed_backend = get_distributed_backend(
+        self.distributed_backend = training.get_distributed_backend(
             device_type, enable_cpu_offload=self.fsdp_cpu_offload
         )
 
@@ -174,7 +174,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             "enable_activation_offloading", False
         )
         if self._enable_activation_offloading:
-            if self._device.type != "cuda":
+            if device_type != "cuda":
                 raise RuntimeError(
                     "enable_activation_offloading should only be True when training on CUDA"
                 )

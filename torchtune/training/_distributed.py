@@ -95,7 +95,25 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         return tensor
 
 
-def get_distributed_backend(device_type: str, enable_cpu_offload: bool = False):
+def get_distributed_backend(device_type: str, enable_cpu_offload: bool = False) -> str:
+    """Gets the PyTorch Distributed backend based on device type.
+
+    Args:
+        device_type (str): Device type to get backend for.
+        enable_cpu_offload (bool): Flag to check if offload to CPU is enabled. If it is, we will add a GLOO
+            backend to handle CPU training.
+
+    Example:
+        >>> get_distributed_backend("cuda")
+        'nccl'
+        >>> get_distributed_backend("cpu")
+        'gloo'
+        >>> get_distributed_backend("cuda", enable_cpu_offload=True)
+        'cuda:nccl,cpu:gloo'
+
+    Returns:
+        str: Distributed backend for use in ``torch.distributed.init_process_group``.
+    """
     backend = "nccl"
     if device_type in dist.Backend.default_device_backend_map.keys():
         backend = dist.default_device_backend_map.get(device_type)
