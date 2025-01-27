@@ -20,13 +20,13 @@ nodes_array=($nodes)
 head_node=${nodes_array[0]}
 head_node_ip=$(srun --nodes=1 --ntasks=1 -w "$head_node" hostname --ip-address)
 echo Node IP: $head_node_ip
-export LOGLEVEL=INFO
 
-# You might need to explicitly set the network interface:
+# You might need to explicitly set the network interface for distributed backends:
 # export NCCL_SOCKET_IFNAME=...
 # export GLOO_SOCKET_IFNAME=...
 
 export TORCH_DIST_INIT_BARRIER=1
+export LOGLEVEL=INFO
 
 # ---------- Launch training ---------- #
 # You probably want to load in a virtual env w/ conda...
