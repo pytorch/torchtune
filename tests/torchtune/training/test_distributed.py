@@ -37,7 +37,6 @@ from torchtune.modules.peft import (
 
 
 class TestDistributed:
-
     @staticmethod
     def _test_worker_fn(init_pg_explicit: bool) -> None:
         """
