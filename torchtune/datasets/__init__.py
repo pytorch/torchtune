@@ -7,6 +7,7 @@
 from torchtune.datasets import multimodal
 from torchtune.datasets._alpaca import alpaca_cleaned_dataset, alpaca_dataset
 from torchtune.datasets._math import math_dataset
+from torchtune.datasets._gsm8k import gsm8k_dataset
 from torchtune.datasets._chat import chat_dataset
 from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
@@ -46,4 +47,5 @@ __all__ = [
     "hh_rlhf_helpful_dataset",
     "multimodal",
     "math_dataset",
+    "gsm8k_dataset",
 ]

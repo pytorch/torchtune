@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import regex
+from xml.etree import ElementTree as ET
 from functools import partial
 
 from typing import Any, Callable, Dict, Optional, Union, TypedDict
@@ -15,22 +16,23 @@ from torchtune.datasets._rl import RLDataset, ReasoningProblem
 from torchtune.modules.tokenizers import ModelTokenizer
 
 
-def normalize_math(problem: dict[str, str]) -> ReasoningProblem:
-    question = problem["problem"]
-    REGEXP = r"\\boxed{((?:[^{}]+|\{(?1)\})*)}"
-    answer = regex.findall(REGEXP, problem["solution"])[-1]
 
-    return {"question": question, "cot": "", "answer": answer}
+def normalize_gsm(problem: dict[str, str]) -> ReasoningProblem:
+    question = problem["question"]
+    solution = problem["answer"]
+
+    cot, answer = solution.split("#### ")
+
+    return {"question": question, "cot": cot, "answer": answer}
 
 
-
-def math_dataset(
+def gsm8k_dataset(
     tokenizer: ModelTokenizer,
     *,
-    source: str = "EleutherAI/hendrycks_math",
+    source: str = "openai/gsm8k",
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    name: str = "algebra",
+    name: str = "main",
     **load_dataset_kwargs: Dict[str, Any],
 ) -> RLDataset:
 
@@ -38,7 +40,7 @@ def math_dataset(
         source=source,
         name=name,
         tokenizer=tokenizer,
-        problem_transform=normalize_math,
+        problem_transform=normalize_gsm,
         filter_fn=filter_fn,
         split=split,
         **load_dataset_kwargs,

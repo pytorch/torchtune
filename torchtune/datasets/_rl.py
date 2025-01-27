@@ -4,7 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, Mapping, Optional, TypedDict
+from xml.etree import ElementTree as ET
 
 import numpy as np
 
@@ -18,12 +19,17 @@ from torchtune.modules.transforms import Transform
 
 BASE_PROMPT = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think></think> and <answer></answer> tags, respectively, i.e., <think>reasoning process here</think> <answer>answer here</answer>. User: %s. Assistant:"""
 
+class ReasoningProblem(TypedDict):
+    question: str
+    cot: str
+    answer: str
+
 class RLDataset(Dataset):
 
     def __init__(
         self,
         *,
-        source: tuple[str, ...],
+        source: str,
         problem_transform: Transform,
         tokenizer: ModelTokenizer,
         filter_fn: Optional[Callable] = None,
@@ -46,9 +52,62 @@ class RLDataset(Dataset):
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
         transformed_sample = self._problem_transform(sample)  # keys "question" and "answer"
 
-        q_tokens = self._tokenizer.encode(transformed_sample["question"])
-        mask = [1 for t in q_tokens]
+        question = BASE_PROMPT % transformed_sample["question"]
+
+        q_tokens = self._tokenizer.encode(question, add_eos=False)
+        mask = [1 for _ in q_tokens]
         answer = transformed_sample["answer"]
 
 
         return {"tokens": q_tokens, "mask": mask, "answer": answer}
+
+
+
+def extract_tags(text: str):
+    # Add root element to make valid XML
+    xml_string = f"<root>{text}</root>"
+    root = ET.fromstring(xml_string)
+
+    return {
+        'think': [elem.text for elem in root.findall('think')],
+        'answer': [elem.text for elem in root.findall('answer')]
+    }
+
+def shaped_reward(question: str, answer: str, completion: str) -> float:
+    question_chars = len(question)
+    only_completion = completion[question_chars:]
+
+    try:
+        tags = extract_tags(only_completion)
+    except ET.ParseError:
+        return -1.0
+
+    reward = 0
+
+    if len(tags['answer']) == 1:
+        reward += 0.1
+
+    if len(tags['think']) == 1:
+        reward += 0.1
+
+    if tags['answer'][-1] == answer:
+        reward += 1.0
+
+    return reward
+
+
+def correctness_reward(question: str, answer: str, completion: str) -> float:
+    question_chars = len(question)
+    only_completion = completion[question_chars:]
+
+    try:
+        tags = extract_tags(only_completion)
+    except ET.ParseError:
+        return 0.0
+
+    if tags['answer'][-1] == answer:
+        return 1.0
+    else:
+        return 0.0
+
+

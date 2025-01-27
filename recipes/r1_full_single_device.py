@@ -293,9 +293,9 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+        #     # set num_output_chunks for model
+        #     self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
         log.info("Loss is initialized.")
 
@@ -341,6 +341,13 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         self.ignore_labels_cache = torch.full(
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
+
+        # Hyperparams
+        self._temperature = cfg.temperature
+        self._top_k = cfg.top_k
+        self._max_generated_tokens = cfg.max_generated_tokens
+
+        self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -445,7 +452,7 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type != "cpu":
+        if self._device.type not in ("cpu", "mps"):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -673,7 +680,7 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
         query_responses, logits = generation.generate(
-            model=self._policy_model,
+            model=self._model,
             prompt=input_ids,
             max_generated_tokens=self._max_generated_tokens,
             temperature=self._temperature,
@@ -681,6 +688,8 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             pad_id=self._tokenizer.pad_id,
             rng=self._rng,
         )
+
+        return query_responses, logits
 
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
@@ -874,7 +883,7 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
-                        if self._device.type != "cpu" and self._log_peak_memory_stats:
+                        if self._device.type not in ("cpu", "mps") and self._log_peak_memory_stats:
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )

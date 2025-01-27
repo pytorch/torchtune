@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-3.2-3B-Instruct --output-dir /tmp/Llama-3.2-3B-Instruct --ignore-patterns "original/consolidated.00.pth"
+#   tune download meta-llama/Llama-3.2-3B --output-dir /Users/ariel/checkpoint/tmp/Llama-3.2-3B --ignore-patterns "original/consolidated.00.pth"
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with
@@ -23,12 +23,13 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Llama-3.2-3B-Instruct/original/tokenizer.model
+  path: /Users/ariel/checkpoint/tmp/Llama-3.2-3B/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.math_dataset
+#  _component_: torchtune.datasets.math_dataset
+  _component_: torchtune.datasets.gsm8k_dataset
 seed: null
 shuffle: True
 
@@ -38,18 +39,22 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Llama-3.2-3B-Instruct/
+  checkpoint_dir: /Users/ariel/checkpoint/tmp/Llama-3.2-3B/
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-3.2-3B-Instruct/
+  output_dir: /Users/ariel/checkpoint/tmp/Llama-3.2-3B/
   model_type: LLAMA3_2
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 4
+max_generated_tokens: 100
+top_k: null
+temperature: 0.7
+
 epochs: 1
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW8bit
@@ -62,7 +67,7 @@ optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_step
 compile: False  # pytorch compile, set to true for better perf/memory
 
 # Training environment
-device: cuda
+device: mps
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
@@ -75,9 +80,9 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/full-llama3.2-finetune
+output_dir: /Users/ariel/checkpoint/tmp/full-llama3.2-finetune
 log_every_n_steps: 1
-log_peak_memory_stats: True
+log_peak_memory_stats: False  # for mac
 
 # Profiler (disabled)
 profiler:
