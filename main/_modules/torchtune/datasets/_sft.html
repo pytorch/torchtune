@@ -517,11 +517,13 @@
 <span class="sd">    multimodal datasets requires processing the images in a way specific to the vision</span>
 <span class="sd">    encoder being used by the model and is agnostic to the specific dataset.</span>
 
-<span class="sd">    Tokenization is handled by the ``model_transform``. All :class:`~torchtune.modules.tokenizers.ModelTokenizer`</span>
-<span class="sd">    can be treated as a ``model_transform`` since it uses the model-specific tokenizer to</span>
-<span class="sd">    transform the list of messages outputted from the ``message_transform`` into tokens</span>
-<span class="sd">    used by the model for training. Text-only datasets will simply pass the :class:`~torchtune.modules.tokenizers.ModelTokenizer`</span>
-<span class="sd">    into ``model_transform``. Tokenizers handle prompt templating, if configured.</span>
+<span class="sd">    Tokenization is handled by the ``model_transform``. All</span>
+<span class="sd">    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` can be treated as</span>
+<span class="sd">    a ``model_transform`` since it uses the model-specific tokenizer to transform the</span>
+<span class="sd">    list of messages outputted from the ``message_transform`` into tokens used by the</span>
+<span class="sd">    model for training. Text-only datasets will simply pass the</span>
+<span class="sd">    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` into ``model_transform``.</span>
+<span class="sd">    Tokenizers handle prompt templating, if configured.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source (str): path to dataset repository on Hugging Face. For local datasets,</span>

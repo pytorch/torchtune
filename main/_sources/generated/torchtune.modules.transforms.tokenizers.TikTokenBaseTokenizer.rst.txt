@@ -1,6 +1,6 @@
 ﻿.. role:: hidden
     :class: hidden-section
-.. currentmodule:: torchtune.modules.tokenizers
+.. currentmodule:: torchtune.modules.transforms.tokenizers
 
 
 TikTokenBaseTokenizer

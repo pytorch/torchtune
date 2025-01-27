@@ -470,9 +470,10 @@
 <div class="viewcode-block" id="Message"><a class="viewcode-back" href="../../../generated/torchtune.data.Message.html#torchtune.data.Message">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Message</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class represents individual messages in a fine-tuning dataset. It supports</span>
-<span class="sd">    text-only content, text with interleaved images, and tool calls. The :class:`~torchtune.modules.tokenizers.ModelTokenizer`</span>
-<span class="sd">    will tokenize the content of the message using ``tokenize_messages`` and attach</span>
-<span class="sd">    the appropriate special tokens based on the flags set in this class.</span>
+<span class="sd">    text-only content, text with interleaved images, and tool calls. The</span>
+<span class="sd">    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` will tokenize</span>
+<span class="sd">    the content of the message using ``tokenize_messages`` and attach the appropriate</span>
+<span class="sd">    special tokens based on the flags set in this class.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        role (Role): role of the message writer. Can be &quot;system&quot; for system prompts,</span>

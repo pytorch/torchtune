@@ -459,9 +459,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChosenRejectedToMessages</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
 
 
 <div class="viewcode-block" id="PreferenceDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">PreferenceDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
@@ -532,7 +532,7 @@
 <span class="sd">            of messages are stored in the ``&quot;chosen&quot;`` and ``&quot;rejected&quot;`` keys.</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
 <span class="sd">            Since PreferenceDataset only supports text data, it requires a</span>
-<span class="sd">            :class:`~torchtune.modules.tokenizers.ModelTokenizer` instead of the ``model_transform`` in</span>
+<span class="sd">            :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` instead of the ``model_transform`` in</span>
 <span class="sd">            :class:`~torchtune.datasets.SFTDataset`.</span>
 <span class="sd">        filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See</span>
 <span class="sd">            the Hugging Face `docs &lt;https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter&gt;`_ for more</span>

@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>SentencePieceBaseTokenizer &mdash; torchtune main documentation</title>
+  <title>parse_hf_tokenizer_json &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="TikTokenBaseTokenizer" href="torchtune.modules.tokenizers.TikTokenBaseTokenizer.html" />
-    <link rel="prev" title="ForwardKLWithChunkedOutputLoss" href="torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html" />
+    <link rel="next" title="LoRALinear" href="torchtune.modules.peft.LoRALinear.html" />
+    <link rel="prev" title="tokenize_messages_no_special_tokens" href="torchtune.modules.transforms.tokenizers.tokenize_messages_no_special_tokens.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -416,13 +416,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>SentencePieceBaseTokenizer</li>
+      <li>parse_hf_tokenizer_json</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.tokenizers.SentencePieceBaseTokenizer.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.transforms.tokenizers.parse_hf_tokenizer_json.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -452,71 +452,24 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="sentencepiecebasetokenizer">
-<h1>SentencePieceBaseTokenizer<a class="headerlink" href="#sentencepiecebasetokenizer" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.tokenizers.SentencePieceBaseTokenizer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.tokenizers.</span></span><span class="sig-name descname"><span class="pre">SentencePieceBaseTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/tokenizers/_sentencepiece.html#SentencePieceBaseTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.tokenizers.SentencePieceBaseTokenizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>A light-weight wrapper around SentencePieceProcessor that additionally handles
-trimming leading whitespaces.</p>
+  <section id="parse-hf-tokenizer-json">
+<h1>parse_hf_tokenizer_json<a class="headerlink" href="#parse-hf-tokenizer-json" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.modules.transforms.tokenizers.parse_hf_tokenizer_json">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.tokenizers.</span></span><span class="sig-name descname"><span class="pre">parse_hf_tokenizer_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer_json_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/tokenizers/_utils.html#parse_hf_tokenizer_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.tokenizers.parse_hf_tokenizer_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">tokenizer.json</span></code> file from a Hugging Face model to extract the
+special token str to id mapping.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to pretrained tokenizer file.</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="s2">&quot;/path/to/spm_model&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenized_text</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;Hello world!&quot;</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">tokenized_text</span><span class="p">)</span>
-<span class="go">[1, 31587, 29644, 102, 2]</span>
-</pre></div>
-</div>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.tokenizers.SentencePieceBaseTokenizer.decode">
-<span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/tokenizers/_sentencepiece.html#SentencePieceBaseTokenizer.decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.decode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decode token IDs to strings.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ids</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – The input token IDs to be decoded.</p>
+<dd class="field-odd"><p><strong>tokenizer_json_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to the <code class="docutils literal notranslate"><span class="pre">tokenizer.json</span></code> file.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The decoded text.</p>
+<dd class="field-even"><p>The special token str to id mapping.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+<dd class="field-odd"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>]</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.tokenizers.SentencePieceBaseTokenizer.encode">
-<span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_bos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_eos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_leading_whitespace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/tokenizers/_sentencepiece.html#SentencePieceBaseTokenizer.encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.tokenizers.SentencePieceBaseTokenizer.encode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Encode text into token IDs.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The input text to be encoded, unbatched.</p></li>
-<li><p><strong>add_bos</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to prepend BOS to the input, defaults to True.</p></li>
-<li><p><strong>add_eos</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to append EOS to the input, defaults to True.</p></li>
-<li><p><strong>trim_leading_whitespace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to trim leading whitespace from
-underlying sentencepiece tokenization. Sentencepiece normally prepends
-whitespace to any tokenized text, which can cause differences where
-<code class="docutils literal notranslate"><span class="pre">encode(s1)</span> <span class="pre">+</span> <span class="pre">encode(s2)</span> <span class="pre">!=</span> <span class="pre">encode(s1</span> <span class="pre">+</span> <span class="pre">s2)</span></code> due to leading whitespace
-added to s2. This will only trim leading whitespace if the underlying
-<code class="docutils literal notranslate"><span class="pre">SentencePieceProcessor</span></code> encodes whitespace. Default: False</p></li>
-<li><p><strong>prefix</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – Optional string to encode for trimming leading
-whitespaces. Used only if trim_leading_whitespace=True. Default: None</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The encoded token IDs.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>]</p>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 </section>
@@ -529,10 +482,10 @@ whitespaces. Used only if trim_leading_whitespace=True. Default: None</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.tokenizers.TikTokenBaseTokenizer.html" class="btn btn-neutral float-right" title="TikTokenBaseTokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.peft.LoRALinear.html" class="btn btn-neutral float-right" title="LoRALinear" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html" class="btn btn-neutral" title="ForwardKLWithChunkedOutputLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.transforms.tokenizers.tokenize_messages_no_special_tokens.html" class="btn btn-neutral" title="tokenize_messages_no_special_tokens" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -564,7 +517,7 @@ whitespaces. Used only if trim_leading_whitespace=True. Default: None</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">SentencePieceBaseTokenizer</a></li>
+<li><a class="reference internal" href="#">parse_hf_tokenizer_json</a></li>
 </ul>
 
             </div>

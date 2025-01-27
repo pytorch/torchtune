@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parse_hf_tokenizer_json &mdash; torchtune main documentation</title>
+  <title>ModelTokenizer &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="LoRALinear" href="torchtune.modules.peft.LoRALinear.html" />
-    <link rel="prev" title="tokenize_messages_no_special_tokens" href="torchtune.modules.tokenizers.tokenize_messages_no_special_tokens.html" />
+    <link rel="next" title="BaseTokenizer" href="torchtune.modules.transforms.tokenizers.BaseTokenizer.html" />
+    <link rel="prev" title="TikTokenBaseTokenizer" href="torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -416,13 +416,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>parse_hf_tokenizer_json</li>
+      <li>ModelTokenizer</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.tokenizers.parse_hf_tokenizer_json.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.transforms.tokenizers.ModelTokenizer.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -452,24 +452,35 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="parse-hf-tokenizer-json">
-<h1>parse_hf_tokenizer_json<a class="headerlink" href="#parse-hf-tokenizer-json" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.tokenizers.parse_hf_tokenizer_json">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.tokenizers.</span></span><span class="sig-name descname"><span class="pre">parse_hf_tokenizer_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer_json_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/tokenizers/_utils.html#parse_hf_tokenizer_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.tokenizers.parse_hf_tokenizer_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">tokenizer.json</span></code> file from a Hugging Face model to extract the
-special token str to id mapping.</p>
+  <section id="modeltokenizer">
+<h1>ModelTokenizer<a class="headerlink" href="#modeltokenizer" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.modules.transforms.tokenizers.ModelTokenizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.tokenizers.</span></span><span class="sig-name descname"><span class="pre">ModelTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transforms/tokenizers/_utils.html#ModelTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.tokenizers.ModelTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract tokenizer that implements model-specific special token logic in
+the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method. See <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama3Tokenizer</span></code>
+for an example implementation of this protocol.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.transforms.tokenizers.ModelTokenizer.tokenize_messages">
+<span class="sig-name descname"><span class="pre">tokenize_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._messages.Message"><span class="pre">Message</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/tokenizers/_utils.html#ModelTokenizer.tokenize_messages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.tokenizers.ModelTokenizer.tokenize_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of messages, return a list of tokens and list of masks for
+the concatenated and formatted messages.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>tokenizer_json_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to the <code class="docutils literal notranslate"><span class="pre">tokenizer.json</span></code> file.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>messages</strong> (<em>List</em><em>[</em><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><em>Message</em></a><em>]</em>) – The list of messages to tokenize.</p></li>
+<li><p><strong>**kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – kwargs.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The special token str to id mapping.</p>
+<dd class="field-even"><p>The list of token ids and the list of masks.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>]</p>
+<dd class="field-odd"><p>Tuple[List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>], List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a>]]</p>
 </dd>
 </dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -482,10 +493,10 @@ special token str to id mapping.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.peft.LoRALinear.html" class="btn btn-neutral float-right" title="LoRALinear" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.transforms.tokenizers.BaseTokenizer.html" class="btn btn-neutral float-right" title="BaseTokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.tokenizers.tokenize_messages_no_special_tokens.html" class="btn btn-neutral" title="tokenize_messages_no_special_tokens" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html" class="btn btn-neutral" title="TikTokenBaseTokenizer" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -517,7 +528,7 @@ special token str to id mapping.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">parse_hf_tokenizer_json</a></li>
+<li><a class="reference internal" href="#">ModelTokenizer</a></li>
 </ul>
 
             </div>

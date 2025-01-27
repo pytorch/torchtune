@@ -504,11 +504,13 @@ parameter. This is another callable class that contains any custom logic tied to
 model you are fine-tuning and will carry over to inference. For example, text + image
 multimodal datasets requires processing the images in a way specific to the vision
 encoder being used by the model and is agnostic to the specific dataset.</p>
-<p>Tokenization is handled by the <code class="docutils literal notranslate"><span class="pre">model_transform</span></code>. All <a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelTokenizer</span></code></a>
-can be treated as a <code class="docutils literal notranslate"><span class="pre">model_transform</span></code> since it uses the model-specific tokenizer to
-transform the list of messages outputted from the <code class="docutils literal notranslate"><span class="pre">message_transform</span></code> into tokens
-used by the model for training. Text-only datasets will simply pass the <a class="reference internal" href="torchtune.modules.tokenizers.ModelTokenizer.html#torchtune.modules.tokenizers.ModelTokenizer" title="torchtune.modules.tokenizers.ModelTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelTokenizer</span></code></a>
-into <code class="docutils literal notranslate"><span class="pre">model_transform</span></code>. Tokenizers handle prompt templating, if configured.</p>
+<p>Tokenization is handled by the <code class="docutils literal notranslate"><span class="pre">model_transform</span></code>. All
+<a class="reference internal" href="torchtune.modules.transforms.tokenizers.ModelTokenizer.html#torchtune.modules.transforms.tokenizers.ModelTokenizer" title="torchtune.modules.transforms.tokenizers.ModelTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelTokenizer</span></code></a> can be treated as
+a <code class="docutils literal notranslate"><span class="pre">model_transform</span></code> since it uses the model-specific tokenizer to transform the
+list of messages outputted from the <code class="docutils literal notranslate"><span class="pre">message_transform</span></code> into tokens used by the
+model for training. Text-only datasets will simply pass the
+<a class="reference internal" href="torchtune.modules.transforms.tokenizers.ModelTokenizer.html#torchtune.modules.transforms.tokenizers.ModelTokenizer" title="torchtune.modules.transforms.tokenizers.ModelTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelTokenizer</span></code></a> into <code class="docutils literal notranslate"><span class="pre">model_transform</span></code>.
+Tokenizers handle prompt templating, if configured.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

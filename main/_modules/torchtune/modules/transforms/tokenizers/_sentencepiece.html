@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.modules.tokenizers._tiktoken &mdash; torchtune main documentation</title>
+  <title>torchtune.modules.transforms.tokenizers._sentencepiece &mdash; torchtune main documentation</title>
   
 
   
@@ -26,19 +26,19 @@
 
   
 
-  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
-  <link rel="stylesheet" href="../../../../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../../search.html" />
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -49,16 +49,16 @@
   
 
   
-  <script src="../../../../_static/js/modernizr.min.js"></script>
+  <script src="../../../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -296,7 +296,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -313,64 +313,64 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tune_cli.html">torchtune CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/recipes_overview.html">Recipes Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/dpo.html">Direct Preference Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../recipes/dpo.html">Direct Preference Optimization</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/datasets_overview.html">Datasets Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/chat_datasets.html">Chat Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/preference_datasets.html">Preference Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/messages.html">Messages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/message_transforms.html">Message Transforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/tokenizers.html">Tokenizers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/prompt_templates.html">Prompt Templates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/packing.html">Sample packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../basics/custom_components.html">Custom Components and Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/packing.html">Sample packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../basics/custom_components.html">Custom Components and Recipes</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_generation.html">torchtune.generation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -403,7 +403,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../../../../index.html">
+        <a href="../../../../../index.html">
           
             Docs
           
@@ -411,9 +411,9 @@
       </li>
 
         
-          <li><a href="../../../index.html">Module code</a> &gt;</li>
+          <li><a href="../../../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.modules.tokenizers._tiktoken</li>
+      <li>torchtune.modules.transforms.tokenizers._sentencepiece</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -445,41 +445,31 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.modules.tokenizers._tiktoken</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.modules.transforms.tokenizers._sentencepiece</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tiktoken</span><span class="w"> </span><span class="kn">import</span> <span class="n">Encoding</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tiktoken.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_tiktoken_bpe</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sentencepiece</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentencePieceProcessor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTokenizer</span>
 
-<span class="c1"># Constants controlling encode logic</span>
-<span class="n">MAX_ENCODE_CHARS</span> <span class="o">=</span> <span class="mi">400_000</span>
-<span class="n">MAX_NO_WHITESPACE_CHARS</span> <span class="o">=</span> <span class="mi">25_000</span>
+<span class="n">WHITESPACE_CHARS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\v</span><span class="s2">&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="TikTokenBaseTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">TikTokenBaseTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A lightweight wrapper around tiktoken Encoding. This class additionally handles</span>
-<span class="sd">    breaking up the input text into substrings of a max length and splitting up long</span>
-<span class="sd">    repetitions to improve encode speed.</span>
+<span class="sd">    A light-weight wrapper around SentencePieceProcessor that additionally handles</span>
+<span class="sd">    trimming leading whitespaces.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        path (str): Path to pretrained tokenizer checkpoint file.</span>
-<span class="sd">        name (str): Name of the tokenizer (used by tiktoken for identification).</span>
-<span class="sd">        pattern (str): Regex pattern used to split input text into chunks before passing</span>
-<span class="sd">            to byte-pair encoding.</span>
-<span class="sd">        bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.</span>
-<span class="sd">        eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.</span>
-<span class="sd">        special_tokens (Dict[str, int]): Mapping of special tokens to their ids.</span>
+<span class="sd">        path (str): Path to pretrained tokenizer file.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; tokenizer = TikTokenBaseTokenizer(&quot;/path/to/tt_model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer = SentencePieceBaseTokenizer(&quot;/path/to/spm_model&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; tokenized_text = tokenizer.encode(&quot;Hello world!&quot;, add_bos=True, add_eos=True)</span>
 <span class="sd">        &gt;&gt;&gt; print(tokenized_text)</span>
 <span class="sd">        [1, 31587, 29644, 102, 2]</span>
@@ -488,124 +478,85 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">bos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">eos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="p">):</span>
-        <span class="n">mergeable_ranks</span> <span class="o">=</span> <span class="n">load_tiktoken_bpe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span> <span class="o">=</span> <span class="n">Encoding</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">pat_str</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
-            <span class="n">mergeable_ranks</span><span class="o">=</span><span class="n">mergeable_ranks</span><span class="p">,</span>
-            <span class="n">special_tokens</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">,</span>
+        <span class="n">spm_model</span> <span class="o">=</span> <span class="n">SentencePieceProcessor</span><span class="p">()</span>
+        <span class="n">spm_model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span> <span class="o">=</span> <span class="n">spm_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">bos_id</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">eos_id</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">pad_id</span><span class="p">()</span>
+
+        <span class="c1"># If the tokenizer does not encode whitespace,</span>
+        <span class="c1"># then we can more easily split strings</span>
+        <span class="c1"># on whitespace characters and encode them separately.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encodes_whitespace</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">WHITESPACE_CHARS</span><span class="p">]</span>
         <span class="p">)</span>
-        <span class="c1"># Vocab size without special tokens</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">base_vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mergeable_ranks</span><span class="p">)</span>
-        <span class="c1"># Vocab size with special tokens</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">n_vocab</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="n">bos_id</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="n">eos_id</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_split_long_repetitions</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_consecutive_slice_len</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Split the string `s` so that each substring contains no more than `max_consecutive_slice_len`</span>
-<span class="sd">        consecutive whitespaces or consecutive non-whitespaces</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">current_slice_len</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">current_slice_is_space</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">False</span>
-        <span class="n">slice_start</span> <span class="o">=</span> <span class="mi">0</span>
-
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)):</span>
-            <span class="n">is_now_space</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span>
-
-            <span class="k">if</span> <span class="n">current_slice_is_space</span> <span class="o">^</span> <span class="n">is_now_space</span><span class="p">:</span>
-                <span class="n">current_slice_len</span> <span class="o">=</span> <span class="mi">1</span>
-                <span class="n">current_slice_is_space</span> <span class="o">=</span> <span class="n">is_now_space</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">current_slice_len</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="k">if</span> <span class="n">current_slice_len</span> <span class="o">&gt;</span> <span class="n">max_consecutive_slice_len</span><span class="p">:</span>
-                    <span class="k">yield</span> <span class="n">s</span><span class="p">[</span><span class="n">slice_start</span><span class="p">:</span><span class="n">i</span><span class="p">]</span>
-                    <span class="n">slice_start</span> <span class="o">=</span> <span class="n">i</span>
-                    <span class="n">current_slice_len</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">yield</span> <span class="n">s</span><span class="p">[</span><span class="n">slice_start</span><span class="p">:]</span>
-
-<div class="viewcode-block" id="TikTokenBaseTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer.encode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer.encode"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.encode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">trim_leading_whitespace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Encode a string into a list of token ids. Assumes that the string</span>
-<span class="sd">        contains no special tokens.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode text into token IDs.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            text (str): The string to encode.</span>
-<span class="sd">            add_bos (bool): Whether to add the tokenizer&#39;s bos_id to the encoded string.</span>
-<span class="sd">                Default True.</span>
-<span class="sd">            add_eos (bool): Whether to add the tokenizer&#39;s eos_id to the encoded string.</span>
-<span class="sd">                Default True.</span>
+<span class="sd">            text (str): The input text to be encoded, unbatched.</span>
+<span class="sd">            add_bos (bool): Whether to prepend BOS to the input, defaults to True.</span>
+<span class="sd">            add_eos (bool): Whether to append EOS to the input, defaults to True.</span>
+<span class="sd">            trim_leading_whitespace (bool): Whether to trim leading whitespace from</span>
+<span class="sd">                underlying sentencepiece tokenization. Sentencepiece normally prepends</span>
+<span class="sd">                whitespace to any tokenized text, which can cause differences where</span>
+<span class="sd">                ``encode(s1) + encode(s2) != encode(s1 + s2)`` due to leading whitespace</span>
+<span class="sd">                added to s2. This will only trim leading whitespace if the underlying</span>
+<span class="sd">                ``SentencePieceProcessor`` encodes whitespace. Default: False</span>
+<span class="sd">            prefix (Optional[str]): Optional string to encode for trimming leading</span>
+<span class="sd">                whitespaces. Used only if trim_leading_whitespace=True. Default: None</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[int]: The list of token ids.</span>
+<span class="sd">            List[int]: The encoded token IDs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">substrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">MAX_ENCODE_CHARS</span><span class="p">):</span>
-            <span class="n">substr</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">MAX_ENCODE_CHARS</span><span class="p">]</span>
-            <span class="c1"># See https://github.com/openai/tiktoken/issues/195</span>
-            <span class="n">sliced_substr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_long_repetitions</span><span class="p">(</span>
-                <span class="n">substr</span><span class="p">,</span> <span class="n">MAX_NO_WHITESPACE_CHARS</span>
-            <span class="p">)</span>
-            <span class="n">substrs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">sliced_substr</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">substr</span> <span class="ow">in</span> <span class="n">substrs</span><span class="p">:</span>
-            <span class="c1"># allowed_special and disallowed_special are used by tiktoken to define</span>
-            <span class="c1"># how special tokens are encoded. Our setting here is to encode any</span>
-            <span class="c1"># special token as regular text and prevent tiktoken from raising errors.</span>
-            <span class="c1"># This means we should only call encode on strings not containing special tokens.</span>
-            <span class="n">tokens</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-                    <span class="n">substr</span><span class="p">,</span>
-                    <span class="n">allowed_special</span><span class="o">=</span><span class="nb">set</span><span class="p">(),</span>
-                    <span class="n">disallowed_special</span><span class="o">=</span><span class="p">(),</span>
+        <span class="c1"># We typically trim leading whitespace on the next message when</span>
+        <span class="c1"># it is a continuation of the turn (i.e. not the first message)</span>
+        <span class="c1"># or the previous message did not end with a space. This is handled</span>
+        <span class="c1"># by the caller of this method. We only need to trim leading whitespace</span>
+        <span class="c1"># if the underlying SentencePieceProcessor encodes whitespace.</span>
+        <span class="k">if</span> <span class="n">trim_leading_whitespace</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">encodes_whitespace</span><span class="p">:</span>
+            <span class="c1"># Can define our own custom prefix depending on vocab if needed</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;prefix&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">encoded_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span>
                 <span class="p">)</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">add_bos</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">]</span> <span class="o">+</span> <span class="n">tokens</span>
-        <span class="k">if</span> <span class="n">add_eos</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">tokens</span></div>
+            <span class="n">start_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoded_prefix</span><span class="p">)</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">add_bos</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">text</span><span class="p">,</span>
+                <span class="n">add_bos</span><span class="o">=</span><span class="n">add_bos</span><span class="p">,</span>
+                <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">,</span>
+                <span class="n">out_type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="p">)[</span><span class="n">start_idx</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                <span class="n">text</span><span class="p">,</span>
+                <span class="n">add_bos</span><span class="o">=</span><span class="n">add_bos</span><span class="p">,</span>
+                <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">,</span>
+                <span class="n">out_type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="p">)</span></div>
 
-<div class="viewcode-block" id="TikTokenBaseTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.tokenizers.TikTokenBaseTokenizer.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
-        <span class="n">truncate_at_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Decode a list of token ids into a string.</span>
+<div class="viewcode-block" id="SentencePieceBaseTokenizer.decode"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode token IDs to strings.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            token_ids (List[int]): The list of token ids.</span>
-<span class="sd">            truncate_at_eos (bool): Whether to truncate the string at the end of</span>
-<span class="sd">                sequence token. Default is True.</span>
+<span class="sd">            ids (List[int]): The input token IDs to be decoded.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            str: The decoded string.</span>
+<span class="sd">            str: The decoded text.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">truncate_at_eos</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="n">token_ids</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">if</span> <span class="n">k</span><span class="p">:</span>
-                <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token_ids</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div></div>
 </pre></div>
 
              </article>
@@ -653,23 +604,23 @@
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
-         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
-         <script src="../../../../_static/jquery.js"></script>
-         <script src="../../../../_static/underscore.js"></script>
-         <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../../../../_static/doctools.js"></script>
-         <script src="../../../../_static/clipboard.min.js"></script>
-         <script src="../../../../_static/copybutton.js"></script>
-         <script src="../../../../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+         <script src="../../../../../_static/jquery.js"></script>
+         <script src="../../../../../_static/underscore.js"></script>
+         <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../../_static/doctools.js"></script>
+         <script src="../../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../../_static/copybutton.js"></script>
+         <script src="../../../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../../../../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -790,7 +741,7 @@
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../../../../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -941,7 +892,7 @@
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../../../../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {
