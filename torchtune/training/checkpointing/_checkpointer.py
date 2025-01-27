@@ -718,8 +718,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     dim=self._config["hidden_size"],
                     head_dim=self._config.get("head_dim", None),
                 )
-            elif self._model_type == ModelType.FLUX_FLOW:
-                pass
+            elif self._model_type == ModelType.FLUX:
+                pass  # the torchtune Flux model state dict is identical to the huggingface one
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
                     state_dict[training.MODEL_KEY],
