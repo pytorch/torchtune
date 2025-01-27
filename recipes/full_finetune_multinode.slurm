@@ -29,6 +29,16 @@ export LOGLEVEL=INFO
 export TORCH_DIST_INIT_BARRIER=1
 
 # ---------- Launch training ---------- #
+# You probably want to load in a virtual env w/ conda...
+# module load conda
+# conda activate torchtune
+# ...or venv
+# source torchtune/bin/activate
+
+SHARED_FS=/mnt/slurm # <-- Replace w/ your filesystem
+CHECKPOINT_DIR="$SHARED_FS/Llama-3.3-70B-Instruct"
+OUTPUT_DIR="$SHARED_FS/Llama3.3-70B-fft-output"
+
 # Adjust sbatch --ntasks and sbatch --nodes above and --nnodes below to your specific node count
 srun tune run --nnodes 2 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
-    full_finetune_distributed --config ${CONFIG_FILE}
+    full_finetune_distributed --config llama3_3/70B_full_multinode checkpoint_dir=$CHECKPOINT_DIR output_dir=$OUTPUT_DIR
