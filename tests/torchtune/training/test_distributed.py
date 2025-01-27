@@ -14,7 +14,7 @@ import torch.distributed as dist
 import torch.nn as nn
 from packaging import version
 from tests.test_utils import gpu_test
-from torch.distributed import launcher
+from torch.distributed import init_process_group, launcher
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
@@ -37,12 +37,6 @@ from torchtune.modules.peft import (
 
 
 class TestDistributed:
-    def test_init_distributed(self) -> None:
-        """Integration test to confirm consistency across device initialization utilities."""
-        distributed = training.init_distributed()
-        assert (
-            not distributed
-        ), "Should return False as there are no distributed environment variables"
 
     @staticmethod
     def _test_worker_fn(init_pg_explicit: bool) -> None:
@@ -52,7 +46,7 @@ class TestDistributed:
         if init_pg_explicit:
             torch.distributed.init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
-            training.init_distributed(backend="gloo")
+            init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
         pg_backend = torch.distributed.get_backend()

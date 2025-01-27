@@ -41,8 +41,6 @@ from torchtune.utils._version import torch_version_ge
 _log: logging.Logger = get_logger()
 
 
-_valid_distributed_single_node_nnodes = ["1:1", "1"]
-
 torch_version = torch.__version__
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
     "dev" not in torch_version and torch_version_ge("2.6.0")
@@ -97,6 +95,18 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         return tensor
 
 
+def get_distributed_backend(device_type: str, enable_cpu_offload: bool = False):
+    backend = "nccl"
+    if device_type in dist.Backend.default_device_backend_map.keys():
+        backend = dist.default_device_backend_map.get(device_type)
+    if enable_cpu_offload:
+        backend = f"{device_type}:{backend},cpu:gloo"
+    return backend
+
+
+@deprecated(
+    msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
+)
 def init_distributed(**kwargs: Dict[str, Any]) -> bool:
     """Initialize process group required for ``torch.distributed``.
 
