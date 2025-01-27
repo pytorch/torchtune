@@ -1193,7 +1193,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         self._checkpoint_future = None
         self._checkpoint_dir_prefix = "dist_epoch"
         self._metadata_file = ".metadata"
-        _, self._rank = training.get_world_size_and_rank()
+        _, self._rank = utils.get_world_size_and_rank()
         self._process_group: Optional[dist.ProcessGroup] = process_group
 
     def _get_latest_intermediate_checkpoint(self) -> Optional[str]:
