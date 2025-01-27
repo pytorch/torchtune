@@ -611,7 +611,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             converted_state_dict[training.MODEL_KEY] = flux_ae_hf_to_tune(
                 merged_state_dict,
             )
-        elif self._model_type == ModelType.FLUX_FLOW:
+        elif self._model_type == ModelType.FLUX:
             converted_state_dict[training.MODEL_KEY] = merged_state_dict
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
