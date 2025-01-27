@@ -6,38 +6,45 @@
 
 import sys
 import time
+
 from functools import partial
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
+from torch.distributed import destroy_process_group, init_process_group
+
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-
-from torchtune import config, modules, training, utils, generation, rlhf
+from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.rlhf import Trajectory
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
-
 log = utils.get_logger("DEBUG")
 
 
-class FullRLRecipeSingleDevice(FTRecipeInterface):
+class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
     """
-    Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
-    for single GPU training. Training on CPU is not supported.
+    Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
+    distributed training and can be run on a single node (1 to 8 GPUs).
 
     Features:
+        - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
+            is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
+            done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
+            ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
+            DDP is currently not supported. Training on CPU is not supported.
+
         - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
@@ -67,27 +74,17 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
             controlled using the ``gradient_accumulation_steps`` flag.
 
-                Total Batch Size = batch_size * gradient accumulation steps.
+                Total Batch Size = batch_size * number of GPUs * gradient accumulation steps.
 
-            For example: with batch_size=1 and gradient_accumulation_steps=32 we get a total batch size of 32.
+            For example: with batch_size=1, nproc_per_node=2 and gradient_accumulation_steps=32 we get a
+            total batch size of 64.
 
             Gradient accumulation is especially useful when you are memory constrained. In this case,
             accumulating gradients might give you better training speed than enabling activation
             checkpointing.
 
-        - Optimizer in Backward. Fusing the optimizer step into the backward pass helps reduce the memory
-            footprint associated with gradients. This can be especially helpful when you are memory
-            constrained. Note that users can only use ONE of gradient accumulation or optimizer in backward.
-            These features currently do not work together. For more details on optimizer in backward, please
-            see this tutorial: https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html
-
-        - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
-            library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
-            8-bit AdamW and Paged AdamW. These optimizers are especially helpful when you are memory constrained
-            since they help reduce the memory footprint associated with the optimizer states.
-
         - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-            training. Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
+            training. Optimizer state and recipe state (seed, total_epochs, number of epochs run etc) are
             only saved at the end of a given epoch and used in case of resuming training.
 
             Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
@@ -111,7 +108,6 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-        RuntimeError: If ``gradient_accumulation_steps > 1`` and ``optimizer_in_bwd`` is `True`.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
@@ -120,8 +116,7 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
-        # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
-        # enabled necessary features such as gradient scaling.
+
         if self._dtype == torch.float16:
             raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
@@ -138,10 +133,13 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
+        _, rank = training.get_world_size_and_rank()
+        self._is_rank_zero = rank == 0
+
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._optimizer_in_bwd = cfg.optimizer_in_bwd
+        self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
@@ -248,42 +246,38 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
 
     def setup(self, cfg: DictConfig) -> None:
         """
-        Sets up the recipe state correctly. This includes setting recipe attributes based
-        on the ``resume_from_checkpoint`` flag.
+        Setup the recipe. This includes training state (if resume_from_checkpoint is True),
+        model, tokenizer, loss, optimizer, lr scheduler, sampler, and dataloader.
         """
-        # import ipdb; ipdb.set_trace()
-        self._metric_logger = config.instantiate(cfg.metric_logger)
+        if self._is_rank_zero:
+            self._metric_logger = config.instantiate(cfg.metric_logger)
 
-        # log config with parameter override
-        self._metric_logger.log_config(cfg)
+            # log config with parameter override
+            self._metric_logger.log_config(cfg)
 
-        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
-        # ``_setup_model`` handles initialization and loading the state dict. This method
-        # should be called before ``_setup_optimizer`` since transforming the optimizer
-        # state dict requires the model
-        self._compile = cfg.compile
-        if cfg.device == "npu" and cfg.compile:
-            raise ValueError(
-                "NPU does not support model compilation. Please set `compile: False` in the config."
-            )
-        self._model, self._ref_model = self._setup_model(
+        self._compile = cfg.get("compile", False)
+        self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
-            compile_model=self._compile,
-            model_state_dict=ckpt_dict[training.MODEL_KEY],
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
+            ac_mode=cfg.get("ac_mode", None),
+            ac_option=cfg.get("ac_option", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
 
-        # _setup_optimizer should take in ckpt_dict only if training is resumed from
-        # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd=cfg.optimizer_in_bwd,
+            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
-                ckpt_dict[training.OPT_KEY] if self._resume_from_checkpoint else None
+                checkpoint_dict[training.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
             ),
         )
 
@@ -291,17 +285,17 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
 
         if self._compile:
-            training.compile_loss(self._loss_fn)
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        # if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-        #     # set num_output_chunks for model
-        #     self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+            # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
-        log.info("Loss is initialized.")
+        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
-        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_rl")
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
@@ -342,12 +336,54 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
 
-        # Hyperparams
-        self._temperature = cfg.temperature
-        self._top_k = cfg.top_k
-        self._max_generated_tokens = cfg.max_generated_tokens
+    def _setup_lr_scheduler(
+        self,
+        cfg_lr_scheduler: Optional[DictConfig],
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optional[Optimizer]:
+        """
+        Set up the learning rate scheduler based on the provided configuration.
+        It supports both standard optimization and optimizer-in-backward cases.
 
-        self._rng = torch.Generator(self._device).manual_seed(self.seed)
+        Args:
+            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
+            num_training_steps (int): The total number of training steps.
+            last_epoch (int): The index of the last epoch.
+
+        Returns:
+            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
+        """
+        if cfg_lr_scheduler is None:
+            if self._is_rank_zero:
+                log.info(
+                    "No learning rate scheduler configured. Using constant learning rate."
+                )
+            return None
+
+        if self._optimizer_in_bwd:
+            # Use the first optimizer from the wrapper to represent the learning rate
+            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
+        else:
+            # Standard case: use the single optimizer
+            optimizer = self._optimizer
+
+        # Instantiate the learning rate scheduler
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+
+        if self._optimizer_in_bwd:
+            # Modify the scheduler for optimizer_in_bwd case
+            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
+
+        if self._is_rank_zero:
+            log.info("Learning rate scheduler is initialized.")
+
+        return lr_scheduler
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -390,7 +426,6 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             active_steps: int
             num_cycles: int
         """
-
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
             cfg_profiler = DictConfig({"enabled": False})
@@ -406,13 +441,15 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        log.info(f" Profiler config after instantiation: {profiler_cfg}")
-
-        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
-        if profiler_cfg["enabled"]:
-            self.profiler_wait_steps = profiler_cfg["wait_steps"]
-            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
-            self.profiler_active_steps = profiler_cfg["active_steps"]
+        utils.log_rank_zero(
+            log, f" Profiler config after instantiation: {profiler_cfg}"
+        )
+        if self._is_rank_zero:
+            self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+            if profiler_cfg["enabled"]:
+                self.profiler_wait_steps = profiler_cfg["wait_steps"]
+                self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+                self.profiler_active_steps = profiler_cfg["active_steps"]
 
         return profiler
 
@@ -421,40 +458,101 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
-        compile_model: bool,
+        fsdp_cpu_offload: bool,
+        reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
+        ac_mode: Optional[str] = None,
+        ac_option: Optional[int] = None,
     ) -> nn.Module:
         """
-        Set up the model including enabling activation checkpointing.
+        Model initialization has some important considerations:
+           a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
         """
-        with training.set_default_dtype(self._dtype), self._device:
+
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
+
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        if compile_model:
-            training.compile_model(model)
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
 
-        if enable_activation_checkpointing:
+        # We currently have two versions of activation checkpointing in this recipe
+        # for testing and BC purposes. ``enable_activation_checkpointing`` controls
+        # the older version of AC and this behavior is unchanged
+        # ac_mode and ac_option together control selective AC. This is only enabled
+        # when these are set AND ``enable_activation_checkpointing`` is set to False
+        # We'll clean this up as soon as testing of AC is complete
+        if (not enable_activation_checkpointing) and (ac_mode is not None):
+            apply_selective_activation_checkpointing(
+                model,
+                ac_mode,
+                ac_option,
+            )
+
+        # original activation checkpointing (full) - flip the condition above
+        if enable_activation_checkpointing and ac_mode is None:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        model.load_state_dict(model_state_dict)
-
-        # Validate model was loaded in with the expected dtype.
-        training.validate_expected_param_dtype(
-            model.named_parameters(), dtype=self._dtype
+        # For FSDP sharding
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
+            )
+        ]
+        training.shard_model(
+            model=model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
         )
 
-        # Enable activation offloading
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
+        training.load_from_full_model_state_dict(
+            model,
+            model_state_dict,
+            self._device,
+            self._is_rank_zero,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
+        )
+
+        # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
 
-        log.info(f"Model is initialized with precision {self._dtype}.")
+        # Ensure no params and buffers are on meta device
+        training.validate_no_params_on_meta_device(model)
 
-        if self._device.type not in ("cpu", "mps"):
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
+        if self._is_rank_zero:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
+
+        # synchronize before training begins
+        torch.distributed.barrier()
 
         return model
 
@@ -464,15 +562,13 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
-        """
-        Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
-        """
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
             optim_dict = {
-                p: config.instantiate(cfg_optimizer, [p])
-                for p in self._model.parameters()
+                param: config.instantiate(cfg_optimizer, [param])
+                for param in self._model.parameters()
             }
+
             # Register optimizer step hooks on the model to run optimizer in backward.
             training.register_optim_in_bwd_hooks(
                 model=self._model, optim_dict=optim_dict
@@ -481,73 +577,35 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
                 model=self._model, optim_dict=optim_dict
             )
-            # Load optimizer states. If optimizer states are being restored in an optimizer in backward
-            # run, these need to have been saved with the same setting. Cannot restore from runs that did not
-            # use optimizer in backward.
+            # Load optimizer states for each param. If optimizer states are being restored in an optimizer in
+            # backward run, these need to have been saved with the same setting. Cannot restore from runs that
+            # did not use optimizer in backward.
             if opt_state_dict is not None:
-                try:
-                    self._optim_ckpt_wrapper.load_state_dict(opt_state_dict)
-                except BaseException as e:
-                    raise RuntimeError(
-                        "Failed loading in-backward optimizer checkpoints."
-                        "Please make sure run being restored from was using in-backward optimizer."
-                    ) from e
-            log.info("In-backward optimizers are set up.")
+                for param in opt_state_dict.keys():
+                    try:
+                        training.load_from_full_optimizer_state_dict(
+                            self._optim_ckpt_wrapper.state_dict()[param],
+                            opt_state_dict[param],
+                            self._device,
+                        )
+                    except BaseException as e:
+                        raise RuntimeError(
+                            "Failed loading in-backward optimizer checkpoints."
+                            "Please make sure run being restored from was using in-backward optimizer."
+                        ) from e
+            utils.log_rank_zero(log, "In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-
             if opt_state_dict:
-                optimizer.load_state_dict(opt_state_dict)
-            log.info("Optimizer is initialized.")
+                training.load_from_full_optimizer_state_dict(
+                    optimizer,
+                    opt_state_dict,
+                    self._device,
+                )
+
+            utils.log_rank_zero(log, "Optimizer is initialized.")
             return optimizer
-
-    def _setup_lr_scheduler(
-        self,
-        cfg_lr_scheduler: Optional[DictConfig],
-        num_training_steps: int,
-        last_epoch: int,
-    ) -> Optional[Optimizer]:
-        """
-        Set up the learning rate scheduler based on the provided configuration.
-        It handles both standard optimization and optimizer-in-backward cases, and supports
-        schedulers from both torchtune.modules and torch.optim.
-
-        Args:
-            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
-            num_training_steps (int): The total number of training steps.
-            last_epoch (int): The index of the last epoch.
-
-        Returns:
-            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
-        """
-        if cfg_lr_scheduler is None:
-            log.info(
-                "No learning rate scheduler configured. Using constant learning rate."
-            )
-            return None
-
-        if self._optimizer_in_bwd:
-            # Use the first optimizer from the wrapper to represent the learning rate
-            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
-        else:
-            # Standard case: use the single optimizer
-            optimizer = self._optimizer
-
-        # Instantiate the learning rate scheduler
-        lr_scheduler = config.instantiate(
-            cfg_lr_scheduler,
-            optimizer,
-            num_training_steps=num_training_steps,
-            last_epoch=last_epoch,
-        )
-
-        if self._optimizer_in_bwd:
-            # Modify the scheduler for optimizer_in_bwd case
-            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
-
-        log.info("Learning rate scheduler is initialized.")
-        return lr_scheduler
 
     def _setup_data(
         self,
@@ -561,6 +619,8 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
+        world_size, rank = training.get_world_size_and_rank()
+
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
                 config.instantiate(single_cfg_dataset, self._tokenizer)
@@ -578,11 +638,7 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds,
-            num_replicas=1,
-            rank=0,
-            shuffle=shuffle,
-            seed=0,
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -601,204 +657,114 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        log.info("Dataset and Sampler are initialized.")
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(
+        self,
+        epoch: int,
+    ) -> None:
         """
-        Save state dict to file. The recipe save_checkpoint method is responsible for
-        correctly creating the checkpoint dict and passing to the checkpointer.
+        Checkpoint the state of the recipe. The constructed checkpoint state dict
+        contains the following information:
+        - Model weights with key training.MODEL_KEY
+        - Relevant recipe state if training is not complete
+
+        Checkpointer will save the model weights and recipe state in
+        different checkpoint files. To correctly resume training from an intermediate checkpoint,
+        the model weights and recipe state must be provided.
         """
-        ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
-        # if training is in-progress, checkpoint the optimizer state as well
-        if epoch + 1 < self.total_epochs:
-            ckpt_dict.update(
-                {
-                    training.SEED_KEY: self.seed,
-                    training.EPOCHS_KEY: self.epochs_run,
-                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                }
-            )
+        # final dict passed onto the checkpointer
+        checkpoint_dict = {}
+
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
+
+        utils.log_rank_zero(
+            log,
+            "Saving checkpoint. This may take some time. Retrieving full model state dict...",
+        )
+        start = time.perf_counter()
+
+        # To prevent GPU memory from spiking during checkpoint save,
+        # we consolidate the full model and optim state dicts on CPU for rank 0
+        cpu_state_dict = training.gather_cpu_state_dict(
+            self._model.state_dict(),
+            self._is_rank_zero,
+            device=self._device,
+        )
+
+        utils.log_rank_zero(
+            log,
+            f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
+        )
+
+        if intermediate_checkpoint:
+            start = time.perf_counter()
+            utils.log_rank_zero(log, "Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
-                ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
+                opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._optimizer,
+                    self._is_rank_zero,
+                    device=self._device,
+                )
             else:
-                ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
-        self._checkpointer.save_checkpoint(
-            ckpt_dict,
-            epoch=epoch,
-            intermediate_checkpoint=(epoch + 1 < self.total_epochs),
-        )
-
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        # Shape [b, s], needed for the loss not the model
-        labels = batch.pop("labels")
-
-        with self.activations_handling_ctx:
-            logits = self._model(**batch)
-
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
-        if not isinstance(logits, list):
-            labels = labels.reshape(-1)
-            logits = logits.reshape(-1, logits.size(-1))
-
-        # Compute loss
-        loss = self._loss_fn(logits, labels)
-        # free logits otherwise it peaks backward memory
-        del logits
-
-        return loss
-
-    def generate_trajectory(self, input_ids: torch.Tensor) -> Trajectory:
-        """
-        Generates a trajectory given the current policy and value models, the reference policy model, the reward model,
-        and batch of inputs. This is done over the following steps:
-
-        1: Generate responses, and logits corresponding to the responses using the current policy,
-            generating (query, response) pairs.
-        2. Estimate logprobs of the generated responses using the current policy.
-        3. Estimate values from the generated responses using the current value function.
-        4. Replace any tokens in the response after the first stop token (usually EOS token) with padding,
-            producting truncated responses.
-        5. Run the reward model on the (query, truncated-response) pairs.
-        6. Mask out all the invalid values in the trajectory due to padding tokens.
-
-        Args:
-            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-
-        Returns:
-            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
-                the current trajectory.
-        """
-        batch_size, context_length = input_ids.shape
-
-        # step 1: generate responses, and logits corresponding to the responses using the current policy
-        query_responses, logits = generation.generate(
-            model=self._model,
-            prompt=input_ids,
-            max_generated_tokens=self._max_generated_tokens,
-            temperature=self._temperature,
-            top_k=self._top_k,
-            pad_id=self._tokenizer.pad_id,
-            rng=self._rng,
-        )
-
-        return query_responses, logits
-
-        responses = query_responses[:, context_length:].clone()
-        query_response_padding_masks = query_responses != self._tokenizer.pad_id
-
-        # step 1.1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
-        masks = generation.get_causal_mask_from_padding_mask(
-            query_response_padding_masks
-        )
-        position_ids = generation.get_position_ids_from_padding_mask(
-            query_response_padding_masks
-        )
-
-        del query_response_padding_masks
-
-        # step 2. estimate logprobs of the responses using the current policy
-        logits = logits[:, context_length - 1 :]
-        logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
-
-        del logits
-
-        # step 2.1 estimate logprobs of the responses using the reference policy
-        ref_logits = self._ref_policy_model(
-            query_responses, input_pos=position_ids, mask=masks
-        )
-        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
-        ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
-
-        del ref_logits
-
-        # step 3. estimate values from the responses using the value function
-        values = self._value_model(query_responses, input_pos=position_ids, mask=masks)
-        values = rlhf.truncate_sequence_for_logprobs(values, context_length).squeeze(-1)
-
-        # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
-        # resulting in truncated responses
-        response_padding_masks, responses = rlhf.truncate_sequence_at_first_stop_token(
-            responses, self._stop_token_ids, self._tokenizer.pad_id
-        )
-
-        # step 5. run the reward model on the (query, truncated-response) pairs
-        scores = self._reward_model(
-            torch.cat([input_ids, responses], dim=1),
-            input_pos=position_ids,
-            mask=masks,
-        )
-
-        del responses
-
-        # step 5.1 the scores from the reward model are the logits for the last non-padding token in
-        # each (query, truncated-response) pair
-        seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
-        scores = scores[torch.arange(batch_size), seq_lens + context_length].squeeze(-1)
-
-        # step 5.2 if configured, apply any penalties for sequences without EOS tokens
-        # or shorter than a certain length
-        if self._penalise_no_eos or self._min_response_length:
-            reward_penalty_mask = rlhf.get_reward_penalty_mask(
-                response_padding_masks,
-                seq_lens,
-                self._penalise_no_eos,
-                self._min_response_length,
+                opt_state_dict = {}
+                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
+                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
+                        opt, self._is_rank_zero, device=self._device
+                    )
+            utils.log_rank_zero(
+                log,
+                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
             )
-            scores[reward_penalty_mask] = self._reward_penalty
+        else:
+            opt_state_dict = None
 
-        # step 6. mask out all the invalid values in the trajectory due to padding tokens
-        logprobs[response_padding_masks] = 1.0
-        ref_logprobs[response_padding_masks] = 1.0
+        # Now that we have the model and opt state dict, create the actual checkpoint dict
+        # to be sent to the checkpointer and ultimately written to file
 
-        # step 6.1 values are masked out *after* the last valid token in the response
-        value_seq_idxs = torch.where(
-            (seq_lens > 0) & (seq_lens < self._max_generated_tokens - 1),
-            seq_lens + 1,
-            seq_lens,
-        )
-        value_padding_masks = response_padding_masks.clone()
-        value_padding_masks[
-            torch.arange(batch_size, device=value_padding_masks.device),
-            value_seq_idxs,
-        ] = False
+        if self._is_rank_zero:
+            start = time.perf_counter()
+            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
-        values[value_padding_masks] = 0.0
+            # if training is in-progress, checkpoint the optimizer state and recipe state
+            # as well.
+            if intermediate_checkpoint:
+                checkpoint_dict.update(
+                    {
+                        training.OPT_KEY: opt_state_dict,
+                        training.SEED_KEY: self.seed,
+                        training.EPOCHS_KEY: self.epochs_run,
+                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    }
+                )
 
-        return Trajectory(
-            query_responses=query_responses,
-            logprobs=logprobs,
-            ref_logprobs=ref_logprobs,
-            values=values,
-            masks=masks,
-            position_ids=position_ids,
-            response_padding_masks=response_padding_masks,
-            value_padding_masks=value_padding_masks,
-            value_seq_idxs=value_seq_idxs,
-            scores=scores,
-            seq_lens=seq_lens,
-        )
+            self._checkpointer.save_checkpoint(
+                checkpoint_dict,
+                epoch=epoch,
+                intermediate_checkpoint=intermediate_checkpoint,
+            )
+            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+
+        torch.distributed.barrier()
 
     def train(self) -> None:
         """
-        The core training loop. Supports training on subsets of the dataset using the
-        ``max_steps_per_epoch``.
+        The core training loop.
         """
-        # import ipdb; ipdb.set_trace()
-        if self._compile:
-            log.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
+        # clean up before training begins
+        training.cleanup_before_training()
+
+        world_size, rank = training.get_world_size_and_rank()
+
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
+        else:
+            for opt in self._optim_ckpt_wrapper.optim_map.values():
+                opt.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
@@ -812,7 +778,7 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch)
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -823,7 +789,8 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
-                    curr_epoch == 0
+                    self._is_rank_zero
+                    and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
@@ -838,15 +805,49 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
                 ).sum()
                 num_tokens += current_num_tokens
 
+                # Shape [b, s], needed for the loss not the model
+                labels = batch.pop("labels")
+
+                with self.activations_handling_ctx:
+                    logits = self._model(**batch)
+
+                # Shift labels to compute loss
+                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+                # But this way we dont need to slice the logits. We just add an ignore index to labels.
+                labels = torch.hstack(
+                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                )
+                if not isinstance(logits, list):
+                    labels = labels.reshape(-1)
+                    logits = logits.reshape(-1, logits.size(-1))
+
+                # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_step(batch) * current_num_tokens
+                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+
+                # free logits otherwise it peaks backward memory
+                del logits
+
                 running_loss += current_loss
+
+                # For optimizer in backward, we need to normalize before calling backward
+                # This case and gradient accumulation are mutually exclusive
+                if self._optimizer_in_bwd:
+                    torch.distributed.all_reduce(num_tokens)
+                    torch.distributed.all_reduce(running_loss)
+                    current_loss = current_loss / num_tokens
+
                 current_loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
+                        # Get total number of tokens across all ranks to normalize gradients
+                        torch.distributed.all_reduce(num_tokens)
+                        # This will ensure that the logged loss matches what we're optimizing
+                        torch.distributed.all_reduce(running_loss)
+                        # Manually scale the gradients from unnormalized loss by total # of tokens
                         training.scale_grads(self._model, 1 / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -856,10 +857,12 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
-                    # Need to fix `lr_scheduler.step()` before `optimizer.step()` warning
+                    # Update the number of steps when the weights are updated
+                    self.global_step += 1
+
+                    # Step the learning rate scheduler
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
-                    self.global_step += 1
 
                     loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
@@ -868,12 +871,13 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
                     )
 
                     # Log per-step metrics
-                    if self.global_step % self._log_every_n_steps == 0:
+                    if (
+                        self.global_step % self._log_every_n_steps == 0
+                        and self._is_rank_zero
+                    ):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
-                            # true since we don't expose the ability to configure this yet.
                             "lr": get_lr(
                                 (
                                     self._optimizer
@@ -881,9 +885,10 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                         }
-                        if self._device.type not in ("cpu", "mps") and self._log_peak_memory_stats:
+                        if self._log_peak_memory_stats:
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
@@ -899,21 +904,22 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
-                # Stop tracking CUDA memory now that active steps are complete
-                if (
-                    curr_epoch == 0
-                    and self.profiler_profile_memory
-                    and idx
-                    == self.profiler_wait_steps
-                    + self.profiler_warmup_steps
-                    + self.profiler_active_steps
-                ):
-                    torch.cuda.memory._record_memory_history(enabled=None)
+                    # Stop tracking CUDA memory now that active steps are complete
+                    if (
+                        self._is_rank_zero
+                        and curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx
+                        == self.profiler_wait_steps
+                        + self.profiler_warmup_steps
+                        + self.profiler_active_steps
+                    ):
+                        torch.cuda.memory._record_memory_history(enabled=None)
 
-                # Step the profiler
-                # Note we are stepping each batch, which might not include optimizer step in the trace
-                # if the schedule cycle doesn't align with gradient accumulation.
-                self._profiler.step()
+                    # Step profiler
+                    # Note that this is called within gradient accumulation block, hence
+                    # will include multiple forward / backward passes if gradient accumulation > 1
+                    self._profiler.step()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
@@ -921,7 +927,9 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         self._profiler.stop()
 
     def cleanup(self) -> None:
-        self._metric_logger.close()
+        if self._is_rank_zero:
+            self._metric_logger.close()
+        destroy_process_group()
 
 
 @config.parse
@@ -933,8 +941,20 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    config.log_config(recipe_name="FullFinetuneRecipeSingleDevice", cfg=cfg)
-    recipe = FullRLRecipeSingleDevice(cfg=cfg)
+    if not training.is_distributed():
+        raise RuntimeError(
+            "Distributed finetune recipe should be run via a distributed launcher."
+            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
+        )
+    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    if cfg.get("fsdp_cpu_offload", False):
+        # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
+        # speed up when benchmarking fused AdamW on CPU
+        training.set_torch_num_threads()
+
+    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
+
+    recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
