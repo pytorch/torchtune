@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Mapping, Optional, Union
 from warnings import warn
@@ -18,6 +19,12 @@ Role = Literal[
     "assistant",  # Origin is the model output
     "ipython",  # Origin is return from a tool call
 ]
+
+
+class MaskingStrategy(Enum):
+    TRAIN_ON_ALL = "train_on_all"
+    TRAIN_ON_ASSISTANT = "train_on_assistant"
+    TRAIN_ON_LAST = "train_on_last"
 
 
 class Message:
@@ -157,7 +164,7 @@ class InputOutputToMessages(Transform):
     Args:
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_all".
+            Default is "train_on_assistant".
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
@@ -186,7 +193,7 @@ class InputOutputToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_all",
+        masking_strategy: Optional[str] = "train_on_assistant",
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
@@ -206,23 +213,22 @@ class InputOutputToMessages(Transform):
         self.masking_strategy = masking_strategy
         self.new_system_prompt = new_system_prompt
 
-        self.column_map = column_map
-
-        if self.column_map is not None:
-            if "input" not in self.column_map:
+        if column_map:
+            if "input" not in column_map:
                 raise ValueError(
-                    f"Expected a key of 'input' in column_map but found {self.column_map.keys()}."
+                    f"Expected a key of 'input' in column_map but found {column_map.keys()}."
                 )
-            if "output" not in self.column_map:
+            if "output" not in column_map:
                 raise ValueError(
-                    f"Expected a key of 'output' in column_map but found {self.column_map.keys()}."
+                    f"Expected a key of 'output' in column_map but found {column_map.keys()}."
                 )
+            self._column_map = column_map
         else:
-            self.column_map = {"input": "input", "output": "output", "image": "image"}
+            self._column_map = {"input": "input", "output": "output", "image": "image"}
 
         # Ensure that if a user seems to want to construct a multimodal transform, they provide
         # a proper column_mapping
-        if "image" not in self.column_map.keys() and image_dir is not None:
+        if "image" not in self._column_map.keys() and image_dir is not None:
             raise ValueError(
                 f"image_dir is specified as {image_dir} but 'image' is not in column_map. "
                 "Please specify an 'image' key in column_map."
@@ -232,11 +238,11 @@ class InputOutputToMessages(Transform):
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         is_multimodal = "image" in sample or (
-            "image" in self.column_map and self.column_map["image"] in sample
+            "image" in self._column_map and self._column_map["image"] in sample
         )
 
         if is_multimodal:
-            image_path = sample[self.column_map["image"]]
+            image_path = sample[self._column_map["image"]]
             if isinstance(image_path, str):
                 # Convert image_path to Path obj
                 image_path = Path(image_path)
@@ -251,13 +257,13 @@ class InputOutputToMessages(Transform):
                 pil_image = image_path
             content = [
                 {"type": "image", "content": pil_image},
-                {"type": "text", "content": sample[self.column_map["input"]]},
+                {"type": "text", "content": sample[self._column_map["input"]]},
             ]
         else:
-            content = [{"type": "text", "content": sample[self.column_map["input"]]}]
+            content = [{"type": "text", "content": sample[self._column_map["input"]]}]
 
         output_content = [
-            {"type": "text", "content": sample[self.column_map["output"]]}
+            {"type": "text", "content": sample[self._column_map["output"]]}
         ]
 
         messages = [
@@ -311,7 +317,7 @@ class ChosenRejectedToMessages(Transform):
     Args:
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_all".
+            Default is "train_on_assistant".
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
@@ -333,7 +339,7 @@ class ChosenRejectedToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_all",
+        masking_strategy: Optional[str] = "train_on_assistant",
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         train_on_input: Optional[bool] = None,
@@ -426,7 +432,7 @@ class ShareGPTToMessages(Transform):
     Args:
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_all".
+            Default is "train_on_assistant".
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
@@ -456,7 +462,7 @@ class ShareGPTToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_all",
+        masking_strategy: Optional[str] = "train_on_assistant",
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
@@ -595,7 +601,7 @@ class OpenAIToMessages(Transform):
     Args:
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_all".
+            Default is "train_on_assistant".
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
@@ -617,7 +623,7 @@ class OpenAIToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_all",
+        masking_strategy: Optional[str] = "train_on_assistant",
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         train_on_input: Optional[bool] = None,
@@ -720,6 +726,11 @@ class AlpacaToMessages(Transform):
         train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
             Deprecated parameter and will be removed in a future release.
             Default is None.
+
+    Raises:
+        ValueError:
+            If ``column_map`` is provided and ``instruction`` not in ``column_map``, or
+                ``output`` not in ``column_map``
     """
 
     def __init__(
@@ -740,7 +751,23 @@ class AlpacaToMessages(Transform):
                     "train_on_all" if train_on_input else "train_on_assistant"
                 )
         self.masking_strategy = masking_strategy
-        self.column_map = column_map
+        if column_map:
+            if "instruction" not in column_map:
+                raise ValueError(
+                    f"Expected a key of 'instruction' in column_map but found {column_map.keys()}."
+                )
+            # input is optional
+            if "output" not in column_map:
+                raise ValueError(
+                    f"Expected a key of 'output' in column_map but found {column_map.keys()}."
+                )
+            self._column_map = column_map
+        else:
+            self._column_map = {
+                "instruction": "instruction",
+                "input": "input",
+                "output": "output",
+            }
         self.template = {
             "prompt_input": (
                 "Below is an instruction that describes a task, paired with an input that provides further context. "
@@ -755,18 +782,15 @@ class AlpacaToMessages(Transform):
         }
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        column_map = self.column_map or {}
-        key_input = column_map.get("input", "input")
-        key_instruction = column_map.get("instruction", "instruction")
-        key_output = column_map.get("output", "output")
-
+        key_input = self._column_map.get("input", "input")
         if key_input in sample and sample[key_input]:
             prompt = self.template["prompt_input"].format(
-                instruction=sample[key_instruction], input=sample[key_input]
+                instruction=sample[self._column_map["instruction"]],
+                input=sample[key_input],
             )
         else:
             prompt = self.template["prompt_no_input"].format(
-                instruction=sample[key_instruction]
+                instruction=sample[self._column_map["instruction"]]
             )
 
         messages = [
@@ -777,7 +801,7 @@ class AlpacaToMessages(Transform):
             ),
             Message(
                 role="assistant",
-                content=sample[key_output],
+                content=sample[self._column_map["output"]],
                 eot=True,
             ),
         ]
@@ -827,40 +851,33 @@ def validate_messages(
         last_turn = message.role
 
 
-def mask_messages(messages: List[Message], masking_strategy: str) -> None:
+def mask_messages(messages: List[Message], masking_strategy: MaskingStrategy) -> None:
     """
     Set the masked attribute for each message in the list based on the specified masking strategy.
 
     Args:
         messages (List[Message]): a list of messages to mask.
-        masking_strategy (str): masking strategy to use.
+        masking_strategy (MaskingStrategy): masking strategy to use.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
-
-    Raises:
-        ValueError: If the masking strategy is not one of the supported strategies:
-                    `train_on_all`, `train_on_assistant`, `train_on_last`.
     """
-    if masking_strategy not in ["train_on_all", "train_on_assistant", "train_on_last"]:
-        raise ValueError(
-            f"masking_strategy must be one of 'train_on_all', 'train_on_assistant', 'train_on_last', got {masking_strategy}"
-        )
+    masking_strategy = MaskingStrategy(masking_strategy)
     marked_last_assistant_message = False
     for message in reversed(messages):
         # System messages are always masked
         if message.role == "system":
             message.masked = True
             continue
-        if masking_strategy == "train_on_last":
+        if masking_strategy == MaskingStrategy.TRAIN_ON_LAST:
             if message.role == "assistant" and not marked_last_assistant_message:
                 message.masked = False
                 marked_last_assistant_message = True
             else:
                 message.masked = True
         # Multimodal user messages are always masked
-        elif masking_strategy == "train_on_all":
+        elif masking_strategy == MaskingStrategy.TRAIN_ON_ALL:
             message.masked = message.role == "user" and message.contains_media
-        else:  # train_on_assistant
+        elif masking_strategy == MaskingStrategy.TRAIN_ON_ASSISTANT:
             message.masked = message.role != "assistant"

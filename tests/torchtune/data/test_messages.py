@@ -17,6 +17,7 @@ from tests.test_utils import (
     MESSAGE_SAMPLE_TRAIN_ON_INPUT,
 )
 from torchtune.data._messages import (
+    AlpacaToMessages,
     ChosenRejectedToMessages,
     InputOutputToMessages,
     mask_messages,
@@ -608,6 +609,200 @@ class TestOpenAIToMessages:
         mock_load_image.assert_called_once_with("https://example.com")
 
 
+class TestAlpacaToMessages:
+    template = {
+        "prompt_input": (
+            "Below is an instruction that describes a task, paired with an input that provides further context. "
+            "Write a response that appropriately completes the request.\n\n"
+            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
+        ),
+        "prompt_no_input": (
+            "Below is an instruction that describes a task. "
+            "Write a response that appropriately completes the request.\n\n"
+            "### Instruction:\n{instruction}\n\n### Response:\n"
+        ),
+    }
+
+    @pytest.fixture
+    def sample(self):
+        return {
+            "maybe_instruction": "hello world",
+            "maybe_input": "this is some input",
+            "maybe_output": "this is some output",
+        }
+
+    @pytest.fixture
+    def sample_with_no_input(self):
+        return {
+            "maybe_instruction": "hello world",
+            "maybe_output": "this is some output",
+        }
+
+    def test_call(self, sample, sample_with_no_input):
+        # input in column_map and in sample
+        transform = AlpacaToMessages(
+            column_map={
+                "instruction": "maybe_instruction",
+                "input": "maybe_input",
+                "output": "maybe_output",
+            }
+        )
+        actual = transform(sample)
+        expected = [
+            Message(
+                role="user",
+                content=self.template["prompt_input"].format(
+                    instruction="hello world", input="this is some input"
+                ),
+                masked=False,
+                eot=True,
+            ),
+            Message(
+                role="assistant", content="this is some output", masked=False, eot=True
+            ),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
+        # input not in column_map and not in sample
+        transform = AlpacaToMessages(
+            column_map={"instruction": "maybe_instruction", "output": "maybe_output"}
+        )
+        actual = transform(sample_with_no_input)
+        expected = [
+            Message(
+                role="user",
+                content=self.template["prompt_no_input"].format(
+                    instruction="hello world"
+                ),
+                masked=False,
+                eot=True,
+            ),
+            Message(
+                role="assistant", content="this is some output", masked=False, eot=True
+            ),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
+        # input not in column_map but in sample
+        transform = AlpacaToMessages(
+            column_map={"instruction": "maybe_instruction", "output": "maybe_output"}
+        )
+        actual = transform(sample)
+        expected = [
+            Message(
+                role="user",
+                content=self.template["prompt_no_input"].format(
+                    instruction="hello world"
+                ),
+                masked=False,
+                eot=True,
+            ),
+            Message(
+                role="assistant", content="this is some output", masked=False, eot=True
+            ),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
+        # input in column_map but not in sample
+        transform = AlpacaToMessages(
+            column_map={
+                "instruction": "maybe_instruction",
+                "input": "maybe_input",
+                "output": "maybe_output",
+            }
+        )
+        actual = transform(sample_with_no_input)
+        expected = [
+            Message(
+                role="user",
+                content=self.template["prompt_no_input"].format(
+                    instruction="hello world"
+                ),
+                masked=False,
+                eot=True,
+            ),
+            Message(
+                role="assistant", content="this is some output", masked=False, eot=True
+            ),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
+    def test_call_train_on_input(self, sample_with_no_input):
+        transform = AlpacaToMessages(
+            column_map={
+                "instruction": "maybe_instruction",
+                "input": "maybe_input",
+                "output": "maybe_output",
+            },
+            train_on_input=True,
+        )
+        actual = transform(sample_with_no_input)
+        expected = [
+            Message(
+                role="user",
+                content=self.template["prompt_no_input"].format(
+                    instruction="hello world",
+                ),
+                masked=False,
+                eot=True,
+            ),
+            Message(
+                role="assistant", content="this is some output", masked=False, eot=True
+            ),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
+    @pytest.mark.parametrize(
+        "masking_strategy, expected_masks",
+        [
+            ("train_on_all", [False, False]),
+            ("train_on_assistant", [True, False]),
+            ("train_on_last", [True, False]),
+        ],
+    )
+    def test_call_masking_strategy(self, sample, masking_strategy, expected_masks):
+        transform = AlpacaToMessages(
+            column_map={
+                "instruction": "maybe_instruction",
+                "input": "maybe_input",
+                "output": "maybe_output",
+            }
+        )
+        actual = transform(sample)
+        expected = [
+            Message(
+                role="user",
+                content=self.template["prompt_input"].format(
+                    instruction="hello world", input="this is some input"
+                ),
+                masked=expected_masks[0],
+                eot=True,
+            ),
+            Message(
+                role="assistant",
+                content="this is some output",
+                masked=expected_masks[1],
+                eot=True,
+            ),
+        ]
+        assert_dialogue_equal(actual["messages"], expected)
+
+    def test_raise_value_error_when_instruction_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'instruction'"):
+            AlpacaToMessages(
+                column_map={"bananas": "maybe_instruction", "output": "maybe_output"},
+            )
+
+    def test_raise_value_error_when_output_not_in_column_map(self):
+        with pytest.raises(ValueError, match="Expected a key of 'output'"):
+            AlpacaToMessages(
+                column_map={
+                    "instruction": "maybe_instruction",
+                    "bananas": "maybe_output",
+                },
+            )
+
+
 def test_validate_messages():
     messages = [
         Message(role="system", content="hello"),
@@ -682,6 +877,7 @@ def test_validate_messages():
         ("train_on_all", 5, [True, False, False, False, False]),
         ("train_on_assistant", 5, [True, True, False, True, False]),
         ("train_on_last", 5, [True, True, True, True, False]),
+        ("some_invalid_strategy", 3, None),
     ],
 )
 def test_mask_messages(masking_strategy, messages_count, expected_masks):
@@ -694,8 +890,15 @@ def test_mask_messages(masking_strategy, messages_count, expected_masks):
     ]
 
     input_messages = messages[:messages_count]
-    mask_messages(input_messages, masking_strategy=masking_strategy)
-    expected_messages = messages[:messages_count]
-    for index in range(messages_count):
-        expected_messages[index].masked = expected_masks[index]
-    assert_dialogue_equal(input_messages, expected_messages)
+    if masking_strategy == "some_invalid_strategy":
+        with pytest.raises(
+            ValueError,
+            match="'some_invalid_strategy' is not a valid MaskingStrategy",
+        ):
+            mask_messages(input_messages, masking_strategy=masking_strategy)
+    else:
+        mask_messages(input_messages, masking_strategy=masking_strategy)
+        expected_messages = messages[:messages_count]
+        for index in range(messages_count):
+            expected_messages[index].masked = expected_masks[index]
+        assert_dialogue_equal(input_messages, expected_messages)
