@@ -22,6 +22,7 @@ from torchtune.datasets._text_completion import (
     text_completion_dataset,
     TextCompletionDataset,
 )
+from torchtune.datasets._text_to_image import text_to_image_dataset
 from torchtune.datasets._wikitext import wikitext_dataset
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "SFTDataset",
     "hh_rlhf_helpful_dataset",
     "multimodal",
+    "text_to_image_dataset",
 ]
