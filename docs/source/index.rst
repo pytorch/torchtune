@@ -149,6 +149,7 @@ torchtune tutorials.
    tutorials/e2e_flow
    tutorials/llama_kd_tutorial
    tutorials/memory_optimizations
+   tutorials/multinode
 
 .. toctree::
    :glob:
