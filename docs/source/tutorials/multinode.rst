@@ -32,9 +32,10 @@ MORE compute, but let's go over it again so you can appreciate how lucky you are
 on how much memory is required to train a 70B parameter model in bfloat16.
 
 .. code-block:: text
-    Weights:                            140 GB
-    + Optim state (AdamW):              280 GB
-    + Activations (bsz=8,seq_len=2048): XX
+
+    Weights                            140 GB
+    + Optim state (AdamW)              280 GB
+    + Activations (bsz=8,seq_len=2048) XX
     ------------------------------------------
                                         280 GB
 
