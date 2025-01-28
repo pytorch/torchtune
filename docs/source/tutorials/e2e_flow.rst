@@ -275,18 +275,20 @@ Let's first copy over the config to our local working directory so we can make c
 
     $ tune cp generation ./custom_generation_config.yaml
     Copied file to custom_generation_config.yaml
+    $ mkdir /tmp/torchtune/llama3_2_3B/lora_single_device/out
 
 Let's modify ``custom_generation_config.yaml`` to include the following changes. Again, you only need
  to replace two fields: ``output_dir`` and ``checkpoint_files``
 
 .. code-block:: yaml
 
-    output_dir: /tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0
+    checkpoint_dir: /tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0
+    output_dir: /tmp/torchtune/llama3_2_3B/lora_single_device/out
 
     # Tokenizer
     tokenizer:
         _component_: torchtune.models.llama3.llama3_tokenizer
-        path: ${output_dir}/original/tokenizer.model
+        path: ${checkpoint_dir}/original/tokenizer.model
         prompt_template: null
 
     model:
@@ -295,7 +297,7 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
     checkpointer:
         _component_: torchtune.training.FullModelHFCheckpointer
-        checkpoint_dir: ${output_dir}
+        checkpoint_dir: ${checkpoint_dir}
         checkpoint_files: [
             ft-model-00001-of-00002.safetensors,
             ft-model-00002-of-00002.safetensors,
@@ -312,8 +314,8 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
     # Generation arguments; defaults taken from gpt-fast
     prompt:
-    system: null
-    user: "Tell me a joke. "
+      system: null
+      user: "Tell me a joke. "
     max_new_tokens: 300
     temperature: 0.6 # 0.8 and 0.6 are popular values to try
     top_k: 300
@@ -330,7 +332,7 @@ these parameters.
 
 .. code-block:: text
 
-    $ tune run generate --config ./custom_generation_config.yaml prompt="tell me a joke. "
+    $ tune run generate --config ./custom_generation_config.yaml prompt.user="Tell me a joke. "
     Tell me a joke. Here's a joke for you:
 
     What do you call a fake noodle?

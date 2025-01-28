@@ -334,3 +334,17 @@ class TestEarlyFusionModel:
         actual = fused_model.state_dict()
         expected = state_dict
         assert_expected(actual, expected)
+
+    def test_sequential_state_dict_hooks(self, fused_model, state_dict):
+        """
+        Test that state dict hooks work when EarlyFusion is wrapped in a larger model
+        """
+        sequential_model = nn.Sequential(fused_model, nn.Linear(10, 10, bias=False))
+        linear_weight = torch.randn(10, 10)
+        sequential_state_dict = {f"0.{k}": v for k, v in state_dict.items()}
+        sequential_state_dict.update({"1.weight": linear_weight})
+        sequential_model.load_state_dict(sequential_state_dict)
+        actual = sequential_model.state_dict()
+        expected = sequential_state_dict
+        expected.update({"1.weight": linear_weight})
+        assert_expected(actual, expected)

@@ -14,8 +14,8 @@ from torchtune.data._utils import truncate
 class BaseTokenizer(Protocol):
     """
     Abstract token encoding model that implements ``encode`` and ``decode`` methods.
-    See :class:`~torchtune.modules.tokenizers.SentencePieceBaseTokenizer` and
-    :class:`~torchtune.modules.tokenizers.TikTokenBaseTokenizer` for example implementations of this protocol.
+    See :class:`~torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer` and
+    :class:`~torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer` for example implementations of this protocol.
     """
 
     def encode(self, text: str, **kwargs: Dict[str, Any]) -> List[int]:
