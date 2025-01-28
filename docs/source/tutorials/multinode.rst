@@ -48,6 +48,7 @@ Why might you want to use multi-node then?
 * Potentially more accurate training with full parameter updates and non-approximate optimizers, etc
 
 .. note::
+
     **Low inter-node bandwidth & FSDP**
     We utilize <FSDP> to distribute models over multiple devices. In order to distribute training, FSDP runs an all-gather operation for each forward pass and an all-gather plus a scatter-reduce
     operation for each backwards pass. These operations (usually) block training from continuing until completed and with a slow inter-node connection, training speed may be reduced.
@@ -63,12 +64,14 @@ Next, using the same idea as above, we need to download the Llama3.3 70B model t
 credentials as noted before.)
 
 .. code-block:: bash
+
     tune download meta-llama/Llama-
 
 Now that we have a downloaded model, we can launch training. Although you can *technically* launch the multinode bash script from the tune CLI,
 it's recommended that you copy the file to your machine.
 
 .. code-block:: bash
+
     tune cp full_finetune_multinode .
 
 And let's open it up to see what's inside:
