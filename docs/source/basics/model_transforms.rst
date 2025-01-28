@@ -101,7 +101,7 @@ The following methods are required on the model transform:
 
 .. code-block:: python
 
-    from torchtune.modules.tokenizers import ModelTokenizer
+    from torchtune.modules.transforms.tokenizers import ModelTokenizer
     from torchtune.modules.transforms import Transform
 
     class MyMultimodalTransform(ModelTokenizer, Transform):
