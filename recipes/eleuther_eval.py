@@ -31,8 +31,8 @@ from torchtune.generation import generate, sample
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.common_utils import local_kv_cache
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 from torchtune.training import FullModelTorchTuneCheckpointer
 

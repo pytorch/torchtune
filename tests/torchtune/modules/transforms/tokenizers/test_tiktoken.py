@@ -8,7 +8,7 @@ import pytest
 
 from tests.common import ASSETS
 from torchtune.models.llama3._tokenizer import CL100K_PATTERN
-from torchtune.modules.tokenizers import TikTokenBaseTokenizer
+from torchtune.modules.transforms.tokenizers import TikTokenBaseTokenizer
 
 
 class TestTikTokenBaseTokenizer:

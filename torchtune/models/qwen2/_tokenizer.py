@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 import regex as re
 
 from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 PRETOKENIZE_REGEX = (
     r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|"
