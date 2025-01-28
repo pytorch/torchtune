@@ -56,8 +56,6 @@ To use any of these, simply use the ``loss`` config entry or flag through the :r
     loss=torchtune.modules.loss.RSOLoss \
     gamma=0.5
 
-.. todo (@SalmanMohammadi) point to an example repo for SimPO
-
 For a deeper understanding of the different levers you can pull when using this recipe,
 see our documentation for the different PEFT training paradigms we support:
 

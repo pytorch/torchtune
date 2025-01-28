@@ -67,12 +67,12 @@ class ConcatDataset(Dataset):
     def __init__(self, datasets: List[Dataset]):
         self._datasets: List[Dataset] = datasets
 
-        for dataset in self._datasets:
-            if isinstance(dataset, PackedDataset):
-                raise ValueError(
-                    "ConcatDataset can't process instances of PackedDataset."
-                )
-
+        is_packed = [isinstance(dataset, PackedDataset) for dataset in datasets]
+        if any(is_packed) and not all(is_packed):
+            raise ValueError(
+                "ConcatDataset can't process a mix of packed and non-packed datasets."
+            )
+        self.packed = all(is_packed)
         self._len: int = sum(len(dataset) for dataset in datasets)
         self._indexes: List[Tuple[int, int, int]] = []
 
