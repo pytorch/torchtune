@@ -225,7 +225,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
-            seed=cfg.get("seed", 0),
+            seed=cfg.get("seed") or 0,
         )
 
         self._setup_training_parameters(cfg)

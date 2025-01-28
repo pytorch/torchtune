@@ -318,7 +318,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            seed=cfg.get("seed", 0),
+            seed=cfg.get("seed") or 0,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
