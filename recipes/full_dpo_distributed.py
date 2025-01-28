@@ -22,6 +22,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.training.checkpointing._checkpoint_client import CheckpointClient
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
@@ -112,22 +113,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
             raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
-            )
-
-        if (
-            cfg.get("fsdp_cpu_offload", False)
-            and cfg.optimizer.get("fused", False)
-            and not utils.torch_version_ge("2.4.0")
-        ):
-            raise RuntimeError(
-                "Using fused optimizer on CPU is only supported in PyTorch nightly."
             )
 
         # logging attributes
@@ -141,8 +132,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
         _, rank = get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
@@ -151,6 +140,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self._checkpoint_client = CheckpointClient(cfg)
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
@@ -273,9 +263,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             # log config with parameter override
             self._metric_logger.log_config(cfg)
-            log.info("_metric_logger is initialized.")
 
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        # Load the base model
+        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
@@ -443,21 +433,17 @@ class FullDPORecipeDistributed(FTRecipeInterface):
               full state dicts are loaded with ``torch.load(mmap=True)``
         """
 
-        if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
-            )
-            init_start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
-
-        model.load_state_dict(model_state_dict, assign=True)
-        if self._dtype == torch.bfloat16:
-            model = model.to(torch.bfloat16)
 
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
@@ -516,10 +502,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
+
         if self._is_rank_zero:
-            log.info(
-                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
-            )
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
@@ -536,7 +524,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
         return model
-    
+
     def _setup_reference_model(
         self,
         cfg_model: DictConfig,
@@ -551,7 +539,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
               the right dtype
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
-        """  
+        """
         return self._setup_model(
             cfg_model,
             False,
@@ -559,7 +547,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             fsdp_cpu_offload,
             reshard_after_forward,
             model_state_dict,
-            custom_sharded_layers
+            custom_sharded_layers,
         )
 
     def _setup_optimizer(
@@ -963,6 +951,7 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
+
     init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
