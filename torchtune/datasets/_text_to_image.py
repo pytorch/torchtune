@@ -88,7 +88,6 @@ class TextToImageDataset(Dataset):
     def __getitem__(self, index: int) -> Dict[str, Any]:
         sample = self._data[index]
 
-        id = sample[self._column_map["id"]]
         text = sample[self._column_map["text"]]
         image_path = sample[self._column_map["image"]]
 
@@ -101,7 +100,8 @@ class TextToImageDataset(Dataset):
         transformed_sample = self._model_transform({"text": text, "image": image})
 
         if self._include_id:
-            transformed_sample["id"] = id
+            transformed_sample["id"] = sample[self._column_map["id"]]
+
         return transformed_sample
 
 
