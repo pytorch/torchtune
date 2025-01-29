@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Optional
 
 from torchtune.data import ChosenRejectedToMessages
 from torchtune.datasets._preference import PreferenceDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 def hh_rlhf_helpful_dataset(

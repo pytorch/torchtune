@@ -6,7 +6,7 @@ from torchtune.models.phi3._tokenizer import Phi3MiniTokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
 from torchtune.data._prompt_templates import _TemplateType
 from torchtune.data._prompt_templates import _get_prompt_template
 

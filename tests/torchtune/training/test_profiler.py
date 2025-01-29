@@ -39,6 +39,7 @@ profiler:
  enabled: True
  cpu: True
  cuda: True
+ xpu: True
  profile_memory: False
  with_stack: False
  record_shapes: True
@@ -92,6 +93,7 @@ def reference_profiler_basic():
         activities=[
             torch.profiler.ProfilerActivity.CPU,
             torch.profiler.ProfilerActivity.CUDA,
+            torch.profiler.ProfilerActivity.XPU,
         ],
         schedule=torch.profiler.schedule(wait=3, warmup=1, active=1, repeat=0),
         profile_memory=False,
@@ -107,6 +109,7 @@ def reference_profiler_full():
         activities=[
             torch.profiler.ProfilerActivity.CPU,
             torch.profiler.ProfilerActivity.CUDA,
+            torch.profiler.ProfilerActivity.XPU,
         ],
         schedule=torch.profiler.schedule(wait=3, warmup=1, active=1, repeat=0),
         profile_memory=True,
@@ -194,10 +197,12 @@ def test_default_activities(profiler_cfg):
     # Test setup automatically adds CPU + CUDA tracing if neither CPU nor CUDA is specified
     cfg.pop("cpu")
     cfg.pop("cuda")
+    cfg.pop("xpu")
     profiler, updated_cfg = _setup_profiler(cfg)
     assert profiler.activities == DEFAULT_PROFILER_ACTIVITIES
     assert updated_cfg.cpu is True
     assert updated_cfg.cuda is True
+    assert updated_cfg.xpu is True
 
 
 def test_default_output_dir(profiler_cfg):
