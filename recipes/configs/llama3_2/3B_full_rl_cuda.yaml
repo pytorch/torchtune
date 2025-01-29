@@ -6,7 +6,7 @@
 #   tune download meta-llama/Llama-3.2-3B --output-dir /checkpoint/kwiat/tmp/Llama-3.2-3B --ignore-patterns "original/consolidated.00.pth"
 #
 # To launch on 8 devices, run the following command from root:
-#   tune run --nproc_per_node 8 full_finetune_distributed --config llama3_2/3B_full
+#   tune run --nproc_per_node 8 r1_full_finetune_distributed --config llama3_2/3B_full_rl_cuda
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
@@ -27,7 +27,7 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.gsm8k_dataset
-  packed: False  # True increases speed
+#  packed: False  # True increases speed
 seed: null
 shuffle: True
 
@@ -48,32 +48,34 @@ checkpointer:
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 4
+batch_size: 2
+forward_batch_size: 2
 max_generated_tokens: 100
 top_k: null
 temperature: 0.7
+grpo_samples: 5
 
 epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
   fused: True
-#loss:
-#  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+loss:
+  _component_: torchtune.rlhf.loss.PPOLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 8  # Use to increase virtual batch size
+gradient_accumulation_steps: 1  # Use to increase virtual batch size
 
 # Training env
 device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
-enable_activation_offloading: False  # True reduces memory
+enable_activation_offloading: True  # True reduces memory
 compile: True  # pytorch compile, set to true for better perf/memory
-optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
+optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 
 # Reduced precision
-dtype: bf16
+dtype: fp16
 
 # Logging
 metric_logger:

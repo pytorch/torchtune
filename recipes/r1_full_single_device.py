@@ -429,25 +429,38 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
         """
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
+            ref_model = config.instantiate(cfg_model)
 
         if compile_model:
             training.compile_model(model)
+            training.compile_model(ref_model)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
+            training.set_activation_checkpointing(
+                ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
+
         model.load_state_dict(model_state_dict)
+        ref_model.load_state_dict(model_state_dict)
+
 
         # Validate model was loaded in with the expected dtype.
         training.validate_expected_param_dtype(
             model.named_parameters(), dtype=self._dtype
         )
 
+
         # Enable activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
+        )
+
+        self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            ref_model, enable_activation_offloading
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
@@ -456,7 +469,7 @@ class FullRLRecipeSingleDevice(FTRecipeInterface):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
-        return model
+        return model, ref_model
 
     def _setup_optimizer(
         self,

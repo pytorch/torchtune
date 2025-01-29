@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, TypedDict
 from xml.etree import ElementTree as ET
 
 import numpy as np
+import torch
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
@@ -73,7 +74,19 @@ def extract_tags(text: str):
         'answer': [elem.text for elem in root.findall('answer')]
     }
 
-def shaped_reward(question: str, answer: str, completion: str) -> float:
+
+def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> torch.Tensor:
+    batch_size, grpo_size, *_ = completions.shape
+    rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    # completions :: [B, G, L]
+    for b in range(batch_size):
+        for g in range(grpo_size):
+            text_completion = tokenizer.decode(completions[b, g].tolist())
+            rewards[b, g] = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
+
+    return rewards
+
+def shaped_correctness_reward(question: str, answer: str, completion: str) -> float:
     question_chars = len(question)
     only_completion = completion[question_chars:]
 
@@ -90,7 +103,7 @@ def shaped_reward(question: str, answer: str, completion: str) -> float:
     if len(tags['think']) == 1:
         reward += 0.1
 
-    if tags['answer'][-1] == answer:
+    if len(tags['answer']) > 0 and tags['answer'][-1] == answer:
         reward += 1.0
 
     return reward
