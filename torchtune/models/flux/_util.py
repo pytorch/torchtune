@@ -4,7 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
+from contextlib import nullcontext
+from typing import ContextManager, Optional
 
 import torch
 from torch import Tensor
@@ -22,6 +23,7 @@ def predict_noise(
     t5_encodings: Tensor,
     timesteps: Tensor,
     guidance: Optional[Tensor] = None,
+    model_ctx: ContextManager = nullcontext(),
 ) -> Tensor:
     """
     Use Flux's flow-matching model to predict the noise in image latents.
@@ -39,6 +41,8 @@ def predict_noise(
         guidance (Optional[Tensor]): The guidance value (1.5 to 4) if guidance-enabled model.
             Shape: [bsz]
             Default: None
+        model_ctx (ContextManager): Optional context to wrap the model call (e.g. for activation offloading)
+            Default: nullcontext
 
     Returns:
         Tensor: The noise prediction.
@@ -46,25 +50,27 @@ def predict_noise(
     """
     bsz, _, latent_height, latent_width = latents.shape
 
-    # Create positional encodings
-    latent_pos_enc = create_position_encoding_for_latents(
-        bsz, latent_height, latent_width
-    )
-    text_pos_enc = torch.zeros(bsz, t5_encodings.shape[1], POSITION_DIM)
+    with torch.no_grad():
+        # Create positional encodings
+        latent_pos_enc = create_position_encoding_for_latents(
+            bsz, latent_height, latent_width
+        )
+        text_pos_enc = torch.zeros(bsz, t5_encodings.shape[1], POSITION_DIM)
 
-    # Convert latent into a sequence of patches
-    latents = pack_latents(latents)
+        # Convert latent into a sequence of patches
+        latents = pack_latents(latents)
 
     # Predict noise
-    latent_noise_pred = model(
-        img=latents,
-        img_ids=latent_pos_enc.to(latents),
-        txt=t5_encodings.to(latents),
-        txt_ids=text_pos_enc.to(latents),
-        y=clip_encodings.to(latents),
-        timesteps=timesteps.to(latents),
-        guidance=guidance.to(latents) if guidance is not None else None,
-    )
+    with model_ctx:
+        latent_noise_pred = model(
+            img=latents,
+            img_ids=latent_pos_enc.to(latents),
+            txt=t5_encodings.to(latents),
+            txt_ids=text_pos_enc.to(latents),
+            y=clip_encodings.to(latents),
+            timesteps=timesteps.to(latents),
+            guidance=guidance.to(latents) if guidance is not None else None,
+        )
 
     # Convert sequence of patches to latent shape
     latent_noise_pred = unpack_latents(latent_noise_pred, latent_height, latent_width)
@@ -163,3 +169,23 @@ def unpack_latents(x: Tensor, latent_height: int, latent_width: int) -> Tensor:
 
     # [b, c, h, ph, w, pw] -> [b, c, h*ph, w*pw]
     return x.reshape(b, c, h * PATCH_HEIGHT, w * PATCH_WIDTH)
+
+
+def get_t5_max_seq_len(flux_model_name: str) -> int:
+    """
+    Get the maximum sequence length of the T5 tokenizer for the given Flux model.
+
+    Args:
+        flux_model_name (str): "FLUX.1-dev" or "FLUX.1-schnell"
+
+    Returns:
+        int: The T5 max seq len.
+
+    Raises:
+        ValueError: if flux model name is invalid
+    """
+    if flux_model_name == "FLUX.1-dev":
+        return 512
+    if flux_model_name == "FLUX.1-schnell":
+        return 256
+    raise ValueError(f"Unknown Flux model: {flux_model_name}")

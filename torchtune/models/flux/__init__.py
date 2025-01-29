@@ -10,8 +10,10 @@ from ._model_builders import (
     lora_flux_1_dev_flow_model,
     lora_flux_1_schnell_flow_model,
 )
+from ._transform import FluxTransform
 
 __all__ = [
+    "FluxTransform",
     "flux_1_autoencoder",
     "flux_1_dev_flow_model",
     "flux_1_schnell_flow_model",
