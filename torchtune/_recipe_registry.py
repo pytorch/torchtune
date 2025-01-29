@@ -561,6 +561,17 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
+    Recipe(
+        name="grpo_full_finetune_single_device",
+        file_path="grpo_full_finetune_single_device.py",
+        configs=[
+            Config(
+                name="llama3_2/1B_lora_single_device_grpo",
+                file_path="llama3_2/1B_lora_single_device_grpo.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
 ]
 
 
