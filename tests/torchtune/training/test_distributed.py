@@ -91,7 +91,7 @@ class TestDistributed:
         assert training.get_distributed_backend("cuda") == "nccl"
         assert training.get_distributed_backend("cpu") == "gloo"
         assert (
-            training.get_distributed_backend("cuda", enable_cpu_offload=True)
+            training.get_distributed_backend("cuda", offload_ops_to_cpu=True)
             == "cuda:nccl,cpu:gloo"
         )
 
