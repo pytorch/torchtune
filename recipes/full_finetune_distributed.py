@@ -150,7 +150,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._checkpoint_client = CheckpointClient(cfg)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
-            device_type, enable_cpu_offload=self.fsdp_cpu_offload
+            device_type,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
+            or self._enable_async_checkpointing,
         )
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
