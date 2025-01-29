@@ -10,6 +10,7 @@ from ._model_builders import (
     lora_flux_1_dev_flow_model,
     lora_flux_1_schnell_flow_model,
 )
+from ._preprocess import flux_preprocessor
 from ._transform import FluxTransform
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "flux_1_schnell_flow_model",
     "lora_flux_1_dev_flow_model",
     "lora_flux_1_schnell_flow_model",
+    "flux_preprocessor",
 ]

@@ -5,11 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict, List, Tuple
 
 import torch
+from torch import Tensor
+from torch.nn import Module
 from torch.utils.data import Dataset
 
+from torchtune.datasets._text_to_image import TextToImageDataset
 from torchtune.models.clip import clip_text_vit_large_patch14
 from torchtune.models.clip._convert_weights import clip_text_hf_to_tune
 from torchtune.models.flux import flux_1_autoencoder
@@ -21,8 +24,17 @@ from torchtune.training.checkpointing._utils import safe_torch_load
 
 
 class FluxEncodingsDataset(Dataset):
-    def __init__(self, encodings_dir):
-        self._encodings_paths = list(Path(encodings_dir).iterdir())
+    """
+    Dataset of preprocessed text-to-image data for finetuning Flux models.
+
+    This dataset is created by `FluxPreprocessor.preprocess_dataset`.
+
+    Args:
+        encodings_dir (Path): path to folder where the preprocessed data is stored.
+    """
+
+    def __init__(self, encodings_dir: Path):
+        self._encodings_paths = list(encodings_dir.iterdir())
 
     def __len__(self) -> int:
         return len(self._encodings_paths)
@@ -32,16 +44,30 @@ class FluxEncodingsDataset(Dataset):
 
 
 class FluxPreprocessor:
+    """
+    Preprocess text-to-image data for finetuning Flux models.
+
+    Args:
+        autoencoder (Module): Flux image autoencoder
+        clip_encoder (Module): CLIP text encoder
+        t5_encoder (Module): T5 text encoder
+        preprocessed_data_dir (str): folder where the preprocessed data will be stored
+        preprocess_again_if_exists (bool): if false, data samples that already have preprocessed data will be skippped
+        batch_size (int): batch size to use when preprocessing datasets
+        device (torch.device): device to do preprocessing on
+        dtype (torch.dtype): data type to do preprocessing in
+    """
+
     def __init__(
         self,
-        autoencoder,
-        clip_encoder,
-        t5_encoder,
-        preprocessed_data_dir,
-        preprocess_again_if_exists,
-        batch_size,
-        device,
-        dtype,
+        autoencoder: Module,
+        clip_encoder: Module,
+        t5_encoder: Module,
+        preprocessed_data_dir: str,
+        preprocess_again_if_exists: bool,
+        batch_size: int,
+        device: torch.device,
+        dtype: torch.dtype,
     ):
         self.autoencoder = autoencoder.to(device=device, dtype=dtype).eval()
         self._clip_encoder = clip_encoder.to(device=device, dtype=dtype).eval()
@@ -55,7 +81,16 @@ class FluxPreprocessor:
         self._dir.mkdir(parents=True, exist_ok=True)
 
     @torch.no_grad
-    def preprocess_dataset(self, ds):
+    def preprocess_dataset(self, ds: TextToImageDataset) -> FluxEncodingsDataset:
+        """
+        Preprocess a text-to-image dataset into a Flux encodings dataset.
+
+        Args:
+            ds (TextToImageDataset): the raw dataset
+
+        Returns:
+            FluxEncodingsDataset: the preprocessed dataset
+        """
         dataloader = torch.utils.data.DataLoader(
             dataset=ds,
             batch_size=self._batch_size,
@@ -91,7 +126,19 @@ class FluxPreprocessor:
         return FluxEncodingsDataset(self._dir)
 
     @torch.no_grad
-    def preprocess_text(self, prompts, tokenize):
+    def preprocess_text(
+        self, prompts: List[str], tokenize: Callable[[str], Tuple[Tensor, Tensor]]
+    ) -> Tuple[Tensor, Tensor]:
+        """
+        Preprocess a list of prompts into CLIP/T5 text encodings.
+
+        Args:
+            prompts (List[str]): a list of strings to preprocess
+            tokenize (Callable[[str], Tuple[Tensor, Tensor]]): a callable that turns a string into CLIP and T5 tokens
+
+        Returns:
+            Tuple[Tensor, Tensor]]: a tuple of `(clip_encodings, t5_encodings)`
+        """
         clip_encodings = []
         t5_encodings = []
         for prompt in prompts:
@@ -120,17 +167,44 @@ class FluxPreprocessor:
 
 
 def flux_preprocessor(
-    device,
-    dtype,
+    # arguments from the recipe
+    device: torch.device,
+    dtype: torch.dtype,
     *,
-    autoencoder_path,
-    clip_text_encoder_path,
-    t5_encoder_path,
-    preprocessed_data_dir,
-    preprocess_again_if_exists=False,
-    batch_size=1,
-    flux_model_name="FLUX.1-dev",
-):
+    # arguments from the config
+    autoencoder_path: str = "/tmp/flux/ae.safetensors",
+    clip_text_encoder_path: str = "/tmp/clip/model.safetensors",
+    t5_encoder_path: str = "/tmp/t5/pytorch_model.bin",
+    preprocessed_data_dir: str,
+    preprocess_again_if_exists: bool = False,
+    batch_size: int = 1,
+    flux_model_name: str = "FLUX.1-dev",
+) -> FluxPreprocessor:
+    """
+    Preprocess text-to-image data for finetuning Flux models.
+
+    Args:
+        device (torch.device): device to do preprocessing on
+        dtype (torch.dtype): data type to do preprocessing in
+        autoencoder_path (str): path to the Flux image autoencoder "ae.safetensors" file.
+            download with: `tune download black-forest-labs/FLUX.1-dev --output-dir /tmp/flux`
+            default: "/tmp/flux"
+        clip_text_encoder_path (str): CLIP text encoder
+            download with: `tune download openai/clip-vit-large-patch14 --output-dir /tmp/clip`
+            default: "/tmp/clip"
+        t5_encoder_path (str): T5 text encoder
+            download with: `tune download google/t5-v1_1-xxl --output-dir /tmp/t5`
+            default: "/tmp/t5"
+        preprocessed_data_dir (str): folder where the preprocessed data will be stored
+        preprocess_again_if_exists (bool): if false, data samples that already have preprocessed data will be skippped
+            default: False
+        batch_size (int): batch size to use when preprocessing datasets
+        flux_model_name (str): "FLUX.1-dev" or "FLUX.1-schnell" (affects the T5 encoder max seq len)
+            default: "FLUX.1-dev"
+
+    Returns:
+        FluxPreprocessor
+    """
     autoencoder = flux_1_autoencoder()
     autoencoder.load_state_dict(flux_ae_hf_to_tune(safe_torch_load(autoencoder_path)))
 
