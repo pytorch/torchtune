@@ -43,7 +43,7 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: datasets._calc-gsm8k.calc_gsm8k_dataset
+  _component_: torchtune.datasets._calc_gsm8k.calc_gsm8k_dataset
 seed: null
 shuffle: False
 batch_size: 1

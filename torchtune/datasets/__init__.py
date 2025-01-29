@@ -6,6 +6,8 @@
 
 from torchtune.datasets import multimodal
 from torchtune.datasets._alpaca import alpaca_cleaned_dataset, alpaca_dataset
+from torchtune.datasets._wikitext import wikitext_dataset
+from torchtune.datasets._calc_gsm8k import calc_gsm8k_dataset
 from torchtune.datasets._chat import chat_dataset
 from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
@@ -22,11 +24,13 @@ from torchtune.datasets._text_completion import (
     text_completion_dataset,
     TextCompletionDataset,
 )
+from torchtune.datasets._verifiable import VerifiableDataset
 from torchtune.datasets._wikitext import wikitext_dataset
 
 __all__ = [
     "alpaca_dataset",
     "alpaca_cleaned_dataset",
+    "calc_gsm8k_dataset",
     "grammar_dataset",
     "samsum_dataset",
     "stack_exchange_paired_dataset",
@@ -44,4 +48,5 @@ __all__ = [
     "SFTDataset",
     "hh_rlhf_helpful_dataset",
     "multimodal",
+    "VerifiableDataset"
 ]

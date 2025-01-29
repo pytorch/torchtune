@@ -11,15 +11,15 @@ import random
 import torch
 from omegaconf import DictConfig
 from torch import nn
+import torch.nn.functional as F
+from torch.nn.utils.rnn import pad_sequence
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, generation, modules, training, utils
-from torchtune.data import padded_collate_sft
-from torchtune.datasets import ConcatDataset
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from tqdm import tqdm
 
 # Only needed if we do LoRA.
 from torchtune.modules.peft import disable_adapter
@@ -29,15 +29,162 @@ import importlib
 log = utils.get_logger("DEBUG")
 torch._dynamo.config.cache_size_limit = 16
 
-def _resolve_function(name: str):
-    """Dynamically resolve a function by its full module path."""
-    module_name, function_name = name.rsplit(".", 1)
-    module = importlib.import_module(module_name)
-    return getattr(module, function_name)
+import torch
+
+from typing import List, Dict, Any
 
 ########################
-# Utility for token-level logprobs with optional EOS masking
+# Custom collate to keep additional fields. 
 ########################
+
+def padded_collate_verifiable(
+    batch: List[Dict[str, Any]],
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+) -> Dict[str, torch.Tensor]:
+    """
+    Pad a batch of sequences to the longest sequence length in the batch, and
+    convert integer lists to tensors. Also preserves all other columns as lists.
+    """
+    input_ids = pad_sequence(
+        [torch.tensor(x["tokens"]) for x in batch],
+        batch_first=True,
+        padding_value=padding_idx,
+    )
+
+    labels = pad_sequence(
+        [torch.tensor(x["labels"]) for x in batch],
+        batch_first=True,
+        padding_value=ignore_idx,
+    )
+
+    input_ids_seq_len = input_ids.shape[-1]
+    labels_seq_len = labels.shape[-1]
+
+    if input_ids_seq_len > labels_seq_len:
+        labels = F.pad(
+            labels, (0, input_ids_seq_len - labels_seq_len), value=ignore_idx
+        )
+    elif labels_seq_len > input_ids_seq_len:
+        input_ids = F.pad(
+            input_ids,
+            (0, labels_seq_len - input_ids_seq_len),
+            value=padding_idx,
+        )
+
+    collated = {
+        "tokens": input_ids.long(),
+        "labels": labels.long(),
+    }
+
+    for key in batch[0].keys():
+        if key not in ("tokens", "labels"):
+            collated[key] = [sample[key] for sample in batch]
+
+    return collated
+
+########################
+# Verifiable reward function examples
+########################
+
+def thinking_reward(tokenizer, prompts, completions, all_text, batch_data):
+    """
+    Reward completions based on the number of lines within <think>...</think> tags.
+    The more lines inside the tags, the higher the reward, normalized by total lines.
+
+    Args:
+        tokenizer: Tokenizer (not used directly in this function, since we already have all_text)
+        prompts: List[torch.Tensor] of B (each prompt) repeated G times
+        completions: List[torch.Tensor] of length B*G
+        all_text: List[str] (decoded completions), length B*G
+        batch_data: Additional batch info if needed.
+
+    Returns:
+        Torch float32 tensor of shape [B*G] with the computed reward.
+    """
+    rewards = torch.zeros(len(completions), dtype=torch.float32)
+
+    for i, text in enumerate(all_text):
+        # Extract content inside <think>...</think> tags
+        start_tag = "<think>"
+        end_tag = "</think>"
+
+        total_lines = text.count("\n") + 1
+        start_idx = text.find(start_tag)
+        end_idx = text.find(end_tag, start_idx)
+
+        if start_idx != -1 and end_idx != -1:
+            think_content = text[start_idx + len(start_tag):end_idx].strip()
+            num_lines = think_content.count("\n") + 1 if think_content else 0
+            # Reward is fraction of lines inside <think> relative to total lines
+            rewards[i] = num_lines / total_lines
+        else:
+            # Default = 0 if no <think> tags
+            rewards[i] = 0.0
+
+    return rewards
+
+def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
+    """
+    Reward completions based on correctness of the model's answer.
+    We look for an <answer>...</answer> section, compare with ground truth.
+s
+    Args:
+        tokenizer: Tokenizer (not used directly since we have all_text)
+        prompts: List[torch.Tensor]
+        completions: List[torch.Tensor]
+        all_text: List[str], the decoded completions
+        batch_data: Dictionary that should include 'results' for each completion.
+
+    Returns:
+        A float32 tensor of shape [len(completions)], with 1.0 if correct, 0.1 if partial, etc.
+    """
+    # Try to read ground_truths from batch_data
+    ground_truths = batch_data['result']
+    rewards = torch.zeros(len(completions), dtype=torch.float32)
+
+    for i, text in enumerate(all_text):
+        start_tag = "<answer>"
+        end_tag = "</answer>"
+        start_idx = text.find(start_tag)
+        end_idx = text.find(end_tag, start_idx)
+
+        extracted_answer = None
+        if start_idx != -1 and end_idx != -1:
+            extracted_answer = text[start_idx + len(start_tag):end_idx].strip()
+
+        # If we have ground_truths and this index is valid, compare.
+        if i < len(ground_truths) and extracted_answer:
+            if extracted_answer == ground_truths[i]:
+                rewards[i] = 1.0
+            else:
+                rewards[i] = 0.1  # partial reward
+        else:
+            # No valid <answer> or no matching ground truth
+            rewards[i] = 0.0
+
+    return rewards
+
+
+########################
+# Utilities for function loading, token-level logprobs/loss/kl with optional EOS masking
+########################
+
+def _resolve_function(name: str):
+    """Dynamically resolve a function by its full module path.
+    If it references recipes.grpo_full_finetune_single_device, fallback to a local reference."""
+    # custom fallback to avoid import error from recipes __init__
+    if name.startswith("recipes.grpo_full_finetune_single_device."):
+        func_name = name.split(".")[-1]
+        # Lookup in module-level globals
+        if func_name in globals():
+            return globals()[func_name]
+        else:
+            raise ValueError(f"Function '{func_name}' not found in local scope.")
+    else:
+        module_name, function_name = name.rsplit(".", 1)
+        module = importlib.import_module(module_name)
+        return getattr(module, function_name)
 
 def get_per_token_logprobs(
     model: nn.Module,
@@ -55,7 +202,7 @@ def get_per_token_logprobs(
     """
     with torch.inference_mode():
         outputs = model(input_ids)
-        logits = outputs.logits[:, :-1, :]  # drop last logits because there's no next token
+        logits = outputs[:, :-1, :]  # drop last logits because there's no next token
         shifted_input_ids = input_ids[:, 1:]
         log_probs = logits.log_softmax(dim=-1)
         chosen_token_logprob = torch.gather(
@@ -76,7 +223,7 @@ def get_per_token_logprobs(
         completion_start = prompt_len
         valid_mask[i, completion_start:] = True
         if mask_after_eos:
-            eos_positions = (input_ids[i, prompt_len:] == tokenizer.eos_token_id).nonzero()
+            eos_positions = (input_ids[i, prompt_len:] == tokenizer.eos_id).nonzero()
             if eos_positions.numel() > 0:
                 first_eos = eos_positions[0].item() + prompt_len
                 valid_mask[i, first_eos:] = False
@@ -249,7 +396,7 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=padded_collate_sft,
+            collate_fn=padded_collate_verifiable,
         )
         return sampler, dataloader
 
@@ -258,48 +405,65 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         tokenizer,
         prompts: List[torch.Tensor],
         completions: List[torch.Tensor],
-        batch_data: Dict[str, Any]
+        batch_data: Dict[str, Any],
     ) -> torch.Tensor:
         device = self._device
         B = len(prompts)
         total_completions = len(completions)
         if total_completions != B * self._num_generations:
-            raise ValueError("Mismatch in B*g vs all_completions length.")
+            raise ValueError("Mismatch in B*g vs completions length.")
 
-        all_text = [tokenizer.decode(c.to("cpu").tolist()) for c in completions]
-        total_rewards = torch.zeros(total_completions, device=device)
+        # Convert all completions to text
+        all_text = [tokenizer.decode(c.cpu().tolist()) for c in completions]
+
+        total_rewards = torch.zeros(total_completions)
+
+        # Repeat each prompt num_generations times (so B -> B*g)
         repeated_prompts = []
         for i in range(B):
             repeated_prompts.extend([prompts[i]] * self._num_generations)
 
-        extended_gt = []
-        for gt in batch_data['raw']:
-            extended_gt.extend([gt] * self._num_generations)
-        batch_data['raw'] = extended_gt
-           
+        # Build a new dict called extended_data that replicates each value
+        # for additional ground truth keys.
+        extended_data = {}
+        for key, values in batch_data.items():
+            if key not in ("tokens", "labels"):
+                replicated = []
+                for i in range(B):
+                    replicated.extend([values[i]] * self._num_generations)
+                extended_data[key] = replicated
+
         if self._reward_functions:
             for func in self._reward_functions:
-                rw = func(tokenizer, repeated_prompts, completions, all_text, batch_data)
+                rw = func(
+                    tokenizer,
+                    repeated_prompts,
+                    completions,
+                    all_text,
+                    extended_data,
+                )
                 if not isinstance(rw, torch.Tensor):
-                    rw = torch.tensor(rw, dtype=torch.float32, device=device)
+                    rw = torch.tensor(rw, dtype=torch.float32)
                 total_rewards += rw
         elif self._reward_model:
             raise NotImplementedError("Reward model usage not integrated here.")
         else:
             raise ValueError("No custom reward functions or reward model specified.")
 
+        # Reshape rewards into [B, num_generations]
         total_rewards = total_rewards.view(B, self._num_generations)
         return total_rewards
 
+
     def compute_loss(self, batch: Dict[str, Any]) -> torch.Tensor:
-        """
+        """s
         Given a batch of data, generate completions, compute rewards, and return the final RL loss.
         This function does NOT perform backward() or step() yet.
         """
         input_ids = batch["tokens"].to(self._device)
         B = input_ids.size(0)
 
-        # 1) Generate completions
+        # Generate completions
         all_completions = []
         with torch.no_grad():
             for i in range(B):
@@ -318,16 +482,13 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     c = completion[0]
                     all_completions.append(c)
 
-        # 2) Compute group rewards
-        repeated_prompts = [input_ids[i] for i in range(B)]
         rewards_2d = self._compute_rewards(
             self._tokenizer,
-            repeated_prompts,
+            input_ids,
             all_completions,
             batch
-        )
+        ).to(self._device)
 
-        # 3) Build cat_tensors for logprob extraction
         cat_tensors = []
         prompt_lengths = []
         for i in range(B):
@@ -349,7 +510,6 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for i, seq in enumerate(cat_tensors):
             batched_input_ids[i, : seq.size(0)] = seq
 
-        # 4) gather per-token logprobs
         policy_logprobs, _ = get_per_token_logprobs(
             self._policy_model,
             batched_input_ids,
@@ -371,7 +531,7 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             pl = prompt_lengths[i]
             final_mask[i, pl:] = 1
             row = batched_input_ids[i]
-            eos_positions = (row == self._tokenizer.eos_token_id).nonzero()
+            eos_positions = (row == self._tokenizer.eos_id).nonzero()
             if eos_positions.numel() > 0:
                 eos_pos = eos_positions[0].item()
                 final_mask[i, eos_pos:] = 0
@@ -398,14 +558,13 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for epoch in range(self._num_epochs):
             accumulated_loss = 0.0
             for step, batch_data in enumerate(self._dataloader):
-                # 1) Forward pass to compute RL loss
+                # Forward pass to compute RL loss
                 loss_val = self.compute_loss(batch_data)
 
-                # 2) Scale loss by gradient_accumulation_steps so net gradient remains correct
+                # Scale loss by gradient_accumulation_steps so net gradient remains correct
                 (loss_val / self._gradient_accumulation_steps).backward()
                 accumulated_loss += loss_val.item()
 
-                # 3) Perform optimizer step at intervals
                 if (step + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad()
@@ -429,82 +588,3 @@ def recipe_main(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     sys.exit(recipe_main())
-
-
-def thinking_reward(tokenizer, prompts, completions, all_text, batch_data):
-    """
-    Reward completions based on the number of lines within <think>...</think> tags.
-    The more lines inside the tags, the higher the reward, normalized by total lines.
-
-    Args:
-        tokenizer: Tokenizer (not used directly in this function, since we already have all_text)
-        prompts: List[torch.Tensor] of B (each prompt) repeated G times
-        completions: List[torch.Tensor] of length B*G
-        all_text: List[str] (decoded completions), length B*G
-        batch_data: Additional batch info if needed.
-
-    Returns:
-        Torch float32 tensor of shape [B*G] with the computed reward.
-    """
-    rewards = torch.zeros(len(completions), dtype=torch.float32)
-
-    for i, text in enumerate(all_text):
-        # Extract content inside <think>...</think> tags
-        start_tag = "<think>"
-        end_tag = "</think>"
-
-        total_lines = text.count("\n") + 1
-        start_idx = text.find(start_tag)
-        end_idx = text.find(end_tag, start_idx)
-
-        if start_idx != -1 and end_idx != -1:
-            think_content = text[start_idx + len(start_tag):end_idx].strip()
-            num_lines = think_content.count("\n") + 1 if think_content else 0
-            # Reward is fraction of lines inside <think> relative to total lines
-            rewards[i] = num_lines / total_lines
-        else:
-            # Default = 0 if no <think> tags
-            rewards[i] = 0.0
-
-    return rewards
-
-def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
-    """
-    Reward completions based on correctness of the model's answer.
-    We look for an <answer>...</answer> section, compare with ground truth.
-
-    Args:
-        tokenizer: Tokenizer (not used directly since we have all_text)
-        prompts: List[torch.Tensor]
-        completions: List[torch.Tensor]
-        all_text: List[str], the decoded completions
-        batch_data: Dictionary that should include 'results' for each completion.
-
-    Returns:
-        A float32 tensor of shape [len(completions)], with 1.0 if correct, 0.1 if partial, etc.
-    """
-    # Try to read ground_truths from batch_data
-    ground_truths = batch_data['raw'].get('result', [])
-    rewards = torch.zeros(len(completions), dtype=torch.float32)
-
-    for i, text in enumerate(all_text):
-        start_tag = "<answer>"
-        end_tag = "</answer>"
-        start_idx = text.find(start_tag)
-        end_idx = text.find(end_tag, start_idx)
-
-        extracted_answer = None
-        if start_idx != -1 and end_idx != -1:
-            extracted_answer = text[start_idx + len(start_tag):end_idx].strip()
-
-        # If we have ground_truths and this index is valid, compare.
-        if i < len(ground_truths) and extracted_answer:
-            if extracted_answer == ground_truths[i]:
-                rewards[i] = 1.0
-            else:
-                rewards[i] = 0.1  # partial reward
-        else:
-            # No valid <answer> or no matching ground truth
-            rewards[i] = 0.0
-
-    return rewards
