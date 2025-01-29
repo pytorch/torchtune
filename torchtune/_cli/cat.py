@@ -25,8 +25,8 @@ class Cat(Subcommand):
         self._parser = subparsers.add_parser(
             "cat",
             prog="tune cat",
-            help="Pretty print a config, making it easy to override parameters when using `tune run`",
-            description="Pretty print a config, making it easy to override parameters when using `tune run`",
+            help="Pretty print a config, making it easy to know which parameters you can override with `tune run`.",
+            description="Pretty print a config, making it easy to know which parameters you can override with `tune run`.",
             epilog=textwrap.dedent(
                 """\
                 examples:
@@ -44,10 +44,10 @@ class Cat(Subcommand):
                     # Pretty print the contents of LOCALFILE.yaml
                     $ tune cat LOCALFILE.yaml
 
-                    # Example of launching a run overriding a key found via the `tune cat` command:
+                You can now easily override a key based on your findings from `tune cat`:
                     $ tune run full_finetune_distributed --config llama2/7B_full output_dir=./
 
-                    # Note: You can find all the cat-able configs via the `tune ls` command.
+                Need to find all the "cat"-able configs? Try `tune ls`!
                 """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
