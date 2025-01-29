@@ -43,6 +43,7 @@ jobs:
           python -m pip install torch torchvision torchao
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval>=0.4.5
+          python -m pip list
       - name: Run recipe tests with coverage
         run: pytest tests -m integration_test --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
