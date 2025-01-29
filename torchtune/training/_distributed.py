@@ -508,6 +508,7 @@ def shard_model(
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
+    device_mesh: Optional[DeviceMesh] = None,
 ) -> None:
     """
     Utility to shard a model with FSDP using the PyTorch Distributed fully_shard API.
@@ -533,6 +534,9 @@ def shard_model(
     fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
+
+    if device_mesh is not None:
+        fsdp_kwargs["mesh"] = device_mesh
 
     # Shard the model with FSDP, iterating in reverse to start with
     # lowest-level modules first

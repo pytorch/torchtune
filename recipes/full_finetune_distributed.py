@@ -137,8 +137,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
+        self.world_size, self.rank = utils.get_world_size_and_rank()
+        self._is_rank_zero = self.rank == 0
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -521,6 +521,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
+        # Apply TP if specified
+        mesh_shape = (1, 8)
+        device_mesh = init_device_mesh(
+            "cuda", tp_mesh_shape, mesh_dim_names=("dp", "tp")
+        )
+
+        # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
+        training.prepare_mha_for_tp(model, device_mesh["tp"])
+        parallelize_module(
+            model,
+            device_mesh["tp"],
+            parallelize_plan=config.instantiate(cfg.parallelize_plan),
+        )
+
         # For FSDP sharding
         fsdp_shard_conditions = [
             partial(
@@ -533,6 +547,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
+            device_mesh=device_mesh["dp"],
         )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -638,8 +653,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
-
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
                 config.instantiate(single_cfg_dataset, self._tokenizer)
@@ -657,7 +670,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -687,8 +700,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
@@ -708,7 +719,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
