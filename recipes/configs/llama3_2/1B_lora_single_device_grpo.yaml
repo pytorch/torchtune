@@ -1,0 +1,100 @@
+# Config for single device  finetuning with GRPO and verifiable rewards
+# using a Llama3.2 1B Instruct model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-3.2-1B-Instruct --output-dir ./Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth"
+#
+# To launch on a single device, run the following command from root:
+#   tune run grpo_full_finetune_single_device --config llama3_2/1B_lora_single_device_grpo
+#
+# This config works only for training on single device.
+
+output_dir: ./llama3_2_1B/grpo_single_device # /tmp may be deleted by your system. Change it to your preference.
+
+# Model Arguments
+# Non-Lora
+# model:
+#   _component_: torchtune.models.llama3_2.llama3_2_1b
+
+# LoRA model
+model:
+  _component_: torchtune.models.llama3_2.lora_llama3_2_1b
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  apply_lora_to_mlp: True
+  lora_rank: 64  # higher increases accuracy and memory
+  lora_alpha: 128  # usually alpha=2*rank
+  lora_dropout: 0.0
+
+reward_functions:
+  - recipes.grpo_full_finetune_single_device.correctness_reward
+  - recipes.grpo_full_finetune_single_device.thinking_reward
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path:  Llama-3.2-1B-Instruct/original/tokenizer.model
+  max_seq_len: 4096
+  prompt_template:
+    user:
+      - "Conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in their mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> reasoning process here </think> <answer> answer here </answer>. \\nUser: "
+      - "\\nAssistant: "
+
+
+# Dataset and Sampler
+dataset:
+  _component_: datasets._calc-gsm8k.calc_gsm8k_dataset
+seed: null
+shuffle: False
+batch_size: 1
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: Llama-3.2-1B-Instruct/
+  checkpoint_files: [
+    model.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA3_2
+
+resume_from_checkpoint: False
+
+
+# Optimizer and Scheduler
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  weight_decay: 0.05
+  lr: 5e-4
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 10
+  type: bf16
+
+# Training
+epochs: 1
+max_steps_per_epoch: 1000
+gradient_accumulation_steps: 1  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+kl_coeff: 0.01  # KL divergence coefficient for the model
+
+# Memory management
+enable_activation_checkpointing: False  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
+
+# Max number of tokens to generate in answers. 
+max_length: 1024
+
+# Training environment
+device: cuda
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}/logs
+log_every_n_steps: 1
+log_peak_memory_stats: True
