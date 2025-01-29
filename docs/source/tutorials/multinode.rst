@@ -54,11 +54,7 @@ outlined :ref:`here<tune_download_label>`.
 
     $ tune download meta-llama/Llama-3.3-70B-Instruct --ignore-patterns "consolidated/*.pth" --output-dir SHARED_FS/Llama-3.3-70B-Instruct
 
-Now that we have a downloaded model, let's check out the SLURM bash script.
-
-.. code-block:: bash
-
-    $ tune cp full_finetune_multinode .
+Now that we have a downloaded model, let's check out our example SLURM bash script.
 
 .. literalinclude:: ../../../recipes/full_finetune_multinode.slurm
 
