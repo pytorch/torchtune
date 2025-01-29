@@ -36,7 +36,6 @@ from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
-from torchtune.utils._version import torch_version_ge
 
 _log: logging.Logger = get_logger()
 
@@ -44,9 +43,11 @@ _log: logging.Logger = get_logger()
 _valid_distributed_single_node_nnodes = ["1:1", "1"]
 
 torch_version = torch.__version__
-_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
-    "dev" not in torch_version and torch_version_ge("2.6.0")
-) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
+# TODO: Fix issues with DSD before uncommenting. See #2313 and #2277.
+# _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
+#     "dev" not in torch_version and torch_version_ge("2.6.0")
+# ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
+_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = False
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
