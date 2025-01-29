@@ -27,16 +27,51 @@ def compute_classification_metrics(
         # samples_weights are all 1 of size label
         sample_weights = torch.ones(labels.shape[0], device=labels.device)
 
-    # Compute accuracy based on the next token predicted. We find this
-    # by finding the last non-pad token in the sequence.
+    # For accuracy, do exact token match per batch for all positions where the label is not -100 or eos_id
+
+    # predicted = torch.argmax(logits, dim=1)
+    predicted = torch.argmax(logits, dim=2)
+    valid_mask = (labels != -100) & (labels != tokenizer.eos_id)
+    correct_mask = ((predicted == labels) & valid_mask).int().max(dim=1)[0]
+
+    correct = correct_mask.sum().item()
+
+    # correct = (predicted == labels).sum().item()
+    total = labels.size(0)
+    running_metrics["correct"] += correct
+    running_metrics["total"] += total
+
+    # correct_weighted = ((predicted == labels).float() * sample_weights).sum().item()
+    correct_weighted = (correct_mask.float() * sample_weights).sum().item()
+    total_weighted = sample_weights.sum().item()
+    running_metrics["correct_weighted"] += correct_weighted
+    running_metrics["total_weighted"] += total_weighted
+
+    # Compute binary precision recall based on the next token predicted.
+    # With llama3, words are tokenized into subwords. For simplicity, we'll just use the first token of the label.
+    # We need to pull a fixed sequence out instead of
+    # only using the last token.
+
+    # We find the last non-pad token in the sequence.
     # Note that we'll return -1 if no pad tokens are found, which is
     # the last item as we want.
     sequence_lengths = torch.eq(tokens, tokenizer.pad_id).int().argmax(-1) - 1
     # sequence_lengths = sequence_lengths % tokens.shape[-1]
     sequence_lengths = sequence_lengths.to(logits.device)
 
-    logits = logits[
-        torch.arange(logits.shape[0], device=logits.device),
+    # For simplicity, we'll just use the first token of the irrelevant encoded
+    irrelevant_encoded = torch.tensor(
+        tokenizer.encode("irrelevant", add_bos=False, add_eos=False)[0],
+        device=logits.device,
+    )
+
+    # Create tensor of positions to pull out per batch
+    # positions = torch.stack([
+    #     torch.arange(sl, sl+len(irrelevant_encoded)) for sl in sequence_lengths
+    # ], dim=0)
+
+    predicted = predicted[
+        torch.arange(predicted.shape[0], device=logits.device),
         sequence_lengths,
     ]
     labels = labels[
@@ -44,30 +79,8 @@ def compute_classification_metrics(
         sequence_lengths,
     ]
 
-    predicted = torch.argmax(logits, dim=1)
-
-    correct = (predicted == labels).sum().item()
-    total = labels.size(0)
-    running_metrics["correct"] += correct
-    running_metrics["total"] += total
-
-    correct_weighted = ((predicted == labels).float() * sample_weights).sum().item()
-    total_weighted = sample_weights.sum().item()
-    running_metrics["correct_weighted"] += correct_weighted
-    running_metrics["total_weighted"] += total_weighted
-
-    predicted_binary_irrelevant = predicted.eq(
-        torch.tensor(
-            tokenizer.encode("irrelevant", add_bos=False, add_eos=False),
-            device=labels.device,
-        )
-    )
-    labels_binary_irrelevant = labels.eq(
-        torch.tensor(
-            tokenizer.encode("irrelevant", add_bos=False, add_eos=False),
-            device=labels.device,
-        )
-    )
+    predicted_binary_irrelevant = predicted.eq(irrelevant_encoded)
+    labels_binary_irrelevant = labels.eq(irrelevant_encoded)
 
     tp = (predicted_binary_irrelevant * labels_binary_irrelevant).sum().item()
     tn = ((~predicted_binary_irrelevant) * (~labels_binary_irrelevant)).sum().item()
