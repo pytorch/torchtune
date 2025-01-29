@@ -10,12 +10,11 @@ import textwrap
 from pathlib import Path
 from typing import List, Optional
 
-import torchtune
 import yaml
 from torchtune._cli.subcommand import Subcommand
 from torchtune._recipe_registry import Config, get_all_recipes
 
-ROOT = Path(torchtune.__file__).parent.parent
+ROOT = Path(__file__).parent.parent.parent
 
 
 class Cat(Subcommand):
@@ -26,22 +25,29 @@ class Cat(Subcommand):
         self._parser = subparsers.add_parser(
             "cat",
             prog="tune cat",
-            help="Pretty print a config",
-            description="Pretty print a config",
+            help="Pretty print a config, making it easy to override parameters when using `tune run`",
+            description="Pretty print a config, making it easy to override parameters when using `tune run`",
             epilog=textwrap.dedent(
                 """\
                 examples:
                     $ tune cat llama2/7B_full
-                    model: llama2
-                    size: 7B
-                    task: full_finetune
+                    output_dir: /tmp/torchtune/llama2_7B/full
+                    tokenizer:
+                        _component_: torchtune.models.llama2.llama2_tokenizer
+                        path: /tmp/Llama-2-7b-hf/tokenizer.model
+                        max_seq_len: null
                     ...
 
-                    $ tune cat non_existent_config
-                    Config 'non_existent_config' not found.
+                    # Pretty print the config in sorted order
+                    $ tune cat llama2/7B_full --sort
 
-                    $ tune cat some_recipe
-                    'some_recipe' is a recipe, not a config. Please use a config name.
+                    # Pretty print the contents of LOCALFILE.yaml
+                    $ tune cat LOCALFILE.yaml
+
+                    # Example of launching a run overriding a key found via the `tune cat` command:
+                    $ tune run full_finetune_distributed --config llama2/7B_full output_dir=./
+
+                    # Note: You can find all the cat-able configs via the `tune ls` command.
                 """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -50,6 +56,9 @@ class Cat(Subcommand):
             "config_name", type=str, help="Name of the config to print"
         )
         self._parser.set_defaults(func=self._cat_cmd)
+        self._parser.add_argument(
+            "--sort", action="store_true", help="Print the config in sorted order"
+        )
 
     def _get_all_recipes(self) -> List[str]:
         return [recipe.name for recipe in get_all_recipes()]
@@ -61,7 +70,7 @@ class Cat(Subcommand):
                 if config.name == config_str:
                     return config
 
-    def _print_file(self, file: str) -> None:
+    def _print_yaml_file(self, file: str, sort_keys: bool) -> None:
         try:
             with open(file, "r") as f:
                 data = yaml.safe_load(f)
@@ -70,7 +79,7 @@ class Cat(Subcommand):
                         yaml.dump(
                             data,
                             default_flow_style=False,
-                            sort_keys=False,
+                            sort_keys=sort_keys,
                             indent=4,
                             width=80,
                             allow_unicode=True,
@@ -116,4 +125,4 @@ class Cat(Subcommand):
             self._parser.error(f"Config '{config_str}' not found.")
             return
 
-        self._print_file(str(config_path))
+        self._print_yaml_file(str(config_path), args.sort)
