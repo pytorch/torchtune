@@ -561,6 +561,12 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
+    Recipe(
+        name="full_finetune_multinode",
+        file_path="full_finetune_multinode.slurm",
+        configs=[],
+        supports_distributed=True,
+    ),
 ]
 
 
