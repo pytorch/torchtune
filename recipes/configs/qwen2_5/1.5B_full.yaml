@@ -63,6 +63,7 @@ device: cuda
 enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 dtype: bf16
+clip_grad_norm: null
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Logging

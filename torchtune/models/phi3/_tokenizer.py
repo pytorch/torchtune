@@ -9,8 +9,11 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.data._utils import truncate
-from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import (
+    ModelTokenizer,
+    SentencePieceBaseTokenizer,
+)
 
 PHI3_SPECIAL_TOKENS = {
     "<|endoftext|>": 32000,
@@ -157,6 +160,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
 
         Raises:
             ValueError: If the role is not "user", "assistant", or "system".
+            RuntimeError: If ``message["type"] != "text``.
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
