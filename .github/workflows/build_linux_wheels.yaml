@@ -36,6 +36,8 @@ jobs:
     with:
       repository: pytorch/torchtune
       ref: ""
+      test-infra-repository: pytorch/test-infra
+      test-infra-ref: main
       package-name: torchtune
       build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
       pre-script: .github/scripts/pre_build_script.sh

@@ -57,7 +57,7 @@ class TuneRecipeArgumentParser(argparse.ArgumentParser):
 
         config = OmegaConf.load(namespace.config)
         assert "config" not in config, "Cannot use 'config' within a config file"
-        self.set_defaults(**config)
+        self.set_defaults(**OmegaConf.to_container(config, resolve=False))
 
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
         del namespace.config
@@ -65,7 +65,7 @@ class TuneRecipeArgumentParser(argparse.ArgumentParser):
         return namespace, unknown_args
 
 
-def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
+def parse(recipe_main: Recipe) -> Callable[..., Any]:
     """
     Decorator that handles parsing the config file and CLI overrides
     for a recipe. Use it on the recipe's main function.
@@ -83,7 +83,7 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
         >>> tune my_recipe --config config.yaml foo=bar
 
     Returns:
-        Callable[[Recipe], Any]: the decorated main
+        Callable[..., Any]: the decorated main
     """
 
     @functools.wraps(recipe_main)

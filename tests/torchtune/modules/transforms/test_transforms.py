@@ -10,7 +10,6 @@ from torchtune.modules.transforms import VisionCrossAttentionMask
 
 
 IMAGE_TOKEN_ID = 1
-MAX_NUM_TILES = 4
 
 
 class TestVisionCrossAttentionMask:
@@ -54,7 +53,6 @@ class TestVisionCrossAttentionMask:
             tile_size=tile_size,
             patch_size=patch_size,
             image_token_id=IMAGE_TOKEN_ID,
-            max_num_tiles=MAX_NUM_TILES,
         )
 
     def test_get_image_attention_intervals(self, cross_attn_mask_transform, tokens):
@@ -89,7 +87,7 @@ class TestVisionCrossAttentionMask:
         sample.update(dummy_kwargs)
         actual = cross_attn_mask_transform(sample, inference=True)
         expected = [
-            torch.zeros(len(tokens), image_num_tokens * 2, dtype=torch.bool)
+            torch.zeros(len(tokens), image_num_tokens, dtype=torch.bool)
             for _ in range(len(images))
         ]
         expected[0][2:6, :image_num_tokens] = True

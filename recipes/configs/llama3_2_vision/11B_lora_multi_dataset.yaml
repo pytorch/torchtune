@@ -1,0 +1,122 @@
+# Config for multi-device LoRA finetuning in lora_finetune_distributed_td.py
+# using a Llama3.2 11B Vision Instruct model
+#
+# This config assumes that you've run the following command before launching:
+#   tune download meta-llama/Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Llama-3.2-11B-Vision-Instruct --ignore-patterns "original/consolidated*"
+#
+# To launch on 2 devices, run the following command from root:
+#   tune run --nproc_per_node 2 lora_finetune_distributed_td --config llama3_2_vision/11B_lora_td
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training:
+#   tune run --nproc_per_node 2 lora_finetune_distributed_td --config llama3_2_vision/11B_lora_td checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# For single device LoRA finetuning please use 11B_lora_single_device.yaml
+# or 11B_qlora_single_device.yaml
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama3_2_vision.lora_llama3_2_vision_11b
+  decoder_trainable: "frozen"
+  encoder_trainable: "lora"
+  fusion_trainable: "lora"
+  lora_attn_modules: ['q_proj', 'v_proj']
+  apply_lora_to_mlp: False
+  apply_lora_to_output: False
+  lora_rank: 8
+  lora_alpha: 16
+  lora_dropout: 0.0
+  image_size: 560 # Make sure this matches the image_size in tokenizer
+
+# Transform
+tokenizer:
+  _component_: torchtune.models.llama3_2_vision.llama3_2_vision_transform
+  path: /tmp/Llama-3.2-11B-Vision-Instruct/original/tokenizer.model
+  image_size: 560
+  max_seq_len: 8192
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-3.2-11B-Vision-Instruct/
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00005"
+  recipe_checkpoint: null
+  output_dir: /tmp/Llama-3.2-11B-Vision-Instruct/
+  model_type: LLAMA3_VISION
+resume_from_checkpoint: False
+save_adapter_weights_only: False # PeFT formatting not available yet. This will save it in torchtune format only.
+
+# TorchData setup
+dataloader:
+  shuffle: True
+  collate_fn: torchtune.data.padded_collate_tiled_images_and_mask
+  parallel_method: thread
+  num_workers: 4  # Per dataset
+  pin_memory: true
+  packed: False # Set to true for great speed ups
+  prefetch_factor: 2
+seed: null
+
+datasets:
+  - source: HuggingFaceM4/the_cauldron
+    subset: ocrvqa
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
+  - source: HuggingFaceM4/the_cauldron
+    subset: dvqa
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
+  - source: HuggingFaceM4/the_cauldron
+    subset: docvqa
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
+  - source: HuggingFaceM4/the_cauldron
+    subset: tabmwp
+    split: train
+    transform:
+      _component_: torchtune.datasets.multimodal.the_cauldron_transform
+    weight: 1.0
+
+# Fine-tuning arguments
+epochs: 1
+# max_steps_per_epoch is required for progress bar
+max_steps_per_epoch: 50
+batch_size: 4
+gradient_accumulation_steps: 1
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  weight_decay: 0.01
+  lr: 1e-4
+
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+clip_grad_norm: 1.0
+compile: True # pytorch compile, set to true for perf/memory improvement
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+dtype: bf16
+
+# Logging
+output_dir: /tmp/lora-llama3.2-vision-finetune
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: /tmp/Llama-3.2-11B-Vision-Instruct/logs
+log_every_n_steps: 1
+log_peak_memory_stats: True

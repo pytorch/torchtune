@@ -79,3 +79,13 @@ class TestTheCauldronDataset:
         ]
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 24
         assert images == [test_image_pil]
+
+    def test_dataset_fails_with_packed(self, tokenizer):
+        with pytest.raises(
+            ValueError, match="Multimodal datasets don't support packing yet."
+        ):
+            the_cauldron_dataset(
+                model_transform=tokenizer,
+                subset="dummy",
+                packed=True,
+            )

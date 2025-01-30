@@ -7,7 +7,6 @@
 import pytest
 from tests.common import ASSETS
 from tests.test_utils import DummyTokenizer
-from torchtune.data import InstructTemplate
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import instruct_dataset
 
@@ -16,14 +15,6 @@ def dummy_transform(sample):
     sample["instruction"] = sample["instruction"] + " asdfghjkl; "
     sample["response"] = sample["response"] + " asdfghjkl; "
     return sample
-
-
-class DummyTemplate(InstructTemplate):
-    template = "Instruction:\n{instruction}\n\nResponse:\n"
-
-    @classmethod
-    def format(cls, sample, column_map):
-        return cls.template.format(**sample)
 
 
 class TestInstructDataset:

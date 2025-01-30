@@ -3,6 +3,8 @@
 # To launch, run the following command:
 #    tune run eleuther_eval --config qwen2/evaluation
 
+output_dir: ./ # Not needed
+
 # Model Arguments
 model:
   _component_: torchtune.models.qwen2.qwen2_7b
@@ -17,7 +19,7 @@ checkpointer:
     model-00003-of-00004.safetensors,
     model-00004-of-00004.safetensors
   ]
-  output_dir: ./ # Not needed
+  output_dir: ${output_dir}
   model_type: QWEN2
 
 # Tokenizer

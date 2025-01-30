@@ -9,8 +9,12 @@
 
 [**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**License**](#license) | [**Citing torchtune**](#citing-torchtune)
 
-> [!IMPORTANT]
-> Update September 25, 2024: torchtune has support for **Llama 3.2 11B Vision**, **Llama 3.2 3B**, and **Llama 3.2 1B** models! Try them out by following our installation instructions [here](#Installation), then run any of the text configs [here](recipes/configs/llama3_2) or vision configs [here](recipes/configs/llama3_2_vision).
+### 📣 Recent updates 📣
+* *December 2024*: torchtune now supports **Llama 3.3 70B**! Try it out by following our installation instructions [here](#Installation), then run any of the configs [here](recipes/configs/llama3_3).
+* *November 2024*: torchtune has released [v0.4.0](https://github.com/pytorch/torchtune/releases/tag/v0.4.0) which includes stable support for exciting features like activation offloading and multimodal QLoRA
+* *November 2024*: torchtune has added [Gemma2](recipes/configs/gemma2) to its models!
+* *October 2024*: torchtune added support for Qwen2.5 models - find the recipes [here](recipes/configs/qwen2_5/)
+* *September 2024*: torchtune has support for **Llama 3.2 11B Vision**, **Llama 3.2 3B**, and **Llama 3.2 1B** models! Try them out by following our installation instructions [here](#Installation), then run any of the text configs [here](recipes/configs/llama3_2) or vision configs [here](recipes/configs/llama3_2_vision).
 
 
 &nbsp;
@@ -36,7 +40,8 @@ torchtune currently supports the following models.
 
 | Model                                         | Sizes     |
 |-----------------------------------------------|-----------|
-| [Llama3.2-Vision](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2#-llama-3.2-vision-models-(11b/90b)-)    | 11B [[models](torchtune/models/llama3_2_vision/_model_builders.py), [configs](recipes/configs/llama3_2_vision/)]        |
+| [Llama3.3](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_3)    | 70B [[models](torchtune/models/llama3_3/_model_builders.py), [configs](recipes/configs/llama3_3/)]        |
+| [Llama3.2-Vision](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2#-llama-3.2-vision-models-(11b/90b)-)    | 11B, 90B [[models](torchtune/models/llama3_2_vision/_model_builders.py), [configs](recipes/configs/llama3_2_vision/)]        |
 | [Llama3.2](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2)    | 1B, 3B [[models](torchtune/models/llama3_2/_model_builders.py), [configs](recipes/configs/llama3_2/)]        |
 | [Llama3.1](https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1)    | 8B, 70B, 405B [[models](torchtune/models/llama3_1/_model_builders.py), [configs](recipes/configs/llama3_1/)]        |
 | [Llama3](https://llama.meta.com/llama3)    | 8B, 70B [[models](torchtune/models/llama3/_model_builders.py), [configs](recipes/configs/llama3/)]        |
@@ -44,8 +49,10 @@ torchtune currently supports the following models.
 | [Code-Llama2](https://ai.meta.com/blog/code-llama-large-language-model-coding/)   | 7B, 13B, 70B [[models](torchtune/models/code_llama2/_model_builders.py), [configs](recipes/configs/code_llama2/)] |
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[models](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[models](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
+| [Gemma2](https://huggingface.co/docs/transformers/main/en/model_doc/gemma2)   | 2B, 9B, 27B [[models](torchtune/models/gemma2/_model_builders.py), [configs](recipes/configs/gemma2/)] |
 | [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[models](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
 | [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 0.5B, 1.5B, 7B [[models](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
+| [Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) | 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B [[models](torchtune/models/qwen2_5/), [configs](recipes/configs/qwen2_5/)]
 
 We're always adding new models, but feel free to [file an issue](https://github.com/pytorch/torchtune/issues/new) if there's a new one you would like to see in torchtune.
 
@@ -62,7 +69,8 @@ torchtune provides the following finetuning recipes for training on one or more 
 | LoRA Finetuning | 1-8  | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py) | [Qwen2 0.5B single-device](recipes/configs/qwen2/0.5B_lora_single_device.yaml) <br> [Gemma 7B distributed](recipes/configs/gemma/7B_lora.yaml)
 | QLoRA Finetuning | 1-8 | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py)| [Phi3 Mini single-device](recipes/configs/phi3/mini_qlora_single_device.yaml) <br> [Llama 3.1 405B distributed](recipes/configs/llama3_1/405B_qlora.yaml)
 | DoRA/QDoRA Finetuning | 1-8 | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py)| [Llama3 8B QDoRA single-device](recipes/configs/llama3/8B_qdora_single_device.yaml) <br> [Llama3 8B DoRA distributed](recipes/configs/llama3/8B_dora.yaml)
-| Quantization-Aware Training | 4-8 | [qat_distributed](recipes/qat_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_full.yaml)
+| Quantization-Aware Training | 2-8 | [qat_distributed](recipes/qat_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_full.yaml)
+| Quantization-Aware Training and LoRA Finetuning | 2-8 | [qat_lora_finetune_distributed](recipes/qat_lora_finetune_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_lora.yaml)
 | Direct Preference Optimization |1-8 | [lora_dpo_single_device](recipes/lora_dpo_single_device.py) <br> [lora_dpo_distributed](recipes/lora_dpo_distributed.py) | [Llama2 7B single-device](recipes/configs/llama2/7B_lora_dpo_single_device.yaml) <br> [Llama2 7B distributed](recipes/configs/llama2/7B_lora_dpo.yaml)
 | Proximal Policy Optimization | 1 |  [ppo_full_finetune_single_device](recipes/ppo_full_finetune_single_device.py) | [Mistral 7B](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)
 | Knowledge Distillation | 1 | [knowledge_distillation_single_device](recipes/knowledge_distillation_single_device.py) | [Qwen2 1.5B -> 0.5B](recipes/configs/qwen2/knowledge_distillation_single_device.yaml)
@@ -98,6 +106,49 @@ If you are interested in running on different hardware or with different models,
 
 &nbsp;
 
+### Optimization flags
+
+torchtune exposes a number of levers for memory efficiency and performance. The table below demonstrates the effects of applying some of these techniques sequentially to the Llama 3.2 3B model. Each technique is added on top of the previous one, except for LoRA and QLoRA, which do not use `optimizer_in_bwd` or `AdamW8bit` optimizer.
+
+**Baseline:**
+- **Model:** Llama 3.2 3B
+- **Batch size:** 2
+- **Max seq len:** 4096
+- **Precision:** bf16
+- **Hardware:** A100
+- **Recipe:** full_finetune_single_device
+
+| Technique | Peak Memory Active (GiB) | % Change Memory vs Previous | Tokens Per Second | % Change Tokens/sec vs Previous|
+|:--|:-:|:-:|:-:|:-:|
+| Baseline | 25.5 | - | 2091 | - |
+| [+ Packed Dataset](https://pytorch.org/torchtune/main/basics/packing.html) | 60.0 | +135.16% | 7075 | +238.40% |
+| [+ Compile](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) | 51.0 | -14.93% | 8998 | +27.18% |
+| [+ Chunked Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html) | 42.9 | -15.83% | 9174 | +1.96% |
+| [+ Activation Checkpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 24.9 | -41.93% | 7210 | -21.41% |
+| [+ Fuse optimizer step into backward](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.1 | -7.29% | 7309 | +1.38% |
+| [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 21.8 | -5.48% | 7301 | -0.11% |
+| [+ 8-bit AdamW](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.6 | -19.63% | 6960 | -4.67% |
+| [LoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#glossary-lora) | 8.5 | -51.61% | 8210 | +17.96% |
+| [QLoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#quantized-low-rank-adaptation-qlora) | 4.6 | -45.71% | 8035 | -2.13% |
+
+The final row in the table vs baseline + Packed Dataset uses **81.9%** less memory with a **284.3%** increase in tokens per second. It can be run via the command:
+```
+tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
+dataset.packed=True \
+compile=True \
+loss=torchtune.modules.loss.CEWithChunkedOutputLoss \
+enable_activation_checkpointing=True \
+optimizer_in_bwd=False \
+enable_activation_offloading=True \
+optimizer=torch.optim.AdamW \
+tokenizer.max_seq_len=4096 \
+gradient_accumulation_steps=1 \
+epochs=1 \
+batch_size=2
+```
+
+&nbsp;
+
 ## Installation
 
 torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
@@ -119,7 +170,7 @@ pip install torchtune
 
 ```bash
 # Install PyTorch, torchvision, torchao nightlies
-pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu121 # full options are cpu/cu118/cu121/cu124
+pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126
 pip install --pre --upgrade torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 
@@ -162,6 +213,7 @@ To download Llama3.1, you can run:
 ```bash
 tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
 --output-dir /tmp/Meta-Llama-3.1-8B-Instruct \
+--ignore-patterns "original/consolidated.00.pth" \
 --hf-token <HF_TOKEN> \
 ```
 
@@ -258,6 +310,7 @@ We really value our community and the contributions made by our wonderful users.
 - [@fyabc](https://github.com/fyabc) for adding Qwen2 models, tokenizer, and recipe integration to torchtune
 - [@solitude-alive](https://github.com/solitude-alive) for adding the [Gemma 2B model](torchtune/models/gemma/) to torchtune, including recipe changes, numeric validations of the models and recipe correctness
 - [@yechenzhi](https://github.com/yechenzhi) for adding [Direct Preference Optimization (DPO)](recipes/lora_dpo_single_device.py) to torchtune, including the recipe and config along with correctness checks
+- [@Optimox](https://github.com/Optimox) for adding all the [Gemma2 variants](torchtune/models/gemma2) to torchtune!
 
 
 &nbsp;

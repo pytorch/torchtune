@@ -18,3 +18,4 @@ Miscellaneous
     get_device
     get_logger
     torch_version_ge
+    get_world_size_and_rank

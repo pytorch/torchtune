@@ -56,26 +56,31 @@ class TestPaddedCollateSFT:
 
 
 class TestPaddedCollateTiledImagesAndMask:
+    img_shape = 1, 1, 1
+    tokens_per_tile = 5
+
     @pytest.fixture
     def batch(self):
+        c, h, w = self.img_shape
+        s = self.tokens_per_tile
         return [
             {
                 "tokens": [1, 2, 1, 3],
                 "labels": [4, 5, 6, 7],
                 "encoder_input": {
-                    "images": [torch.ones(2, 1, 1, 1), torch.ones(3, 1, 1, 1)],
+                    "images": [torch.ones(2, c, h, w), torch.ones(3, c, h, w)],
                     "aspect_ratio": [torch.tensor([1, 2]), torch.tensor([1, 3])],
                 },
-                "encoder_mask": [torch.ones(4, 5 * 2), torch.ones(4, 5 * 3)],
+                "encoder_mask": [torch.ones(4, s * 2), torch.ones(4, s * 3)],
             },
             {
                 "tokens": [1, 4],
                 "labels": [8, 9],
                 "encoder_input": {
-                    "images": [torch.ones(4, 1, 1, 1)],
+                    "images": [torch.ones(4, c, h, w)],
                     "aspect_ratio": [torch.tensor([2, 2])],
                 },
-                "encoder_mask": [torch.ones(2, 5 * 4)],
+                "encoder_mask": [torch.ones(2, s * 4)],
             },
         ]
 
@@ -83,6 +88,9 @@ class TestPaddedCollateTiledImagesAndMask:
         actual = padded_collate_tiled_images_and_mask(
             batch=batch, padding_idx=0, ignore_idx=-100, pad_direction="right"
         )
+        imgs, tiles = actual["encoder_input"]["images"].shape[1:3]
+        seq_len = actual["encoder_mask"].shape[-1]
+        assert imgs * tiles * self.tokens_per_tile == seq_len
 
         mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 10)], dim=1)
         mask_2 = torch.concat([torch.ones(4, 5 * 3), torch.zeros(4, 5)], dim=1)
@@ -126,15 +134,23 @@ class TestPaddedCollateTiledImagesAndMask:
             ignore_idx=-100,
             pad_direction="left",
             pad_max_images=4,
+            pad_max_tiles=5,
         )
+        imgs, tiles = actual["encoder_input"]["images"].shape[1:3]
+        seq_len = actual["encoder_mask"].shape[-1]
+        assert 5 * 4 * self.tokens_per_tile == seq_len
 
-        mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 10)], dim=1)
-        mask_2 = torch.concat([torch.ones(4, 5 * 3), torch.zeros(4, 5)], dim=1)
+        # pad 3 extra tiles
+        mask_1 = torch.concat([torch.ones(4, 5 * 2), torch.zeros(4, 5 * 3)], dim=1)
+        # pad 2 extra tiles
+        mask_2 = torch.concat([torch.ones(4, 5 * 3), torch.zeros(4, 5 * 2)], dim=1)
+        # Left pad text tokens
         mask_3 = torch.concat([torch.zeros(2, 20), torch.ones(2, 5 * 4)], dim=0)
+        mask_3 = F.pad(mask_3, (0, 5), value=0)  # pad 5th tile
         sample_1 = torch.stack([mask_1, mask_2])
-        sample_2 = torch.stack([mask_3, torch.zeros(4, 20)])
+        sample_2 = torch.stack([mask_3, torch.zeros(4, 25)])
         expected_mask = torch.stack([sample_1, sample_2]).view(2, 4, -1)
-        expected_mask = F.pad(expected_mask, (0, 40), value=0)
+        expected_mask = F.pad(expected_mask, (0, 50), value=0)
 
         expected = {
             "tokens": torch.tensor([[1, 2, 1, 3], [0, 0, 1, 4]]),
@@ -142,12 +158,12 @@ class TestPaddedCollateTiledImagesAndMask:
                 "images": torch.tensor(
                     [
                         [
-                            [[[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]]],
-                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]]],
+                            [[[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
+                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]], [[[0.0]]]],
                         ],
                         [
-                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[1.0]]]],
-                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
+                            [[[[1.0]]], [[[1.0]]], [[[1.0]]], [[[1.0]]], [[[0.0]]]],
+                            [[[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]], [[[0.0]]]],
                         ],
                     ]
                 ),

@@ -89,3 +89,9 @@ class TestPrecisionUtils:
         m = torch.nn.Linear(10, 10)
         with pytest.raises(ValueError, match=f"has dtype {next(m.parameters()).dtype}"):
             validate_expected_param_dtype(m.named_parameters(), dtype=torch.float16)
+
+        validate_expected_param_dtype(
+            m.named_parameters(),
+            dtype=torch.float16,
+            exclude_param_names=[name for name, _ in m.named_parameters()],
+        )

@@ -230,7 +230,7 @@ Running generation with our LoRA-finetuned model, we see the following output:
 .. code-block:: bash
 
     tune run generate --config ./custom_generation_config.yaml \
-    prompt="Hello, my name is"
+    prompt.user="Hello, my name is"
 
     [generate.py:122] Hello, my name is Sarah and I am a busy working mum of two young children, living in the North East of England.
     ...

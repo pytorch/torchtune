@@ -54,7 +54,9 @@ class ForwardKLLoss(torch.nn.Module):
         mask = (labels != self.ignore_index).int()
         if not normalize:
             return -torch.sum(x * mask.view(-1), dim=0)
-        if torch.sum(mask.view(-1), dim=0) == 0:
+
+        sum_masks = torch.sum(mask.view(-1), dim=0)
+        if sum_masks == 0:
             return torch.tensor(0.0, device=x.device)
         return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
 
@@ -136,5 +138,9 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
             total_fkl_loss += self.fkl_loss(
                 student_chunk, teacher_chunk, label_chunk, normalize=False
             )
+
+        sum_masks = torch.sum(mask.view(-1), dim=0)
+        if sum_masks == 0:
+            return torch.tensor(0.0, device=student_logits[0].device)
 
         return total_fkl_loss / torch.sum(mask.view(-1), dim=0)

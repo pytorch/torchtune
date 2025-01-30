@@ -6,6 +6,31 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
+llama3.3
+--------
+
+Text-only models from the 3.3 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
+
+Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct>`__ before downloading it.
+
+To download the Llama-3.3-70B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-3.3-70B-Instruct --ignore-patterns "original/consolidated.00.pth" --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llama3_3.llama3_3_70b
+    llama3_3.lora_llama3_3_70b
+    llama3_3.qlora_llama3_3_70b
+
+.. note::
+
+    The Llama3.3 tokenizer reuses the :class:`~torchtune.models.llama3.llama3_tokenizer` class.
+
 llama3.2
 --------
 
@@ -99,7 +124,7 @@ To download the Llama3.1-405B-Instruct model:
     tune download meta-llama/Meta-Llama-3.1-405B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
 
 To download the Llama3 weights of the above models, you can instead download from `Meta-Llama-3-8B-Instruct` and
-`Meta-Llama-3-70B-Instruct`.
+`Meta-Llama-3-70B-Instruct`, and remove the ignore patterns flag.
 
 .. autosummary::
     :toctree: generated/
@@ -208,6 +233,47 @@ To download the CodeLlama-7B model:
     code_llama2.lora_code_llama2_70b
     code_llama2.qlora_code_llama2_70b
 
+qwen-2.5
+--------
+
+Models of size 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B from the `Qwen2.5 family <https://huggingface.co/collections/Qwen/qwen25-66e81a666513e518adb90d9e>`_.
+
+To download the Qwen2.5 1.5B model, for example:
+
+.. code-block:: bash
+
+    tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2_5-1_5B-Instruct
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    qwen2_5.qwen2_5_0_5b
+    qwen2_5.lora_qwen2_5_0_5b
+    qwen2_5.qwen2_5_1_5b_base
+    qwen2_5.qwen2_5_1_5b_instruct
+    qwen2_5.lora_qwen2_5_1_5b_base
+    qwen2_5.lora_qwen2_5_1_5b_instruct
+    qwen2_5.qwen2_5_3b
+    qwen2_5.lora_qwen2_5_3b
+    qwen2_5.qwen2_5_7b_base
+    qwen2_5.qwen2_5_7b_instruct
+    qwen2_5.lora_qwen2_5_7b_base
+    qwen2_5.lora_qwen2_5_7b_instruct
+    qwen2_5.qwen2_5_14b_base
+    qwen2_5.qwen2_5_14b_instruct
+    qwen2_5.lora_qwen2_5_14b_base
+    qwen2_5.lora_qwen2_5_14b_instruct
+    qwen2_5.qwen2_5_32b_base
+    qwen2_5.qwen2_5_32b_instruct
+    qwen2_5.lora_qwen2_5_32b_base
+    qwen2_5.lora_qwen2_5_32b_instruct
+    qwen2_5.qwen2_5_72b_base
+    qwen2_5.qwen2_5_72b_instruct
+    qwen2_5.lora_qwen2_5_72b_base
+    qwen2_5.lora_qwen2_5_72b_instruct
+    qwen2_5.qwen2_5_tokenizer
+
 qwen-2
 ------
 
@@ -217,7 +283,7 @@ To download the Qwen2 1.5B model, for example:
 
 .. code-block:: bash
 
-    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct --ignore-patterns None
+    tune download Qwen/Qwen2-1.5B-Instruct --output-dir /tmp/Qwen2-1.5B-Instruct
 
 .. autosummary::
     :toctree: generated/
@@ -225,12 +291,12 @@ To download the Qwen2 1.5B model, for example:
 
     qwen2.qwen2
     qwen2.lora_qwen2
-    qwen2.qwen2_7b
     qwen2.qwen2_0_5b
-    qwen2.qwen2_1_5b
-    qwen2.lora_qwen2_7b
     qwen2.lora_qwen2_0_5b
+    qwen2.qwen2_1_5b
     qwen2.lora_qwen2_1_5b
+    qwen2.qwen2_7b
+    qwen2.lora_qwen2_7b
     qwen2.qwen2_tokenizer
 
 phi-3
@@ -242,7 +308,7 @@ To download the Phi-3 Mini 4k instruct model:
 
 .. code-block:: bash
 
-    tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --ignore-patterns None --hf-token <HF_TOKEN>
+    tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -266,7 +332,7 @@ To download the Mistral 7B v0.1 model:
 
 .. code-block:: bash
 
-    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --hf-token <HF_TOKEN>
+    tune download mistralai/Mistral-7B-v0.1 --output-dir /tmp/Mistral-7B-v0.1 --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -320,8 +386,39 @@ To download the Gemma 7B model:
     gemma.gemma_tokenizer
 
 
+gemma2 :
+--------
+
+Models of size 2B, 9B, 27B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
+
+Important: You need to request access on `Hugging Face <https://huggingface.co/google/gemma-2-2b>`__ to use this model.
+
+To download the Gemma2 2B, 9B, 27B models :
+
+.. code-block:: bash
+
+    tune download google/gemma-2-<MODEL_SIZE>b --ignore-patterns "gemma-2-<MODEL_SIZE>b.gguf"  --hf-token <HF_TOKEN>
+
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    gemma2.gemma2
+    gemma2.lora_gemma2
+    gemma2.gemma2_2b
+    gemma2.lora_gemma2_2b
+    gemma2.qlora_gemma2_2b
+    gemma2.gemma2_9b
+    gemma2.lora_gemma2_9b
+    gemma2.qlora_gemma2_9b
+    gemma2.gemma2_27b
+    gemma2.lora_gemma2_27b
+    gemma2.qlora_gemma2_27b
+    gemma.gemma_tokenizer
+
 clip
------
+----
 
 Vision components to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
 

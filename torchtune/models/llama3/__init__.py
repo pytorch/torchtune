@@ -15,6 +15,7 @@ from ._model_builders import (  # noqa
     qlora_llama3_70b,
     qlora_llama3_8b,
 )
+from ._parallelism import base_llama_tp_plan
 from ._tokenizer import Llama3Tokenizer
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "lora_llama3_70b",
     "qlora_llama3_8b",
     "qlora_llama3_70b",
+    "base_llama_tp_plan",
 ]

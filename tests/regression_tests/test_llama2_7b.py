@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import re
 import runpy
 import sys
@@ -14,6 +15,7 @@ import torchtune
 from tests.common import TUNE_PATH
 from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
 
+from torchtune.training.checkpointing._utils import get_largest_iter_folder, SHARD_FNAME
 
 CKPT = "llama2_7b"
 
@@ -36,6 +38,8 @@ class TestLoRA7BDistributedFinetuneEval:
         ft_cmd = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config llama2/7B_lora \
+            model.lora_attn_modules=['q_proj','v_proj'] \
+            model.apply_lora_to_mlp=False \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -48,13 +52,19 @@ class TestLoRA7BDistributedFinetuneEval:
 
         monkeypatch.setattr(sys, "argv", ft_cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        suffix = ".bin"
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        )
         eval_cmd = f"""
         tune run eleuther_eval \
             --config eleuther_evaluation \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{tmpdir}' \
-            checkpointer.checkpoint_files=[torchtune_model_0.pt] \
+            checkpointer.checkpoint_files=[{os.path.join(tmpdir, epoch_folder, model_ckpt_fname)}]\
             checkpointer.output_dir={tmpdir} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tasks=['truthfulqa_mc2']

@@ -28,6 +28,8 @@ _CONFIG = {
     },
     "d": 4,
     "f": 8,
+    "g": "foo",
+    "h": "${g}/bar",
 }
 
 
@@ -50,7 +52,9 @@ class TestUtils:
         ):
             _ = _get_component_from_path("torchtune.models.dummy")
 
-    @mock.patch("torchtune.config._parse.OmegaConf.load", return_value=_CONFIG)
+    @mock.patch(
+        "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
+    )
     def test_merge_yaml_and_cli_args(self, mock_load):
         parser = TuneRecipeArgumentParser("test parser")
         yaml_args, cli_args = parser.parse_known_args(
@@ -63,6 +67,7 @@ class TestUtils:
                 "d=6",  # Test overriding a flat param
                 "e=7",  # Test adding a new param
                 "~f",  # Test removing a param
+                "g=bazz",  # Test interpolation happens after override
             ]
         )
         conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
@@ -75,6 +80,7 @@ class TestUtils:
         assert conf.d == 6, f"d == {conf.d}, not 6 as set in overrides."
         assert conf.e == 7, f"e == {conf.e}, not 7 as set in overrides."
         assert "f" not in conf, f"f == {conf.f}, not removed as set in overrides."
+        assert conf.h == "bazz/bar", f"h == {conf.h}, not bazz/bar as set in overrides."
         mock_load.assert_called_once()
 
         yaml_args, cli_args = parser.parse_known_args(
@@ -185,5 +191,5 @@ class TestUtils:
 
         # Test removing non-existent param fails
         cfg = copy.deepcopy(_CONFIG)
-        with pytest.raises(KeyError, match="'g'"):
-            _remove_key_by_dotpath(cfg, "g")
+        with pytest.raises(KeyError, match="'i'"):
+            _remove_key_by_dotpath(cfg, "i")

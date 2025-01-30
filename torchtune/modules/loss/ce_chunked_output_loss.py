@@ -33,7 +33,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         self.ignore_index = ignore_index
 
     def compute_cross_entropy(
-        self, logits: torch.Tensor, labels: torch.Tensor
+        self, logits: torch.Tensor, labels: torch.Tensor, normalize: bool = True
     ) -> torch.Tensor:
         """
         Upcast logits to fp32 and compute cross entropy loss.

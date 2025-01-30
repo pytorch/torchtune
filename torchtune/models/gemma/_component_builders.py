@@ -46,7 +46,6 @@ def gemma(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
-    norm_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the gemma model. This includes:
@@ -72,8 +71,6 @@ def gemma(
             Default: 0.0
         norm_eps (float): epsilon in RMS norms Default: 1e-6
         rope_base (int): base for the rotary positional embeddings. Default: 10_000
-        norm_embeddings (bool): whether to apply layer norm before the self-attention
-            and mlp layers. Default: True
 
     Returns:
         TransformerDecoder: Instantiation of gemma model.
@@ -146,7 +143,6 @@ def lora_gemma(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
-    norm_embeddings: bool = True,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -177,8 +173,6 @@ def lora_gemma(
             Default: 0.0
         norm_eps (float): epsilon in RMS norms Default: 1e-6
         rope_base (int): base for the rotary positional embeddings. Default: 10_000
-        norm_embeddings (bool): whether to apply layer norm before the self-attention
-            and mlp layers. Default: True
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0

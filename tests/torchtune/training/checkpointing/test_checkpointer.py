@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Tuple
 
 import pytest
+
 import torch
 from torch import randn
 
@@ -21,10 +22,14 @@ from torchtune.modules.peft import (
 )
 
 from torchtune.training.checkpointing import FullModelHFCheckpointer
+
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
+    ADAPTER_CONFIG_FNAME,
     ADAPTER_KEY,
+    ADAPTER_MODEL_FNAME,
     safe_torch_load,
+    SHARD_FNAME,
 )
 from torchtune.training.seed import set_seed
 
@@ -147,8 +152,11 @@ class TestHFLlama2FullModelCheckpointer:
             * embed_dim: 64
             * max_seq_len: 128
         """
-        checkpoint_file_1 = tmp_path / "llama2_hf_checkpoint_01.pt"
-        checkpoint_file_2 = tmp_path / "llama2_hf_checkpoint_02.pt"
+        checkpoint_dir = Path.joinpath(tmp_path, "checkpoint_dir")
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        checkpoint_file_1 = checkpoint_dir / "llama2_hf_checkpoint_01.pt"
+        checkpoint_file_2 = checkpoint_dir / "llama2_hf_checkpoint_02.pt"
 
         torch.save(state_dict_1, checkpoint_file_1)
         torch.save(state_dict_2, checkpoint_file_2)
@@ -158,7 +166,7 @@ class TestHFLlama2FullModelCheckpointer:
             "num_attention_heads": 4,
             "num_key_value_heads": 4,
         }
-        config_file = Path.joinpath(tmp_path, "config.json")
+        config_file = Path.joinpath(checkpoint_dir, "config.json")
         with config_file.open("w") as f:
             json.dump(config, f)
 
@@ -169,11 +177,13 @@ class TestHFLlama2FullModelCheckpointer:
         self, llama2_hf_checkpoints, tmp_path
     ) -> FullModelHFCheckpointer:
         checkpoint_file, _ = llama2_hf_checkpoints
+        checkpoint_dir = str(Path.joinpath(tmp_path, "checkpoint_dir"))
+        output_dir = str(Path.joinpath(tmp_path, "output_dir"))
         return FullModelHFCheckpointer(
-            checkpoint_dir=tmp_path,
+            checkpoint_dir=checkpoint_dir,
             checkpoint_files=[checkpoint_file],
             model_type="LLAMA2",
-            output_dir=tmp_path,
+            output_dir=output_dir,
         )
 
     @pytest.fixture
@@ -181,11 +191,13 @@ class TestHFLlama2FullModelCheckpointer:
         self, llama2_hf_checkpoints, tmp_path
     ) -> FullModelHFCheckpointer:
         checkpoint_file_1, checkpoint_file_2 = llama2_hf_checkpoints
+        checkpoint_dir = str(Path.joinpath(tmp_path, "checkpoint_dir"))
+        output_dir = str(Path.joinpath(tmp_path, "output_dir"))
         return FullModelHFCheckpointer(
-            checkpoint_dir=tmp_path,
+            checkpoint_dir=checkpoint_dir,
             checkpoint_files=[checkpoint_file_1, checkpoint_file_2],
             model_type="LLAMA2",
-            output_dir=tmp_path,
+            output_dir=output_dir,
         )
 
     def test_load_save_checkpoint_single_file(
@@ -236,7 +248,11 @@ class TestHFLlama2FullModelCheckpointer:
         # Reload the output checkpoint file and compare to the original checkpoint. This
         # assumes we know what the name of the file is. This is fine, breaking this logic
         # should be something we capture through this test
-        output_file = Path.joinpath(checkpoint_file.parent, "hf_model_0001_1.pt")
+        output_file = Path.joinpath(
+            checkpoint_file.parent.parent / "output_dir",
+            "epoch_1",
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)),
+        ).with_suffix(".safetensors")
         output_state_dict = safe_torch_load(output_file)
 
         # We ignore inv_freq as is standard practice and so output dict will have one less key
@@ -296,8 +312,16 @@ class TestHFLlama2FullModelCheckpointer:
         # Reload the output checkpoint file and compare to the original checkpoint. This
         # assumes we know what the name of the file is. This is fine, breaking this logic
         # should be something we capture through this test
-        output_file_1 = Path.joinpath(checkpoint_file_1.parent, "hf_model_0001_1.pt")
-        output_file_2 = Path.joinpath(checkpoint_file_2.parent, "hf_model_0002_1.pt")
+        output_file_1 = Path.joinpath(
+            checkpoint_file_1.parent.parent / "output_dir",
+            "epoch_1",
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="2".zfill(5)),
+        ).with_suffix(".safetensors")
+        output_file_2 = Path.joinpath(
+            checkpoint_file_2.parent.parent / "output_dir",
+            "epoch_1",
+            SHARD_FNAME.format(cpt_idx="2".zfill(5), num_shards="2".zfill(5)),
+        ).with_suffix(".safetensors")
         output_state_dict_1 = safe_torch_load(output_file_1)
         output_state_dict_2 = safe_torch_load(output_file_2)
 
@@ -320,8 +344,16 @@ class TestHFLlama2FullModelCheckpointer:
         state_dict[ADAPTER_KEY] = {}
         single_file_checkpointer.save_checkpoint(state_dict, epoch=2, adapter_only=True)
 
-        output_file_1 = Path.joinpath(tmp_path, "hf_model_0001_2.pt")
-        output_file_2 = Path.joinpath(tmp_path, "adapter_2.pt")
+        output_file_1 = Path.joinpath(
+            tmp_path / "output_dir",
+            "epoch_2",
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)),
+        )
+        output_file_2 = Path.joinpath(
+            tmp_path / "output_dir",
+            "epoch_2",
+            f"{ADAPTER_MODEL_FNAME}.safetensors",
+        )
 
         with pytest.raises(ValueError, match="Unable to load checkpoint from"):
             _ = safe_torch_load(output_file_1)
@@ -414,12 +446,16 @@ class TestHFLlama2FullModelCheckpointer:
 
         # Load saved adapter weights and config from file for comparison
         adapter_weights_file = Path.joinpath(
-            checkpoint_file.parent, "adapter_model.bin"
+            checkpoint_file.parent.parent / "output_dir",
+            "epoch_1",
+            f"{ADAPTER_MODEL_FNAME}.safetensors",
         )
         actual_adapter_state_dict = safe_torch_load(adapter_weights_file)
 
         adapter_config_file = Path.joinpath(
-            checkpoint_file.parent, "adapter_config.json"
+            checkpoint_file.parent.parent / "output_dir",
+            "epoch_1",
+            f"{ADAPTER_CONFIG_FNAME}.json",
         )
         with open(adapter_config_file, "r") as f:
             adapter_config = json.load(f)
@@ -535,7 +571,10 @@ class TestHFMistralRewardModelFullModelCheckpointer:
             * intermediate_dim: 256
 
         """
-        checkpoint_file = tmp_path / "mistral_reward_model_hf_checkpoint.pt"
+        checkpoint_dir = Path.joinpath(tmp_path, "checkpoint_dir")
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        checkpoint_file = checkpoint_dir / "mistral_reward_model_hf_checkpoint.pt"
 
         torch.save(state_dict, checkpoint_file)
 
@@ -545,7 +584,7 @@ class TestHFMistralRewardModelFullModelCheckpointer:
             "num_key_value_heads": 4,
             "num_classes": 1,
         }
-        config_file = Path.joinpath(tmp_path, "config.json")
+        config_file = Path.joinpath(checkpoint_dir, "config.json")
         with config_file.open("w") as f:
             json.dump(config, f)
 
@@ -556,11 +595,13 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         self, mistral_reward_model_hf_checkpoint, tmp_path
     ) -> FullModelHFCheckpointer:
         checkpoint_file = mistral_reward_model_hf_checkpoint
+        checkpoint_dir = str(Path.joinpath(tmp_path, "checkpoint_dir"))
+        output_dir = str(Path.joinpath(tmp_path, "output_dir"))
         return FullModelHFCheckpointer(
-            checkpoint_dir=tmp_path,
+            checkpoint_dir=checkpoint_dir,
             checkpoint_files=[checkpoint_file],
             model_type="REWARD",
-            output_dir=tmp_path,
+            output_dir=output_dir,
         )
 
     def test_load_save_checkpoint_single_file(
@@ -612,7 +653,11 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         # Reload the output checkpoint file and compare to the original checkpoint. This
         # assumes we know what the name of the file is. This is fine, breaking this logic
         # should be something we capture through this test
-        output_file = Path.joinpath(checkpoint_file.parent, "hf_model_0001_1.pt")
+        output_file = Path.joinpath(
+            checkpoint_file.parent.parent / "output_dir",
+            "epoch_1",
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)),
+        ).with_suffix(".safetensors")
         output_state_dict = safe_torch_load(output_file)
 
         assert len(output_state_dict.keys()) == len(orig_state_dict.keys()) - 1
@@ -681,7 +726,10 @@ class TestHFGemmaFullModelCheckpointer:
             * head_dim : 16
 
         """
-        checkpoint_file = tmp_path / "gemma_hf_checkpoint.pt"
+        checkpoint_dir = Path.joinpath(tmp_path, "checkpoint_dir")
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        checkpoint_file = checkpoint_dir / "gemma_hf_checkpoint.pt"
 
         torch.save(state_dict, checkpoint_file)
 
@@ -692,7 +740,7 @@ class TestHFGemmaFullModelCheckpointer:
             "head_dim": _HEAD_DIM,
             "intermediate_size": _HIDDEN_DIM,
         }
-        config_file = Path.joinpath(tmp_path, "config.json")
+        config_file = Path.joinpath(checkpoint_dir, "config.json")
         with config_file.open("w") as f:
             json.dump(config, f)
 
@@ -703,11 +751,13 @@ class TestHFGemmaFullModelCheckpointer:
         self, gemma_hf_checkpoint, tmp_path
     ) -> FullModelHFCheckpointer:
         checkpoint_file = gemma_hf_checkpoint
+        checkpoint_dir = str(Path.joinpath(tmp_path, "checkpoint_dir"))
+        output_dir = str(Path.joinpath(tmp_path, "output_dir"))
         return FullModelHFCheckpointer(
-            checkpoint_dir=tmp_path,
+            checkpoint_dir=checkpoint_dir,
             checkpoint_files=[checkpoint_file],
             model_type="GEMMA",
-            output_dir=tmp_path,
+            output_dir=output_dir,
         )
 
     def test_load_save_checkpoint_single_file(
@@ -760,7 +810,11 @@ class TestHFGemmaFullModelCheckpointer:
         # Reload the output checkpoint file and compare to the original checkpoint. This
         # assumes we know what the name of the file is. This is fine, breaking this logic
         # should be something we capture through this test
-        output_file = Path.joinpath(checkpoint_file.parent, "hf_model_0001_1.pt")
+        output_file = Path.joinpath(
+            checkpoint_file.parent.parent / "output_dir",
+            "epoch_1",
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)),
+        ).with_suffix(".safetensors")
         output_state_dict = safe_torch_load(output_file)
 
         assert len(output_state_dict.keys()) == len(orig_state_dict.keys())

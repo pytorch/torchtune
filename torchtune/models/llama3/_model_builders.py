@@ -3,17 +3,17 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional
 from functools import partial
+from typing import List, Optional
+
+from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
 from torchtune.models.llama3._component_builders import llama3, lora_llama3
+from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 
 from torchtune.modules import TransformerDecoder
-from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
-from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._prompt_templates import _get_prompt_template
 
 
 """
@@ -40,7 +40,7 @@ def llama3_8b() -> TransformerDecoder:
         intermediate_dim=14336,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
     )
 
 
@@ -61,18 +61,23 @@ def llama3_70b() -> TransformerDecoder:
         intermediate_dim=28672,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
     )
 
- 
-def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Llama3Tokenizer:
+
+def llama3_tokenizer(
+    path: str,
+    special_tokens_path: Optional[str] = None,
+    max_seq_len: Optional[int] = None,
+    prompt_template: Optional[_TemplateType] = None,
+) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
     Args:
         path (str): path to the tokenizer
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens, or a local json file 
+            model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
@@ -80,13 +85,24 @@ def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_s
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
             prepend/append tags.
-    
+
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3 tokenizer
     """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
+    special_tokens = (
+        parse_hf_tokenizer_json(special_tokens_path)
+        if special_tokens_path is not None
+        else None
+    )
+    template = (
+        _get_prompt_template(prompt_template) if prompt_template is not None else None
+    )
+    return Llama3Tokenizer(
+        path=path,
+        special_tokens=special_tokens,
+        max_seq_len=max_seq_len,
+        prompt_template=template,
+    )
 
 
 def lora_llama3_8b(
@@ -137,7 +153,7 @@ def lora_llama3_8b(
         intermediate_dim=14336,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
@@ -194,7 +210,7 @@ def lora_llama3_70b(
         intermediate_dim=28672,
         attn_dropout=0.0,
         norm_eps=1e-5,
-        rope_base=500000.0,
+        rope_base=500_000,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,

@@ -184,10 +184,47 @@ class TestTransformerCrossAttentionLayer:
         return transformer_layer
 
     @mps_ignored_test()
+    def test_forward_kv_cache(
+        self,
+        input: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        transformer_layer: TransformerCrossAttentionLayer,
+        input_params: Tuple[int, int, int, int],
+    ):
+
+        b, _, encoder_seq_len, _ = input_params
+        transformer_layer.setup_caches(
+            batch_size=b,
+            dtype=torch.float32,
+            encoder_max_seq_len=encoder_seq_len,
+            decoder_max_seq_len=None,
+        )
+        input_x, input_y, mask = input
+        with torch.no_grad():
+            # make an initial forward pass which should fill the encoder cache
+            first_output = transformer_layer(
+                input_x,
+                encoder_input=input_y,
+                encoder_mask=mask,
+            )
+            # the second pass should just retrieve from the kv-cache and produce
+            # identical outputs
+            output = transformer_layer(
+                input_x,
+                encoder_input=None,
+                encoder_mask=mask,
+            )
+
+        assert_expected(output.mean(), torch.tensor(1.7762), atol=1e-8, rtol=1e-3)
+        assert_expected(output.shape, input_x.shape)
+
+        assert_expected(first_output.shape, output.shape)
+        assert_expected(first_output.mean(), output.mean())
+
+    @mps_ignored_test()
     def test_forward(
         self,
         input: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-        transformer_layer: TransformerSelfAttentionLayer,
+        transformer_layer: TransformerCrossAttentionLayer,
     ) -> None:
         input_x, input_y, mask = input
         with torch.no_grad():

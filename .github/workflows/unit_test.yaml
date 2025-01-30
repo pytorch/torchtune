@@ -37,6 +37,6 @@ jobs:
           python -m pip install torch torchvision torchao
           python -m pip install -e ".[dev]"
       - name: Run unit tests with coverage
-        run: pytest tests --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest tests --ignore tests/torchtune/modules/_export --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

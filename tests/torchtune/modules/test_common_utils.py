@@ -14,6 +14,7 @@ from torchtune.models.llama3_2_vision._component_builders import (
     llama3_2_vision_encoder,
 )
 from torchtune.modules import delete_kv_caches, disable_kv_cache, local_kv_cache
+from torchtune.modules.common_utils import slice_str_to_array
 from torchtune.modules.model_fusion import DeepFusionModel
 
 
@@ -191,3 +192,28 @@ class TestDisableKVCaches:
         with pytest.raises(ValueError, match="Model caches must be setup"):
             with disable_kv_cache(model):
                 pass
+
+
+class TestSliceStrToArray:
+    def test_single_index(self):
+        assert slice_str_to_array("0", 5) == [True, False, False, False, False]
+
+    def test_slice_with_start_and_end(self):
+        assert slice_str_to_array("1:3", 5) == [False, True, True, False, False]
+
+    def test_slice_with_start_and_step(self):
+        assert slice_str_to_array("1::2", 5) == [False, True, False, True, False]
+
+    def test_slice_with_start_end_and_step(self):
+        assert slice_str_to_array("1:4:2", 5) == [False, True, False, True, False]
+
+    def test_multiple_indices(self):
+        assert slice_str_to_array("0,2,4", 6) == [True, False, True, False, True, False]
+
+    def test_out_of_range_index(self):
+        with pytest.raises(AssertionError):
+            slice_str_to_array("10", 5)
+
+    def test_invalid_slice_format(self):
+        with pytest.raises(AssertionError):
+            slice_str_to_array("1:2:3:4", 5)

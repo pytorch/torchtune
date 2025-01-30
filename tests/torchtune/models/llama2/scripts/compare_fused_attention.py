@@ -256,7 +256,6 @@ def compare_attn(
     max_seq_len: int,
     use_kv_cache: bool,
 ):
-
     torch.manual_seed(16)
     inputs = torch.randn(4, 2048, 4096)
 
@@ -269,8 +268,9 @@ def compare_attn(
         kv_cache = KVCache(
             batch_size=4,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
+            dtype=inputs.dtype,
         )
     else:
         kv_cache = None
@@ -330,7 +330,6 @@ def compare_attn(
 
 
 if __name__ == "__main__":
-
     # compare mha
     mha = {
         "num_heads": 32,

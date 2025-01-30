@@ -4,30 +4,43 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from functools import partial
 from enum import Enum
-from typing import Optional, List
+from functools import partial
+from typing import List, Optional
 
 from torch import nn
+from torchtune.models.clip._component_builders import (
+    clip_mlp,
+    clip_vision_encoder,
+    lora_clip_attention,
+    lora_clip_mlp,
+    lora_clip_vision_encoder,
+)
 
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
-from torchtune.models.llama3_1._component_builders import llama3_mlp, lora_llama3_mlp, lora_llama3_attention
+from torchtune.models.llama3_1._component_builders import (
+    llama3_mlp,
+    lora_llama3_attention,
+    lora_llama3_mlp,
+)
 from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
-from torchtune.models.clip._component_builders import clip_vision_encoder, clip_mlp, lora_clip_attention, lora_clip_mlp, lora_clip_vision_encoder
-from torchtune.models.llama3_2_vision._encoder import Llama3VisionProjectionHead, Llama3VisionEncoder
-
-from torchtune.modules.model_fusion import FusionEmbedding, FusionLayer
+from torchtune.models.llama3_2_vision._encoder import (
+    Llama3VisionEncoder,
+    Llama3VisionProjectionHead,
+)
 from torchtune.modules import (
+    Fp32LayerNorm,
+    MultiHeadAttention,
     RMSNorm,
     TanhGate,
     TransformerCrossAttentionLayer,
-    MultiHeadAttention,
     TransformerDecoder,
     TransformerSelfAttentionLayer,
-    Fp32LayerNorm
 )
 
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
+
+from torchtune.modules.model_fusion import FusionEmbedding, FusionLayer
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
 
@@ -59,7 +72,7 @@ def llama3_2_vision_encoder(
     tile_size: int,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-    ) -> Llama3VisionEncoder:
+) -> Llama3VisionEncoder:
     """
     Build the Llama 3.2 vision encoder by combining the CLIP image model with an additional
     projection head fusion module. This includes:
@@ -76,7 +89,7 @@ def llama3_2_vision_encoder(
         clip_embed_dim (int): The dimensionality of each patch embedding in CLIP.
         clip_num_layers (int): The number of transformer layers.
         clip_hidden_states (Optional[List[int]]): The indices of CLIP hidden layers to return
-            to return to the encoder projection head. It will return the intermediate results 
+            to return to the encoder projection head. It will return the intermediate results
             of the vision transformer layers which will be concatenated with the CLIP output
             and input into the projection head. For example, ``clip_hidden_states=[0,3]`` will
             return the embeddings before they go through the first and fourth layers.
@@ -113,7 +126,7 @@ def llama3_2_vision_encoder(
         num_heads=num_heads,
         decoder_embed_dim=decoder_embed_dim,
         clip_embed_dim=clip_embed_dim,
-        num_hidden_inputs=len(clip_hidden_states or [])
+        num_hidden_inputs=len(clip_hidden_states or []),
     )
 
     return Llama3VisionEncoder(clip=clip, projection_head=projection_head)
@@ -239,6 +252,7 @@ def llama3_2_vision_decoder(
         output=output_proj,
     )
 
+
 def llama3_2_vision_projection_head(
     *,
     num_layers: int,
@@ -306,8 +320,9 @@ def llama3_2_vision_projection_head(
     return Llama3VisionProjectionHead(
         layers=layers,
         output=nn.Linear(proj_in, decoder_embed_dim),
-        num_hidden_inputs=num_hidden_inputs
+        num_hidden_inputs=num_hidden_inputs,
     )
+
 
 # ------------------ LoRA Llama 3.2 Vision ------------------
 
@@ -344,7 +359,8 @@ def lora_llama3_2_vision_encoder(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
-    ) -> Llama3VisionEncoder:
+    **quantization_kwargs,
+) -> Llama3VisionEncoder:
     """
     Build the Llama 3.2 vision encoder by combining the CLIP image model with an additional
     projection head fusion module. This includes:
@@ -361,7 +377,7 @@ def lora_llama3_2_vision_encoder(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
+        apply_lora_to_output (bool): whether to apply LoRA to the model's decoder and encoder output projection.
             Default: False
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
             E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
@@ -370,7 +386,7 @@ def lora_llama3_2_vision_encoder(
         clip_embed_dim (int): The dimensionality of each patch embedding in CLIP.
         clip_num_layers (int): The number of transformer layers.
         clip_hidden_states (Optional[List[int]]): The indices of CLIP hidden layers to return
-            to return to the encoder projection head. It will return the intermediate results 
+            to return to the encoder projection head. It will return the intermediate results
             of the vision transformer layers which will be concatenated with the CLIP output
             and input into the projection head. For example, ``clip_hidden_states=[0,3]`` will
             return the embeddings before they go through the first and fourth layers.
@@ -388,7 +404,7 @@ def lora_llama3_2_vision_encoder(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
-        
+
 
     Returns:
         Llama3VisionEncoder: Instantiation of Llama 3.2 vision encoder.
@@ -396,12 +412,12 @@ def lora_llama3_2_vision_encoder(
     lora_options = {
         "lora_modules": lora_attn_modules,
         "apply_lora_to_mlp": apply_lora_to_mlp,
-        "apply_lora_to_output": apply_lora_to_output,
         "lora_rank": lora_rank,
         "lora_alpha": lora_alpha,
         "lora_dropout": lora_dropout,
         "use_dora": use_dora,
         "quantize_base": quantize_base,
+        **quantization_kwargs,
     }
 
     # clip encoder
@@ -423,7 +439,7 @@ def lora_llama3_2_vision_encoder(
     else:
         clip = clip_vision_encoder(**clip_options)
 
-    # Projection 
+    # Projection
     projection_options = {
         "num_layers": num_layers_projection,
         "num_heads": num_heads,
@@ -432,11 +448,24 @@ def lora_llama3_2_vision_encoder(
         "num_hidden_inputs": len(clip_hidden_states or []),
     }
     if fusion_lora:
-        projection_head = lora_llama3_2_vision_projection_head(**projection_options, **lora_options)
+        projection_head = lora_llama3_2_vision_projection_head(
+            apply_lora_to_output=apply_lora_to_output,
+            **projection_options,
+            **lora_options,
+        )
     else:
-        projection_head = lora_llama3_2_vision_projection_head(**projection_options)
+        projection_head = llama3_2_vision_projection_head(**projection_options)
 
-    return Llama3VisionEncoder(clip=clip, projection_head=projection_head)
+    encoder = Llama3VisionEncoder(clip=clip, projection_head=projection_head)
+
+    if quantize_base:
+        # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
+        # so as to not increase peak memory
+        encoder._register_state_dict_hook(
+            partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
+        )
+
+    return encoder
 
 
 def lora_llama3_2_vision_decoder(
@@ -458,7 +487,7 @@ def lora_llama3_2_vision_decoder(
     encoder_max_seq_len: int,
     rope_base: int = 500000.0,
     intermediate_dim: Optional[int] = None,
-     # LoRA parameters
+    # LoRA parameters
     lora_rank: int = 8,
     lora_alpha: float = 16,
     lora_dropout: float = 0.0,
@@ -520,22 +549,37 @@ def lora_llama3_2_vision_decoder(
     for idx in range(1, num_layers + 1):
 
         # Self attention layers for text decoder
-        self_attn = lora_llama3_attention(
-            lora_modules=lora_attn_modules,
-            pos_embeddings=rope,
-            head_dim=head_dim,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            max_seq_len=max_seq_len,
-            attn_dropout=0.0,
-            lora_rank=lora_rank,
-            lora_alpha=lora_alpha,
-            lora_dropout=lora_dropout,
-            use_dora=use_dora,
-            quantize_base=quantize_base,
-        )
-        if apply_lora_to_mlp:
+        if decoder_lora:
+            self_attn = lora_llama3_attention(
+                lora_modules=lora_attn_modules,
+                pos_embeddings=rope,
+                head_dim=head_dim,
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                num_kv_heads=num_kv_heads,
+                max_seq_len=max_seq_len,
+                attn_dropout=0.0,
+                lora_rank=lora_rank,
+                lora_alpha=lora_alpha,
+                lora_dropout=lora_dropout,
+                use_dora=use_dora,
+                quantize_base=quantize_base,
+            )
+        else:
+            self_attn = MultiHeadAttention(
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                num_kv_heads=num_kv_heads,
+                head_dim=head_dim,
+                q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+                k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+                pos_embeddings=rope,
+                max_seq_len=max_seq_len,
+                attn_dropout=0.0,
+            )
+        if apply_lora_to_mlp and decoder_lora:
             mlp = lora_llama3_mlp(
                 dim=embed_dim,
                 hidden_dim=hidden_dim,
@@ -546,7 +590,9 @@ def lora_llama3_2_vision_decoder(
                 use_dora=use_dora,
             )
         else:
-            mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
+            mlp = llama3_mlp(
+                dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base
+            )
         decoder_layer = TransformerSelfAttentionLayer(
             attn=self_attn,
             mlp=mlp,
@@ -557,25 +603,43 @@ def lora_llama3_2_vision_decoder(
         # cross attention layers, mixing text and vision,
         # placed every `fusion_interval` layers
         if idx % fusion_interval == 0:
-            attn = lora_llama3_attention(
-                lora_modules=lora_attn_modules,
-                pos_embeddings=None,
-                head_dim=head_dim,
-                embed_dim=embed_dim,
-                num_heads=num_heads,
-                num_kv_heads=num_kv_heads,
-                q_norm=RMSNorm(dim=head_dim, eps=1e-05),
-                k_norm=RMSNorm(dim=head_dim, eps=1e-05),
-                max_seq_len=encoder_max_seq_len,
-                is_causal=False,
-                attn_dropout=0.0,
-                lora_rank=lora_rank,
-                lora_alpha=lora_alpha,
-                lora_dropout=lora_dropout,
-                use_dora=use_dora,
-                quantize_base=quantize_base,
-            )
-            if apply_lora_to_mlp:
+            if fusion_lora:
+                attn = lora_llama3_attention(
+                    lora_modules=lora_attn_modules,
+                    pos_embeddings=None,
+                    head_dim=head_dim,
+                    embed_dim=embed_dim,
+                    num_heads=num_heads,
+                    num_kv_heads=num_kv_heads,
+                    q_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    k_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    max_seq_len=encoder_max_seq_len,
+                    is_causal=False,
+                    attn_dropout=0.0,
+                    lora_rank=lora_rank,
+                    lora_alpha=lora_alpha,
+                    lora_dropout=lora_dropout,
+                    use_dora=use_dora,
+                    quantize_base=quantize_base,
+                )
+            else:
+                attn = MultiHeadAttention(
+                    embed_dim=embed_dim,
+                    num_heads=num_heads,
+                    num_kv_heads=num_kv_heads,
+                    head_dim=head_dim,
+                    q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+                    k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                    v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+                    output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+                    q_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    k_norm=RMSNorm(dim=head_dim, eps=1e-05),
+                    pos_embeddings=None,
+                    max_seq_len=encoder_max_seq_len,
+                    is_causal=False,
+                    attn_dropout=0.0,
+                )
+            if apply_lora_to_mlp and fusion_lora:
                 mlp = lora_llama3_mlp(
                     dim=embed_dim,
                     hidden_dim=hidden_dim,
@@ -586,7 +650,9 @@ def lora_llama3_2_vision_decoder(
                     use_dora=use_dora,
                 )
             else:
-                mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base)
+                mlp = llama3_mlp(
+                    dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base
+                )
             xattn_layer = TransformerCrossAttentionLayer(
                 attn=attn,
                 mlp=mlp,
@@ -601,12 +667,18 @@ def lora_llama3_2_vision_decoder(
             layers.append(decoder_layer)
 
     tok_embeddings = FusionEmbedding(vocab_size, num_special_tokens, embed_dim)
-    
-     # TODO: quantize_base is not applied to final output_proj currently.
+
+    # TODO: quantize_base is not applied to final output_proj currently.
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        adapter_cls(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
-        if apply_lora_to_output
+        adapter_cls(
+            embed_dim,
+            vocab_size,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+        )
+        if apply_lora_to_output and decoder_lora
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
 
@@ -647,6 +719,7 @@ def lora_llama3_2_vision_projection_head(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    **quantization_kwargs,
 ) -> Llama3VisionProjectionHead:
     """
     Build the Llama 3.2 Vision Projection Head with LoRA applied to a subset of the layers.
@@ -661,9 +734,7 @@ def lora_llama3_2_vision_projection_head(
         clip_embed_dim (int): embedding dimension for the CLIP encoder.
         num_hidden_inputs (int): number of hidden inputs to the projection head.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
-            Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -685,7 +756,7 @@ def lora_llama3_2_vision_projection_head(
             lora_modules=lora_modules,
             embed_dim=clip_embed_dim,
             num_heads=num_heads,
-            num_kv_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             head_dim=head_dim,
             attn_dropout=0.0,
             lora_rank=lora_rank,
@@ -693,6 +764,7 @@ def lora_llama3_2_vision_projection_head(
             lora_dropout=lora_dropout,
             use_dora=use_dora,
             quantize_base=quantize_base,
+            **quantization_kwargs,
         )
 
         if apply_lora_to_mlp:
@@ -706,6 +778,7 @@ def lora_llama3_2_vision_projection_head(
                 quantize_base=quantize_base,
                 lora_dropout=lora_dropout,
                 use_dora=use_dora,
+                **quantization_kwargs,
             )
         else:
             mlp = clip_mlp(
@@ -713,7 +786,8 @@ def lora_llama3_2_vision_projection_head(
                 hidden_dim=hidden_dim,
                 out_dim=clip_embed_dim,
                 activation=nn.GELU(),
-                quantize_base=quantize_base
+                quantize_base=quantize_base,
+                **quantization_kwargs,
             )
 
         layer = TransformerSelfAttentionLayer(
@@ -733,7 +807,14 @@ def lora_llama3_2_vision_projection_head(
     proj_in = clip_embed_dim * (num_hidden_inputs + 1)
     adapter_cls = DoRALinear if use_dora else LoRALinear
     output_proj = (
-        adapter_cls(proj_in, decoder_embed_dim, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout, use_bias=True)
+        adapter_cls(
+            proj_in,
+            decoder_embed_dim,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            dropout=lora_dropout,
+            use_bias=True,
+        )
         if apply_lora_to_output
         else nn.Linear(proj_in, decoder_embed_dim)
     )

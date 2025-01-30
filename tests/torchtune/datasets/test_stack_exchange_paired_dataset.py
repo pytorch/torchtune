@@ -100,6 +100,16 @@ class TestStackExchangePairedDataset:
             # Check that the input is masked
             assert sample["rejected_labels"].count(CROSS_ENTROPY_IGNORE_IDX) == 52
 
+    def test_dataset_fails_with_packed(self):
+        with pytest.raises(
+            ValueError,
+            match="Packed is currently not supported for preference datasets",
+        ):
+            stack_exchange_paired_dataset(
+                tokenizer=DummyTokenizer(),
+                packed=True,
+            )
+
 
 class TestStackExchangePairedToMessages:
     @pytest.fixture

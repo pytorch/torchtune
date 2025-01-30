@@ -3,6 +3,8 @@
 # To launch, run the following command:
 #    tune run eleuther_eval --config phi3/evaluation
 
+output_dir: ./ # Not needed
+
 # Model Arguments
 model:
   _component_: torchtune.models.phi3.phi3_mini
@@ -16,7 +18,7 @@ checkpointer:
     model-00002-of-00002.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Phi-3-mini-4k-instruct
+  output_dir: ${output_dir}
   model_type: PHI3_MINI
 resume_from_checkpoint: False
 

@@ -65,5 +65,5 @@ def get_fusion_params(model: nn.Module) -> Dict[str, nn.Parameter]:
                     current_fusion_params.remove(n)
             assert (
                 current_fusion_params == []
-            ), f"Fusion params {current_adapter_params} not converted"
+            ), f"Fusion params {current_fusion_params} not converted"
     return fusion_params

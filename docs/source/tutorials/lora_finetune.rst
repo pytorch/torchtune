@@ -205,8 +205,7 @@ model without any wrappers or custom checkpoint conversion logic.
 
 .. note::
     Whenever loading weights with :code:`strict=False`, you should verify that any missing or extra keys in
-    the loaded :code:`state_dict` are as expected. torchtune's LoRA recipes do this by default via e.g.
-    :func:`validate_state_dict_for_lora() <torchtune.modules.peft.validate_state_dict_for_lora>` or
+    the loaded :code:`state_dict` are as expected. torchtune's LoRA recipes do this by default via
     :func:`validate_missing_and_unexpected_for_lora() <torchtune.modules.peft.validate_missing_and_unexpected_for_lora>`.
 
 Once we've loaded the base model weights, we also want to set only LoRA parameters to trainable.

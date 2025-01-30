@@ -16,11 +16,11 @@ from torchtune.modules.peft import (
     disable_adapter,
     DoRALinear,
     get_adapter_params,
+    get_adapter_state_dict,
     get_merged_lora_ckpt,
     LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
-    validate_state_dict_for_lora,
 )
 
 N_LAYERS = 3
@@ -38,30 +38,30 @@ ALPHA = 1
 class DummyAdapterModule(nn.Module, AdapterModule):
     def __init__(self, in_dim, out_dim):
         super().__init__()
-        self.adapter = nn.Linear(in_dim, out_dim, bias=False)
+        self.lora = nn.Linear(in_dim, out_dim, bias=False)
         self.linear = nn.Linear(in_dim, out_dim)
 
     def adapter_params(self):
-        return ["adapter.weight"]
+        return ["lora.weight"]
 
     def forward(self, x):
-        return self.adapter(x) + self.non_adapter(x)
+        return self.lora(x) + self.non_adapter(x)
 
 
 class DummyAdapterParentModel(nn.Module, AdapterModule):
     def __init__(self, in_dim, out_dim):
         super().__init__()
         self.dummy_adapter_module = DummyAdapterModule(in_dim, out_dim)
-        self.parent_adapter = nn.Linear(in_dim, out_dim)
+        self.parent_lora = nn.Linear(in_dim, out_dim)
         self.parent_base_model = nn.Linear(in_dim, out_dim)
 
     def adapter_params(self):
-        return ["parent_adapter.weight", "parent_adapter.bias"]
+        return ["parent_lora.weight", "parent_lora.bias"]
 
     def forward(self, x):
         return (
             self.dummy_adapter_module(x)
-            + self.parent_adapter(x)
+            + self.parent_lora(x)
             + self.parent_base_model(x)
         )
 
@@ -79,9 +79,9 @@ def dummy_model_expected_adapter_keys():
     for i in range(N_LAYERS):
         keys.extend(
             [
-                f"{i}.parent_adapter.weight",
-                f"{i}.parent_adapter.bias",
-                f"{i}.dummy_adapter_module.adapter.weight",
+                f"{i}.parent_lora.weight",
+                f"{i}.parent_lora.bias",
+                f"{i}.dummy_adapter_module.lora.weight",
             ]
         )
     return keys
@@ -205,6 +205,20 @@ class TestPeftUtils:
         assert set(expected) == set(adapter_params.keys())
 
     @pytest.mark.parametrize(
+        "model_name, expected_keys",
+        [
+            ("dummy_adapter_parent_model", "dummy_model_expected_adapter_keys"),
+            ("lora_llama2_model", "lora_llama2_expected_adapter_keys"),
+            ("dora_llama2_model", "dora_llama2_expected_adapter_keys"),
+        ],
+    )
+    def test_get_adapter_state_dict(self, request, model_name, expected_keys):
+        model = request.getfixturevalue(model_name)
+        adapter_state_dict = get_adapter_state_dict(model.state_dict())
+        expected = request.getfixturevalue(expected_keys)
+        assert set(expected) == set(adapter_state_dict.keys())
+
+    @pytest.mark.parametrize(
         "model_name, expected_trainable_keys, expected_frozen_keys",
         [
             (
@@ -246,165 +260,6 @@ class TestPeftUtils:
             lora_attn_modules,
             apply_lora_to_mlp,
             apply_lora_to_output,
-            full_model_state_dict_keys,
-            lora_state_dict_keys,
-            base_model_state_dict_keys,
-            expected
-            """
-        ),
-        [
-            (
-                ["q_proj", "k_proj"],
-                False,
-                False,
-                ["q_proj.lora_a.weight", "dummy_param.weight"],
-                ["q_proj.lora_a.weight"],
-                ["dummy_param.weight"],
-                "",
-            ),
-            (
-                ["v_proj"],
-                False,
-                False,
-                ["param_a", "param_b"],
-                None,
-                ["param_a", "param_b"],
-                "",
-            ),
-            (
-                ["output_proj"],
-                False,
-                True,
-                ["output_proj.weight", "output_proj.lora_a.weight"],
-                ["output_proj.lora_a.weight"],
-                ["output_proj.weight"],
-                "",
-            ),
-            (["q_proj"], False, False, ["param_a"], [], [], "Missing non-LoRA"),
-            (
-                ["k_proj", "output_proj"],
-                False,
-                True,
-                ["k_proj.lora_a.weight", "param_a"],
-                ["k_proj.lora_a.weight", "param_a"],
-                ["param_a"],
-                "found in LoRA",
-            ),
-            (
-                ["k_proj"],
-                False,
-                False,
-                ["k_proj.lora_a.weight"],
-                [],
-                ["k_proj.lora_a.weight"],
-                "found in base model",
-            ),
-            (
-                ["k_proj"],
-                False,
-                False,
-                ["k_proj.lora_a.weight"],
-                [],
-                None,
-                "Missing LoRA",
-            ),
-            (["q_proj"], False, False, [], ["a"], ["a"], "overlapping"),
-            (
-                ["v_proj"],
-                False,
-                False,
-                ["dummy_param.weight"],
-                ["v_proj.lora_a.weight"],
-                ["dummy_param.weight"],
-                "Extra",
-            ),
-            (
-                ["w1", "w2", "w3"],
-                True,
-                False,
-                ["w1.lora_a.weight", "w2.weight", "q_proj.weight"],
-                ["w1.lora_a.weight"],
-                ["q_proj.weight"],
-                "Missing non-LoRA key",
-            ),
-            (
-                ["q_proj", "output"],
-                False,
-                True,
-                [
-                    "q_proj.lora_a",
-                    "output.weight",
-                    "output.lora_a",
-                    "output_proj.lora_b",
-                ],
-                ["q_proj.lora_a", "output.lora_a", "output_proj.lora_b"],
-                ["output.weight"],
-                "Missing non-LoRA key",
-            ),
-            (
-                ["q_proj", "v_proj"],
-                False,
-                False,
-                "lora_llama2_model_all_keys",
-                "lora_llama2_expected_adapter_keys",
-                "lora_llama2_expected_base_model_keys",
-                "",
-            ),
-            (
-                ["q_proj", "v_proj"],
-                False,
-                False,
-                "dora_llama2_model_all_keys",
-                "dora_llama2_expected_adapter_keys",
-                "lora_llama2_expected_base_model_keys",
-                "",
-            ),
-        ],
-    )
-    def test_validate_lora_state_dict(
-        self,
-        request,
-        lora_attn_modules,
-        apply_lora_to_mlp,
-        apply_lora_to_output,
-        full_model_state_dict_keys,
-        lora_state_dict_keys,
-        base_model_state_dict_keys,
-        expected,
-    ):
-        if isinstance(full_model_state_dict_keys, str):
-            full_model_state_dict_keys = request.getfixturevalue(
-                full_model_state_dict_keys
-            )
-        if isinstance(lora_state_dict_keys, str):
-            lora_state_dict_keys = request.getfixturevalue(lora_state_dict_keys)
-        if isinstance(base_model_state_dict_keys, str):
-            base_model_state_dict_keys = request.getfixturevalue(
-                base_model_state_dict_keys
-            )
-        if expected:
-            with pytest.raises(AssertionError, match=expected):
-                validate_state_dict_for_lora(
-                    lora_attn_modules,
-                    apply_lora_to_mlp,
-                    apply_lora_to_output,
-                    full_model_state_dict_keys=full_model_state_dict_keys,
-                    lora_state_dict_keys=lora_state_dict_keys,
-                    base_model_state_dict_keys=base_model_state_dict_keys,
-                )
-        else:
-            validate_state_dict_for_lora(
-                lora_attn_modules,
-                apply_lora_to_mlp,
-                apply_lora_to_output,
-                full_model_state_dict_keys=full_model_state_dict_keys,
-                lora_state_dict_keys=lora_state_dict_keys,
-                base_model_state_dict_keys=base_model_state_dict_keys,
-            )
-
-    @pytest.mark.parametrize(
-        (
-            """
             base_missing,
             base_unexpected,
             lora_missing,
@@ -413,10 +268,81 @@ class TestPeftUtils:
             """
         ),
         [
-            (["k_proj.lora"], [], ["q_proj.lora"], [], "Missing LoRA"),
-            (["k_proj.lora"], [], ["q_proj.magnitude"], [], "Missing LoRA"),
-            (["output_proj.lora"], [], ["q_proj.lora"], [], "Missing non-LoRA"),
             (
+                ["q_proj", "k_proj"],
+                False,
+                False,
+                ["q_proj.lora_a.weight"],
+                [],
+                ["dummy_param.weight"],
+                [],
+                "",
+            ),
+            (["v_proj"], False, False, [], [], ["param_a", "param_b"], [], ""),
+            (
+                ["output_proj"],
+                False,
+                True,
+                ["output_proj.lora_a.weight"],
+                [],
+                ["output_proj.weight"],
+                [],
+                "",
+            ),
+            (
+                ["q_proj"],
+                False,
+                False,
+                ["param_a"],
+                [],
+                ["param_a"],
+                [],
+                "Missing non-LoRA",
+            ),
+            (
+                ["k_proj", "output_proj"],
+                False,
+                True,
+                [],
+                [],
+                ["k_proj.lora_a.weight"],
+                [],
+                "Missing LoRA key",
+            ),
+            (
+                ["q_proj", "k_proj"],
+                True,
+                False,
+                ["k_proj.lora"],
+                [],
+                ["q_proj.lora"],
+                [],
+                "Missing LoRA",
+            ),
+            (
+                ["q_proj", "k_proj"],
+                True,
+                False,
+                ["k_proj.lora"],
+                [],
+                ["q_proj.magnitude"],
+                [],
+                "Missing LoRA",
+            ),
+            (
+                ["q_proj", "k_proj"],
+                True,
+                False,
+                ["output_proj.lora"],
+                [],
+                ["q_proj.lora"],
+                [],
+                "Missing non-LoRA",
+            ),
+            (
+                ["q_proj", "k_proj"],
+                True,
+                False,
                 ["k_proj.lora"],
                 ["output.weight"],
                 ["q_proj.base_weight"],
@@ -424,21 +350,39 @@ class TestPeftUtils:
                 "loading base model",
             ),
             (
+                ["q_proj", "k_proj"],
+                True,
+                False,
                 ["k_proj.lora"],
                 [],
                 ["q_proj.base_weight"],
                 ["output.weight"],
                 "loading adapter",
             ),
-            (["k_proj.lora"], [], ["q_proj.base_weight"], [], ""),
+            (
+                ["q_proj", "k_proj"],
+                True,
+                False,
+                ["k_proj.lora"],
+                [],
+                ["q_proj.base_weight"],
+                [],
+                "",
+            ),
         ],
     )
     def test_validate_missing_and_unexpected_for_lora(
-        self, base_missing, base_unexpected, lora_missing, lora_unexpected, expected
+        self,
+        lora_attn_modules,
+        apply_lora_to_mlp,
+        apply_lora_to_output,
+        base_missing,
+        base_unexpected,
+        lora_missing,
+        lora_unexpected,
+        expected,
     ):
-        lora_attn_modules = ["q_proj", "k_proj"]
-        apply_lora_to_mlp = True
-        apply_lora_to_output = False
+
         if expected:
             with pytest.raises(AssertionError, match=expected):
                 validate_missing_and_unexpected_for_lora(

@@ -136,7 +136,7 @@ used for inference or generation.
 QAT finetuning recipe in torchtune
 ----------------------------------
 
-Putting it all together, we can now fine-tune a model using torchtune’s `QAT recipe <qat_distributed_recipe_label>`.
+Putting it all together, we can now fine-tune a model using torchtune’s :ref:`QAT recipe<qat_distributed_recipe_label>`.
 Make sure that you have first downloaded the Llama3 weights and tokenizer by
 following :ref:`these instructions<download_llama_label>`. In this tutorial,
 we use the following settings to demonstrate QAT’s effectiveness in recovering
@@ -167,11 +167,6 @@ modifications accordingly:
   max_steps_per_epoch: 2000
   fake_quant_after_n_steps: 1000
   memory_efficient_fsdp_wrap: False
-
-.. note::
-
-  QAT in torchtune is currently not compatible with `memory_efficient_fsdp_wrap <https://pytorch.org/torchtune/stable/generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy>`_.
-  This is a known issue and will be fixed in a future torchtune version.
 
 Empirically, we observed that disabling fake quantization for the first N steps
 led to better results, presumably because doing so allows the weights to stabilize

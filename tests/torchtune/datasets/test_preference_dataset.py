@@ -155,3 +155,17 @@ class TestPreferenceDataset:
 
         assert expected_chosen_labels[0] == ds[0]["chosen_labels"]
         assert expected_rejected_labels[0] == ds[0]["rejected_labels"]
+
+    def test_dataset_fails_with_packed(self):
+        with pytest.raises(
+            ValueError,
+            match="Packed is currently not supported for preference datasets.",
+        ):
+            preference_dataset(
+                tokenizer=DummyTokenizer(),
+                source="json",
+                data_files=str(ASSETS / "hh_rlhf_tiny.json"),
+                train_on_input=False,
+                split="train",
+                packed=True,
+            )

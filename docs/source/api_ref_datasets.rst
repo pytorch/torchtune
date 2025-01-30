@@ -6,11 +6,11 @@ torchtune.datasets
 
 .. currentmodule:: torchtune.datasets
 
-For a detailed general usage guide, please see our :ref:`datasets tutorial <dataset_tutorial_label>`.
+For a detailed general usage guide, please see :ref:`datasets_overview`.
 
 
 Text datasets
-------------------
+-------------
 
 torchtune supports several widely used text-only datasets to help quickly bootstrap your fine-tuning.
 
@@ -37,6 +37,7 @@ Image + Text datasets
 
     multimodal.llava_instruct_dataset
     multimodal.the_cauldron_dataset
+    multimodal.vqa_dataset
 
 .. _dataset_builders:
 

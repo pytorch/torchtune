@@ -187,6 +187,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
             all_encoded_messages,
             pad_direction="left",
             pad_max_images=self._max_images_per_sample,
+            pad_max_tiles=self._transform.max_num_tiles,
         )
         utils.batch_to_device(tok_batch, self.device)
 
@@ -440,10 +441,10 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         # Double check we have the right Eval Harness version
         from importlib.metadata import version
 
-        if version("lm-eval") != "0.4.5":
+        if version("lm-eval") < "0.4.5":
             raise RuntimeError(
-                "This recipe requires EleutherAI Eval Harness v0.4.5. "
-                "Please install with `pip install lm-eval==0.4.5`"
+                "This recipe requires EleutherAI Eval Harness v0.4.5 or higher. "
+                "Please install with `pip install lm-eval>=0.4.5`"
             )
 
         # General variable initialization
@@ -546,9 +547,11 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         # Log metrics
         self.logger.info(f"Eval completed in {t1:.02f} seconds.")
-        self.logger.info(
-            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
-        )
+        if self.device.type != "cpu":
+            torch_device = utils.get_torch_device_namespace()
+            self.logger.info(
+                f"Max memory allocated: {torch_device.max_memory_allocated() / 1e9:.02f} GB"
+            )
         formatted_output = make_table(output)
         self.logger.info(f"\n\n{formatted_output}\n")
 

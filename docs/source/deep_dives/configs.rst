@@ -89,8 +89,8 @@ this by taking a look at the :func:`~torchtune.config.instantiate` API.
 
     def instantiate(
         config: DictConfig,
-        *args: Tuple[Any, ...],
-        **kwargs: Dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
     )
 
 :func:`~torchtune.config.instantiate` also accepts positional arguments

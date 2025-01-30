@@ -6,10 +6,9 @@
 
 import re
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import torch
-
 
 # state dict key mappings from Meta's format to torchtune's format
 _FROM_META = {
@@ -231,6 +230,7 @@ _PEFT_CONFIG_EXPECTED_KEYS = ["target_modules", "r", "lora_alpha"]
 
 def tune_to_peft_adapter_config(
     adapter_config: Dict[str, Any],
+    base_model_name_or_path: Optional[str] = None,
 ):
     if not all([x in adapter_config.keys() for x in _PEFT_CONFIG_EXPECTED_KEYS]):
         raise ValueError(
@@ -244,6 +244,10 @@ def tune_to_peft_adapter_config(
         map(_TO_PEFT_TARGET_MODULES.get, adapter_config["target_modules"])
     )
 
+    # needed for PEFT to load the adapter weights
+    if base_model_name_or_path:
+        adapter_config["base_model_name_or_path"] = base_model_name_or_path
+
     return adapter_config
 
 
@@ -252,23 +256,28 @@ def tune_to_peft_adapter_weights(
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
-    head_dim: int = None,
+    head_dim: Optional[int] = None,
 ):
     converted_state_dict = {}
     full_mapping = {}
-    # Rather than recreate a separate mapping for LoRA adapter weights, we just
-    # re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
-    # once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
-    for k, v in _TO_PEFT_KEYS.items():
-        full_mapping.update(
-            {
-                vv.replace(".weight", f".{k}.weight"): kk.replace(
-                    ".weight", f".{v}.weight"
-                )
-                for kk, vv in _FROM_HF.items()
-                if vv is not None
-            }
-        )
+    # Rather than recreate a separate mapping for LoRA adapter weights, we re-use the
+    # _FROM_HF mapping for base model weights. The mapping is adapted to account for:
+    # LoRA A matrices, LoRA B matrices and the dora magnitude parameter.
+    for peft_key, peft_val in _TO_PEFT_KEYS.items():
+        for hf_key, hf_val in _FROM_HF.items():
+            if hf_val is None:
+                continue
+
+            if peft_key == "magnitude":
+                # e.g. attn.q_proj.magnitude -> attn.q_proj.lora_magnitude_vector
+                adapter_key = hf_val.replace(".weight", f".{peft_key}")
+                adapter_val = hf_key.replace(".weight", f".{peft_val}")
+            else:
+                # e.g. attn.q_proj.lora_a.weight -> attn.q_proj.lora_A.weight
+                adapter_key = hf_val.replace(".weight", f".{peft_key}.weight")
+                adapter_val = hf_key.replace(".weight", f".{peft_val}.weight")
+
+            full_mapping.update({adapter_key: adapter_val})
 
     if head_dim is None:
         head_dim = dim // num_heads

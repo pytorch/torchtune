@@ -18,9 +18,8 @@ import torch.distributed
 from omegaconf import DictConfig
 from torch._C._profiler import _ExperimentalConfig
 from torch.profiler import tensorboard_trace_handler
-from torchtune.training import get_world_size_and_rank
 
-from torchtune.utils import get_logger
+from torchtune.utils import get_logger, get_world_size_and_rank
 
 log = get_logger("INFO")
 

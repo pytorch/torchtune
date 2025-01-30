@@ -14,9 +14,12 @@ from ._encoder import Llama3VisionEncoder, Llama3VisionProjectionHead
 
 from ._model_builders import (  # noqa
     llama3_2_vision_11b,
+    llama3_2_vision_90b,
     llama3_2_vision_transform,
     lora_llama3_2_vision_11b,
+    lora_llama3_2_vision_90b,
     qlora_llama3_2_vision_11b,
+    qlora_llama3_2_vision_90b,
 )
 from ._transform import Llama3VisionTransform
 
@@ -25,6 +28,9 @@ __all__ = [
     "llama3_2_vision_transform",
     "lora_llama3_2_vision_11b",
     "qlora_llama3_2_vision_11b",
+    "llama3_2_vision_90b",
+    "lora_llama3_2_vision_90b",
+    "qlora_llama3_2_vision_90b",
     "llama3_2_vision_decoder",
     "llama3_2_vision_encoder",
     "lora_llama3_2_vision_decoder",
