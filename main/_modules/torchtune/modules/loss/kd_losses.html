@@ -509,6 +509,114 @@
         <span class="k">return</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">ReverseKLLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The Kullback-Leibler divergence loss for valid indexes.</span>
+<span class="sd">    Implementation of https://github.com/jongwooko/distillm/blob/17c0f98bc263b1861a02d5df578c84aea652ee65/distillm/losses.py</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ignore_index (int):  Specifies a target value that is ignored and does not contribute to the input gradient.</span>
+<span class="sd">            The loss is divided over non-ignored targets.</span>
+<span class="sd">            Default: -100.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">student_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            student_logits (torch.Tensor): logits from student model of shape</span>
+<span class="sd">                (batch_size*num_tokens, vocab_size).</span>
+<span class="sd">            teacher_logits (torch.Tensor): logits from teacher model of shape</span>
+<span class="sd">                (batch_size*num_tokens, vocab_size).</span>
+<span class="sd">            labels (torch.Tensor): Ground truth labels of shape</span>
+<span class="sd">                (batch_size, vocab_size).</span>
+<span class="sd">            normalize (bool): Whether to normalize the loss by the number of unmasked elements.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: KL divergence loss of shape (1,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">student_prob</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">student_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="n">student_logprob</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">student_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">teacher_logprob</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">teacher_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="n">inf_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">student_logits</span><span class="p">)</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">teacher_logits</span><span class="p">)</span>
+
+        <span class="n">prod_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">student_prob</span> <span class="o">*</span> <span class="n">teacher_logprob</span><span class="p">,</span> <span class="n">inf_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">prod_probs</span> <span class="o">-=</span> <span class="n">torch</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">student_prob</span> <span class="o">*</span> <span class="n">student_logprob</span><span class="p">,</span> <span class="n">inf_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">prod_probs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SymmetricKLLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The Symmetric Kullback-Leibler divergence loss for valid indexes.</span>
+<span class="sd">    Implementation of https://github.com/jongwooko/distillm/blob/17c0f98bc263b1861a02d5df578c84aea652ee65/distillm/losses.py</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sym_kd_ratio (float): Ratio of symmetric KL divergence loss.</span>
+<span class="sd">            When set to 1 this loss reduces to forward KL divergence, when set to 0 this loss reduces to reverse kl divergence.</span>
+<span class="sd">        ignore_index (int):  Specifies a target value that is ignored and does not contribute to the input gradient.</span>
+<span class="sd">            The loss is divided over non-ignored targets.</span>
+<span class="sd">            Default: -100.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If sym_kd_ratio is not in the range [0, 1].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sym_kd_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">sym_kd_ratio</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">sym_kd_ratio</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;sym_kd_ratio must be in the range [0, 1]&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sym_kd_ratio</span> <span class="o">=</span> <span class="n">sym_kd_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fkl</span> <span class="o">=</span> <span class="n">ForwardKLLoss</span><span class="p">(</span><span class="n">ignore_index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rkl</span> <span class="o">=</span> <span class="n">ReverseKLLoss</span><span class="p">(</span><span class="n">ignore_index</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">student_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            student_logits (torch.Tensor): logits from student model of shape</span>
+<span class="sd">                (batch_size*num_tokens, vocab_size).</span>
+<span class="sd">            teacher_logits (torch.Tensor): logits from teacher model of shape</span>
+<span class="sd">                (batch_size*num_tokens, vocab_size).</span>
+<span class="sd">            labels (torch.Tensor): Ground truth labels of shape</span>
+<span class="sd">                (batch_size, vocab_size).</span>
+<span class="sd">            normalize (bool): Whether to normalize the loss by the number of unmasked elements.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: KL divergence loss of shape (1,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sym_kd_ratio</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fkl</span><span class="p">(</span>
+            <span class="n">student_logits</span><span class="p">,</span> <span class="n">teacher_logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">normalize</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sym_kd_ratio</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rkl</span><span class="p">(</span>
+            <span class="n">student_logits</span><span class="p">,</span> <span class="n">teacher_logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">normalize</span>
+        <span class="p">)</span>
+
+
 <div class="viewcode-block" id="ForwardKLWithChunkedOutputLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ForwardKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Forward KL with chunked outputs that saves memory by only upcasting one chunk at a time.</span>
@@ -592,6 +700,179 @@
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">student_logits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">total_fkl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ReverseKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reverse KL with chunked outputs that saves memory by only upcasting one chunk at a time.</span>
+
+<span class="sd">    Since the model is trained with bf16, before computing KL divergence, we have to upcast</span>
+<span class="sd">    it to fp32 for better accuracy and stability. When upcasting happens, the memory usage doubles.</span>
+<span class="sd">    Models like llama3 have large vocabulary size and, therefore, have a large output</span>
+<span class="sd">    result (bsz, num_tokens, vocab_size). If we chunk on the token level, you can still compute</span>
+<span class="sd">    the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        num_output_chunks (int): Number of chunks to chunk the output into. Each chunk has shape</span>
+<span class="sd">            (batch_size, num_tokens / num_output_chunks, vocab_size).</span>
+<span class="sd">            Default: 8</span>
+<span class="sd">        ignore_index (int): Specifies a target value that is ignored and does not contribute to the input gradient.</span>
+<span class="sd">            The loss is divided over non-ignored targets.</span>
+<span class="sd">            Default: -100</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rkl_loss</span> <span class="o">=</span> <span class="n">ReverseKLLoss</span><span class="p">(</span><span class="n">ignore_index</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">student_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            student_logits (List[torch.Tensor]): List of chunked logits from student model of length</span>
+<span class="sd">                ``self.num_output_chunks``, where each chunk has shape</span>
+<span class="sd">                (batch_size, num_tokens / num_output_chunks, vocab_size).</span>
+<span class="sd">            teacher_logits (List[torch.Tensor]): List of chunked logits from teacher model of length</span>
+<span class="sd">                ``self.num_output_chunks``, where each chunk has shape</span>
+<span class="sd">                (batch_size, num_tokens / num_output_chunks, vocab_size).</span>
+<span class="sd">            labels (torch.Tensor): Ground truth labels of shape (batch_size, num_tokens).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: KL divergence loss of shape (1,).</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; loss_fn = ReverseKLWithChunkedOutputLoss()</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; h = torch.tensor([bsz, num_tokens, dim])</span>
+<span class="sd">            &gt;&gt;&gt; output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]</span>
+<span class="sd">            &gt;&gt;&gt; teacher_chunks = [teacher_model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]</span>
+<span class="sd">            &gt;&gt;&gt; labels = torch.tensor([bsz, num_tokens])</span>
+<span class="sd">            &gt;&gt;&gt; loss = loss_fn(output_chunks, teacher_chunks, labels)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># reshape logits [(bsz, num_tokens/num_chunks, vocab)] -&gt; [(bsz*num_tokens/num_chunks, vocab)]</span>
+        <span class="n">teacher_logits</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">teacher_logits_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">teacher_logits_chunk</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">teacher_logits_chunk</span> <span class="ow">in</span> <span class="n">teacher_logits</span>
+        <span class="p">]</span>
+        <span class="n">student_logits</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">student_logits_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">student_logits_chunk</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">student_logits_chunk</span> <span class="ow">in</span> <span class="n">student_logits</span>
+        <span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+        <span class="c1"># chunk and reshape labels (bsz, num_tokens, vocab) -&gt; [(bsz*num_tokens/num_chunks, vocab)]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">target_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target_chunk</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">total_rkl_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">student_logits</span><span class="p">,</span> <span class="n">teacher_logits</span><span class="p">,</span> <span class="n">labels</span>
+        <span class="p">):</span>
+            <span class="n">total_rkl_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rkl_loss</span><span class="p">(</span>
+                <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">total_rkl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SymmetricKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Symmetric KL with chunked outputs that saves memory by only upcasting one chunk at a time.</span>
+
+<span class="sd">    Since the model is trained with bf16, before computing KL divergence, we have to upcast</span>
+<span class="sd">    it to fp32 for better accuracy and stability. When upcasting happens, the memory usage doubles.</span>
+<span class="sd">    Models like llama3 have large vocabulary size and, therefore, have a large output</span>
+<span class="sd">    result (bsz, num_tokens, vocab_size). If we chunk on the token level, you can still compute</span>
+<span class="sd">    the cross entropy normally, but upcasting only one chunk at a time saves considerable memory.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        num_output_chunks (int): Number of chunks to chunk the output into. Each chunk has shape</span>
+<span class="sd">            (batch_size, num_tokens / num_output_chunks, vocab_size).</span>
+<span class="sd">            Default: 8</span>
+<span class="sd">        sym_kd_ratio (float): Ratio of symmetric KL divergence loss.</span>
+<span class="sd">            When set to 1 this loss reduces to forward KL divergence, when set to 0 this loss reduces to reverse kl divergence.</span>
+<span class="sd">            Default: 0.5</span>
+<span class="sd">        ignore_index (int): Specifies a target value that is ignored and does not contribute to the input gradient.</span>
+<span class="sd">            The loss is divided over non-ignored targets.</span>
+<span class="sd">            Default: -100</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">sym_kd_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sym_kd_ratio</span> <span class="o">=</span> <span class="n">sym_kd_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sym_kl_loss</span> <span class="o">=</span> <span class="n">SymmetricKLLoss</span><span class="p">(</span>
+            <span class="n">sym_kd_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_kd_ratio</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">student_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            student_logits (List[torch.Tensor]): List of chunked logits from student model of length</span>
+<span class="sd">                ``self.num_output_chunks``, where each chunk has shape</span>
+<span class="sd">                (batch_size, num_tokens / num_output_chunks, vocab_size).</span>
+<span class="sd">            teacher_logits (List[torch.Tensor]): List of chunked logits from teacher model of length</span>
+<span class="sd">                ``self.num_output_chunks``, where each chunk has shape</span>
+<span class="sd">                (batch_size, num_tokens / num_output_chunks, vocab_size).</span>
+<span class="sd">            labels (torch.Tensor): Ground truth labels of shape (batch_size, num_tokens).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: KL divergence loss of shape (1,).</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; loss_fn = SymmetricKLWithChunkedOutputLoss()</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; h = torch.tensor([bsz, num_tokens, dim])</span>
+<span class="sd">            &gt;&gt;&gt; output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]</span>
+<span class="sd">            &gt;&gt;&gt; teacher_chunks = [teacher_model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]</span>
+<span class="sd">            &gt;&gt;&gt; labels = torch.tensor([bsz, num_tokens])</span>
+<span class="sd">            &gt;&gt;&gt; loss = loss_fn(output_chunks, teacher_chunks, labels)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># reshape logits [(bsz, num_tokens/num_chunks, vocab)] -&gt; [(bsz*num_tokens/num_chunks, vocab)]</span>
+        <span class="n">teacher_logits</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">teacher_logits_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">teacher_logits_chunk</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">teacher_logits_chunk</span> <span class="ow">in</span> <span class="n">teacher_logits</span>
+        <span class="p">]</span>
+        <span class="n">student_logits</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">student_logits_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">student_logits_chunk</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">student_logits_chunk</span> <span class="ow">in</span> <span class="n">student_logits</span>
+        <span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
+        <span class="c1"># chunk and reshape labels (bsz, num_tokens, vocab) -&gt; [(bsz*num_tokens/num_chunks, vocab)]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">target_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target_chunk</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">total_sym_kl_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">student_logits</span><span class="p">,</span> <span class="n">teacher_logits</span><span class="p">,</span> <span class="n">labels</span>
+        <span class="p">):</span>
+            <span class="n">total_sym_kl_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sym_kl_loss</span><span class="p">(</span>
+                <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">total_sym_kl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 
              </article>
