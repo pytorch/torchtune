@@ -15,6 +15,7 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
+import torch.distributed as dist
 from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -658,7 +659,18 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
+
+        # Running metrics
         running_loss = 0
+        running_metrics = {
+            "rewards/chosen": 0,
+            "rewards/rejected": 0,
+            "rewards/accuracies": 0,
+            "log_probs/chosen": 0,
+            "log_probs/rejected": 0,
+            "logits/chosen": 0,
+            "logits/rejected": 0,
+        }
         num_tokens = 0
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -706,16 +718,32 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     reference_chosen_log_probs,
                     reference_rejected_log_probs,
                 )
-
-                loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
+                loss = loss.mean()
+
                 loss = loss / self._gradient_accumulation_steps
+
+                # Update running metrics
                 running_loss += loss
+                scaling_factor = (1 / self._gradient_accumulation_steps) # to average out between grad_acc steps
+                running_metrics["rewards/chosen"] += scaling_factor * chosen_rewards.mean()
+                running_metrics["rewards/rejected"] += scaling_factor * rejected_rewards.mean()
+                running_metrics["rewards/accuracies"] += scaling_factor * reward_accuracies.mean()
+                running_metrics["log_probs/chosen"] += scaling_factor * policy_chosen_log_probs.detach().mean()
+                running_metrics["log_probs/rejected"] += scaling_factor * policy_rejected_log_probs.detach().mean()
+                running_metrics["logits/chosen"] += scaling_factor * policy_chosen_logits_mean
+                running_metrics["logits/rejected"] += scaling_factor * policy_rejected_logits_mean
+
                 loss.backward()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    # Accumulate running metrics across all devices
+                    dist.all_reduce(running_loss, op=dist.ReduceOp.AVG)
+                    for key in running_metrics:
+                        dist.all_reduce(running_metrics[key], op=dist.ReduceOp.AVG)
+
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
                     self._lr_scheduler.step()
@@ -739,20 +767,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                            "rewards/chosen": chosen_rewards.mean().cpu(),
-                            "rewards/rejected": rejected_rewards.mean().cpu(),
-                            "rewards/accuracies": reward_accuracies.mean().cpu(),
-                            "rewards/margins": (chosen_rewards - rejected_rewards)
-                            .mean()
-                            .cpu(),
-                            "log_probs/rejected": policy_rejected_log_probs.detach()
-                            .mean()
-                            .cpu(),
-                            "log_probs/chosen": policy_chosen_log_probs.detach()
-                            .mean()
-                            .cpu(),
-                            "logits/rejected": policy_rejected_logits_mean.cpu(),
-                            "logits/chosen": policy_chosen_logits_mean.cpu(),
+                            "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
+                            "rewards/rejected": running_metrics["rewards/rejected"].cpu(),
+                            "rewards/accuracies": running_metrics["rewards/accuracies"].cpu(),
+                            "rewards/margins": (running_metrics["rewards/chosen"] - running_metrics["rewards/rejected"]).cpu(),
+                            "log_probs/chosen": running_metrics["log_probs/chosen"].cpu(),
+                            "log_probs/rejected": running_metrics["log_probs/rejected"].cpu(),
+                            "logits/chosen": running_metrics["logits/chosen"].cpu(),
+                            "logits/rejected": running_metrics["logits/rejected"].cpu(),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -765,7 +787,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                     # Reset running stats for the next step
                     running_loss = 0
+                    running_metrics = {key: 0 for key in running_metrics}
                     num_tokens = 0
+
                     t0 = time.perf_counter()
 
             self.epochs_run += 1
