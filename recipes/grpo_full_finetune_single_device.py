@@ -15,14 +15,20 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, generation, modules, training, utils
+from torchtune import config, generation, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 
 # Only needed if we do LoRA.
-from torchtune.modules.peft import disable_adapter
+from torchtune.modules.peft import (
+    disable_adapter, 
+    get_adapter_state_dict, 
+    get_adapter_params, 
+    set_trainable_params,
+    validate_missing_and_unexpected_for_lora,
+)
 
 import importlib
 
@@ -200,14 +206,13 @@ def get_per_token_logprobs(
     in the completion portion and 0 otherwise. This includes ignoring everything after the
     first EOS (if mask_after_eos=True).
     """
-    with torch.inference_mode():
-        outputs = model(input_ids)
-        logits = outputs[:, :-1, :]  # drop last logits because there's no next token
-        shifted_input_ids = input_ids[:, 1:]
-        log_probs = logits.log_softmax(dim=-1)
-        chosen_token_logprob = torch.gather(
-            log_probs, dim=2, index=shifted_input_ids.unsqueeze(-1)
-        ).squeeze(-1)
+    outputs = model(input_ids)
+    logits = outputs[:, :-1, :]  # drop last logits because there's no next token
+    shifted_input_ids = input_ids[:, 1:]
+    log_probs = logits.log_softmax(dim=-1)
+    chosen_token_logprob = torch.gather(
+        log_probs, dim=2, index=shifted_input_ids.unsqueeze(-1)
+    ).squeeze(-1)
 
     pad_zeros = torch.zeros(
         (chosen_token_logprob.size(0), 1),
@@ -294,7 +299,6 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
         self._total_steps = 0
 
-        self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
         # Check if LoRA is used
@@ -308,6 +312,20 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             if cfg.model.get("use_lora", False) is True:
                 self._use_lora = True
 
+        # Number of completions to generate per prompt
+        self._num_generations = cfg.get("num_generations", 1)
+        self._max_generated_tokens = cfg.get("max_generated_tokens", 128)
+
+        self._freeze_ref_model = cfg.get("freeze_ref_model", True)
+
+    def setup(self, cfg: DictConfig) -> None:
+        self._metric_logger = config.instantiate(cfg.metric_logger)
+        self._metric_logger.log_config(cfg)
+
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        self._max_length = cfg.get("max_length", 8192)
+        self._enable_kv_cache = cfg.get("enable_kv_cache", True)
+
         # Reward model or custom reward functions
         self._reward_model = (
             self._initialize_model(cfg.reward_model) if "reward_model" in cfg else None
@@ -320,35 +338,26 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             else:
                 raise ValueError(f"Reward function '{func_name}' is not callable.")
 
-        # Number of completions to generate per prompt
-        self._num_generations = cfg.get("num_generations", 1)
-        self._max_generated_tokens = cfg.get("max_generated_tokens", 128)
+        # Initialize checkpointing
+        self._checkpointer = config.instantiate(
+            cfg.get('checkpointer'),
+            should_load_recipe_state=False, # TODO: add resuming!
+        )
+        # Load initial checkpoint (TODO: resuming)
+        checkpoint_dict = self._checkpointer.load_checkpoint()
+        self._save_adapter_weights_only = cfg.get('checkpointer').get('save_adapter_weights_only', False)
 
-        self._freeze_ref_model = False
-
-    def setup(self, cfg: DictConfig) -> None:
-        self._metric_logger = config.instantiate(cfg.metric_logger)
-        self._metric_logger.log_config(cfg)
-
-        self._tokenizer = config.instantiate(cfg.tokenizer)
-        self._max_length = cfg.get("max_length", 8192)
-        self._enable_kv_cache = cfg.get("enable_kv_cache", True)
-
-        # Initialize policy
-        self._policy_model = self._initialize_model(cfg.model)
+        # Initialize policy (model!)
+        self._policy_model = self._initialize_model(cfg.model, checkpoint_dict[training.MODEL_KEY])
 
         # Initialize baseline (reference) model
         if self._use_lora:
-            self._baseline_model = self._initialize_model(cfg.model)
-            disable_adapter(self._baseline_model)
             self._freeze_ref_model = True
-            log.info("Using LoRA: reference model is base with adapter disabled (frozen)")
         else:
             self._baseline_model = self._initialize_model(cfg.model)
-
-        self._baseline_model.eval()
-        for param in self._baseline_model.parameters():
-            param.requires_grad = False
+            self._baseline_model.eval()
+            for param in self._baseline_model.parameters():
+                param.requires_grad = False
 
         # Initialize optimizer
         self._optimizer = self._setup_optimizer(cfg.optimizer)
@@ -376,13 +385,43 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 decoder_max_seq_len=self._tokenizer.max_seq_len + self._max_generated_tokens,
                 device=self._device,
             )
-            if enable_kv_cache
+            if enable_kv_cache  
             else contextlib.nullcontext()
         )
 
-    def _initialize_model(self, cfg_model: DictConfig) -> nn.Module:
-        model = config.instantiate(cfg_model)
-        model = model.to(self._device, dtype=self._dtype)
+    def _initialize_model(self, cfg_model: DictConfig, base_model_state_dict: Dict[str, Any], lora_adapter_state_dict: Optional[Dict[str, Any]] = None ) -> nn.Module:
+        with training.set_default_dtype(self._dtype), self._device:
+            model = config.instantiate(cfg_model)
+        if self._use_lora:
+            self._lora_rank = cfg_model.lora_rank
+            self._lora_alpha = cfg_model.lora_alpha
+            self._lora_attn_modules = list(cfg_model.lora_attn_modules)
+            self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
+            self._apply_lora_to_output = cfg_model.get("apply_lora_to_output", False)
+            self.adapter_params = get_adapter_params(model)
+            set_trainable_params(model, self.adapter_params)
+            base_missing, base_unexpected = model.load_state_dict(
+                base_model_state_dict, strict=False
+            )
+            if lora_adapter_state_dict:
+                lora_missing, lora_unexpected = model.load_state_dict(lora_adapter_state_dict, strict=False)
+            else: 
+                lora_missing, lora_unexpected = None, None
+            validate_missing_and_unexpected_for_lora(
+                lora_attn_modules=self._lora_attn_modules,
+                apply_lora_to_mlp=self._apply_lora_to_mlp,
+                apply_lora_to_output=False,
+                base_missing=base_missing,
+                base_unexpected=base_unexpected,
+                lora_missing=lora_missing,
+                lora_unexpected=lora_unexpected,
+            )
+        else:
+            model.load_state_dict(base_model_state_dict)
+
+        if self._device.type != "cpu":
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
         return model
 
     def _setup_optimizer(self, cfg_optimizer: DictConfig) -> Optimizer:
@@ -400,6 +439,68 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         return sampler, dataloader
 
+    def save_checkpoint(self, epoch: int) -> None:
+        """
+        Checkpoint the state of the recipe. The constructed checkpoint state dict
+        contains the following information:
+        - Merged weights with key MODEL_KEY
+        - Adapter weights with key ADAPTER_KEY
+        - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
+
+        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
+        """
+        ckpt_dict = {}
+
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        # if training is in-progress, checkpoint the optimizer state as well
+        if intermediate_checkpoint:
+            ckpt_dict.update(
+                {
+                    training.OPT_KEY: self._optimizer.state_dict(),
+                    training.SEED_KEY: self.seed,
+                    training.EPOCHS_KEY: self.epochs_run,
+                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                }
+            )
+
+        if (self._use_lora):
+            adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
+            ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
+            if not self._save_adapter_weights_only:
+                # Construct the full state dict with LoRA weights merged into base LLM weights
+
+                # Move to CPU to avoid a copy on GPU
+                state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
+                merged_state_dict = get_merged_lora_ckpt(
+                    state_dict,
+                    rank=self._lora_rank,
+                    alpha=self._lora_alpha,
+                )
+
+                ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+
+            adapter_config = {
+                "r": self._lora_rank,
+                "lora_alpha": self._lora_alpha,
+                "target_modules": get_lora_module_names(
+                    self._lora_attn_modules,
+                    self._apply_lora_to_mlp,
+                    self._apply_lora_to_output,
+                ),
+                "peft_type": "LORA",
+            }
+            ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
+
+        self._checkpointer.save_checkpoint(
+            ckpt_dict,
+            epoch=epoch,
+            intermediate_checkpoint=intermediate_checkpoint,
+            adapter_only=self._save_adapter_weights_only,
+        )
+
     def _compute_rewards(
         self,
         tokenizer,
@@ -415,7 +516,7 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Convert all completions to text
         all_text = [tokenizer.decode(c.cpu().tolist()) for c in completions]
-
+        print(all_text)
         total_rewards = torch.zeros(total_completions)
 
         # Repeat each prompt num_generations times (so B -> B*g)
@@ -456,7 +557,7 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
 
     def compute_loss(self, batch: Dict[str, Any]) -> torch.Tensor:
-        """s
+        """
         Given a batch of data, generate completions, compute rewards, and return the final RL loss.
         This function does NOT perform backward() or step() yet.
         """
@@ -517,14 +618,26 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             prompt_len=0,
             mask_after_eos=False,
         )
-        with torch.no_grad():
-            baseline_logprobs, _ = get_per_token_logprobs(
-                self._baseline_model,
-                batched_input_ids,
-                self._tokenizer,
-                prompt_len=0,
-                mask_after_eos=False,
-            )
+
+        # If LoRA, just disable the adapter for baseline
+        if (self._use_lora):
+            with disable_adapter(self._policy_model), torch.no_grad():
+                baseline_logprobs, _ = get_per_token_logprobs(
+                    self._policy_model,
+                    batched_input_ids,
+                    self._tokenizer,
+                    prompt_len=0,
+                    mask_after_eos=False,
+                )
+        else:
+            with torch.no_grad():
+                baseline_logprobs, _ = get_per_token_logprobs(
+                    self._baseline_model,
+                    batched_input_ids,
+                    self._tokenizer,
+                    prompt_len=0,
+                    mask_after_eos=False,
+                )
 
         final_mask = torch.zeros_like(policy_logprobs)
         for i in range(len(cat_tensors)):

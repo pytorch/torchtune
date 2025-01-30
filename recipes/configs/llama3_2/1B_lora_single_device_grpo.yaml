@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-3.2-1B-Instruct --output-dir ./Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth"
+#   tune download meta-llama/Llama-3.2-1B-Instruct --output-dir /tmp/Llama-3.2-1B-Instruct --ignore-patterns "original/consolidated.00.pth"
 #
 # To launch on a single device, run the following command from root:
 #   tune run grpo_full_finetune_single_device --config llama3_2/1B_lora_single_device_grpo
@@ -33,24 +33,20 @@ reward_functions:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path:  Llama-3.2-1B-Instruct/original/tokenizer.model
+  path:  /tmp/Llama-3.2-1B-Instruct/original/tokenizer.model
   max_seq_len: 4096
-  prompt_template:
-    user:
-      - "Conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in their mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> reasoning process here </think> <answer> answer here </answer>. \\nUser: "
-      - "\\nAssistant: "
-
 
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets._calc_gsm8k.calc_gsm8k_dataset
+  new_system_prompt: "Conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in their mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> reasoning process here </think> <answer> answer here </answer>."
 seed: null
 shuffle: False
 batch_size: 1
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: Llama-3.2-1B-Instruct/
+  checkpoint_dir: /tmp/Llama-3.2-1B-Instruct/
   checkpoint_files: [
     model.safetensors
   ]
@@ -58,8 +54,7 @@ checkpointer:
   output_dir: ${output_dir}
   model_type: LLAMA3_2
 
-resume_from_checkpoint: False
-
+#resume_from_checkpoint: False
 
 # Optimizer and Scheduler
 optimizer:
@@ -83,8 +78,10 @@ kl_coeff: 0.01  # KL divergence coefficient for the model
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 
-# Max number of tokens to generate in answers. 
+# Generation params
 max_length: 1024
+temperature: 0.8
+top_k: 300
 
 # Training environment
 device: cuda
