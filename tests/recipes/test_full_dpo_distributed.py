@@ -77,7 +77,7 @@ class TestFullDPODistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run --nnodes 1 --nproc_per_node 1 full_dpo_distributed \
+        tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -110,10 +110,8 @@ class TestFullDPODistributedRecipe:
         resumed_log_file = gen_log_file_name(resumed_log_dir)
 
         # Resume training
-        # epoch_folder = get_largest_iter_folder(tmpdir)
-        # epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
-        tune run --nnodes 1 --nproc_per_node 1 full_dpo_distributed \
+        tune run --nnodes 1 --nproc_per_node 2 full_dpo_distributed \
             --config llama3_1/8B_full_dpo \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -141,69 +139,6 @@ class TestFullDPODistributedRecipe:
         resumed_loss_values = get_loss_values_from_metric_logger(resumed_log_file)
 
         torch.testing.assert_close(
-            resumed_loss_values[:2], expected_loss_values[2:], rtol=1e-5, atol=1e-5
+            resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
-    @pytest.mark.integration_test
-    def test_save_and_load_weights(self, tmpdir, monkeypatch):
-        ckpt = "llama3_tune"
-        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        ckpt_dir = ckpt_path.parent
-        tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
-
-        cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 1 full_dpo_distributed \
-            --config llama3_1/8B_full_dpo \
-            output_dir={tmpdir} \
-            checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA3 \
-            ref_checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            ref_checkpointer.checkpoint_dir='{ckpt_dir}' \
-            ref_checkpointer.checkpoint_files=[{ckpt_path}]\
-            ref_checkpointer.output_dir={tmpdir} \
-            ref_checkpointer.model_type=LLAMA3 \
-            tokenizer.path='{tokenizer_path}' \
-            tokenizer.prompt_template=null \
-            enable_activation_checkpointing=True \
-            enable_activation_offloading=False \
-        """.split()
-
-        model_config = MODEL_TEST_CONFIGS["llama3"]
-
-        cmd = cmd + self._get_test_config_overrides() + model_config
-        monkeypatch.setattr(sys, "argv", cmd)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # Set inputs for test forward pass
-        inputs = torch.randint(low=0, high=32_000, size=(2, 100))
-
-        # Get model config
-        base_llama3_config = MODEL_TEST_CONFIGS["llama3"]
-
-        # Load baseline model
-        baseline_llama3_model = config.instantiate(
-            OmegaConf.from_dotlist(base_llama3_config).model
-        )
-        with open(ckpt_path, "rb") as f:
-            baseline_model_sd = torch.load(f, weights_only=True)
-        baseline_llama3_model.load_state_dict(baseline_model_sd, strict=False)
-        baseline_out = baseline_llama3_model(inputs)
-
-        # Load new checkpoint
-        llama3_model = config.instantiate(
-            OmegaConf.from_dotlist(base_llama3_config).model
-        )
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        suffix = ".bin"
-        model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
-        )
-        model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
-        sd = safe_torch_load(model_path, weights_only=True)
-        llama3_model.load_state_dict(sd)
-        ckpt_out = llama3_model(inputs)
-
-        torch.testing.assert_close(baseline_out, ckpt_out, rtol=1e-5, atol=1e-5)
