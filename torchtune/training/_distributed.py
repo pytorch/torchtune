@@ -25,7 +25,7 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
-from torch.distributed.device_mesh import DeviceMesh
+from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
 from torch.distributed.fsdp import ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
@@ -502,13 +502,36 @@ def get_shard_conditions(
     return False
 
 
+def build_device_mesh(
+    device_type: str,
+    *,
+    data_parallel_dim: Optional[int] = None,
+    tensor_parallel_dim: Optional[int] = None,
+) -> DeviceMesh:
+    if not any([data_parallel_dim, tensor_parallel_dim]):
+        raise ValueError(
+            "At least one of data_parallel_dim or tensor_parallel_dim must be specified"
+        )
+
+    valid_dim = []
+    valid_dim_names = []
+    if data_parallel_dim is not None and data_parallel_dim >= 0:
+        valid_dim.append(data_parallel_dim)
+        valid_dim_names.append("dp")
+    if tensor_parallel_dim is not None and tensor_parallel_dim >= 0:
+        valid_dim.append(tensor_parallel_dim)
+        valid_dim_names.append("tp")
+
+    return init_device_mesh(device_type, valid_dim, mesh_dim_names=valid_dim_names)
+
+
 def shard_model(
     model: TransformerDecoder,
     shard_conditions: List[Callable[[str, nn.Module], bool]],
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
-    device_mesh: Optional[DeviceMesh] = None,
+    dp_mesh: Optional[DeviceMesh] = None,
 ) -> None:
     """
     Utility to shard a model with FSDP using the PyTorch Distributed fully_shard API.
@@ -535,8 +558,8 @@ def shard_model(
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
 
-    if device_mesh is not None:
-        fsdp_kwargs["mesh"] = device_mesh
+    if dp_mesh is not None:
+        fsdp_kwargs["mesh"] = dp_mesh
 
     # Shard the model with FSDP, iterating in reverse to start with
     # lowest-level modules first

@@ -16,6 +16,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed.tensor.parallel import parallelize_module
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -25,6 +26,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training._distributed import build_device_mesh
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing._checkpoint_client import (
     CheckpointClient,
@@ -140,8 +142,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Distributed variables
         self.world_size, self.rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
-        self.nnodes = dist.get_local_size()
-        self.enable_tensor_parallel = cfg.get("enable_tensor_parallel", False)
+        self.parallelize_plan = config.instantiate(cfg.get("parallelize_plan"))
+        self.tensor_parallel_dim = cfg.get("tensor_parallel_dim")
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -524,22 +526,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        device_mesh = {}
-        if self.enable_tensor_parallel:
-            mesh_shape = (self.nnodes, self.world_size // self.nnodes)
-            device_mesh = init_device_mesh(
-                "cuda", mesh_shape, mesh_dim_names=("dp", "tp")
-            )
-            # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
-            training.prepare_mha_for_tp(model, device_mesh["tp"])
-            # Apply tensor parallelism to the model
+        device_mesh = build_device_mesh(
+            self._device.type,
+            data_parallel_dim=self.world_size // self.tensor_parallel_dim,
+            tensor_parallel_dim=self.tensor_parallel_dim,
+        )
+
+        # Apply tensor parallelism to the model
+        if self.tensor_parallel_dim is not None:
+            tp_mesh = device_mesh["tp"]
+            # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
+            training.prepare_mha_for_tp(model, tp_mesh)
             parallelize_module(
                 model,
-                device_mesh["tp"],
-                parallelize_plan=config.instantiate(cfg.parallelize_plan),
+                tp_mesh,
+                parallelize_plan=self.parallelize_plan,
             )
 
         # Shard the model
+        dp_mesh = device_mesh["dp"]
         fsdp_shard_conditions = [
             partial(
                 training.get_shard_conditions,
@@ -551,7 +556,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
             reshard_after_forward=reshard_after_forward,
-            dp_device_mesh=device_mesh.get("dp"),
+            dp_mesh=dp_mesh,
         )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -674,7 +679,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=self.rank, shuffle=shuffle, seed=0
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -784,7 +789,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
 
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    current_loss = current_loss * (world_size / num_tokens)
+                    current_loss = current_loss * (self.world_size / num_tokens)
 
                 current_loss.backward()
 
@@ -797,7 +802,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         # We multiply by world_size to undo FSDP2 gradient normalization.
-                        training.scale_grads(self._model, world_size / num_tokens)
+                        training.scale_grads(self._model, self.world_size / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
@@ -835,7 +840,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 ),
                             ),
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            / (time_per_step * self.world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
