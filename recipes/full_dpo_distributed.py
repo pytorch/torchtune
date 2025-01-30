@@ -606,7 +606,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 )
                 module.p = 0
 
-        for p in self._ref_model.parameters():
+        for p in model.parameters():
             p.requires_grad = False
 
         model.eval()
