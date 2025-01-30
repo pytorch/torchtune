@@ -265,7 +265,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         # Load the base model
         checkpoint_dict = self._load_checkpoint(cfg.checkpointer)
-        ref_checkoint_dict = self._load_ref_checkpoint(cfg.ref_checkpointer)
+        ref_checkpoint_dict = self._load_ref_checkpoint(cfg.ref_checkpointer)
 
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
@@ -285,7 +285,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=ref_checkoint_dict,
+            model_state_dict=ref_checkpoint_dict,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
         )
 
@@ -654,8 +654,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                             "Failed loading in-backward optimizer checkpoints."
                             "Please make sure run being restored from was using in-backward optimizer."
                         ) from e
-            if self._is_rank_zero:
-                log.info("In-backward optimizers are set up.")
+            utils.log_rank_zero(log, "In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
@@ -667,8 +666,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     self._device,
                 )
 
-            if self._is_rank_zero:
-                log.info("Optimizer and loss are initialized.")
+            utils.log_rank_zero(log, "Optimizer and loss are initialized.")
             return optimizer
 
     def _setup_lr_scheduler(
@@ -771,8 +769,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         if intermediate_checkpoint:
             start = time.perf_counter()
-            if self._is_rank_zero:
-                log.info("Getting optimizer state dict...")
+            utils.log_rank_zero(log, "Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._model,
@@ -786,8 +783,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
                         self._model, opt, self._is_rank_zero, device=self._device
                     )
-            if self._is_rank_zero:
-                log.info(
+            utils.log_rank_zero(log, 
                     f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
                 )
         else:
