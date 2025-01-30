@@ -116,6 +116,11 @@ def masked_mean(
     return (x * mask).sum(dim=dim) / mask.sum(dim=dim)
 
 
+def masked_sum(
+    x: torch.Tensor, mask: torch.Tensor, dim: Optional[int] = None
+) -> torch.Tensor:
+    return (x * mask).sum(dim=dim)
+
 def masked_var(
     x: torch.Tensor, mask: torch.Tensor, unbiased: bool = True
 ) -> torch.Tensor:

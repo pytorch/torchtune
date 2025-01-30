@@ -11,6 +11,7 @@ from .rewards import (
     get_reward_penalty_mask,
     get_rewards_ppo,
     masked_mean,
+    masked_sum,
     masked_var,
     whiten,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "get_rewards_ppo",
     "whiten",
     "masked_mean",
+    "masked_sum",
     "masked_var",
     "PPOStats",
     "get_batch_log_probs",

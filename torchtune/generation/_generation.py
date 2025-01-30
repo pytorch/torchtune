@@ -7,8 +7,11 @@
 from typing import Callable, List, Optional, Tuple
 
 import torch
+
+from torchtune import training
 from torchtune.modules.transformer import TransformerDecoder
 
+from tqdm.auto import trange
 
 def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
     """Samples from a multinomial distribution."""
@@ -189,7 +192,7 @@ def get_position_ids_from_padding_mask(
     return ((padding_mask.cumsum(-1) - 1) * padding_mask).to(torch.int)
 
 
-@torch.inference_mode()
+@torch.no_grad()
 def generate(
     model: TransformerDecoder,
     prompt: torch.Tensor,
@@ -343,7 +346,9 @@ def generate(
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits
 
-    for _ in range(max_generated_tokens - 1):
+    _, rank = training.get_world_size_and_rank()
+    for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank>0)):
+        pbar.set_description(f"[rank {rank}]")
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
         # reshaped to be bsz first

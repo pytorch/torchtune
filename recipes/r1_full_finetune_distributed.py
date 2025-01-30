@@ -25,8 +25,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.datasets._rl import correctness_reward, shaped_correctness_reward, batch_shaped_correctness_reward
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.rlhf import Trajectory
-from torchtune.rlhf._types import R1Trajectory
+from torchtune.rlhf._types import R1Trajectory, GRPOStats
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
@@ -187,10 +186,12 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
-        self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self._steps_run = 0
+        self._total_steps = 0
+        self._epochs_run = 0
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -213,7 +214,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self._epochs_run = ckpt_dict[training.EPOCHS_KEY]
             self._rng.set_state(ckpt_dict[training.RNG_KEY])
 
             # on mismatch, warn the user and prevent the override
@@ -323,7 +324,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
+        self.global_step = self._epochs_run * self._steps_per_epoch
 
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -348,6 +349,15 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         self._max_generated_tokens = cfg.max_generated_tokens
         self.batch_size = cfg.batch_size
         self._forward_batch_size = cfg.forward_batch_size
+
+        self._ppo_epochs = cfg.ppo_epochs
+        self._ppo_batch_size = cfg.ppo_batch_size
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._ppo_backward_batch_size = (
+            cfg.ppo_batch_size // self._gradient_accumulation_steps
+        )
+
+        self._total_steps = cfg.num_steps // self.batch_size
 
         if cfg.get("stop_token_ids", False):
             stop_token_ids = cfg.stop_token_ids
@@ -808,7 +818,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                     {
                         training.OPT_KEY: opt_state_dict,
                         training.SEED_KEY: self.seed,
-                        training.EPOCHS_KEY: self.epochs_run,
+                        training.EPOCHS_KEY: self._epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                         training.RNG_KEY: self._rng.get_state(),
@@ -864,6 +874,10 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             rng=self._rng,
         )
 
+        del logits
+        import bitsandbytes
+        bitsandbytes.optim.PagedAdamW
+
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
@@ -877,16 +891,19 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         del query_response_padding_masks
 
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
+
         # step 2. estimate logprobs of the responses using the current policy
-        logits = logits[:, context_length - 1 :]
+        logits = logits[:, context_length - 1 :]  # TODO: is this right?
         logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
 
         del logits
 
+        # torch.distributed.breakpoint()
         # step 2.1 estimate logprobs of the responses using the reference policy
         ref_logits = self._ref_model(
             query_responses, input_pos=position_ids, mask=masks
-        )
+        )  # TODO: I'm computing ref_logits here, the same way later I compute pi_logits - why is the result diff?
         ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
         ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
 
@@ -902,11 +919,17 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # responses :: [B x G, L]
         responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
 
-        rewards = batch_shaped_correctness_reward(self._tokenizer, responses, answers)  # [B, G]
+        rewards = batch_shaped_correctness_reward(self._tokenizer, responses, answers).to(self._device)  # [B, G]
 
-        advantages = rewards - rewards.mean(1, keepdim=True) / rewards.std(1, keepdim=True)
+
+        advantages = rewards - rewards.mean(1, keepdim=True) / (rewards.std(1, keepdim=True) + 1e-4)
+        advantages = advantages.reshape(batch_size * grpo_size)  # flatten
+
+        # print(f"In generation:\n{rewards=}\n{advantages=}")
 
         del responses
+
+        seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
 
         # step 6. mask out all the invalid values in the trajectory due to padding tokens
         logprobs[response_padding_masks] = 1.0  # TODO: shouldn't this be a 0?
@@ -917,9 +940,105 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             query_responses=query_responses,
             logprobs=logprobs,
             ref_logprobs=ref_logprobs,
+            rewards=rewards.reshape(batch_size * grpo_size),
             advantages=advantages,
             masks=masks,
             position_ids=position_ids,
+            response_padding_masks=response_padding_masks,
+            seq_lens=seq_lens
+        )
+
+    def _grpo_step(
+        self,
+        trajectory: R1Trajectory,
+        context_length: int,
+    ) -> GRPOStats:
+        """
+        Perform a single GRPO optimisation step over a batch of trajectories and corresponding advantages and returns.
+
+        Args:
+            trajectory (Trajectory): a batch of trajectories
+            advantages (torch.Tensor): advantages corresponding to the trajectories
+            returns (torch.Tensor): returns corresponding the trajectories
+            context_length (int): input ids sequence length
+
+        Returns:
+            GRPOStats: An instance of :class:`~torchtune.rlhf.PPOStats`, a NamedTuple containing:
+               - loss (torch.Tensor): The total PPO loss.
+               - ratios (torch.Tensor): The ratio between the current and old policy probabilities.
+               - clipfrac (torch.Tensor): The fraction of ratios that were clipped.
+               - approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step.
+
+        """
+        # estimate logprobs from the policy at the current optimisation step
+        _, rank = training.get_world_size_and_rank()
+        # print(f"!!!! [rank {rank}] {trajectory.query_responses.shape=}")
+        # print(f"!!!! [rank {rank}] {trajectory.position_ids.shape=}")
+        # print(f"!!!! [rank {rank}] {trajectory.masks.shape=}")
+        # print(f"BEFORE ENTERING TRANSFORMERDECODER")
+        # FIXME: ??? query_responses here is different than before
+        pi_logits = self._model(  # TODO: already at this point, pi_logits differ from ref_logits etc.
+            trajectory.query_responses.clone(),
+            input_pos=trajectory.position_ids.clone(),
+            mask=trajectory.masks.clone(),
+        )
+
+        # print(f"{trajectory.advantages=}")
+        # print(f"Before {pi_logits.shape=}")
+        # print(f"Before {pi_logits=}")  # TODO: check if this is behaving well before and after, seems a bit odd?
+
+        pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
+        pi_logprobs = rlhf.logits_to_logprobs(
+            pi_logits, trajectory.query_responses[:, context_length:], self._temperature
+        )
+        # torch.distributed.breakpoint()
+
+        # print(f"{pi_logprobs.shape=}")
+        # print(f"{pi_logprobs=}")
+        pi_logprobs[trajectory.response_padding_masks] = 1.0
+
+        del pi_logits
+
+        print(f"{trajectory.logprobs=}")
+        print(f"{pi_logprobs=}")
+        print(f"{trajectory.ref_logprobs=}")
+        print(f"{trajectory.advantages=}")
+        print(f"{trajectory.response_padding_masks=}")
+
+
+        # calculate grpo loss
+        loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
+            trajectory.logprobs,
+            pi_logprobs,
+            trajectory.ref_logprobs,
+            trajectory.advantages,
+            padding_masks=~trajectory.response_padding_masks,
+        )
+
+        print(f"{loss=}")
+        print(f"{policy_loss=}")
+        print(f"{kl_loss=}")
+        print(f"{ratios=}")
+        print(f"{clipfrac=}")
+
+        # print("!!!!! MEMORY DUMP !!!!!")
+        # get_gpu_tensors_sorted()
+
+        loss /= self._gradient_accumulation_steps
+        loss.backward()
+
+        with torch.no_grad():
+            approx_policy_kls = (
+                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
+            ).mean()
+
+        return GRPOStats(
+            loss,
+            policy_loss / self._gradient_accumulation_steps,
+            kl_loss / self._gradient_accumulation_steps,
+            ratios / self._gradient_accumulation_steps,
+            clipfrac / self._gradient_accumulation_steps,
+            approx_policy_kls / self._gradient_accumulation_steps,
         )
 
     def generate_trajectory_batched(self, input_ids: torch.Tensor, answers: list[str]) -> R1Trajectory:
@@ -962,13 +1081,11 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
-        running_loss = 0
-        num_tokens = 0
 
         training_completed = False
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
-        for curr_epoch in range(self.epochs_run, self.total_epochs):
+        for curr_epoch in range(self._epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
@@ -994,150 +1111,146 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 # print(f"{batch=}")
                 tokens = batch["tokens"]  # type: ignore
                 answers = batch["answers"]  # type: ignore
-                tokens = tokens.to(self._device)  # [B, L]
+                tokens = tokens.to(self._device)  # [B, P] TODO: is this L or P+L? or just P? I think just P
+
+                _, context_length = tokens.shape
 
                 # if self._is_rank_zero:
                 #     print(f"{tokens.shape=}")
                 #     import ipdb; ipdb.set_trace()
                 trajectory = self.generate_trajectory_batched(tokens, answers)
 
-                print(f"{trajectory=}")
-                # TODO: should I sum some logprobs in the trajectory? I only need the total logprob, right?
-                # TODO: compute the PPO loss here
-
+                # print(f"{trajectory=}")
+                # log.info(f"{trajectory.query_responses.shape=}")
+                # log.info(f"{trajectory.logprobs.shape=}")
+                # log.info(f"{trajectory.ref_logprobs.shape=}")
+                # log.info(f"{trajectory.advantages.shape=}")
+                # log.info(f"{trajectory.masks.shape=}")
+                # log.info(f"{trajectory.position_ids.shape=}")
+                # log.info(f"{trajectory.response_padding_masks.shape=}")  # True means that it's masked out
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
-                current_num_tokens = (
-                        batch["labels"] != self._loss_fn.ignore_index
-                ).sum()
-                num_tokens += current_num_tokens
 
-                # Shape [b, s], needed for the loss not the model
-                labels = batch.pop("labels")
 
-                with self.activations_handling_ctx:
-                    logits = self._model(**batch)
+                effective_batch_size = self.batch_size * self.grpo_samples  # = B x G
+                # torch.distributed.breakpoint()
+                grpo_stats: list[GRPOStats] = []
+                for _ in range(self._ppo_epochs):
+                    # batch_idxs = torch.randperm(effective_batch_size, device=self._device)
+                    batch_idxs = torch.arange(effective_batch_size, device=self._device)
+                    for i in range(0, effective_batch_size, self._ppo_batch_size):
+                        mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
+                        #FIXME: probably something wrong with the batching logic here
+                        batch_grpo_stats: list[GRPOStats] = []
 
-                # Shift labels to compute loss
-                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                labels = torch.hstack(
-                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-                )
-                if not isinstance(logits, list):
-                    labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1))
+                        for j in range(0, self._ppo_batch_size, self._ppo_backward_batch_size):
+                            backward_batch_idxs = mini_batch_idxs[j : j + self._ppo_backward_batch_size]
 
-                # Compute loss
-                # Loss is normalized by default so we multiply by the number of tokens
-                # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens
-
-                # free logits otherwise it peaks backward memory
-                del logits
-
-                running_loss += current_loss
-
-                # For optimizer in backward, we need to normalize before calling backward
-                # This case and gradient accumulation are mutually exclusive
-                if self._optimizer_in_bwd:
-                    torch.distributed.all_reduce(num_tokens)
-                    torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss / num_tokens
-
-                current_loss.backward()
-
-                # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    if not self._optimizer_in_bwd:
-                        # Get total number of tokens across all ranks to normalize gradients
-                        torch.distributed.all_reduce(num_tokens)
-                        # This will ensure that the logged loss matches what we're optimizing
-                        torch.distributed.all_reduce(running_loss)
-                        # Manually scale the gradients from unnormalized loss by total # of tokens
-                        training.scale_grads(self._model, 1 / num_tokens)
-                        if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
+                            # print(f"{backward_batch_idxs.shape=}")
+                            # print(f"{backward_batch_idxs=}")
+                            # for k, v in trajectory._asdict().items():
+                            #     print(f"{k=} {v.shape=}")
+                            batch_trajectory = R1Trajectory(
+                                *map(
+                                    partial(
+                                        torch.index_select,
+                                        dim=0,
+                                        index=backward_batch_idxs
+                                    ),
+                                    trajectory,
+                                )
                             )
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
+                            batch_grpo_stats.append(
+                                self._grpo_step(  # .backward() happens here
+                                    batch_trajectory,
+                                    context_length
+                                )
+                            )
+                            del batch_trajectory
 
-                    # Update the number of steps when the weights are updated
-                    self.global_step += 1
+                        grpo_stats.append(GRPOStats(*map(sum, zip(*batch_grpo_stats))))
 
-                    # Step the learning rate scheduler
-                    if self._lr_scheduler is not None:
-                        self._lr_scheduler.step()
+                        if not self._optimizer_in_bwd:
+                            if self._clip_grad_norm is not None:
+                                grad_norm = torch.nn.utils.clip_grad_norm_(
+                                    self._model.parameters(),
+                                    max_norm=float(self._clip_grad_norm),
+                                )
+                            print(f"PERFORMING A GRADIENT UPDATE")
+                            self._optimizer.step()
+                            self._optimizer.zero_grad(set_to_none=True)
 
-                    loss_to_log = running_loss.item() / num_tokens
-                    pbar.update(1)
-                    pbar.set_description(
-                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                        self.global_step += 1
+
+                self._steps_run += 1
+                if self._steps_run % self._log_every_n_steps == 0:
+                    self.log_metrics(
+                        trajectory,
+                        GRPOStats(*map(torch.stack, zip(*grpo_stats))),
+                        grad_norm=grad_norm
                     )
 
-                    # Log per-step metrics
-                    if (
-                            self.global_step % self._log_every_n_steps == 0
-                            and self._is_rank_zero
-                    ):
-                        time_per_step = time.perf_counter() - t0
-                        log_dict = {
-                            "loss": loss_to_log,
-                            "lr": get_lr(
-                                (
-                                    self._optimizer
-                                    if not self._optimizer_in_bwd
-                                    else self._optim_ckpt_wrapper
-                                ),
-                            ),
-                            "tokens_per_second_per_gpu": num_tokens
-                                                         / (time_per_step * world_size),
-                        }
-                        if self._log_peak_memory_stats:
-                            log_dict.update(
-                                training.get_memory_stats(device=self._device)
-                            )
-                        if self._clip_grad_norm is not None:
-                            log_dict.update({"grad_norm": grad_norm})
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
-                        )
+                self.cleanup_after_step(trajectory, grpo_stats)
+                pbar.update(1)
 
-                    # Reset running stats for the next step
-                    running_loss = 0
-                    num_tokens = 0
-                    t0 = time.perf_counter()
+                if self._steps_run == self._total_steps:
+                    training_completed = True
+                    break
 
-                    # Stop tracking CUDA memory now that active steps are complete
-                    if (
-                            self._is_rank_zero
-                            and curr_epoch == 0
-                            and self.profiler_profile_memory
-                            and idx
-                            == self.profiler_wait_steps
-                            + self.profiler_warmup_steps
-                            + self.profiler_active_steps
-                    ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+            self._epochs_run += 1
+            self.save_checkpoint(curr_epoch)
+            if training_completed:
+                return
 
-                    # Step profiler
-                    # Note that this is called within gradient accumulation block, hence
-                    # will include multiple forward / backward passes if gradient accumulation > 1
-                    self._profiler.step()
-
-            self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
+
+
+    def log_metrics(
+        self,
+        trajectory: R1Trajectory,
+        grpo_stats: GRPOStats,
+        **extras
+    ) -> None:
+        """
+        Log metrics and statistics for the current step to the metric logger.
+        """
+        log_dict = {
+            "rewards": trajectory.rewards.mean(),
+            "num_stop_tokens": trajectory.response_padding_masks.any(-1).sum(),
+            "loss": grpo_stats.loss.mean(),
+            "policy_loss": grpo_stats.policy_loss.mean(),
+            "kl_loss": grpo_stats.kl_loss.mean(),
+            "clipfrac": grpo_stats.clipfrac.mean(),
+            "ratios": grpo_stats.ratios.mean(),
+            "approx_policy_kl": grpo_stats.approx_policy_kls.mean(),
+            "response_lengths": trajectory.seq_lens.float().mean(),
+            **extras
+        }
+        if self._device.type == "cuda" and self._log_peak_memory_stats:
+            log_dict.update(training.get_memory_stats(device=self._device))
+        if self._is_rank_zero:
+            self._metric_logger.log_dict(log_dict, step=self.global_step)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
         destroy_process_group()
+
+    def cleanup_after_step(
+        self,
+        trajectory: R1Trajectory,
+        l_grpo_stats: list[GRPOStats],
+    ) -> None:
+        for v in trajectory:
+            del v
+        del trajectory
+        for g in l_grpo_stats:
+            for v in g:
+                del v
+            del g
+        del l_grpo_stats
 
 
 @config.parse
