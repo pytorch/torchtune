@@ -22,7 +22,6 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
-from torchtune.training.checkpointing._checkpoint_client import CheckpointClient
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
@@ -140,7 +139,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-        self._checkpoint_client = CheckpointClient(cfg)
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
@@ -189,14 +187,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def _load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -204,12 +202,13 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def load_ref_states(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+    def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
         """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
+        Extract the reference model checkpoint state from file.
         """
-        _ref_checkpointer = config.instantiate(cfg_ref_checkpointer)
+        _ref_checkpointer = config.instantiate(
+            cfg_ref_checkpointer, should_load_recipe_state=False
+        )
         checkpoint_dict = _ref_checkpointer.load_checkpoint()
         return checkpoint_dict[training.MODEL_KEY]
 
@@ -265,7 +264,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         # Load the base model
-        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
+        checkpoint_dict = self._load_checkpoint(cfg.checkpointer)
+        ref_checkoint_dict = self._load_ref_checkpoint(cfg.ref_checkpointer)
 
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
@@ -279,16 +279,15 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
         )
+
+        # TODO (@SalmanMohammadi) investigate TP for ref model
         self._ref_model = self._setup_reference_model(
             cfg_model=cfg.model,
-            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=self.load_ref_states(cfg.ref_checkpointer),
+            model_state_dict=ref_checkoint_dict,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
         )
-        self._ref_model.eval()
-        for p in self._ref_model.parameters():
-            p.requires_grad = False
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -534,21 +533,88 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         custom_sharded_layers: Optional[List[str]] = None,
     ) -> nn.Module:
         """
-        Model initialization has some important considerations:
+        Similar to `self._setup_model`:
            a. To minimize GPU peak memory, we initialize the model on meta device with
               the right dtype
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
+
+        Additionally, since the reference model is inference-only, we omit some training-specific
+        optimizations.
         """
-        return self._setup_model(
-            cfg_model,
-            False,
-            False,
-            fsdp_cpu_offload,
-            reshard_after_forward,
-            model_state_dict,
-            custom_sharded_layers,
+
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating reference model and loading checkpoint on Rank 0 ...",
         )
+        init_start = time.perf_counter()
+
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
+            model = config.instantiate(cfg_model)
+
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
+
+        # For FSDP sharding
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
+            )
+        ]
+        training.shard_model(
+            model=model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
+        )
+
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
+        training.load_from_full_model_state_dict(
+            model,
+            model_state_dict,
+            self._device,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
+        )
+
+        # Ensure no params and buffers are on meta device
+        training.validate_no_params_on_meta_device(model)
+
+        utils.log_rank_zero(
+            log,
+            f"Instantiating reference model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
+
+        if self._is_rank_zero:
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
+
+        # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
+        # between ref policy and current policy
+        for module in model.modules():
+            if isinstance(module, torch.nn.Dropout):
+                warn(
+                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
+                )
+                module.p = 0
+
+        for p in self._ref_model.parameters():
+            p.requires_grad = False
+
+        model.eval()
+
+        # synchronize before training begins
+        torch.distributed.barrier()
+
+        return model
 
     def _setup_optimizer(
         self,
@@ -831,13 +897,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += batch[0].numel()
-                (
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    policy_chosen_logits,
-                    policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                with self.activations_handling_ctx:
+                    num_tokens += batch[0].numel()
+                    (
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                        policy_chosen_logits,
+                        policy_rejected_logits,
+                    ) = self.concatenated_forward(self._model, batch)
 
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
