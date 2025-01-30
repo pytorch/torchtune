@@ -31,6 +31,7 @@ class PromptCompletionDataset(Dataset):
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input sequence.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        label_separator (Optional[str]): Separator between the prompt and label. Default is "".
         **load_dataset_kwargs (Dict[str, Any]): Additional keyword arguments to pass to ``load_dataset`` or ``load_from_disk``.
     """
 
@@ -43,6 +44,7 @@ class PromptCompletionDataset(Dataset):
         label_column: str = "label",
         split: str = "train",
         max_seq_len: Optional[int] = None,
+        label_separator: Optional[str] = "",
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
@@ -54,15 +56,21 @@ class PromptCompletionDataset(Dataset):
         self._text_column = text_column
         self._label_column = label_column
         # Add label separator
-        # Deprecated and controlled by prompt formatting in dataset creation
-        # self._label_separator = self._tokenizer.encode(
-        #     text="]\n\n## Label:\n",
-        #     # text="## Label:\n",
-        #     add_bos=False,
-        #     add_eos=False,
-        #     trim_leading_whitespace=True,
-        # )
-        # self._label_separator_len = len(self._label_separator)
+        # This is only ran once at initialization
+        try:
+            # llama2 tokenizer requires trim_leading_whitespace=True
+            self._label_separator = tokenizer.encode(
+                text=label_separator,
+                add_bos=False,
+                add_eos=False,
+                trim_leading_whitespace=True,
+            )
+        except TypeError:
+            # If parameter is not accepted, call without it
+            self._label_separator = tokenizer.encode(
+                text=label_separator, add_bos=False, add_eos=False
+            )
+        self._label_separator_len = len(self._label_separator)
 
     def __len__(self):
         return len(self._data)
@@ -76,14 +84,20 @@ class PromptCompletionDataset(Dataset):
             text=sample[self._text_column], add_bos=True, add_eos=False
         )
 
+        # Remove label separator from end of tokens if it exists
+        if self._label_separator_len > 0 and (
+            tokens[-(self._label_separator_len) :] == self._label_separator
+        ):
+            tokens = tokens[: -(self._label_separator_len)]
+
         # Truncate if needed, but leave room for label separator.
         if self.max_seq_len is not None:
-            # tokens = truncate(tokens, self.max_seq_len - self._label_separator_len)
-            tokens = truncate(tokens, self.max_seq_len)
+            tokens = truncate(tokens, self.max_seq_len - self._label_separator_len)
+            # tokens = truncate(tokens, self.max_seq_len)
 
         # Add label separator
-        # Deprecated and controlled by prompt formatting in dataset creation
-        # tokens.extend(self._label_separator)
+        if self._label_separator_len > 0:
+            tokens.extend(self._label_separator)
 
         # Directly state the label_column field
         labels = self._tokenizer.encode(
@@ -107,6 +121,7 @@ def prompt_completion_dataset(
     label_column: Optional[str] = None,
     split: Optional[str] = "train",
     max_seq_len: Optional[int] = None,
+    label_separator: Optional[str] = "",
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> PromptCompletionDataset:
@@ -128,6 +143,7 @@ def prompt_completion_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        label_separator (Optional[str]): Separator between the prompt and label. Default is "".
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
@@ -166,6 +182,7 @@ def prompt_completion_dataset(
         label_column=label_column,
         split=split,
         max_seq_len=max_seq_len,
+        label_separator=label_separator,
         **load_dataset_kwargs,
     )
     return (
