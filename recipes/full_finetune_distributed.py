@@ -138,9 +138,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
-
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
@@ -149,11 +146,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
         self.distributed_backend = training.get_distributed_backend(
             device_type,
             offload_ops_to_cpu=self.fsdp_cpu_offload
             or self._enable_async_checkpointing,
         )
+        init_process_group(self.distributed_backend)
+        _, rank = utils.get_world_size_and_rank()
+        self._is_rank_zero = rank == 0
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
@@ -247,9 +249,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         Setup the recipe. This includes training state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, lr scheduler, sampler, and dataloader.
         """
-        # Set up the backend for distributed training (NCCL, GLOO, etc.)
-        init_process_group(self.distributed_backend)
-
         if self.fsdp_cpu_offload:
             # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
             # speed up when benchmarking fused AdamW on CPU
