@@ -15,6 +15,7 @@
 
 # ---------- Set env variables ---------- #
 # Grab the IP for head node:
+# You may need to set this to the fully qualified domain name of your head node
 nodes=( $( scontrol show hostnames $SLURM_JOB_NODELIST ) )
 nodes_array=($nodes)
 head_node=${nodes_array[0]}
