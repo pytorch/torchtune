@@ -1,13 +1,18 @@
-from typing import Any, Callable, Dict, List, Mapping, Optional
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+from typing import Any, Callable, Dict, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, Message
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
-from torchtune.data import Message
 
 
 class PromptToMessage(Transform):
@@ -35,7 +40,7 @@ class PromptToMessage(Transform):
     def __init__(
         self,
         column_map: Optional[Dict[str, str]] = None,
-        new_system_prompt: Optional[str] = None
+        new_system_prompt: Optional[str] = None,
     ):
         self.new_system_prompt = new_system_prompt
 
@@ -54,16 +59,17 @@ class PromptToMessage(Transform):
             Message(
                 role="user",
                 content=sample[self.column_map["prompt"]],
-                #eot=True,
+                # eot=True,
             ),
-             # Empty assistant message to kick-start generation
+            # Empty assistant message to kick-start generation
             Message(role="assistant", content=""),
         ]
         if self.new_system_prompt is not None:
             # Prepend system prompt if specified.
             messages = [
                 Message(
-                    role="system", content=self.new_system_prompt,
+                    role="system",
+                    content=self.new_system_prompt,
                     # masked=True, eot=True
                 )
             ] + messages
@@ -99,8 +105,12 @@ class VerifiableDataset(Dataset):
         filter_fn (Optional[Callable]): optional callable used to filter the dataset prior to pre-processing.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training.
             Not supported in this class.
-        for_inference: true if the prompts will be used for inference/generation (prevents adding end tokens)
+        split (str): dataset split to use, defaults to 'train'.
+        for_inference (bool): true if the prompts will be used for inference/generation (prevents adding end tokens)
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+
+    Raises:
+        ValueError: if packed is enabled
     """
 
     def __init__(
@@ -112,7 +122,7 @@ class VerifiableDataset(Dataset):
         filter_fn: Optional[Callable] = None,
         packed: bool = False,
         split: str = "train",
-        for_inference: Optional[bool]=True,
+        for_inference: bool = True,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         if packed:
@@ -122,7 +132,7 @@ class VerifiableDataset(Dataset):
         self._tokenizer = tokenizer
         self._message_transform = message_transform
         self._data = load_dataset(source, split=split, **load_dataset_kwargs)
-        self.for_inference=for_inference
+        self.for_inference = for_inference
 
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
@@ -140,10 +150,10 @@ class VerifiableDataset(Dataset):
         messages = transformed_sample.pop("messages")
 
         # Tokenize messages.
-        input_ids, masks = self._tokenizer.tokenize_messages(messages, add_end_tokens=not self.for_inference)
-        labels = list(
-            np.where(masks, CROSS_ENTROPY_IGNORE_IDX, input_ids)
+        input_ids, masks = self._tokenizer.tokenize_messages(
+            messages, add_end_tokens=not self.for_inference
         )
+        labels = list(np.where(masks, CROSS_ENTROPY_IGNORE_IDX, input_ids))
 
         # Return tokens, labels, plus all extra columns from transform.
         tokenized_dict = {

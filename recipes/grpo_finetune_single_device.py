@@ -1,47 +1,43 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import contextlib
-import math
+
+import importlib
 import sys
-import time
-from functools import partial
-from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple, Union
-from warnings import warn
-import random
+from typing import Any, Dict, List, Optional
 
 import torch
+import torch.nn.functional as F
 from omegaconf import DictConfig
 from torch import nn
-import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, generation, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import local_kv_cache
-from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
 
 # Only needed if we do LoRA.
 from torchtune.modules.peft import (
-    disable_adapter, 
-    get_adapter_state_dict, 
-    get_adapter_params, 
+    disable_adapter,
+    get_adapter_params,
+    get_adapter_state_dict,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
-
-import importlib
+from torchtune.recipe_interfaces import FTRecipeInterface
 
 log = utils.get_logger("DEBUG")
 torch._dynamo.config.cache_size_limit = 16
 
-import torch
-
-from typing import List, Dict, Any
-
 ########################
 # Custom collate to keep additional fields.
 ########################
+
 
 def padded_collate_verifiable(
     batch: List[Dict[str, Any]],
@@ -89,9 +85,11 @@ def padded_collate_verifiable(
 
     return collated
 
+
 ########################
 # Verifiable reward function examples
 ########################
+
 
 def thinking_reward(tokenizer, prompts, completions, all_text, batch_data):
     """
@@ -115,7 +113,7 @@ def thinking_reward(tokenizer, prompts, completions, all_text, batch_data):
 
         if start_idx != -1 and end_idx != -1:
             # Extract <think> content
-            think_content = text[start_idx + len(start_tag):end_idx].strip()
+            think_content = text[start_idx + len(start_tag) : end_idx].strip()
             think_words = len(think_content.split())
 
             # Fraction of words in <think> relative to total
@@ -148,6 +146,7 @@ def format_compliance_reward(tokenizer, prompts, completions, all_text, batch_da
 
     return rewards
 
+
 def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
     """
     Reward completions based on correctness of the model's answer.
@@ -163,7 +162,7 @@ def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
     Returns:
         A float32 tensor of shape [B*G], with 1.0 if correct, 0.1 if partial, etc.
     """
-    ground_truths = batch_data.get('result', [])
+    ground_truths = batch_data.get("result", [])
     rewards = torch.zeros(len(completions), dtype=torch.float32)
 
     for i, text in enumerate(all_text):
@@ -174,7 +173,7 @@ def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
 
         extracted_answer = None
         if start_idx != -1 and end_idx != -1:
-            extracted_answer = text[start_idx + len(start_tag):end_idx].strip()
+            extracted_answer = text[start_idx + len(start_tag) : end_idx].strip()
 
         if i < len(ground_truths) and extracted_answer:
             if ground_truths[i] in extracted_answer:
@@ -186,9 +185,11 @@ def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
 
     return rewards
 
+
 ########################
 # Utilities for function loading, etc.
 ########################
+
 
 def _resolve_function(name: str):
     """Dynamically resolve a function by its full module path."""
@@ -204,9 +205,9 @@ def _resolve_function(name: str):
         return getattr(module, function_name)
 
 
-def compute_token_level_kl(policy_logprobs: torch.Tensor,
-                            baseline_logprobs: torch.Tensor,
-                            mask: torch.Tensor) -> torch.Tensor:
+def compute_token_level_kl(
+    policy_logprobs: torch.Tensor, baseline_logprobs: torch.Tensor, mask: torch.Tensor
+) -> torch.Tensor:
     """Compute approximate KL. e.g. (p_lprobs - b_lprobs) * mask, averaged."""
     kl = (policy_logprobs - baseline_logprobs) * mask
     denom = mask.sum() + 1e-6
@@ -234,6 +235,7 @@ def compute_token_level_loss(
 
     return pg_loss + kl_coeff * kl_val
 
+
 class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
     Finetuning recipe for GRPO on a single GPU, with optional LoRA.
@@ -244,7 +246,9 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
-            raise RuntimeError("fp16 training is not supported with this recipe. Use bf16 or fp32.")
+            raise RuntimeError(
+                "fp16 training is not supported with this recipe. Use bf16 or fp32."
+            )
 
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -289,12 +293,14 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Initialize checkpointing
         self._checkpointer = config.instantiate(
-            cfg.get('checkpointer'),
+            cfg.get("checkpointer"),
             should_load_recipe_state=False,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
         # Only for LoRA
-        self._save_adapter_weights_only = cfg.get('checkpointer').get('save_adapter_weights_only', False)
+        self._save_adapter_weights_only = cfg.get("checkpointer").get(
+            "save_adapter_weights_only", False
+        )
 
         # Initialize policy
         model_state = checkpoint_dict.get(training.MODEL_KEY, None)
@@ -328,12 +334,19 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._policy_model,
                 batch_size=self._batch_size,
                 dtype=self._dtype,
-                decoder_max_seq_len=self._tokenizer.max_seq_len + self._max_generated_tokens,
+                decoder_max_seq_len=self._tokenizer.max_seq_len
+                + self._max_generated_tokens,
                 device=self._device,
-            ) if enable_kv_cache else contextlib.nullcontext()
+            )
+            if enable_kv_cache
+            else contextlib.nullcontext()
         )
 
-    def _initialize_model(self, cfg_model: DictConfig, base_model_state_dict: Optional[Dict[str, Any]] = None) -> nn.Module:
+    def _initialize_model(
+        self,
+        cfg_model: DictConfig,
+        base_model_state_dict: Optional[Dict[str, Any]] = None,
+    ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
         if self._use_lora:
@@ -453,9 +466,9 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         For B prompts and self._num_generations completions/prompt, build [B*g].
         We decode all completions, then sum up all custom reward functions.
         """
-        B = len(prompts)
+        b = len(prompts)
         total_completions = len(completions)
-        if total_completions != B * self._num_generations:
+        if total_completions != b * self._num_generations:
             raise ValueError("Mismatch in B*g vs completions length.")
 
         all_text = [tokenizer.decode(c.cpu().tolist()) for c in completions]
@@ -466,13 +479,13 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         for key, values in batch_data.items():
             if key not in ("tokens", "labels"):
                 replicated = []
-                for i in range(B):
+                for i in range(b):
                     replicated.extend([values[i]] * self._num_generations)
                 extended_data[key] = replicated
 
         if self._reward_functions:
             repeated_prompts = []
-            for i in range(B):
+            for i in range(b):
                 repeated_prompts.extend([prompts[i]] * self._num_generations)
 
             for func in self._reward_functions:
@@ -492,13 +505,13 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise ValueError("No custom reward functions or reward model specified.")
 
         # shape [B, G]
-        total_rewards = total_rewards.view(B, self._num_generations)
+        total_rewards = total_rewards.view(b, self._num_generations)
         return total_rewards
 
     def compute_loss(self, batch: Dict[str, Any]) -> torch.Tensor:
         device = self._device
         input_ids = batch["tokens"].to(device)
-        B = input_ids.size(0)
+        b = input_ids.size(0)
 
         # We'll store two versions: one with the entire prompt+generated text,
         # one with only new tokens (for the reward).
@@ -507,7 +520,7 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         prompt_lengths = []
         with torch.no_grad():
-            for i in range(B):
+            for i in range(b):
                 prompt_len = (input_ids[i] != self._tokenizer.pad_id).sum().item()
                 prompt_tensor = input_ids[i][:prompt_len].unsqueeze(0)
                 prompt_lengths.append(prompt_len)
@@ -526,7 +539,7 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
                             rng=self._rng,
                         )
                     full_seq = completion[0]  # entire (prompt + newly generated)
-                    #log.info(self._tokenizer.decode(completion[0].tolist()))
+                    # log.info(self._tokenizer.decode(completion[0].tolist()))
                     all_completions_for_model.append(full_seq)
 
                     # Trim out the old prompt tokens for the reward
@@ -538,7 +551,7 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._tokenizer,
             [row for row in input_ids],
             all_completions_for_reward,
-            batch
+            batch,
         ).to(device)
 
         full_sequences = all_completions_for_model
@@ -564,25 +577,27 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         ).squeeze(-1)
 
         # Insert dummy zero for alignment
-        B2, seq_len_minus1 = chosen_token_logprob.size()
-        dummy_zeros = torch.zeros((B2, 1), device=device, dtype=chosen_token_logprob.dtype)
+        b2, seq_len_minus1 = chosen_token_logprob.size()
+        dummy_zeros = torch.zeros(
+            (b2, 1), device=device, dtype=chosen_token_logprob.dtype
+        )
         policy_logprobs = torch.cat([dummy_zeros, chosen_token_logprob], dim=1)
 
         # Build the final mask (ignore prompt and everything after the first EOS)
         final_mask = torch.zeros_like(policy_logprobs)
         idx = 0
-        for i in range(B):
+        for i in range(b):
             pl = prompt_lengths[i]
             for g in range(self._num_generations):
                 seq = full_sequences[idx]
                 idx += 1
                 seq_len = seq.size(0)
                 # Mark the newly generated portion
-                final_mask[idx-1, pl:seq_len] = 1
+                final_mask[idx - 1, pl:seq_len] = 1
                 eos_positions = (seq == self._tokenizer.eos_id).nonzero()
                 if eos_positions.numel() > 0:
                     eos_pos = eos_positions[0].item()
-                    final_mask[idx-1, eos_pos:] = 0
+                    final_mask[idx - 1, eos_pos:] = 0
 
         # Collect baseline logprobs (disable LoRA if needed)
         if self._use_lora:
@@ -592,7 +607,9 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ref_chosen = torch.gather(
                     ref_logits, dim=2, index=shifted_input_ids.unsqueeze(-1)
                 ).squeeze(-1)
-                dummy_zeros2 = torch.zeros((B2, 1), device=device, dtype=ref_chosen.dtype)
+                dummy_zeros2 = torch.zeros(
+                    (b2, 1), device=device, dtype=ref_chosen.dtype
+                )
                 baseline_logprobs = torch.cat([dummy_zeros2, ref_chosen], dim=1)
         else:
             with torch.no_grad():
@@ -601,7 +618,9 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ref_chosen = torch.gather(
                     ref_logits, dim=2, index=shifted_input_ids.unsqueeze(-1)
                 ).squeeze(-1)
-                dummy_zeros2 = torch.zeros((B2, 1), device=device, dtype=ref_chosen.dtype)
+                dummy_zeros2 = torch.zeros(
+                    (b2, 1), device=device, dtype=ref_chosen.dtype
+                )
                 baseline_logprobs = torch.cat([dummy_zeros2, ref_chosen], dim=1)
 
         # Calculate the advantages
@@ -636,13 +655,16 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self._optimizer.zero_grad()
 
                     cur_step = (step + 1) // self._gradient_accumulation_steps
-                    log.info(f"Epoch {epoch}, Step {cur_step}, Loss: {accumulated_loss:.4f}")
+                    log.info(
+                        f"Epoch {epoch}, Step {cur_step}, Loss: {accumulated_loss:.4f}"
+                    )
                     accumulated_loss = 0.0
 
             # End of epoch
             self.update_baseline_model()
             log.info(f"Completed epoch {epoch}")
             self.save_checkpoint(epoch=epoch)
+
 
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
@@ -651,6 +673,7 @@ def recipe_main(cfg: DictConfig) -> None:
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
+
 
 if __name__ == "__main__":
     sys.exit(recipe_main())
