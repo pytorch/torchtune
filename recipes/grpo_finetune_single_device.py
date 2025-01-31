@@ -95,40 +95,58 @@ def padded_collate_verifiable(
 
 def thinking_reward(tokenizer, prompts, completions, all_text, batch_data):
     """
-    Reward completions based on the number of lines within <think>...</think> tags.
-    The more lines inside the tags, the higher the reward, normalized by total lines.
-
-    Args:
-        tokenizer: Tokenizer (not used directly in this function, since we already have all_text)
-        prompts: List[torch.Tensor] of length B repeated G times
-        completions: List[torch.Tensor] of length B*G
-        all_text: List[str], length B*G (decoded completions)
-        batch_data: Additional batch info if needed.
-
-    Returns:
-        Torch float32 tensor of shape [B*G] with the computed reward.
+    Reward completions based on how many words appear in <think>...</think> tags,
+    relative to total words in the entire text. The final ratio is scaled by 0.1
+    so that 'thinking' is less heavily rewarded than other factors.
     """
     rewards = torch.zeros(len(completions), dtype=torch.float32)
 
     for i, text in enumerate(all_text):
-        # Extract content inside <think>...</think> tags
         start_tag = "<think>"
         end_tag = "</think>"
-
-        total_lines = text.count("\n") + 1
         start_idx = text.find(start_tag)
         end_idx = text.find(end_tag, start_idx)
 
+        # Count total words
+        total_words = len(text.split())
+        if total_words == 0:
+            # If there's no text, no reward
+            continue
+
         if start_idx != -1 and end_idx != -1:
+            # Extract <think> content
             think_content = text[start_idx + len(start_tag):end_idx].strip()
-            num_lines = think_content.count("\n") + 1 if think_content else 0
-            # Reward is fraction of lines inside <think> relative to total lines
-            rewards[i] = num_lines / total_lines
+            think_words = len(think_content.split())
+
+            # Fraction of words in <think> relative to total
+            fraction = think_words / total_words
+            # Scale down the fraction by 0.1 so it doesn't dominate
+            rewards[i] = 0.1 * fraction
         else:
+            # No <think> tags => reward = 0
             rewards[i] = 0.0
 
     return rewards
 
+
+def format_compliance_reward(tokenizer, prompts, completions, all_text, batch_data):
+    """
+    Reward function that checks if the completion text contains both
+    <think>...</think> and <answer>...</answer> sections.
+    Returns 1.0 if both are present, otherwise 0.0.
+    """
+    rewards = torch.zeros(len(completions), dtype=torch.float32)
+
+    for i, text in enumerate(all_text):
+        has_think = ("<think>" in text) and ("</think>" in text)
+        has_answer = ("<answer>" in text) and ("</answer>" in text)
+
+        if has_think and has_answer:
+            rewards[i] = 1.0
+        else:
+            rewards[i] = 0.0
+
+    return rewards
 
 def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
     """
@@ -159,7 +177,7 @@ def correctness_reward(tokenizer, prompts, completions, all_text, batch_data):
             extracted_answer = text[start_idx + len(start_tag):end_idx].strip()
 
         if i < len(ground_truths) and extracted_answer:
-            if extracted_answer == ground_truths[i]:
+            if ground_truths[i] in extracted_answer:
                 rewards[i] = 1.0
             else:
                 rewards[i] = 0.1  # partial reward
@@ -275,6 +293,7 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             should_load_recipe_state=False,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
+        # Only for LoRA
         self._save_adapter_weights_only = cfg.get('checkpointer').get('save_adapter_weights_only', False)
 
         # Initialize policy
@@ -361,6 +380,68 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         return sampler, dataloader
 
+    def save_checkpoint(self, epoch: int) -> None:
+        """
+        Checkpoint the state of the recipe. The constructed checkpoint state dict
+        contains the following information:
+        - Merged weights with key MODEL_KEY
+        - Adapter weights with key ADAPTER_KEY if LoRA
+        - Relevant recipe state if training is not complete
+        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
+
+        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
+        """
+        ckpt_dict = {}
+
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        # if training is in-progress, checkpoint the optimizer state as well
+        if intermediate_checkpoint:
+            ckpt_dict.update(
+                {
+                    training.OPT_KEY: self._optimizer.state_dict(),
+                    training.SEED_KEY: self.seed,
+                    training.EPOCHS_KEY: self.epochs_run,
+                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                }
+            )
+
+        if self._use_lora:
+            adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
+            ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
+        if not self._save_adapter_weights_only:
+            # Construct the full state dict with LoRA weights merged into base LLM weights
+
+            # Move to CPU to avoid a copy on GPU
+            state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
+            merged_state_dict = get_merged_lora_ckpt(
+                state_dict,
+                rank=self._lora_rank,
+                alpha=self._lora_alpha,
+            )
+
+            ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+
+            adapter_config = {
+                "r": self._lora_rank,
+                "lora_alpha": self._lora_alpha,
+                "target_modules": get_lora_module_names(
+                    self._lora_attn_modules,
+                    self._apply_lora_to_mlp,
+                    self._apply_lora_to_output,
+                ),
+                "peft_type": "LORA",
+            }
+            ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
+
+        self._checkpointer.save_checkpoint(
+            ckpt_dict,
+            epoch=epoch,
+            intermediate_checkpoint=intermediate_checkpoint,
+            adapter_only=self._save_adapter_weights_only,
+        )
+
     def _compute_rewards(
         self,
         tokenizer,
@@ -419,18 +500,21 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         input_ids = batch["tokens"].to(device)
         B = input_ids.size(0)
 
-        # Generate completions
-        all_completions = []
+        # We'll store two versions: one with the entire prompt+generated text,
+        # one with only new tokens (for the reward).
+        all_completions_for_model = []
+        all_completions_for_reward = []
+
         prompt_lengths = []
         with torch.no_grad():
             for i in range(B):
-                # figure out the actual prompt length
                 prompt_len = (input_ids[i] != self._tokenizer.pad_id).sum().item()
                 prompt_tensor = input_ids[i][:prompt_len].unsqueeze(0)
-
                 prompt_lengths.append(prompt_len)
+
                 for _ in range(self._num_generations):
                     with self.cache_ctx_manager(self._enable_kv_cache):
+                        # generate returns [prompt + new tokens]
                         completion, _ = generation.generate(
                             model=self._policy_model,
                             prompt=prompt_tensor,
@@ -441,33 +525,23 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
                             stop_tokens=self._tokenizer.stop_tokens,
                             rng=self._rng,
                         )
-                    log.info(self._tokenizer.decode(completion[0].tolist()))
-                    all_completions.append(completion[0])
+                    full_seq = completion[0]  # entire (prompt + newly generated)
+                    #log.info(self._tokenizer.decode(completion[0].tolist()))
+                    all_completions_for_model.append(full_seq)
 
-        # compute rewards
-        #  shape: [B, G]
+                    # Trim out the old prompt tokens for the reward
+                    only_new = full_seq[prompt_len:]
+                    all_completions_for_reward.append(only_new)
+
+        # Use only new tokens for the reward functions
         rewards_2d = self._compute_rewards(
             self._tokenizer,
             [row for row in input_ids],
-            all_completions,
-            batch,
+            all_completions_for_reward,
+            batch
         ).to(device)
 
-        # build the full prompt+completion sequences
-        full_sequences = []  # list of torch.Tensor
-        full_prompts_len = []
-
-        idx = 0
-        for i in range(B):
-            pl = prompt_lengths[i]
-            prompt_seq = input_ids[i][:pl]
-            for g in range(self._num_generations):
-                comp = all_completions[idx]
-                idx += 1
-                # cat prompt + completion
-                combined = torch.cat([prompt_seq, comp], dim=0)
-                full_sequences.append(combined)
-                full_prompts_len.append(pl)
+        full_sequences = all_completions_for_model
 
         lengths = [seq.size(0) for seq in full_sequences]
         max_len = max(lengths)
@@ -480,62 +554,62 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         for i, seq in enumerate(full_sequences):
             policy_input[i, : seq.size(0)] = seq
 
-        # Forward
+        # Forward pass
         outputs = self._policy_model(policy_input)
-        logits = outputs[:, :-1, :]  # drop the last position
+        logits = outputs[:, :-1, :]
         shifted_input_ids = policy_input[:, 1:]
         log_probs = logits.log_softmax(dim=-1)
         chosen_token_logprob = torch.gather(
             log_probs, dim=2, index=shifted_input_ids.unsqueeze(-1)
         ).squeeze(-1)
 
-        # Insert a dummy zero for alignment
+        # Insert dummy zero for alignment
         B2, seq_len_minus1 = chosen_token_logprob.size()
         dummy_zeros = torch.zeros((B2, 1), device=device, dtype=chosen_token_logprob.dtype)
         policy_logprobs = torch.cat([dummy_zeros, chosen_token_logprob], dim=1)
 
-        # Build final mask to ignore prompt and anything after first EOS
+        # Build the final mask (ignore prompt and everything after the first EOS)
         final_mask = torch.zeros_like(policy_logprobs)
-        for i, seq in enumerate(full_sequences):
-            pl = full_prompts_len[i]
-            length_i = seq.size(0)
-            # set [pl:length_i] = 1
-            final_mask[i, pl:length_i] = 1
-            # find first eos
-            eos_positions = (seq == self._tokenizer.eos_id).nonzero()
-            if eos_positions.numel() > 0:
-                eos_pos = eos_positions[0].item()
-                final_mask[i, eos_pos:] = 0
+        idx = 0
+        for i in range(B):
+            pl = prompt_lengths[i]
+            for g in range(self._num_generations):
+                seq = full_sequences[idx]
+                idx += 1
+                seq_len = seq.size(0)
+                # Mark the newly generated portion
+                final_mask[idx-1, pl:seq_len] = 1
+                eos_positions = (seq == self._tokenizer.eos_id).nonzero()
+                if eos_positions.numel() > 0:
+                    eos_pos = eos_positions[0].item()
+                    final_mask[idx-1, eos_pos:] = 0
 
-        # get baseline logprobs
+        # Collect baseline logprobs (disable LoRA if needed)
         if self._use_lora:
             with disable_adapter(self._policy_model), torch.no_grad():
-                ref_outputs = self._policy_model(policy_input)
-                ref_logits = ref_outputs[:, :-1, :]
-                ref_log_probs = ref_logits.log_softmax(dim=-1)
+                ref_out = self._policy_model(policy_input)
+                ref_logits = ref_out[:, :-1, :].log_softmax(dim=-1)
                 ref_chosen = torch.gather(
-                    ref_log_probs, dim=2, index=shifted_input_ids.unsqueeze(-1)
+                    ref_logits, dim=2, index=shifted_input_ids.unsqueeze(-1)
                 ).squeeze(-1)
                 dummy_zeros2 = torch.zeros((B2, 1), device=device, dtype=ref_chosen.dtype)
                 baseline_logprobs = torch.cat([dummy_zeros2, ref_chosen], dim=1)
         else:
             with torch.no_grad():
-                ref_outputs = self._baseline_model(policy_input)
-                ref_logits = ref_outputs[:, :-1, :]
-                ref_log_probs = ref_logits.log_softmax(dim=-1)
+                ref_out = self._baseline_model(policy_input)
+                ref_logits = ref_out[:, :-1, :].log_softmax(dim=-1)
                 ref_chosen = torch.gather(
-                    ref_log_probs, dim=2, index=shifted_input_ids.unsqueeze(-1)
+                    ref_logits, dim=2, index=shifted_input_ids.unsqueeze(-1)
                 ).squeeze(-1)
                 dummy_zeros2 = torch.zeros((B2, 1), device=device, dtype=ref_chosen.dtype)
                 baseline_logprobs = torch.cat([dummy_zeros2, ref_chosen], dim=1)
 
-        # advantages shape [B, G]
+        # Calculate the advantages
         means = rewards_2d.mean(dim=1, keepdim=True)
         stds = rewards_2d.std(dim=1, keepdim=True) + 1e-5
         norm_adv_2d = (rewards_2d - means) / stds
         advantages = norm_adv_2d.view(-1)
 
-        # RL loss
         loss_val = compute_token_level_loss(
             policy_logprobs,
             baseline_logprobs,
@@ -543,7 +617,6 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             advantages,
             self._kl_coeff,
         )
-
         return loss_val
 
     def update_baseline_model(self):
@@ -569,6 +642,7 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             # End of epoch
             self.update_baseline_model()
             log.info(f"Completed epoch {epoch}")
+            self.save_checkpoint(epoch=epoch)
 
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:

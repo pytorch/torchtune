@@ -24,10 +24,11 @@ model:
   apply_lora_to_mlp: True
   lora_rank: 64  # higher increases accuracy and memory
   lora_alpha: 128  # usually alpha=2*rank
-  lora_dropout: 0.0
+  lora_dropout: 0.1
 
 reward_functions:
   - recipes.grpo_finetune_single_device.correctness_reward
+  - recipes.grpo_finetune_single_device.format_compliance_reward
   - recipes.grpo_finetune_single_device.thinking_reward
 
 # Tokenizer
@@ -61,7 +62,7 @@ optimizer:
   _component_: torch.optim.AdamW
   fused: True
   weight_decay: 0.05
-  lr: 5e-4
+  lr: 1e-5 # Lower learning rate for 1B/Lora
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -72,7 +73,7 @@ epochs: 1
 max_steps_per_epoch: 1000
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
-kl_coeff: 0.01  # KL divergence coefficient for the model
+kl_coeff: 0.1  # KL divergence coefficient for the model - highish to align to base
 
 # Memory management
 enable_activation_checkpointing: False  # True reduces memory
