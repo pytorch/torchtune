@@ -27,8 +27,8 @@ model:
   lora_dropout: 0.0
 
 reward_functions:
-  - recipes.grpo_full_finetune_single_device.correctness_reward
-  - recipes.grpo_full_finetune_single_device.thinking_reward
+  - recipes.grpo_finetune_single_device.correctness_reward
+  - recipes.grpo_finetune_single_device.thinking_reward
 
 # Tokenizer
 tokenizer:
