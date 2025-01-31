@@ -460,7 +460,7 @@ available when you install torchtune.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">--help</span></code> option will show all the possible commands available through the torchtune CLI,
 with a short description of each.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>--help
-usage:<span class="w"> </span>tune<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span><span class="o">{</span>download,ls,cp,run,validate<span class="o">}</span><span class="w"> </span>...
+usage:<span class="w"> </span>tune<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span><span class="o">{</span>download,ls,cp,run,validate,cat<span class="o">}</span><span class="w"> </span>...
 
 Welcome<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>torchtune<span class="w"> </span>CLI!
 
@@ -468,7 +468,7 @@ options:
 -h,<span class="w"> </span>--help<span class="w">            </span>show<span class="w"> </span>this<span class="w"> </span><span class="nb">help</span><span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span><span class="nb">exit</span>
 
 subcommands:
-<span class="w">  </span><span class="o">{</span>download,ls,cp,run,validate<span class="o">}</span>
+<span class="w">  </span><span class="o">{</span>download,ls,cp,run,validate,cat<span class="o">}</span>
 <span class="w">    </span>download<span class="w">            </span>Download<span class="w"> </span>a<span class="w"> </span>model<span class="w"> </span>from<span class="w"> </span>the<span class="w"> </span>Hugging<span class="w"> </span>Face<span class="w"> </span>Hub.
 <span class="w">    </span>ls<span class="w">                  </span>List<span class="w"> </span>all<span class="w"> </span>built-in<span class="w"> </span>recipes<span class="w"> </span>and<span class="w"> </span>configs
 <span class="w">    </span>...
@@ -667,6 +667,69 @@ Config<span class="w"> </span>is<span class="w"> </span>well-formed!
 </pre></div>
 </div>
 </section>
+<section id="inspect-a-config">
+<span id="tune-cat-cli-label"></span><h2>Inspect a config<a class="headerlink" href="#inspect-a-config" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cat</span> <span class="pre">&lt;config&gt;</span></code> command pretty prints a configuration file, making it easy to use <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code> with confidence. This command is useful for inspecting the structure and contents of a config file before running a recipe, ensuring that all parameters are correctly set.</p>
+<p>You can also use the <code class="docutils literal notranslate"><span class="pre">--sort</span></code> option to print the config in sorted order, which can help in quickly locating specific keys.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 67%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>--sort</p></td>
+<td><p>Print the config in sorted order.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Workflow Example</strong></p>
+<ol class="arabic">
+<li><p><strong>List all available configs:</strong></p>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> command to list all the built-in recipes and configs within torchtune.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>ls
+RECIPE<span class="w">                                   </span>CONFIG
+full_finetune_single_device<span class="w">              </span>llama2/7B_full_low_memory
+<span class="w">                                         </span>code_llama2/7B_full_low_memory
+<span class="w">                                         </span>llama3/8B_full_single_device
+<span class="w">                                         </span>mistral/7B_full_low_memory
+<span class="w">                                         </span>phi3/mini_full_low_memory
+full_finetune_distributed<span class="w">                </span>llama2/7B_full
+<span class="w">                                         </span>llama2/13B_full
+<span class="w">                                         </span>llama3/8B_full
+<span class="w">                                         </span>llama3/70B_full
+...
+</pre></div>
+</div>
+</li>
+<li><p><strong>Inspect the contents of a config:</strong></p>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cat</span></code> command to pretty print the contents of a specific config. This helps you understand the structure and parameters of the config.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>cat<span class="w"> </span>llama2/7B_full
+output_dir:<span class="w"> </span>/tmp/torchtune/llama2_7B/full
+tokenizer:
+<span class="w">    </span>_component_:<span class="w"> </span>torchtune.models.llama2.llama2_tokenizer
+<span class="w">    </span>path:<span class="w"> </span>/tmp/Llama-2-7b-hf/tokenizer.model
+<span class="w">    </span>max_seq_len:<span class="w"> </span>null
+...
+</pre></div>
+</div>
+<p>You can also print the config in sorted order:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>cat<span class="w"> </span>llama2/7B_full<span class="w"> </span>--sort
+</pre></div>
+</div>
+</li>
+<li><p><strong>Run a recipe with parameter override:</strong></p>
+<p>After inspecting the config, you can use the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">run</span></code> command to run a recipe with the config. You can also override specific parameters directly from the command line. For example, to override the <cite>output_dir</cite> parameter:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>run<span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama2/7B_full<span class="w"> </span><span class="nv">output_dir</span><span class="o">=</span>./
+</pre></div>
+</div>
+<p>Learn more about config overrides <a class="reference internal" href="deep_dives/configs.html#cli-override"><span class="std std-ref">here</span></a>.</p>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can find all the cat-able configs via the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> command.</p>
+</div>
+</section>
 </section>
 
 
@@ -719,6 +782,7 @@ Config<span class="w"> </span>is<span class="w"> </span>well-formed!
 <li><a class="reference internal" href="#copy-a-built-in-recipe-or-config">Copy a built-in recipe or config</a></li>
 <li><a class="reference internal" href="#run-a-recipe">Run a recipe</a></li>
 <li><a class="reference internal" href="#validate-a-config">Validate a config</a></li>
+<li><a class="reference internal" href="#inspect-a-config">Inspect a config</a></li>
 </ul>
 </li>
 </ul>
