@@ -6,8 +6,7 @@ Multi-node finetuning
 
 Congratulations! After years of being "GPU poor", you've worked hard, saved your hard earned Bitcoin and graduated to the
 so-called **"GPU middle class"**. In many ways, your worries of yesteryear are gone (memory efficient training, who??).
-But, new problems are on the horizon for you because multi-node is a whole new beast. Come with me as I take you
-through your new life, complete with a big backyard, new car, and of course - a nice rack of H100s.
+But new problems are on the horizon for you because multi-node can be a whole new beast.
 
 .. grid:: 2
 
@@ -30,14 +29,14 @@ Advantages of multi-node training
 More machines means more memory! This is cool for several reasons:
 
 1. **Bigger models**: With more memory, you can train larger models such as `Llama3.1 405B <https://ai.meta.com/blog/meta-llama-3-1/>`_, `Deepseek-V3 <https://www.deepseek.com/>`_, and more.
-2. **Longer data**: More many tasks like writing code, it's helpful to have long context lengths; however longer context length means more memory needed for activations.
+2. **Longer data**: For many fine-tuning tasks like writing code, it's helpful to have long context lengths; however longer context length means more memory needed for activations.
 3. **Higher quality**: With more memory, you can do full parameter updates (not LoRA) and use optimizers like `AdamW <https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html>`_ (not low-precision optimizers), both of which can potentially improve the quality of your training.
 4. **Faster training**: With the ability to fit more data in memory, you can use higher batch sizes *and* turn off memory optimizations like :ref:`activation checkpointing<glossary_act_ckpt>` thereby decreasing the time it takes for training to complete.
 
 .. note::
 
-    **Low inter-node bandwidth & FSDP** We utilize `Fully Sharded Data Parallel <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_ to distribute models over multiple devices. In order to distribute training, FSDP runs an `all-gather <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html#allgather>`_ operation
-    for each forward pass and an all-gather plus a `scatter-reduce <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html#reducescatter>`_ operation for each backwards pass. These operations (usually) block training from continuing until completed and with a slow
+    **Low inter-node bandwidth & FSDP** We utilize PyTorch's **Fully Sharded Data Parallel** to distribute models over multiple devices. In order to distribute training, FSDP runs an `all-gather <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html#allgather>`_ operation
+    for each forward pass and an all-gather (usually) plus a `reduce-scatter <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html#reducescatter>`_ operation for each backwards pass. These operations (usually) block training from continuing until completed and with a slow
     inter-node connection, training speed may be reduced. For more on this, please refer to `this Github Issue <https://github.com/pytorch/pytorch/issues/102434>`_.
 
 Training Llama3.3 70B on 2 nodes
@@ -62,7 +61,7 @@ Now that we have a downloaded model, let's check out our example SLURM bash scri
 
 * We utilize SLURM specific commands like number of nodes, tasks, CPUs available, etc.
 * We are using `torchrun <https://pytorch.org/docs/stable/elastic/run.html>`_ and the `full_finetune_distributed <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py>`_ recipe to train just like on single node
-* You should consider several cluster-specific environment variables to maximize GPU utilization
+* You can consider several cluster-specific environment variables (``NCCL_BUFFSIZE``, ``NCCL_DEBUG``, ``FI_PROVIDER``, etc.) in order to maximize GPU utilization, debug, and more.
 
 .. note::
 
@@ -83,7 +82,7 @@ And the output of `squeue <https://slurm.schedmd.com/squeue.html>`_ should show 
     JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
     1     train         torchtun slurm R       0:03      2 slurm-worker-[1-2]
 
-Once training has completed, we can follow the :ref:`instructions here<use_model_in_wild>` in order to upload our beautiful new model to the Hugging Face Hub!
+Once training has completed, which should take roughly seven minutes in total with the default config, we can follow the :ref:`instructions here<use_model_in_wild>` in order to upload our beautiful new model to the Hugging Face Hub!
 
 Future development
 ------------------
