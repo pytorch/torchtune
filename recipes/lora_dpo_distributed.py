@@ -652,7 +652,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        _, rank = utils.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -740,7 +740,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
-                    dist.all_reduce(running_loss, op=dist.ReduceOp.AVG)
+                    dist.all_reduce(running_loss)
+                    dist.all_reduce(num_tokens)
+
                     for key in running_metrics:
                         dist.all_reduce(running_metrics[key], op=dist.ReduceOp.AVG)
 
@@ -766,7 +768,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / (time_per_step * world_size),
                             "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
                             "rewards/rejected": running_metrics["rewards/rejected"].cpu(),
                             "rewards/accuracies": running_metrics["rewards/accuracies"].cpu(),
