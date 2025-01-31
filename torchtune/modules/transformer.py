@@ -423,7 +423,7 @@ class TransformerDecoder(nn.Module):
             isinstance(m, TransformerCrossAttentionLayer) for m in self.modules()
         )
         has_decoder_layers = any(
-            isinstance(l, TransformerSelfAttentionLayer) for l in self.layers
+            isinstance(l, TransformerSelfAttentionLayer) for l in self.modules()
         )
 
         if has_encoder_layers:

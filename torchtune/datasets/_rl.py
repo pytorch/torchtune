@@ -12,13 +12,15 @@ import torch
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
+
+from torchtune import training
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
 
-BASE_PROMPT = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think></think> and <answer></answer> tags, respectively, i.e., <think>reasoning process here</think> <answer>answer here</answer>. User: %s. Assistant:"""
+BASE_PROMPT = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think></think> and <answer></answer> tags, respectively, i.e., <think>reasoning process here</think> <answer>answer here</answer>. User: %s. Assistant: <think>"""
 
 class ReasoningProblem(TypedDict):
     question: str
@@ -91,7 +93,7 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> fl
     only_completion = completion[question_chars:]
 
     try:
-        tags = extract_tags(only_completion)
+        tags = extract_tags("<think>" + only_completion)
     except ET.ParseError:
         return -1.0
 
@@ -106,6 +108,12 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> fl
     if len(tags['answer']) > 0 and tags['answer'][-1] == answer:
         reward += 1.0
 
+    _, rank = training.get_world_size_and_rank()
+    if rank == 0:
+        print()
+        print(f"{question=}\n{answer=}\n{reward=}\n{only_completion=}")
+        print()
+
     return reward
 
 
@@ -114,7 +122,7 @@ def correctness_reward(question: str, answer: str, completion: str) -> float:
     only_completion = completion[question_chars:]
 
     try:
-        tags = extract_tags(only_completion)
+        tags = extract_tags("<think>" + only_completion)
     except ET.ParseError:
         return 0.0
 

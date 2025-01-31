@@ -12,3 +12,8 @@ TODOs:
 - Adapt the training loop for GRPO (interpolate between distributed SFT and single device RLHF PPO)
 
 
+
+
+Jan 30 new plan:
+- Do a few steps of SFT on 3B
+- Test 7/8B models

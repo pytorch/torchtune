@@ -28,9 +28,14 @@ _ALL_RECIPES = [
         file_path="r1_full_finetune_distributed.py",
         configs=[
             Config(
-                name="llama3_2/3B_full_rl_cuda",
+                name="3B_full_rl_cuda",
                 file_path="llama3_2/3B_full_rl_cuda.yaml"
+            ),
+            Config(
+                name="8B_full_rl_cuda",
+                file_path="llama3_2/8B_full_rl_cuda.yaml"
             )
+
         ],
         supports_distributed=True
     ),

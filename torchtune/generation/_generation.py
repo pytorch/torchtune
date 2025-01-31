@@ -204,7 +204,8 @@ def generate(
     stop_tokens: Optional[List[int]] = None,
     rng: Optional[torch.Generator] = None,
     custom_generate_next_token: Optional[Callable] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    return_logits: bool = True,
+) -> Tuple[torch.Tensor, torch.Tensor | None]:
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
 
@@ -384,9 +385,9 @@ def generate(
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
         curr_pos += 1
         if incremental_decoding:
-            generated_logits = torch.cat([generated_logits, logits], dim=1)
+            generated_logits = torch.cat([generated_logits, logits], dim=1) if return_logits else None
         else:
-            generated_logits = logits
+            generated_logits = logits if return_logits else None
 
         if stop_tokens is not None:
             stop_token_reached = update_stop_tokens_tracker(
@@ -398,6 +399,7 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
-        generated_logits *= stop_token_mask[:, :-1, None]
+        if return_logits:
+            generated_logits *= stop_token_mask[:, :-1, None]
 
     return generated_tokens, generated_logits

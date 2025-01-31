@@ -70,38 +70,25 @@ class GRPOLoss(nn.Module):
                 - clipfrac: The fraction of ratios that were clipped.
 
         """
-        # FIXME: do this token-wise instead of the whole completion?
-        # torch.distributed.breakpoint()
-        token_counts = padding_masks.sum(1)
-        total_pi_logprobs = rlhf.masked_sum(pi_logprobs, padding_masks, -1) / token_counts  # [B x G]
-        total_pi_old_logprobs = rlhf.masked_sum(pi_old_logprobs, padding_masks, -1) / token_counts  # [B x G]
-        total_ref_logprobs = rlhf.masked_sum(ref_logprobs, padding_masks, -1) / token_counts  # [B x G]
 
-        # TODO: why isn't total_pi_logprobs and total_ref_logprobs the same? maybe a bit later
-        ratios = torch.exp(total_pi_logprobs - total_pi_old_logprobs)  # [B x G]
-        clipped_ratios = torch.clamp(ratios, 1.0 - self.epsilon, 1.0 + self.epsilon)  # [B x G]
-
-        # print(f"{total_pi_logprobs=}")
-        # print(f"{total_pi_old_logprobs=}")
-        # print(f"{total_ref_logprobs=}")
-        # print(f"{ratios=}")
-        # print(f"{clipped_ratios=}")
-
-        policy_losses_clipped = advantages * clipped_ratios  # [B x G]
-        policy_losses_unclipped = advantages * ratios  # [B x G]
-
-        clipfrac = (policy_losses_clipped < policy_losses_unclipped).float()  # [B x G]
-        clipfrac = clipfrac.mean()  # scalar
-
-        policy_loss = torch.minimum(policy_losses_clipped, policy_losses_unclipped)  # [B x G]
-        policy_loss = policy_loss.mean()
-
-        kl_loss = (torch.exp(total_ref_logprobs - total_pi_logprobs) -
-                   (total_ref_logprobs - total_pi_logprobs) - 1)  # [B x G]
+        ratios = torch.exp(pi_logprobs - pi_old_logprobs)  # [B x G, L]
+        clipped_ratios = torch.clamp(ratios, 1.0 - self.epsilon, 1.0 + self.epsilon)  # [B x G, L]
 
 
-        # kl_loss = (total_ref_logprobs - total_pi_logprobs)
-        kl_loss = kl_loss.mean()
+        advantages = advantages[:, None]  # [B x G, 1]
+
+        policy_losses_clipped = advantages * clipped_ratios  # [B x G, L]
+        policy_losses_unclipped = advantages * ratios  # [B x G, L]
+
+        clipfrac = (policy_losses_clipped < policy_losses_unclipped).float()  # [B x G, L]
+        clipfrac = rlhf.masked_mean(clipfrac, padding_masks)  # scalar
+
+        policy_loss = torch.minimum(policy_losses_clipped, policy_losses_unclipped)  # [B x G, L]
+        policy_loss = rlhf.masked_mean(policy_loss, padding_masks)
+
+        kl_loss = (torch.exp(ref_logprobs - pi_logprobs) -
+                   (ref_logprobs - pi_logprobs) - 1)  # [B x G]
+        kl_loss = rlhf.masked_mean(kl_loss, padding_masks)
 
         loss = -(policy_loss - self.kl_coeff * kl_loss)
 

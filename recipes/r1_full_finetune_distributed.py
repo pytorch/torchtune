@@ -11,6 +11,7 @@ from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
+import bitsandbytes.optim
 import torch
 from omegaconf import DictConfig, ListConfig
 
@@ -24,6 +25,7 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.datasets._rl import correctness_reward, shaped_correctness_reward, batch_shaped_correctness_reward
+from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf._types import R1Trajectory, GRPOStats
 from torchtune.training import DummyProfiler, PROFILER_KEY
@@ -327,11 +329,12 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         self.global_step = self._epochs_run * self._steps_per_epoch
 
         # Setup lr scheduler
-        self._lr_scheduler = self._setup_lr_scheduler(
+        self._lr_scheduler = (self.
+        _setup_lr_scheduler(
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
-        )
+        ))
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
@@ -864,19 +867,30 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # print(f"{batch_input_ids.shape=}")
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-        query_responses, logits = generation.generate(   # [B x G, L], [B x G, L, V]
-            model=self._model,
-            prompt=batch_input_ids,
-            max_generated_tokens=self._max_generated_tokens,
-            temperature=self._temperature,
-            top_k=self._top_k,
-            pad_id=self._tokenizer.pad_id,
-            rng=self._rng,
-        )
+        with local_kv_cache(
+                model=self._model,
+                batch_size=batch_size * grpo_size,
+                device=self._device,
+                dtype=self._dtype,
+                decoder_max_seq_len=context_length + self._max_generated_tokens):
+            query_responses, logits = generation.generate(   # [B x G, L], [B x G, L, V]
+                model=self._model,
+                prompt=batch_input_ids,
+                max_generated_tokens=self._max_generated_tokens,
+                temperature=self._temperature,
+                top_k=self._top_k,
+                pad_id=self._tokenizer.pad_id,
+                rng=self._rng,
+                return_logits=False
+            )
+
+        # _, rank = training.get_world_size_and_rank()
+        # if rank == 0:
+        #     for i, res in enumerate(query_responses):
+        #         text = self._tokenizer.decode(res.tolist())
+        #         print(f"{rank=} {i=} {text}")
 
         del logits
-        import bitsandbytes
-        bitsandbytes.optim.PagedAdamW
 
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
@@ -972,38 +986,25 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         """
         # estimate logprobs from the policy at the current optimisation step
         _, rank = training.get_world_size_and_rank()
-        # print(f"!!!! [rank {rank}] {trajectory.query_responses.shape=}")
-        # print(f"!!!! [rank {rank}] {trajectory.position_ids.shape=}")
-        # print(f"!!!! [rank {rank}] {trajectory.masks.shape=}")
-        # print(f"BEFORE ENTERING TRANSFORMERDECODER")
-        # FIXME: ??? query_responses here is different than before
-        pi_logits = self._model(  # TODO: already at this point, pi_logits differ from ref_logits etc.
+
+        torch.cuda.empty_cache()
+
+        pi_logits = self._model(
             trajectory.query_responses.clone(),
             input_pos=trajectory.position_ids.clone(),
             mask=trajectory.masks.clone(),
         )
 
-        # print(f"{trajectory.advantages=}")
-        # print(f"Before {pi_logits.shape=}")
-        # print(f"Before {pi_logits=}")  # TODO: check if this is behaving well before and after, seems a bit odd?
-
         pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
         pi_logprobs = rlhf.logits_to_logprobs(
             pi_logits, trajectory.query_responses[:, context_length:], self._temperature
         )
-        # torch.distributed.breakpoint()
 
-        # print(f"{pi_logprobs.shape=}")
-        # print(f"{pi_logprobs=}")
         pi_logprobs[trajectory.response_padding_masks] = 1.0
 
         del pi_logits
+        torch.cuda.empty_cache()
 
-        print(f"{trajectory.logprobs=}")
-        print(f"{pi_logprobs=}")
-        print(f"{trajectory.ref_logprobs=}")
-        print(f"{trajectory.advantages=}")
-        print(f"{trajectory.response_padding_masks=}")
 
 
         # calculate grpo loss
@@ -1015,15 +1016,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             padding_masks=~trajectory.response_padding_masks,
         )
 
-        print(f"{loss=}")
-        print(f"{policy_loss=}")
-        print(f"{kl_loss=}")
-        print(f"{ratios=}")
-        print(f"{clipfrac=}")
-
-        # print("!!!!! MEMORY DUMP !!!!!")
-        # get_gpu_tensors_sorted()
-
+        torch.cuda.empty_cache()
         loss /= self._gradient_accumulation_steps
         loss.backward()
 
@@ -1081,6 +1074,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
+        grad_norm = None
 
         training_completed = False
         self._profiler.start()
@@ -1176,19 +1170,34 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                                 grad_norm = torch.nn.utils.clip_grad_norm_(
                                     self._model.parameters(),
                                     max_norm=float(self._clip_grad_norm),
+                                    # error_if_nonfinite=True
                                 )
-                            print(f"PERFORMING A GRADIENT UPDATE")
+                            # print(f"PERFORMING A GRADIENT UPDATE")
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
 
                         self.global_step += 1
 
+                        if self._lr_scheduler is not None:
+                            self._lr_scheduler.step()
+
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
+                    extra_metrics = {}
+                    extra_metrics["lr"] = get_lr(
+                                (
+                                    self._optimizer
+                                    if not self._optimizer_in_bwd
+                                    else self._optim_ckpt_wrapper
+                                ),
+                            )
+                    if grad_norm is not None:
+                        extra_metrics["grad_norm"] = grad_norm
+
                     self.log_metrics(
                         trajectory,
                         GRPOStats(*map(torch.stack, zip(*grpo_stats))),
-                        grad_norm=grad_norm
+                        **extra_metrics
                     )
 
                 self.cleanup_after_step(trajectory, grpo_stats)
