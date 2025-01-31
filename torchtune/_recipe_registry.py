@@ -24,6 +24,22 @@ class Recipe:
 
 _ALL_RECIPES = [
     Recipe(
+        name="r1_full_finetune_distributed",
+        file_path="r1_full_finetune_distributed.py",
+        configs=[
+            Config(
+                name="3B_full_rl_cuda",
+                file_path="llama3_2/3B_full_rl_cuda.yaml"
+            ),
+            Config(
+                name="8B_full_rl_cuda",
+                file_path="llama3_2/8B_full_rl_cuda.yaml"
+            )
+
+        ],
+        supports_distributed=True
+    ),
+    Recipe(
         name="full_finetune_single_device",
         file_path="full_finetune_single_device.py",
         configs=[

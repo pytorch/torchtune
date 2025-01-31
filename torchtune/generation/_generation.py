@@ -7,8 +7,11 @@
 from typing import Callable, List, Optional, Tuple
 
 import torch
+
+from torchtune import training
 from torchtune.modules.transformer import TransformerDecoder
 
+from tqdm.auto import trange
 
 def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
     """Samples from a multinomial distribution."""
@@ -201,7 +204,8 @@ def generate(
     stop_tokens: Optional[List[int]] = None,
     rng: Optional[torch.Generator] = None,
     custom_generate_next_token: Optional[Callable] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    return_logits: bool = True,
+) -> Tuple[torch.Tensor, torch.Tensor | None]:
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
 
@@ -343,7 +347,9 @@ def generate(
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits
 
-    for _ in range(max_generated_tokens - 1):
+    _, rank = training.get_world_size_and_rank()
+    for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank>0)):
+        pbar.set_description(f"[rank {rank}]")
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
         # reshaped to be bsz first
@@ -377,7 +383,8 @@ def generate(
             q=q,
         )
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
-        generated_logits = torch.cat([generated_logits, logits], dim=1)
+        if return_logits:
+            generated_logits = torch.cat([generated_logits, logits], dim=1)
         curr_pos += 1
 
         if stop_tokens is not None:
@@ -390,6 +397,7 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
-        generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
+        if return_logits:
+            generated_logits *= stop_token_mask[:, :-generated_logits.shape[1], None]
 
     return generated_tokens, generated_logits

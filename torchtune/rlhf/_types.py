@@ -47,6 +47,25 @@ class Trajectory(NamedTuple):
     seq_lens: torch.Tensor
 
 
+class R1Trajectory(NamedTuple):
+    query_responses: torch.Tensor  # [B x G, P+L]
+    logprobs: torch.Tensor  # [B x G, L]
+    ref_logprobs: torch.Tensor  # [B x G, L]
+    rewards: torch.Tensor  # [B x G]
+    advantages: torch.Tensor  # [B x G]
+    masks: torch.Tensor  # [B x G, P+L, P+L]
+    position_ids: torch.Tensor  # [B x G, P+L]
+    response_padding_masks: torch.Tensor  # [B x G, L]
+    seq_lens: torch.Tensor
+
+class GRPOStats(NamedTuple):
+    loss: torch.Tensor
+    policy_loss: torch.Tensor
+    kl_loss: torch.Tensor
+    ratios: torch.Tensor
+    clipfrac: torch.Tensor
+    approx_policy_kls: torch.Tensor
+
 class PPOStats(NamedTuple):
     """
     Contains PPO loss statistics (metrics)

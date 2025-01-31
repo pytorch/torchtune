@@ -11,7 +11,7 @@ import torch.nn as nn
 from torchtune import rlhf
 
 
-class PPOLoss(nn.Module):
+class GRPOLoss(nn.Module):
     """
     Proximal Policy Optimization (PPO) Loss module.
     This implementation uses the following references:
@@ -25,34 +25,27 @@ class PPOLoss(nn.Module):
 
     Args:
         epsilon (float): clipping range for PPO update.
-        value_clip_range (float): clipping range for value function update.
-        value_coeff (float): coefficient for the value function loss contribution.
     """
 
     def __init__(
         self,
         epsilon: float = 0.1,
-        value_clip_range: float = 0.2,
-        value_coeff: float = 0.1,
+        kl_coeff: float = 0.1,
         ignore_index: int = -100,
     ):
         super().__init__()
         self.epsilon = epsilon
-        self.value_clip_range = value_clip_range
-        self.value_coeff = value_coeff
+        self.kl_coeff = kl_coeff
         self.ignore_index = ignore_index
 
 
     def forward(
         self,
-        pi_old_logprobs: torch.Tensor,
-        pi_logprobs: torch.Tensor,
-        advantages: torch.Tensor,
-        phi_old_values: torch.Tensor,
-        phi_values: torch.Tensor,
-        returns: torch.Tensor,
-        padding_masks: Optional[torch.Tensor] = None,
-        value_padding_masks: Optional[torch.Tensor] = None,
+        pi_old_logprobs: torch.Tensor,  # [B x G, L]
+        pi_logprobs: torch.Tensor,  # [B x G, L]
+        ref_logprobs: torch.Tensor,  # [B x G, L]
+        advantages: torch.Tensor,  # [B x G]
+        padding_masks: Optional[torch.Tensor] = None,  # [B x G, L]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
 
@@ -62,8 +55,6 @@ class PPOLoss(nn.Module):
             pi_old_logprobs (torch.Tensor): Log probabilities of the old policy.
             pi_logprobs (torch.Tensor): Log probabilities of the current policy.
             advantages (torch.Tensor): Advantage values.
-            phi_old_values (torch.Tensor): Value predictions of the old value function.
-            phi_values (torch.Tensor): Value predictions of the current value function.
             returns (torch.Tensor): Return values.
             padding_masks (Optional[torch.Tensor]): Padding token masks of the same shape as ``pi_logprobs``,
                 where True indicates the corresponding loss values should participage in policy loss calculation.
@@ -79,47 +70,32 @@ class PPOLoss(nn.Module):
                 - clipfrac: The fraction of ratios that were clipped.
 
         """
-        ratios = torch.exp(pi_logprobs - pi_old_logprobs)
-        clipped_ratios = torch.clamp(ratios, 1.0 - self.epsilon, 1.0 + self.epsilon)
 
-        policy_losses_clipped = -advantages * clipped_ratios
-        policy_losses_unclipped = -advantages * ratios
+        ratios = torch.exp(pi_logprobs - pi_old_logprobs)  # [B x G, L]
+        clipped_ratios = torch.clamp(ratios, 1.0 - self.epsilon, 1.0 + self.epsilon)  # [B x G, L]
 
-        clipfrac = (policy_losses_clipped > policy_losses_unclipped).to(
-            pi_logprobs.dtype
-        )
-        clipfrac = (
-            clipfrac.mean()
-            if padding_masks is None
-            else rlhf.masked_mean(clipfrac, padding_masks)
-        )
 
-        policy_loss = torch.maximum(policy_losses_clipped, policy_losses_unclipped)
-        policy_loss = (
-            policy_loss.mean()
-            if padding_masks is None
-            else rlhf.masked_mean(policy_loss, padding_masks)
-        )
+        advantages = advantages[:, None]  # [B x G, 1]
 
-        values_clipped = torch.clamp(
-            phi_values,
-            phi_old_values - self.value_clip_range,
-            phi_old_values + self.value_clip_range,
-        )
-        value_loss = torch.maximum(
-            (phi_values - returns) ** 2, (values_clipped - returns) ** 2
-        )
-        value_loss = (
-            0.5 * value_loss.mean()
-            if value_padding_masks is None
-            else 0.5 * rlhf.masked_mean(value_loss, value_padding_masks)
-        )
+        policy_losses_clipped = advantages * clipped_ratios  # [B x G, L]
+        policy_losses_unclipped = advantages * ratios  # [B x G, L]
 
-        loss = policy_loss + (value_loss * self.value_coeff)
+        clipfrac = (policy_losses_clipped < policy_losses_unclipped).float()  # [B x G, L]
+        clipfrac = rlhf.masked_mean(clipfrac, padding_masks)  # scalar
+
+        policy_loss = torch.minimum(policy_losses_clipped, policy_losses_unclipped)  # [B x G, L]
+        policy_loss = rlhf.masked_mean(policy_loss, padding_masks)
+
+        kl_loss = (torch.exp(ref_logprobs - pi_logprobs) -
+                   (ref_logprobs - pi_logprobs) - 1)  # [B x G]
+        kl_loss = rlhf.masked_mean(kl_loss, padding_masks)
+
+        loss = -(policy_loss - self.kl_coeff * kl_loss)
+
         return (
             loss,
             policy_loss.detach(),
-            value_loss.detach(),
+            kl_loss.detach(),
             ratios.mean().detach(),
             clipfrac.detach(),
         )

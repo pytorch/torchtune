@@ -17,11 +17,12 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import config, modules, training, utils
+from torchtune import config, modules, training, utils, generation, rlhf
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.rlhf import Trajectory
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 
@@ -31,7 +32,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
+class FullRLRecipeSingleDevice(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
     for single GPU training. Training on CPU is not supported.
@@ -131,9 +132,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type == "cpu":
+        if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
-                "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -197,7 +198,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            should_load_recipe_state=self._resume_from_checkpoint,
+            resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -266,7 +267,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise ValueError(
                 "NPU does not support model compilation. Please set `compile: False` in the config."
             )
-        self._model = self._setup_model(
+        self._model, self._ref_model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
@@ -292,15 +293,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+        #     # set num_output_chunks for model
+        #     self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
         log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
-        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_rl")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
@@ -340,6 +341,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.ignore_labels_cache = torch.full(
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
+
+        # Hyperparams
+        self._temperature = cfg.temperature
+        self._top_k = cfg.top_k
+        self._max_generated_tokens = cfg.max_generated_tokens
+
+        self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -421,34 +429,47 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
+            ref_model = config.instantiate(cfg_model)
 
         if compile_model:
             training.compile_model(model)
+            training.compile_model(ref_model)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
+            training.set_activation_checkpointing(
+                ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
+
         model.load_state_dict(model_state_dict)
+        ref_model.load_state_dict(model_state_dict)
+
 
         # Validate model was loaded in with the expected dtype.
         training.validate_expected_param_dtype(
             model.named_parameters(), dtype=self._dtype
         )
 
+
         # Enable activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
 
+        self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            ref_model, enable_activation_offloading
+        )
+
         log.info(f"Model is initialized with precision {self._dtype}.")
 
-        if self._device.type != "cpu":
+        if self._device.type not in ("cpu", "mps"):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
-        return model
+        return model, ref_model
 
     def _setup_optimizer(
         self,
@@ -559,7 +580,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
-            packed = getattr(ds, "packed", False)
+            packed = False
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
@@ -647,6 +668,137 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return loss
 
+    def generate_trajectory(self, input_ids: torch.Tensor) -> Trajectory:
+        """
+        Generates a trajectory given the current policy and value models, the reference policy model, the reward model,
+        and batch of inputs. This is done over the following steps:
+
+        1: Generate responses, and logits corresponding to the responses using the current policy,
+            generating (query, response) pairs.
+        2. Estimate logprobs of the generated responses using the current policy.
+        3. Estimate values from the generated responses using the current value function.
+        4. Replace any tokens in the response after the first stop token (usually EOS token) with padding,
+            producting truncated responses.
+        5. Run the reward model on the (query, truncated-response) pairs.
+        6. Mask out all the invalid values in the trajectory due to padding tokens.
+
+        Args:
+            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
+
+        Returns:
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
+                the current trajectory.
+        """
+        batch_size, context_length = input_ids.shape
+
+        # step 1: generate responses, and logits corresponding to the responses using the current policy
+        query_responses, logits = generation.generate(
+            model=self._model,
+            prompt=input_ids,
+            max_generated_tokens=self._max_generated_tokens,
+            temperature=self._temperature,
+            top_k=self._top_k,
+            pad_id=self._tokenizer.pad_id,
+            rng=self._rng,
+        )
+
+        return query_responses, logits
+
+        responses = query_responses[:, context_length:].clone()
+        query_response_padding_masks = query_responses != self._tokenizer.pad_id
+
+        # step 1.1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
+        masks = generation.get_causal_mask_from_padding_mask(
+            query_response_padding_masks
+        )
+        position_ids = generation.get_position_ids_from_padding_mask(
+            query_response_padding_masks
+        )
+
+        del query_response_padding_masks
+
+        # step 2. estimate logprobs of the responses using the current policy
+        logits = logits[:, context_length - 1 :]
+        logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
+
+        del logits
+
+        # step 2.1 estimate logprobs of the responses using the reference policy
+        ref_logits = self._ref_policy_model(
+            query_responses, input_pos=position_ids, mask=masks
+        )
+        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
+        ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
+
+        del ref_logits
+
+        # step 3. estimate values from the responses using the value function
+        values = self._value_model(query_responses, input_pos=position_ids, mask=masks)
+        values = rlhf.truncate_sequence_for_logprobs(values, context_length).squeeze(-1)
+
+        # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
+        # resulting in truncated responses
+        response_padding_masks, responses = rlhf.truncate_sequence_at_first_stop_token(
+            responses, self._stop_token_ids, self._tokenizer.pad_id
+        )
+
+        # step 5. run the reward model on the (query, truncated-response) pairs
+        scores = self._reward_model(
+            torch.cat([input_ids, responses], dim=1),
+            input_pos=position_ids,
+            mask=masks,
+        )
+
+        del responses
+
+        # step 5.1 the scores from the reward model are the logits for the last non-padding token in
+        # each (query, truncated-response) pair
+        seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
+        scores = scores[torch.arange(batch_size), seq_lens + context_length].squeeze(-1)
+
+        # step 5.2 if configured, apply any penalties for sequences without EOS tokens
+        # or shorter than a certain length
+        if self._penalise_no_eos or self._min_response_length:
+            reward_penalty_mask = rlhf.get_reward_penalty_mask(
+                response_padding_masks,
+                seq_lens,
+                self._penalise_no_eos,
+                self._min_response_length,
+            )
+            scores[reward_penalty_mask] = self._reward_penalty
+
+        # step 6. mask out all the invalid values in the trajectory due to padding tokens
+        logprobs[response_padding_masks] = 1.0
+        ref_logprobs[response_padding_masks] = 1.0
+
+        # step 6.1 values are masked out *after* the last valid token in the response
+        value_seq_idxs = torch.where(
+            (seq_lens > 0) & (seq_lens < self._max_generated_tokens - 1),
+            seq_lens + 1,
+            seq_lens,
+        )
+        value_padding_masks = response_padding_masks.clone()
+        value_padding_masks[
+            torch.arange(batch_size, device=value_padding_masks.device),
+            value_seq_idxs,
+        ] = False
+
+        values[value_padding_masks] = 0.0
+
+        return Trajectory(
+            query_responses=query_responses,
+            logprobs=logprobs,
+            ref_logprobs=ref_logprobs,
+            values=values,
+            masks=masks,
+            position_ids=position_ids,
+            response_padding_masks=response_padding_masks,
+            value_padding_masks=value_padding_masks,
+            value_seq_idxs=value_seq_idxs,
+            scores=scores,
+            seq_lens=seq_lens,
+        )
+
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
@@ -687,9 +839,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
-                    and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
+
                 utils.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
@@ -744,7 +896,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
-                        if self._device.type != "cpu" and self._log_peak_memory_stats:
+                        if self._device.type not in ("cpu", "mps") and self._log_peak_memory_stats:
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
@@ -768,7 +920,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.profiler_wait_steps
                     + self.profiler_warmup_steps
                     + self.profiler_active_steps
-                    and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history(enabled=None)
 
@@ -796,7 +947,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line
     """
     config.log_config(recipe_name="FullFinetuneRecipeSingleDevice", cfg=cfg)
-    recipe = FullFinetuneRecipeSingleDevice(cfg=cfg)
+    recipe = FullRLRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
