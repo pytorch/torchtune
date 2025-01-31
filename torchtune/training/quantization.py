@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from typing import Callable, Optional
-from warnings import warn
 
 from torch import nn
 from torchtune.modules.peft.lora import LoRALinear, QATLoRALinear
@@ -130,7 +129,10 @@ _quantizer_mode_to_enable_fake_quant["4w-qat"] = enable_4w_fake_quant
 
 
 # int4 weight-only
-Int4WeightOnlyQATQuantizerModuleSwap = Int4WeightOnlyQATQuantizer
+class Int4WeightOnlyQATQuantizerModuleSwap(Int4WeightOnlyQATQuantizer):
+    pass
+
+
 disable_4w_fake_quant_module_swap = disable_4w_fake_quant
 enable_4w_fake_quant_module_swap = enable_4w_fake_quant
 _quantizer_to_mode[Int4WeightOnlyQATQuantizerModuleSwap] = "4w-qat-module-swap"
@@ -141,8 +143,12 @@ _quantizer_mode_to_enable_fake_quant[
     "4w-qat-module-swap"
 ] = enable_4w_fake_quant_module_swap
 
+
 # int8 dynamic activations + int4 weight
-Int8DynActInt4WeightQATQuantizerModuleSwap = Int8DynActInt4WeightQATQuantizer
+class Int8DynActInt4WeightQATQuantizerModuleSwap(Int8DynActInt4WeightQATQuantizer):
+    pass
+
+
 disable_8da4w_fake_quant_module_swap = disable_8da4w_fake_quant
 enable_8da4w_fake_quant_module_swap = enable_8da4w_fake_quant
 _quantizer_to_mode[Int8DynActInt4WeightQATQuantizerModuleSwap] = "8da4w-qat-module-swap"
@@ -173,12 +179,7 @@ def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
     Returns:
         Optional[str]: The quantization mode.
     """
-    mode = _quantizer_to_mode.get(type(quantizer), None)
-    if mode is not None and "module-swap" in mode:
-        warn(
-            "*QuantizerModuleSwap is deprecated. Please use the version without 'ModuleSwap' instead"
-        )
-    return mode
+    return _quantizer_to_mode.get(type(quantizer), None)
 
 
 def _get_disable_fake_quant(quantizer_mode: str) -> Callable:

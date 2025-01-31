@@ -27,7 +27,6 @@ from torchtune.modules.peft import (
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -137,9 +136,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
+        if self._log_peak_memory_stats and self._device.type == "cpu":
             log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -189,7 +188,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -450,13 +449,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             for m in model.modules():
                 if hasattr(m, "initialize_dora_magnitude"):
                     m.initialize_dora_magnitude()
-            load_dora_magnitudes(model)
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = model.load_state_dict(
                 lora_weights_state_dict, strict=False
             )
         else:
             lora_missing, lora_unexpected = None, None
+
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
@@ -529,7 +528,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
-            packed = False
+            packed = getattr(ds, "packed", False)
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
@@ -689,6 +688,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         curr_epoch == 0
                         and self.profiler_profile_memory
                         and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                        and self._device.type == "cuda"
                     ):
                         torch.cuda.memory._record_memory_history()
 
@@ -736,7 +736,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if (
-                                self._device.type == "cuda"
+                                self._device.type != "cpu"
                                 and self._log_peak_memory_stats
                             ):
                                 log_dict.update(
@@ -762,6 +762,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         == self.profiler_wait_steps
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
+                        and self._device.type == "cuda"
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 

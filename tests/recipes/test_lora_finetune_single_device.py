@@ -27,6 +27,14 @@ from tests.test_utils import (
 )
 from torchtune import config
 
+from torchtune.training.checkpointing._utils import (
+    ADAPTER_MODEL_FNAME,
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+    safe_torch_load,
+    SHARD_FNAME,
+)
+
 
 class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
@@ -232,17 +240,21 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run lora_finetune_single_device \
             --config llama2/7B_lora_single_device \
             batch_size=8 \
             gradient_accumulation_steps=1 \
             output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
             checkpointer=torchtune.training.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={tmpdir} \
+            checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
@@ -314,8 +326,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         )
 
         # Load base model and trained adapter weights into LoRA model and call fwd
-        with open(f"{tmpdir}/adapter_1.pt", "rb") as f:
-            lora_sd = torch.load(f, weights_only=True)
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
+        lora_sd = safe_torch_load(adpt_path, weights_only=True)
+
         with open(ckpt_path, "rb") as f:
             base_model_sd = torch.load(f, weights_only=True)
         lora_model.load_state_dict(lora_sd, strict=False)
@@ -323,8 +337,12 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         baseline_out = lora_model(inputs)
 
         # Load merged final ckpt directly into llama2 and call fwd
-        with open(f"{tmpdir}/torchtune_model_1.pt", "rb") as f:
-            sd = torch.load(f, weights_only=True)
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + ".bin"
+        )
+        model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
+        sd = safe_torch_load(model_path, weights_only=True)
+
         llama2_model.load_state_dict(sd)
         merged_ckpt_out = llama2_model(inputs)
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)

@@ -187,7 +187,11 @@ class InferenceRecipe:
             f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"
         )
         logger.info(f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s")
-        logger.info(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
+        if self._device.type != "cpu":
+            torch_device = utils.get_torch_device_namespace()
+            logger.info(
+                f"Memory used: {torch_device.max_memory_allocated() / 1e9:.02f} GB"
+            )
 
 
 @config.parse

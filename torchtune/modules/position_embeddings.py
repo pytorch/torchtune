@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 from torch import nn
@@ -127,7 +127,9 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
     This class implements two-dimensional Rotary Positional Embeddings (RoPE) for images
     based on the axial frequency 2D RoPE described in https://arxiv.org/pdf/2403.13298.
 
-    The position embedding is simply applied to the x-axis and y-axis separately.
+    The position embedding is simply applied to the x-axis and y-axis separately, encoding
+    the x and y position of each patch within every tile.. The embedding is applied to each
+    tile identically.
 
     Note: This module assumes the CLS token embedding is appended at the end of the sequence.
 
@@ -136,6 +138,8 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
             E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the full input image. In this case, the function will consider your image as a single tile.
+        max_num_tiles (int): The maximum number of tiles in the image. This is used to unfold the input sequence
+            length into sequence length per tile so RoPE can be applied to each tile separately.
         dim (int): Embedding dimension. Unlike :class:`~torchtune.modules.RotaryPositionalEmbeddings`, this is
             usually set to the dim of each head in the attention module divided by 2, computed as
             ``embed_dim // num_heads // 2``. The divide by 2 accounts for x and y positions.
@@ -149,12 +153,14 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         self,
         patch_size: int,
         tile_size: int,
+        max_num_tiles: int,
         dim: int,
         base: int = 10_000,
         append_cls_token: bool = True,
     ) -> None:
         super().__init__()
         self.patch_grid_size = tile_size // patch_size
+        self.max_num_tiles = max_num_tiles
         self.dim = dim
         self.base = base
         self.append_cls_token = append_cls_token
@@ -209,20 +215,21 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         self.register_buffer("cache", cache, persistent=False)
 
     def forward(
-        self, x: torch.Tensor, *, input_pos: Optional[torch.Tensor] = None
+        self,
+        x: torch.Tensor,
+        **kwargs: Any,
     ) -> torch.Tensor:
         """
         Args:
-            x (torch.Tensor): input tensor with shape
-                ``[b, s, n_h, h_d]``
-            input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
-                of each token. During training, this is used to indicate the positions
-                of each token relative to its sample when packed, shape [b, s].
-                During inference, this indicates the position of the current token.
-                If none, assume the index of the token is its position id. Default is None.
+            x (torch.Tensor): input tensor with shape ``[b, s, n_h, h_d]``
+            **kwargs (Any): additional keyword arguments. This is kept to match the forward signature of
+                :class:`~torchtune.modules.RotaryPositionalEmbeddings`.
 
         Returns:
             torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
+
+        Raises:
+            ValueError: if sequence length of input tensor does not match the 2D RoPE cache's sequence length
 
         Notation used for tensor shapes:
             - b: batch size
@@ -230,25 +237,24 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
             - n_h: num heads
             - h_d: head dim
         """
-        # input tensor has shape [b, s, n_h, h_d]
-        seq_len = x.size(1)
-
-        # extract the values based on whether input_pos is set or not
-        rope_cache = (
-            self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
-        )
+        bsz, _, n_h, h_d = x.shape
 
         # reshape input; the last dimension is used for computing the output.
+        # Split tile dimension from the sequence dimension
         # Cast to float to match the reference implementation
-        # tensor has shape [b, s, n_h, h_d // 2, 2]
-        xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
+        # tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]
+        xshaped = x.float().reshape(bsz, self.max_num_tiles, -1, n_h, h_d // 2, 2)
+        seq_len = xshaped.size(2)
+
+        if seq_len != self.cache.shape[0]:
+            raise ValueError(
+                f"Input sequence length {seq_len} does not match 2D RoPE cache sequence length {self.cache.shape[0]}."
+            )
 
         # reshape the cache for broadcasting
-        # tensor has shape [b, s, 1, h_d // 2, 2] if packed samples,
-        # otherwise has shape [1, s, 1, h_d // 2, 2]
-        rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
+        rope_cache = self.cache.view(1, 1, seq_len, 1, h_d // 2, 2)
 
-        # tensor has shape [b, s, n_h, h_d // 2, 2]
+        # tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]
         x_out = torch.stack(
             [
                 xshaped[..., 0] * rope_cache[..., 0]
@@ -259,6 +265,6 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
             -1,
         )
 
-        # tensor has shape [b, s, n_h, h_d]
-        x_out = x_out.flatten(3)
+        # Squash tile dimension back into sequence dimension - tensor has shape [b, s, n_h, h_d]
+        x_out = x_out.reshape(bsz, self.max_num_tiles * seq_len, n_h, h_d)
         return x_out.type_as(x)

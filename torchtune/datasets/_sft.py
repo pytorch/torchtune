@@ -7,11 +7,12 @@
 from typing import Any, Callable, Dict, Mapping, Optional
 
 import numpy as np
-
 from datasets import load_dataset
 from torch.utils.data import Dataset
+
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
+
 from torchtune.modules.transforms import Transform
 
 
@@ -68,11 +69,13 @@ class SFTDataset(Dataset):
     multimodal datasets requires processing the images in a way specific to the vision
     encoder being used by the model and is agnostic to the specific dataset.
 
-    Tokenization is handled by the ``model_transform``. All :class:`~torchtune.modules.tokenizers.ModelTokenizer`
-    can be treated as a ``model_transform`` since it uses the model-specific tokenizer to
-    transform the list of messages outputted from the ``message_transform`` into tokens
-    used by the model for training. Text-only datasets will simply pass the :class:`~torchtune.modules.tokenizers.ModelTokenizer`
-    into ``model_transform``. Tokenizers handle prompt templating, if configured.
+    Tokenization is handled by the ``model_transform``. All
+    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` can be treated as
+    a ``model_transform`` since it uses the model-specific tokenizer to transform the
+    list of messages outputted from the ``message_transform`` into tokens used by the
+    model for training. Text-only datasets will simply pass the
+    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` into ``model_transform``.
+    Tokenizers handle prompt templating, if configured.
 
     Args:
         source (str): path to dataset repository on Hugging Face. For local datasets,
@@ -82,7 +85,7 @@ class SFTDataset(Dataset):
             ``load_dataset`` for more details.
         message_transform (Transform): callable that keys into the desired fields in the sample
             and converts text content to a list of :class:`~torchtune.data.Message`. It is expected that the final list
-            of messages are stored in the ``"messages"`` key.
+            of messages are stored in the ``"messages"`` key. See :ref:`message_transform_usage_label` for details.
         model_transform (Transform): callable that applies model-specific pre-processing to the sample after the list of
             messages is created from ``message_transform``. This includes tokenization and any modality-specific
             transforms. It is expected to return at minimum ``"tokens"`` and ``"mask"`` keys.
@@ -110,6 +113,11 @@ class SFTDataset(Dataset):
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
 
+        self._prepare_sample = SFTTransform(
+            message_transform=self._message_transform,
+            model_transform=self._model_transform,
+        )
+
     def __len__(self):
         return len(self._data)
 
@@ -117,29 +125,49 @@ class SFTDataset(Dataset):
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
-        transformed_sample = self._message_transform(sample)
-        if "messages" in transformed_sample:
-            validate_messages(transformed_sample["messages"])
 
-        tokenized_dict = self._model_transform(transformed_sample)
-
-        if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
-            keys_str = ", ".join(tokenized_dict.keys())
-            error_message = (
-                "model_transform returned the following keys: "
-                f"{keys_str}. Must return 'tokens' and 'mask' as keys."
+class SFTTransform(Transform):
+    def __init__(
+        self,
+        message_transform: Optional[Transform] = None,
+        model_transform: Optional[Transform] = None,
+    ):
+        if message_transform is None and model_transform is None:
+            raise ValueError(
+                "At least one of message_transform or model_transform must be provided."
             )
-            raise ValueError(error_message)
+        self._message_transform = message_transform
+        self._model_transform = model_transform
 
-        # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
-        tokenized_dict["labels"] = list(
-            np.where(
-                tokenized_dict["mask"],
-                CROSS_ENTROPY_IGNORE_IDX,
-                tokenized_dict["tokens"],
+    def __call__(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
+        if self._message_transform is not None:
+            transformed_sample = self._message_transform(sample)
+            if "messages" in transformed_sample:
+                validate_messages(transformed_sample["messages"])
+        else:
+            transformed_sample = sample
+
+        if self._model_transform is not None:
+            tokenized_dict = self._model_transform(transformed_sample)
+
+            if not ("tokens" in tokenized_dict and "mask" in tokenized_dict):
+                keys_str = ", ".join(tokenized_dict.keys())
+                error_message = (
+                    "model_transform returned the following keys: "
+                    f"{keys_str}. Must return 'tokens' and 'mask' as keys."
+                )
+                raise ValueError(error_message)
+
+            # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
+            tokenized_dict["labels"] = list(
+                np.where(
+                    tokenized_dict["mask"],
+                    CROSS_ENTROPY_IGNORE_IDX,
+                    tokenized_dict["tokens"],
+                )
             )
-        )
-        assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
+            assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
+        else:
+            tokenized_dict = transformed_sample
 
         return tokenized_dict

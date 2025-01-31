@@ -284,10 +284,11 @@ def validate_missing_and_unexpected_for_lora(
         None
 
     Raises:
-        AssertionError: if base_missing contains any base model keys.
-        AssertionError: if base_unexpected is nonempty.
-        AssertionError: if lora_missing contains any LoRA keys.
-        AssertionError: if lora_unexpected is nonempty.
+        AssertionError:
+            If base_missing contains any base model keys, **or**
+            if base_unexpected is nonempty, **or**
+            if lora_missing contains any LoRA keys, **or**
+            if lora_unexpected is nonempty.
     """
     lora_modules = get_lora_module_names(
         lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
@@ -311,14 +312,3 @@ def validate_missing_and_unexpected_for_lora(
                 raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
     if lora_unexpected:
         raise AssertionError("Unexpected key loading adapter")
-
-
-def load_dora_magnitudes(model: nn.Module) -> None:
-    """
-    For DoRA magnitude we use setattr to move from meta device
-    """
-    dora_parents = {
-        n: p for n, p in model.named_modules() if hasattr(p, "adapter_params")
-    }
-    sd = {f"{n}.magnitude": p.magnitude for n, p in dora_parents.items()}
-    model.load_state_dict(sd, strict=False, assign=True)

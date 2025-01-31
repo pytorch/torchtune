@@ -10,20 +10,24 @@ import copy
 
 import pytest
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 from packaging import version
 from tests.test_utils import gpu_test
 from torch.distributed import launcher
-
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
+from torch.testing._internal.common_distributed import MultiProcessTestCase
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, training
 from torchtune.models.llama2._component_builders import lora_llama2
-from torchtune.modules import TransformerSelfAttentionLayer
+from torchtune.models.llama3_1._component_builders import llama3_mlp
+from torchtune.models.llama3_1._position_embeddings import Llama3ScaledRoPE
+from torchtune.modules import RMSNorm, TransformerSelfAttentionLayer
+from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
@@ -56,15 +60,6 @@ class TestDistributed:
             pg_backend == "gloo"
         ), f"Expected 'gloo' backend, but received {pg_backend}"
 
-    @staticmethod
-    def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
-        training.init_distributed(backend="gloo")
-        world_size, _ = training.get_world_size_and_rank()
-        if world_size != expected_world_size:
-            raise AssertionError(
-                f"Expected different world size: received {world_size}, expected {expected_world_size}"
-            )
-
     def _test_launch_worker(
         self,
         get_pet_launch_config,
@@ -83,13 +78,6 @@ class TestDistributed:
         self._test_launch_worker(get_pet_launch_config, 2, init_pg_explicit=True)
         # trivial test case to ensure test passes with no exceptions
         assert True
-
-    def test_world_size_with_cpu(self, get_pet_launch_config) -> None:
-        desired_world_size = 4
-        lc = get_pet_launch_config(desired_world_size)
-        launcher.elastic_launch(lc, entrypoint=self._test_world_size_with_cpu_device)(
-            desired_world_size
-        )
 
     def test_validate_no_params_on_meta_device(self) -> None:
         with torch.device("meta"):
@@ -185,10 +173,9 @@ class TestFullyShardState(FSDPTest):
             fsdp_optim_to_save.zero_grad()
         expected_model_sd = base_model.state_dict()
         expected_optim_sd = base_optim.state_dict()
-        model_full_sd = training.gather_cpu_state_dict(
-            fsdp_model_to_save.state_dict(), is_rank_zero
-        )
+        model_full_sd = training.gather_cpu_state_dict(fsdp_model_to_save, is_rank_zero)
         optim_full_sd = training.get_full_optimizer_state_dict(
+            fsdp_model_to_save,
             fsdp_optim_to_save,
             is_rank_zero,
         )
@@ -238,12 +225,12 @@ class TestFullyShardState(FSDPTest):
             fsdp_model_to_load,
             copy.deepcopy(base_model.state_dict()),
             torch.device("cuda"),
-            is_rank_zero,
         )
         fsdp_optim_to_load = torch.optim.Adam(
             fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
         )
         training.load_from_full_optimizer_state_dict(
+            fsdp_model_to_load,
             fsdp_optim_to_load,
             # mimic mmap=True where every rank see full SD
             copy.deepcopy(self._broadcast_full_state_dict(optim_full_sd)),
@@ -340,9 +327,7 @@ class TestFullyShardState(FSDPTest):
         fsdp_model_to_save(inp)
 
         expected_model_sd = {k: v.cpu() for k, v in base_model.state_dict().items()}
-        model_full_sd = training.gather_cpu_state_dict(
-            fsdp_model_to_save.state_dict(), is_rank_zero
-        )
+        model_full_sd = training.gather_cpu_state_dict(fsdp_model_to_save, is_rank_zero)
         if is_rank_zero:
             self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
             for key, value in model_full_sd.items():
@@ -373,7 +358,7 @@ class TestFullyShardState(FSDPTest):
                     fully_shard(m)
         fully_shard(fsdp_model_to_load)
         training.load_from_full_model_state_dict(
-            fsdp_model_to_load, expected_model_sd, torch.device("cuda"), is_rank_zero
+            fsdp_model_to_load, expected_model_sd, torch.device("cuda")
         )
         fsdp_model_to_load(inp)
         sharded_model_sd = fsdp_model_to_load.state_dict()
@@ -398,3 +383,57 @@ class TestFullyShardState(FSDPTest):
             result.append(None)
         torch.distributed.broadcast_object_list(result, src=0)
         return result[0]
+
+
+class TestTensorParalell(MultiProcessTestCase):
+    @property
+    def world_size(self) -> int:
+        return 2
+
+    @gpu_test(gpu_count=2)
+    def test_prepare_mha_for_tp(self) -> None:
+        """Test tensor parallelism preparation for multi-head attention."""
+        # Create a device mesh for tensor parallelism
+        mesh = dist.init_device_mesh("cuda", mesh_shape=(2,))
+
+        # Parameters for TransformerSelfAttentionLayer
+        embed_dim = 64
+        hidden_dim = 64
+        num_heads = 4
+        num_kv_heads = 4
+        max_seq_len = 128
+        rope_base = 500000
+        head_dim = embed_dim // num_heads
+        rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+        self_attn = MultiHeadAttention(
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            head_dim=head_dim,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            max_seq_len=max_seq_len,
+            attn_dropout=0.0,
+        )
+        mlp = llama3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+        decoder_layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim, eps=1e-5),
+            mlp_norm=RMSNorm(dim=embed_dim, eps=1e-5),
+        )
+
+        orig_num_heads = self_attn.num_heads
+        orig_num_kv_heads = self_attn.num_kv_heads
+        orig_embed_dim = self_attn.embed_dim
+
+        # Apply tensor parallelism preparation
+        decoder_layer = training.prepare_mha_for_tp(decoder_layer, mesh)
+
+        # Verify that parameters were scaled correctly
+        assert decoder_layer.attn.num_heads == orig_num_heads // 2
+        assert decoder_layer.attn.num_kv_heads == orig_num_kv_heads // 2
+        assert decoder_layer.attn.embed_dim == orig_embed_dim // 2

@@ -51,7 +51,6 @@ class TilePositionalEmbeddingTest(unittest.TestCase):
         torch_version_ge("2.6.0.dev20241117"), reason="Need recent fixes for export"
     )
     def test_tile_positional_embedding_export(self):
-
         tpe_ep = torch.export.export(
             self.tpe,
             (self.x, self.aspect_ratio),
@@ -59,6 +58,7 @@ class TilePositionalEmbeddingTest(unittest.TestCase):
                 self.dynamic_shape,
                 None,
             ),  # assuming aspect ratio is static
+            strict=True,
         )
 
         y = tpe_ep.module()(self.x, self.aspect_ratio)
@@ -129,7 +129,6 @@ class TiledTokenPositionalEmbeddingTest(unittest.TestCase):
         torch_version_ge("2.6.0.dev20241117"), reason="Need recent fixes for export"
     )
     def test_tiled_token_positional_embedding_export(self):
-
         tpe_ep = torch.export.export(
             self.tpe,
             (self.x, self.aspect_ratio),
@@ -137,6 +136,7 @@ class TiledTokenPositionalEmbeddingTest(unittest.TestCase):
                 self.dynamic_shape,
                 None,
             ),  # assuming aspect ratio is static
+            strict=True,
         )
 
         y = tpe_ep.module()(self.x, self.aspect_ratio)
@@ -155,12 +155,12 @@ class TiledTokenPositionalEmbeddingTest(unittest.TestCase):
                 self.dynamic_shape,
                 None,
             ),  # assuming aspect ratio is static
+            strict=True,
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = torch._inductor.aoti_compile_and_package(
                 tpe_ep,
-                (self.x, self.aspect_ratio),
                 package_path=os.path.join(tmpdir, "tpe.pt2"),
             )
             tpe_aoti = load_package(path)

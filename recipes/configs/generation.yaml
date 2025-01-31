@@ -1,7 +1,14 @@
-# Config for running the InferenceRecipe in generate.py to generate output from an LLM
+# Config for running the InferenceRecipe in generate.py to generate output
+# from Llama2 7B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
 #
 # To launch, run the following command from root torchtune directory:
 #    tune run generate --config generation
+
+output_dir: ./ # Not needed
 
 # Model arguments
 model:
@@ -14,7 +21,7 @@ checkpointer:
     pytorch_model-00001-of-00002.bin,
     pytorch_model-00002-of-00002.bin,
   ]
-  output_dir: /tmp/Llama-2-7b-hf/
+  output_dir: ${output_dir}
   model_type: LLAMA2
 
 device: cuda

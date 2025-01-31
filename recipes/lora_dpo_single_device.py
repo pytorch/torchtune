@@ -24,6 +24,7 @@ from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
     get_adapter_state_dict,
+    get_lora_module_names,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
@@ -97,9 +98,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
+        if self._log_peak_memory_stats and self._device.type == "cpu":
             log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -145,7 +146,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -326,7 +327,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         # Compile model, if enabled.
         if compile_model:
             training.compile_model(model)
-        if self._device == torch.device("cuda"):
+        if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
         return model
@@ -447,6 +448,18 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             )
 
             ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
+
+        adapter_config = {
+            "r": self._lora_rank,
+            "lora_alpha": self._lora_alpha,
+            "target_modules": get_lora_module_names(
+                self._lora_attn_modules,
+                self._apply_lora_to_mlp,
+                self._apply_lora_to_output,
+            ),
+            "peft_type": "LORA",
+        }
+        ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
 
         self._checkpointer.save_checkpoint(
             ckpt_dict,

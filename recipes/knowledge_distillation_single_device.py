@@ -26,7 +26,6 @@ from torchtune.modules.peft import (
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    load_dora_magnitudes,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -121,9 +120,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
+        if self._log_peak_memory_stats and self._device.type == "cpu":
             log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -148,7 +147,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            should_load_recipe_state=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
@@ -224,6 +223,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._compile = cfg.compile
+        if cfg.device == "npu" and cfg.compile:
+            raise ValueError(
+                "NPU does not support model compilation. Please set `compile: False` in the config."
+            )
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
         teacher_checkpoint_dict = self.load_teacher_checkpoint(
             cfg_checkpointer=cfg.teacher_checkpointer
@@ -421,7 +424,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # This is for any adapters that need to be initialized after base weights
         # have been loaded (e.g. DoRA).
         if self._is_dora:
-            load_dora_magnitudes(model)
+            for m in model.modules():
+                if hasattr(m, "initialize_dora_magnitude"):
+                    m.initialize_dora_magnitude()
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = model.load_state_dict(
                 lora_weights_state_dict, strict=False
@@ -446,7 +451,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Student model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type != "cpu":
             log.info("Memory stats initializing student model:")
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(
@@ -475,7 +480,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         )
         log.info(f"Teacher model is initialized with precision {self._dtype}.")
 
-        if self._device.type == "cuda":
+        if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(
                 memory_stats, message="Memory stats after teacher model init:"
@@ -526,7 +531,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
-            packed = False
+            packed = getattr(ds, "packed", False)
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
@@ -697,6 +702,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         curr_epoch == 0
                         and self.profiler_profile_memory
                         and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                        and self._device.type == "cuda"
                     ):
                         torch.cuda.memory._record_memory_history()
 
@@ -752,7 +758,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if (
-                                self._device.type == "cuda"
+                                self._device.type != "cpu"
                                 and self._log_peak_memory_stats
                             ):
                                 log_dict.update(
@@ -779,6 +785,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         == self.profiler_wait_steps
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
+                        and self._device.type == "cuda"
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 

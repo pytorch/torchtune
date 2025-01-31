@@ -12,7 +12,7 @@ from torchtune.data._messages import AlpacaToMessages
 
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 def alpaca_dataset(
@@ -51,7 +51,7 @@ def alpaca_dataset(
             :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. Keys should be
             "instruction", "input", and "output" and values should be the actual column names. If None, uses
             the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more

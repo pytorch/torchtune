@@ -33,7 +33,8 @@ def _set_float32_precision(precision: str = "high") -> None:
     Args:
         precision (str): The setting to determine which datatypes to use for matrix multiplication and convolution operations.
     """
-    if not torch.cuda.is_available():  # Not relevant for non-CUDA devices
+    # Not relevant for non-CUDA or non-NPU devices
+    if not (torch.cuda.is_available() or is_npu_available):
         return
     # set precision for matrix multiplications
     torch.set_float32_matmul_precision(precision)
@@ -53,6 +54,7 @@ def verify_bf16_support() -> bool:
         - NCCL is available and version >= 2.10
         - MPS is available and torch was built with MPS
         - NPU is available and supports bf16
+        - XPU is available and supports bf16
 
     Returns:
         bool: True if bf16 is available, False otherwise.
@@ -66,7 +68,8 @@ def verify_bf16_support() -> bool:
     )
     mps_support = torch.backends.mps.is_available() and torch.backends.mps.is_built()
     npu_support = is_npu_available and torch.npu.is_bf16_supported()
-    return cuda_support or mps_support or npu_support
+    xpu_support = torch.xpu.is_available() and torch.xpu.is_bf16_supported()
+    return cuda_support or mps_support or npu_support or xpu_support
 
 
 def get_dtype(

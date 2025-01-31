@@ -13,15 +13,15 @@ from contextlib import contextmanager
 from functools import partial
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, TextIO, Tuple, Union
+from typing import Any, Generator, List, Mapping, Optional, TextIO, Tuple, Union
 
 import pytest
 
 import torch
 from torch import nn
 from torchtune.data import Message, PromptTemplate, truncate
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -308,7 +308,7 @@ def gpu_test(gpu_count: int = 1):
     return pytest.mark.skipif(local_gpu_count < gpu_count, reason=message)
 
 
-def get_loss_values_from_metric_logger(log_file_path: str) -> Dict[str, float]:
+def get_loss_values_from_metric_logger(log_file_path: str) -> List[float]:
     """
     Given an output directory containing metric logger .txt file,
     parse the .txt and return a list of losses from each logged iteration.

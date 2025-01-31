@@ -27,6 +27,14 @@ from tests.test_utils import (
 )
 from torchtune import config
 
+from torchtune.training.checkpointing._utils import (
+    ADAPTER_MODEL_FNAME,
+    get_largest_iter_folder,
+    RECIPE_STATE_DIRNAME,
+    safe_torch_load,
+    SHARD_FNAME,
+)
+
 
 class TestKDSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
@@ -65,7 +73,7 @@ class TestKDSingleDeviceRecipe:
         tmpdir,
         monkeypatch,
     ):
-        config = "qwen2/knowledge_distillation_single_device"
+        config = "qwen2/1.5_to_0.5B_KD_lora_single_device"
         model_type = "llama3"
         ckpt_type = "tune"
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
@@ -152,7 +160,7 @@ class TestKDSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run knowledge_distillation_single_device \
-            --config qwen2/knowledge_distillation_single_device \
+            --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -184,15 +192,17 @@ class TestKDSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run knowledge_distillation_single_device \
-            --config qwen2/knowledge_distillation_single_device \
+            --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
-            checkpointer.checkpoint_dir={tmpdir} \
+            checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3 \
             teacher_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -242,7 +252,7 @@ class TestKDSingleDeviceRecipe:
 
         cmd = f"""
         tune run knowledge_distillation_single_device \
-            --config qwen2/knowledge_distillation_single_device \
+            --config qwen2/1.5_to_0.5B_KD_lora_single_device \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -292,8 +302,10 @@ class TestKDSingleDeviceRecipe:
         )
 
         # Load base model and trained adapter weights into LoRA model and call fwd
-        with open(f"{tmpdir}/adapter_1.pt", "rb") as f:
-            lora_sd = torch.load(f, weights_only=True)
+        epoch_folder = get_largest_iter_folder(tmpdir)
+        adpt_path = os.path.join(tmpdir, epoch_folder, f"{ADAPTER_MODEL_FNAME}.pt")
+        lora_sd = safe_torch_load(adpt_path, weights_only=True)
+
         with open(ckpt_path, "rb") as f:
             base_model_sd = torch.load(f, weights_only=True)
         lora_model.load_state_dict(lora_sd, strict=False)
@@ -301,8 +313,13 @@ class TestKDSingleDeviceRecipe:
         baseline_out = lora_model(inputs)
 
         # Load merged final ckpt directly into 3 and call fwd
-        with open(f"{tmpdir}/torchtune_model_1.pt", "rb") as f:
-            sd = torch.load(f, weights_only=True)
+        suffix = ".safetensors" if ckpt_type == "hf" else ".bin"
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        )
+        model_path = os.path.join(tmpdir, epoch_folder, model_ckpt_fname)
+        sd = safe_torch_load(model_path, weights_only=True)
+
         llama3_model.load_state_dict(sd)
         merged_ckpt_out = llama3_model(inputs)
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)
