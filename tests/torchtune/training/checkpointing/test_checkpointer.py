@@ -408,7 +408,10 @@ class TestHFLlama2FullModelCheckpointer:
         )
         missing, unexpected = model.load_state_dict(state_dict["model"], strict=False)
         validate_missing_and_unexpected_for_lora(
-            state_dict_keys=list(model.state_dict().keys()),
+            lora_attn_modules=lora_attn_modules,
+            apply_lora_to_mlp=apply_lora_to_mlp,
+            apply_lora_to_output=apply_lora_to_output,
+            state_dict_keys=model.state_dict().keys(),
             base_missing=missing,
             base_unexpected=unexpected,
         )
