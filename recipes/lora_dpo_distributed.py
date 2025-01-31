@@ -15,7 +15,6 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
-import torch.distributed as dist
 from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -740,11 +739,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
-                    dist.all_reduce(running_loss)
-                    dist.all_reduce(num_tokens)
+                    torch.distributed.all_reduce(running_loss)
+                    torch.distributed.all_reduce(num_tokens)
 
                     for key in running_metrics:
-                        dist.all_reduce(running_metrics[key], op=dist.ReduceOp.AVG)
+                        torch.distributed.all_reduce(running_metrics[key], op=torch.distributed.ReduceOp.AVG)
 
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
