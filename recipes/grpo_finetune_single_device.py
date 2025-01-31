@@ -273,9 +273,9 @@ def compute_token_level_loss(
 
     return pg_loss + kl_coeff * kl_value
 
-class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
+class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
-    Full finetuning recipe for GRPO on a single GPU, integrating optional LoRA and token-level KL.
+    Finetuning recipe for GRPO on a single GPU, integrating optional LoRA and token-level KL.
 
     Features:
       - Group-based reward computation, no critic model.
@@ -324,7 +324,7 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
         self._max_length = cfg.get("max_length", 8192)
-        self._enable_kv_cache = cfg.get("enable_kv_cache", True)
+        self._enable_kv_cache = cfg.get("   ", True)
 
         # Reward model or custom reward functions
         self._reward_model = (
@@ -439,67 +439,7 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
-        """
-        Checkpoint the state of the recipe. The constructed checkpoint state dict
-        contains the following information:
-        - Merged weights with key MODEL_KEY
-        - Adapter weights with key ADAPTER_KEY
-        - Relevant recipe state if training is not complete
-        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
-
-        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
-        """
-        ckpt_dict = {}
-
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
-        # if training is in-progress, checkpoint the optimizer state as well
-        if intermediate_checkpoint:
-            ckpt_dict.update(
-                {
-                    training.OPT_KEY: self._optimizer.state_dict(),
-                    training.SEED_KEY: self.seed,
-                    training.EPOCHS_KEY: self.epochs_run,
-                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                }
-            )
-
-        if (self._use_lora):
-            adapter_state_dict = get_adapter_state_dict(self._model.state_dict())
-            ckpt_dict.update({training.ADAPTER_KEY: adapter_state_dict})
-            if not self._save_adapter_weights_only:
-                # Construct the full state dict with LoRA weights merged into base LLM weights
-
-                # Move to CPU to avoid a copy on GPU
-                state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
-
-                merged_state_dict = get_merged_lora_ckpt(
-                    state_dict,
-                    rank=self._lora_rank,
-                    alpha=self._lora_alpha,
-                )
-
-                ckpt_dict.update({training.MODEL_KEY: merged_state_dict})
-
-            adapter_config = {
-                "r": self._lora_rank,
-                "lora_alpha": self._lora_alpha,
-                "target_modules": get_lora_module_names(
-                    self._lora_attn_modules,
-                    self._apply_lora_to_mlp,
-                    self._apply_lora_to_output,
-                ),
-                "peft_type": "LORA",
-            }
-            ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
-
-        self._checkpointer.save_checkpoint(
-            ckpt_dict,
-            epoch=epoch,
-            intermediate_checkpoint=intermediate_checkpoint,
-            adapter_only=self._save_adapter_weights_only,
-        )
+    #TODO: Add checkpoint saving.
 
     def _compute_rewards(
         self,
@@ -516,7 +456,6 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Convert all completions to text
         all_text = [tokenizer.decode(c.cpu().tolist()) for c in completions]
-        print(all_text)
         total_rewards = torch.zeros(total_completions)
 
         # Repeat each prompt num_generations times (so B -> B*g)
@@ -555,7 +494,6 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         total_rewards = total_rewards.view(B, self._num_generations)
         return total_rewards
 
-
     def compute_loss(self, batch: Dict[str, Any]) -> torch.Tensor:
         """
         Given a batch of data, generate completions, compute rewards, and return the final RL loss.
@@ -563,7 +501,7 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         input_ids = batch["tokens"].to(self._device)
         B = input_ids.size(0)
-
+       
         # Generate completions
         all_completions = []
         with torch.no_grad():
@@ -578,8 +516,10 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             temperature=self._temperature,
                             top_k=self._top_k,
                             pad_id=self._tokenizer.pad_id,
+                            stop_tokens=self._tokenizer.stop_tokens,
                             rng=self._rng,
                         )
+                        log.info(self._tokenizer.decode(completion[0].tolist()))
                     c = completion[0]
                     all_completions.append(c)
 
@@ -693,8 +633,8 @@ class GRPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
-    config.log_config(recipe_name="GRPOFullFinetuneRecipeSingleDevice", cfg=cfg)
-    recipe = GRPOFullFinetuneRecipeSingleDevice(cfg=cfg)
+    config.log_config(recipe_name="GRPOFinetuneRecipeSingleDevice", cfg=cfg)
+    recipe = GRPOFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

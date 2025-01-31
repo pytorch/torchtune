@@ -12,7 +12,6 @@ from torchtune.modules.transforms.tokenizers import ModelTokenizer
 def calc_gsm8k_dataset(tokenizer: ModelTokenizer,
     source: str = "MU-NLPC/Calc-gsm8k",
     column_map: Optional[Dict[str, str]] = {"prompt": "question", "result": "result"},
-    train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],):
@@ -29,7 +28,6 @@ def calc_gsm8k_dataset(tokenizer: ModelTokenizer,
         source=source,
         tokenizer=tokenizer,
         message_transform=PromptToMessage(
-            train_on_input=train_on_input,
             column_map=column_map,
             new_system_prompt=new_system_prompt,
         ),

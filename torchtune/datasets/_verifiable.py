@@ -20,8 +20,6 @@ class PromptToMessage(Transform):
         | "user prompt"   | "other data" |
 
     Args:
-        train_on_input (bool): Whether the model is trained on the user prompt or not.
-            Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "prompt"
             column names to the actual column names in the dataset. Keys should
             be "prompt" and any other columns you want to preserve. Default is None,
@@ -36,11 +34,9 @@ class PromptToMessage(Transform):
 
     def __init__(
         self,
-        train_on_input: bool = False,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None
     ):
-        self.train_on_input = train_on_input
         self.new_system_prompt = new_system_prompt
 
         self.column_map = column_map
@@ -54,23 +50,21 @@ class PromptToMessage(Transform):
             self.column_map = {"prompt": "prompt"}
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
-        # Build the user content from the prompt.
-        content = [{"type": "text", "content": sample[self.column_map["prompt"]]}]
-
-        # Construct messages array.
         messages = [
             Message(
                 role="user",
-                content=content,
-                masked=not self.train_on_input,
-                eot=True,
+                content=sample[self.column_map["prompt"]],
+                #eot=True,
             ),
+             # Empty assistant message to kick-start generation
+            Message(role="assistant", content=""),
         ]
         if self.new_system_prompt is not None:
             # Prepend system prompt if specified.
             messages = [
                 Message(
-                    role="system", content=self.new_system_prompt, masked=True, eot=True
+                    role="system", content=self.new_system_prompt,
+                    # masked=True, eot=True
                 )
             ] + messages
 
@@ -105,6 +99,7 @@ class VerifiableDataset(Dataset):
         filter_fn (Optional[Callable]): optional callable used to filter the dataset prior to pre-processing.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training.
             Not supported in this class.
+        for_inference: true if the prompts will be used for inference/generation (prevents adding end tokens)
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
     """
 
@@ -117,16 +112,17 @@ class VerifiableDataset(Dataset):
         filter_fn: Optional[Callable] = None,
         packed: bool = False,
         split: str = "train",
+        for_inference: Optional[bool]=True,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         if packed:
             raise ValueError(
                 "Packed is currently not supported for verifiable datasets."
             )
-
         self._tokenizer = tokenizer
         self._message_transform = message_transform
         self._data = load_dataset(source, split=split, **load_dataset_kwargs)
+        self.for_inference=for_inference
 
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
@@ -144,7 +140,7 @@ class VerifiableDataset(Dataset):
         messages = transformed_sample.pop("messages")
 
         # Tokenize messages.
-        input_ids, masks = self._tokenizer.tokenize_messages(messages)
+        input_ids, masks = self._tokenizer.tokenize_messages(messages, add_end_tokens=not self.for_inference)
         labels = list(
             np.where(masks, CROSS_ENTROPY_IGNORE_IDX, input_ids)
         )
