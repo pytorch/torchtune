@@ -9,6 +9,7 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set,
 
 import torch
 from torch import nn
+from torchtune.utils._logging import deprecate_parameter
 
 # Modules from MultiHeadAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -248,6 +249,15 @@ def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
                 module.disabled = False
 
 
+@deprecate_parameter(
+    param_name="lora_attn_modules", msg="Please use state_dict_keys instead."
+)
+@deprecate_parameter(
+    param_name="apply_lora_to_mlp", msg="Please use state_dict_keys instead."
+)
+@deprecate_parameter(
+    param_name="apply_lora_to_output", msg="Please use state_dict_keys instead."
+)
 def validate_missing_and_unexpected_for_lora(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool,
