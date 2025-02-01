@@ -127,6 +127,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self.distributed_backend = training.get_distributed_backend(
+            device_type,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
+            or self._enable_async_checkpointing,
+        )
+        init_process_group(self.distributed_backend)
+        _, rank = utils.get_world_size_and_rank()
+        self._is_rank_zero = rank == 0
+
         # Logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -146,16 +156,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
-
-        # Set up the backend for distributed training (NCCL, GLOO, etc.)
-        self.distributed_backend = training.get_distributed_backend(
-            device_type,
-            offload_ops_to_cpu=self.fsdp_cpu_offload
-            or self._enable_async_checkpointing,
-        )
-        init_process_group(self.distributed_backend)
-        _, rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:

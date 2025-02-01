@@ -82,7 +82,7 @@ And the output of `squeue <https://slurm.schedmd.com/squeue.html>`_ should show 
     JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
     1     train         torchtun slurm R       0:03      2 slurm-worker-[1-2]
 
-Once training has completed, which should take roughly seven minutes in total with the default config, we can follow the :ref:`instructions here<use_model_in_wild>` in order to upload our beautiful new model to the Hugging Face Hub!
+Once training has completed, which should take roughly seven minutes in total (880 tok/s) with the default config, we can follow the :ref:`instructions here<use_model_in_wild>` in order to upload our beautiful new model to the Hugging Face Hub!
 
 Future development
 ------------------
