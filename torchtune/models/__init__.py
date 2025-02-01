@@ -11,8 +11,10 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.modules.peft import DoRALinear, LoRALinear
 
 
-def classifier_model(num_classes, base_model, base_model_config):
+def classifier_model(num_classes, base_model: str, base_model_config):
     model = _get_component_from_path(base_model)(**base_model_config)
+    del model.output.weight
+    model.output = nn.Linear(model.head_dim * model.num_heads, num_classes, bias=False)
     return model
 
 
