@@ -21,6 +21,7 @@ from ._model_builders import (  # noqa
     qlora_llama3_2_vision_11b,
     qlora_llama3_2_vision_90b,
 )
+from ._parallelism import llama3_2_vision_tp_plan
 from ._transform import Llama3VisionTransform
 
 __all__ = [
@@ -38,4 +39,5 @@ __all__ = [
     "Llama3VisionEncoder",
     "Llama3VisionProjectionHead",
     "Llama3VisionTransform",
+    "llama3_2_vision_tp_plan",
 ]
