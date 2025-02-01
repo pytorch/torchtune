@@ -36,20 +36,25 @@ class RLDataset(Dataset):
         problem_transform: Transform,
         tokenizer: ModelTokenizer,
         filter_fn: Optional[Callable] = None,
+        cheat_idx: int | None = None,
+        data_division: int = 1,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._problem_transform = problem_transform
         self._tokenizer = tokenizer
+        self._cheat_idx = cheat_idx
+        self._data_division = data_division
 
         self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
 
     def __len__(self):
-        return len(self._data)
+        return len(self._data) // self._data_division
 
     def __getitem__(self, index: int) -> Dict[str, Any]:
-        sample = self._data[index]
+        idx = index if self._cheat_idx is None else self._cheat_idx
+        sample = self._data[idx]
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:

@@ -17,6 +17,8 @@
 # Single device full finetuning requires more memory optimizations. It's
 # best to use 3B_full_single_device.yaml for those cases
 
+name: 250201_debug
+output_dir: /checkpoint/kwiat/checkpoints/${name}
 
 # Tokenizer
 tokenizer:
@@ -27,8 +29,10 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.gsm8k_dataset
+  cheat_idx: null
+  data_division: 1
 #  packed: False  # True increases speed
-seed: 0
+seed: null
 shuffle: False
 
 # Model Arguments
@@ -45,36 +49,37 @@ checkpointer:
     model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /checkpoint/kwiat/tmp/Llama-3.1-8B
+  output_dir: ${output_dir}
   model_type: LLAMA3
 resume_from_checkpoint: False
+save_every_n_epochs: 1
 
 # Fine-tuning arguments
-batch_size: 1
-grpo_samples: 8
+batch_size: 2
+grpo_samples: 32
 forward_batch_size: 1
-max_generated_tokens: 200
+max_generated_tokens: 100
 top_k: null
 temperature: 0.7
 
-ppo_epochs: 2
+ppo_epochs: 3
 ppo_batch_size: 16
 
 num_steps: 10000
 
-#clip_grad_norm: 1.0
+clip_grad_norm: 10.0
 
-epochs: 1
+epochs: 10
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 3e-7  # set 2e-7 to avoid nans?
+  lr: 1e-5  # set 2e-7 to avoid nans?
   fused: True
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 50
 loss:
   _component_: torchtune.rlhf.loss.GRPOLoss
-  kl_coeff: 0.01
+  kl_coeff: 0.001
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase virtual batch size
 
@@ -96,7 +101,8 @@ custom_sharded_layers: ['decoder.tok_embeddings']
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
   project: torchtune_debug
-output_dir: /checkpoint/kwiat/full-llama3.1-finetune
+  log_dir: ${output_dir}/logs
+  name: ${name}
 log_every_n_steps: 1
 log_peak_memory_stats: True
 

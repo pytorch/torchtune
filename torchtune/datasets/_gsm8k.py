@@ -33,6 +33,8 @@ def gsm8k_dataset(
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     name: str = "main",
+    cheat_idx: int | None = None,
+    data_division: int = 1,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> RLDataset:
 
@@ -42,6 +44,8 @@ def gsm8k_dataset(
         tokenizer=tokenizer,
         problem_transform=normalize_gsm,
         filter_fn=filter_fn,
+        cheat_idx=cheat_idx,
+        data_division=data_division,
         split=split,
         **load_dataset_kwargs,
     )

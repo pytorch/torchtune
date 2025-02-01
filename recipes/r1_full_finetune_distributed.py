@@ -360,6 +360,8 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             cfg.ppo_batch_size // self._gradient_accumulation_steps
         )
 
+        self._save_every_n_epochs = cfg.save_every_n_epochs
+
         self._total_steps = cfg.num_steps // self.batch_size
 
         if cfg.get("stop_token_ids", False):
@@ -602,7 +604,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
@@ -611,7 +612,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             ref_model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
@@ -724,7 +724,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=self.seed
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -775,7 +775,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            self._model,
             self._is_rank_zero,
             device=self._device,
         )
@@ -790,6 +790,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             utils.log_rank_zero(log, "Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._model,
                     self._optimizer,
                     self._is_rank_zero,
                     device=self._device,
@@ -798,7 +799,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 opt_state_dict = {}
                 for param, opt in self._optim_ckpt_wrapper.optim_map.items():
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
+                        self._model, opt, self._is_rank_zero, device=self._device
                     )
             utils.log_rank_zero(
                 log,
@@ -908,7 +909,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         logits = self._model(query_responses, input_pos=position_ids, mask=masks)
 
         # step 2. estimate logprobs of the responses using the current policy
-        logits = logits[:, context_length - 1 :]  # TODO: is this right?
+        logits = logits[:, context_length - 1 :]
         logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
 
         del logits
@@ -917,7 +918,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # step 2.1 estimate logprobs of the responses using the reference policy
         ref_logits = self._ref_model(
             query_responses, input_pos=position_ids, mask=masks
-        )  # TODO: I'm computing ref_logits here, the same way later I compute pi_logits - why is the result diff?
+        )
         ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
         ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
 
@@ -1208,7 +1209,8 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                     break
 
             self._epochs_run += 1
-            self.save_checkpoint(curr_epoch)
+            if self._epochs_run % self._save_every_n_epochs == 0:
+                self.save_checkpoint(curr_epoch)
             if training_completed:
                 return
 
