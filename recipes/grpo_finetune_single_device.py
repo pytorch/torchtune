@@ -26,6 +26,7 @@ from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
     get_adapter_state_dict,
+    get_merged_lora_ckpt,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -406,7 +407,7 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         ckpt_dict = {}
 
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        intermediate_checkpoint = epoch + 1 < self._num_epochs
         # if training is in-progress, checkpoint the optimizer state as well
         if intermediate_checkpoint:
             ckpt_dict.update(
@@ -414,7 +415,7 @@ class GRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.OPT_KEY: self._optimizer.state_dict(),
                     training.SEED_KEY: self.seed,
                     training.EPOCHS_KEY: self.epochs_run,
-                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    training.TOTAL_EPOCHS_KEY: self._num_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
