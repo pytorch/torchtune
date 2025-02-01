@@ -17,7 +17,7 @@
 # Single device full finetuning requires more memory optimizations. It's
 # best to use 3B_full_single_device.yaml for those cases
 
-name: 250201_debug
+name: debug
 output_dir: /checkpoint/kwiat/checkpoints/${name}
 
 # Tokenizer
@@ -55,7 +55,7 @@ resume_from_checkpoint: False
 save_every_n_epochs: 1
 
 # Fine-tuning arguments
-batch_size: 2
+batch_size: 4
 grpo_samples: 32
 forward_batch_size: 1
 max_generated_tokens: 100

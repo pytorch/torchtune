@@ -13,7 +13,7 @@ import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune import training
+from torchtune import training, utils
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
 from torchtune.modules.tokenizers import ModelTokenizer
@@ -82,44 +82,66 @@ def extract_tags(text: str):
     }
 
 
-def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> torch.Tensor:
+def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> [torch.Tensor, torch.Tensor]:
     batch_size, grpo_size, *_ = completions.shape
     rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    successes = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
     # completions :: [B, G, L]
     for b in range(batch_size):
         for g in range(grpo_size):
-            text_completion = tokenizer.decode(completions[b, g].tolist())
-            rewards[b, g] = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
+            text_completion = tokenizer.decode(completions[b, g].tolist())  # skips special tokens, stops at eos
+            reward, success = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
+            rewards[b, g] = reward
+            successes[b, g] = success
 
-    return rewards
+    return rewards, successes
 
-def shaped_correctness_reward(question: str, answer: str, completion: str) -> float:
+def shaped_correctness_reward(question: str, answer: str, completion: str) -> tuple[float, float]:
     question_chars = len(question)
     only_completion = completion[question_chars:]
+
+    reward = 0
+    success = 0
+
 
     try:
         tags = extract_tags("<think>" + only_completion)
     except ET.ParseError:
-        return -1.0
+        tags = {"think": [], "answer": []}
 
-    reward = 0
+
 
     if len(tags['answer']) == 1:
-        reward += 0.1
+        reward += 5.0
 
     if len(tags['think']) == 1:
-        reward += 0.1
+        reward += 5.0
+
+    if any(attempt == answer for attempt in tags["answer"]):
+        # One of the answer tags has the right answer
+        reward += 20.0
+
+    if any(answer in attempt for attempt in tags["answer"]):
+        # One of the answer tags contains the right answer (might be e.g. $20 instead of 20
+        reward += 10.0
+
+    # total_think_length = sum(len(c) + len("<think></think>") for c in tags["think"])
+    # total_answer_length = sum(len(a) + len("<answer></answer>") for a in tags["answer"])
+    # total_extra_length = len(only_completion) - total_think_length - total_answer_length
+
+    # reward -= 0.1 * total_extra_length
 
     if len(tags['answer']) > 0 and tags['answer'][-1] == answer:
-        reward += 1.0
+        reward = 100.0
+        success = 1
 
-    _, rank = training.get_world_size_and_rank()
+    _, rank = utils.get_world_size_and_rank()
     if rank == 0:
         print()
         print(f"{question=}\n{answer=}\n{reward=}\n{only_completion=}")
         print()
 
-    return reward
+    return reward, success
 
 
 def correctness_reward(question: str, answer: str, completion: str) -> float:

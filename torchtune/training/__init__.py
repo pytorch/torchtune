@@ -21,7 +21,7 @@ from torchtune.training._distributed import (
     prepare_mha_for_tp,
     set_torch_num_threads,
     shard_model,
-    validate_no_params_on_meta_device,
+    validate_no_params_on_meta_device, get_distributed_backend,
 )
 from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._profiler import (
@@ -133,4 +133,5 @@ __all__ = [
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
+    "get_distributed_backend"
 ]

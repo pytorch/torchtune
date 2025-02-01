@@ -120,6 +120,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
+        device_type = cfg.device
 
         # if self._dtype == torch.float16:
         #     raise ValueError(
@@ -137,7 +138,18 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = training.get_world_size_and_rank()
+
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+
+        self.distributed_backend = training.get_distributed_backend(
+            device_type,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
+                               or self._enable_async_checkpointing,
+        )
+        init_process_group(self.distributed_backend)
+
+        world_size, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -195,6 +207,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         self._total_steps = 0
         self._epochs_run = 0
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
+
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -257,6 +270,8 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         Setup the recipe. This includes training state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, lr scheduler, sampler, and dataloader.
         """
+        if self.fsdp_cpu_offload:
+            training.set_torch_num_threads()
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
 
@@ -271,7 +286,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
-            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
@@ -705,7 +720,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -934,8 +949,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # responses :: [B x G, L]
         responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
 
-        rewards = batch_shaped_correctness_reward(self._tokenizer, responses, answers).to(self._device)  # [B, G]
-
+        rewards, successes = batch_shaped_correctness_reward(self._tokenizer, responses, answers).to(self._device)  # [B, G]
 
         advantages = rewards - rewards.mean(1, keepdim=True) / (rewards.std(1, keepdim=True) + 1e-4)
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
@@ -947,7 +961,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
 
         # step 6. mask out all the invalid values in the trajectory due to padding tokens
-        logprobs[response_padding_masks] = 1.0  # TODO: shouldn't this be a 0?
+        logprobs[response_padding_masks] = 1.0
         ref_logprobs[response_padding_masks] = 1.0
 
 
@@ -956,6 +970,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             logprobs=logprobs,
             ref_logprobs=ref_logprobs,
             rewards=rewards.reshape(batch_size * grpo_size),
+            successes=successes.reshape(batch_size * grpo_size),
             advantages=advantages,
             masks=masks,
             position_ids=position_ids,
@@ -973,8 +988,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         Args:
             trajectory (Trajectory): a batch of trajectories
-            advantages (torch.Tensor): advantages corresponding to the trajectories
-            returns (torch.Tensor): returns corresponding the trajectories
             context_length (int): input ids sequence length
 
         Returns:
@@ -986,7 +999,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         """
         # estimate logprobs from the policy at the current optimisation step
-        _, rank = training.get_world_size_and_rank()
 
         torch.cuda.empty_cache()
 
@@ -1064,7 +1076,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -1106,7 +1118,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 # print(f"{batch=}")
                 tokens = batch["tokens"]  # type: ignore
                 answers = batch["answers"]  # type: ignore
-                tokens = tokens.to(self._device)  # [B, P] TODO: is this L or P+L? or just P? I think just P
+                tokens = tokens.to(self._device)  # [B, P]
 
                 _, context_length = tokens.shape
 
@@ -1136,7 +1148,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                     batch_idxs = torch.arange(effective_batch_size, device=self._device)
                     for i in range(0, effective_batch_size, self._ppo_batch_size):
                         mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
-                        #FIXME: probably something wrong with the batching logic here
                         batch_grpo_stats: list[GRPOStats] = []
 
                         for j in range(0, self._ppo_batch_size, self._ppo_backward_batch_size):
@@ -1229,6 +1240,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         """
         log_dict = {
             "rewards": trajectory.rewards.mean(),
+            "successes": trajectory.successes.mean(),
             "num_stop_tokens": trajectory.response_padding_masks.any(-1).sum(),
             "loss": grpo_stats.loss.mean(),
             "policy_loss": grpo_stats.policy_loss.mean(),
@@ -1273,16 +1285,6 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    if not training.is_distributed():
-        raise RuntimeError(
-            "Distributed finetune recipe should be run via a distributed launcher."
-            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
-        )
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
-    if cfg.get("fsdp_cpu_offload", False):
-        # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
-        # speed up when benchmarking fused AdamW on CPU
-        training.set_torch_num_threads()
 
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 

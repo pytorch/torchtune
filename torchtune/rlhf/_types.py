@@ -52,6 +52,7 @@ class R1Trajectory(NamedTuple):
     logprobs: torch.Tensor  # [B x G, L]
     ref_logprobs: torch.Tensor  # [B x G, L]
     rewards: torch.Tensor  # [B x G]
+    successes: torch.Tensor
     advantages: torch.Tensor  # [B x G]
     masks: torch.Tensor  # [B x G, P+L, P+L]
     position_ids: torch.Tensor  # [B x G, P+L]
