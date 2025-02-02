@@ -585,12 +585,11 @@ def prepare_mha_for_tp(
         >>> # num_kv_heads = 16 (32/2)
         >>> # embed_dim = 2048 (4096/2)
     """
-    # Consider the case of Deep Fusion models
-    whole_model = model
-    if isinstance(model, DeepFusionModel) or isinstance(model, EarlyFusionModel):
-        model = model.decoder
+    # Handle fusion models by extracting decoder
+    is_fusion_model = isinstance(model, (DeepFusionModel, EarlyFusionModel))
+    decoder = model.decoder if is_fusion_model else model
     tp_size = tp_mesh.size()
-    for m in list(model.modules()):
+    for m in list(decoder.modules()):
         if isinstance(m, MultiHeadAttention):
             # Adjust attention module to use the local number of heads
             if m.num_heads % tp_size != 0:
@@ -611,7 +610,6 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
-    if isinstance(whole_model, DeepFusionModel) or isinstance(whole_model, EarlyFusionModel):
-        whole_model.decoder = model
-        return whole_model
+    if is_fusion_model:
+        model.decoder = decoder
     return model

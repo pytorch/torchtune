@@ -28,10 +28,10 @@ LLAMA3_2_VISION_TP_PLAN = {
     # "encoder.projection.layers.*.mlp.w2": RowwiseParallel(),
     # "encoder.projection.layers.*.mlp.w3": ColwiseParallel(),
     "decoder.tok_embeddings.embedding": RowwiseParallel(
-        input_layouts=Replicate(), output_layouts=Replicate()
+        input_layouts=Replicate()
     ),
     "decoder.tok_embeddings.fusion_embedding": RowwiseParallel(
-        input_layouts=Replicate(), output_layouts=Replicate()
+        input_layouts=Replicate()
     ),
     "decoder.output": ColwiseParallel(
         output_layouts=Replicate()
