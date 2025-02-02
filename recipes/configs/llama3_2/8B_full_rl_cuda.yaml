@@ -55,7 +55,7 @@ resume_from_checkpoint: False
 save_every_n_epochs: 1
 
 # Fine-tuning arguments
-batch_size: 4
+batch_size: 2
 grpo_samples: 32
 forward_batch_size: 1
 max_generated_tokens: 100
@@ -100,7 +100,7 @@ custom_sharded_layers: ['decoder.tok_embeddings']
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
-  project: torchtune_debug
+  project: grpo_gsm8k
   log_dir: ${output_dir}/logs
   name: ${name}
 log_every_n_steps: 1

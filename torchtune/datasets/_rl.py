@@ -71,14 +71,14 @@ class RLDataset(Dataset):
 
 
 
-def extract_tags(text: str):
+def extract_tags(text: str) -> dict[str, list[str]]:
     # Add root element to make valid XML
     xml_string = f"<root>{text}</root>"
     root = ET.fromstring(xml_string)
 
     return {
-        'think': [elem.text for elem in root.findall('think')],
-        'answer': [elem.text for elem in root.findall('answer')]
+        'think': [elem.text if elem.text is not None else "" for elem in root.findall('think')],
+        'answer': [elem.text if elem.text is not None else "" for elem in root.findall('answer')]
     }
 
 
@@ -121,8 +121,8 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> tu
         # One of the answer tags has the right answer
         reward += 20.0
 
-    if any(answer in attempt for attempt in tags["answer"]):
-        # One of the answer tags contains the right answer (might be e.g. $20 instead of 20
+    if any((answer in attempt) for attempt in tags["answer"]):
+        # One of the answer tags contains the right answer (might be e.g. $20 instead of 20)
         reward += 10.0
 
     # total_think_length = sum(len(c) + len("<think></think>") for c in tags["think"])

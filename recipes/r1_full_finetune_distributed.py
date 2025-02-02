@@ -928,6 +928,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
 
         del logits
+        torch.cuda.empty_cache()
 
         # torch.distributed.breakpoint()
         # step 2.1 estimate logprobs of the responses using the reference policy
@@ -938,6 +939,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
 
         del ref_logits
+        torch.cuda.empty_cache()
 
 
         # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
@@ -949,7 +951,9 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # responses :: [B x G, L]
         responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
 
-        rewards, successes = batch_shaped_correctness_reward(self._tokenizer, responses, answers).to(self._device)  # [B, G]
+        rewards, successes = batch_shaped_correctness_reward(self._tokenizer, responses, answers)  # [B, G]
+        rewards = rewards.to(self._device)
+        successes = successes.to(self._device)
 
         advantages = rewards - rewards.mean(1, keepdim=True) / (rewards.std(1, keepdim=True) + 1e-4)
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
@@ -957,6 +961,7 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # print(f"In generation:\n{rewards=}\n{advantages=}")
 
         del responses
+        torch.cuda.empty_cache()
 
         seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
 
@@ -1251,6 +1256,11 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             "response_lengths": trajectory.seq_lens.float().mean(),
             **extras
         }
+
+        for key, value in log_dict.items():
+            torch.distributed.all_reduce(value, op=torch.distributed.ReduceOp.AVG)
+            log_dict[key] = value
+
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))
         if self._is_rank_zero:
@@ -1286,9 +1296,10 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line
     """
 
-    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 
     recipe = FullRLFinetuneRecipeDistributed(cfg=cfg)
+    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
+
     utils.log_rank_zero(log, "Instantiated the recipe")
     recipe.setup(cfg=cfg)
     utils.log_rank_zero(log, "Setup finished")
