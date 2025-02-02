@@ -18,10 +18,6 @@
 
 output_dir: /tmp/torchtune/llama3_3_70B/full # /tmp may be deleted by your system. Change it to your preference.
 
-tensor_parallel_dim: 2
-parallelize_plan:
-  _component_: torchtune.models.llama3.base_llama_tp_plan
-
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer

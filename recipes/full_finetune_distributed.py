@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
+import torch.distributed as dist
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -26,7 +27,6 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.training._distributed import build_device_mesh
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing._checkpoint_client import (
     CheckpointClient,
@@ -143,7 +143,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.world_size, self.rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
         self.parallelize_plan = config.instantiate(cfg.get("parallelize_plan", None))
-        self.tensor_parallel_dim = cfg.get("tensor_parallel_dim", None)
+        self.tensor_parallel_dim = cfg.get("tensor_parallel_dim", 1)
+        if self.world_size % self.tensor_parallel_dim != 0:
+            raise ValueError(
+                f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
+            )
+        self.data_parallel_dim = self.world_size // self.tensor_parallel_dim
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -497,7 +502,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         utils.log_rank_zero(
             log,
-            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+            "FSDP and TP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
 
@@ -526,20 +531,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        device_mesh = build_device_mesh(
+        self.device_mesh = dist.init_device_mesh(
             self._device.type,
-            data_parallel_dim=self.world_size // self.tensor_parallel_dim,
-            tensor_parallel_dim=self.tensor_parallel_dim,
+            mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
+            mesh_dim_names=("dp", "tp"),
         )
 
         # Apply tensor parallelism to the model
-        if self.tensor_parallel_dim is not None and self.tensor_parallel_dim > 1:
+        if self.tensor_parallel_dim > 1:
             if self.parallelize_plan is None:
                 raise ValueError("Parallelism plan need to be provided when tensor parallel is enabled.")
-            tp_mesh = device_mesh["tp"]
-            print(f"{tp_mesh.size()=}")
+            tp_mesh = self.device_mesh["tp"]
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
-            # training.prepare_mha_for_tp(model, tp_mesh)
+            # model = training.prepare_mha_for_tp(model, tp_mesh)
             parallelize_module(
                 model,
                 tp_mesh,
@@ -547,19 +551,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         # Apply Fully Sharded Data Parallelism to the model
-        fsdp_shard_conditions = [
-            partial(
-                training.get_shard_conditions,
-                names_to_match=custom_sharded_layers,
+        if self.data_parallel_dim > 1:
+            fsdp_shard_conditions = [
+                partial(
+                    training.get_shard_conditions,
+                    names_to_match=custom_sharded_layers,
+                )
+            ]
+            training.shard_model(
+                model=model,
+                shard_conditions=fsdp_shard_conditions,
+                cpu_offload=fsdp_cpu_offload,
+                reshard_after_forward=reshard_after_forward,
+                dp_mesh=self.device_mesh["dp"],
             )
-        ]
-        training.shard_model(
-            model=model,
-            shard_conditions=fsdp_shard_conditions,
-            cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=reshard_after_forward,
-            dp_mesh=device_mesh["dp"],
-        )
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
@@ -680,8 +685,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
+        dp_mesh = self.device_mesh["dp"]
+        dp_degree, dp_rank = dp_mesh.size(), dp_mesh.get_local_rank()
         sampler = DistributedSampler(
-            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
+            ds, num_replicas=dp_degree, rank=dp_rank, shuffle=shuffle, seed=0
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -748,7 +755,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
-
                 utils.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch

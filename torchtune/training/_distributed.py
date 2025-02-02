@@ -25,14 +25,14 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
-from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
+from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
-from torchtune.modules.model_fusion import DeepFusionModel
+from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
@@ -502,28 +502,6 @@ def get_shard_conditions(
 
     return False
 
-def build_device_mesh(
-    device_type: str,
-    *,
-    data_parallel_dim: Optional[int] = None,
-    tensor_parallel_dim: Optional[int] = None,
-) -> DeviceMesh:
-    if not any([data_parallel_dim, tensor_parallel_dim]):
-        raise ValueError(
-            "At least one of data_parallel_dim or tensor_parallel_dim must be specified"
-        )
-
-    valid_dim = []
-    valid_dim_names = []
-    if data_parallel_dim is not None and data_parallel_dim >= 0:
-        valid_dim.append(data_parallel_dim)
-        valid_dim_names.append("dp")
-    if tensor_parallel_dim is not None and tensor_parallel_dim >= 0:
-        valid_dim.append(tensor_parallel_dim)
-        valid_dim_names.append("tp")
-
-    return init_device_mesh(device_type, valid_dim, mesh_dim_names=valid_dim_names)
-
 
 def shard_model(
     model: TransformerDecoder,
@@ -612,11 +590,11 @@ def prepare_mha_for_tp(
         >>> # num_kv_heads = 16 (32/2)
         >>> # embed_dim = 2048 (4096/2)
     """
-    # Consider the case of Deep Fusion models
-    if isinstance(model, DeepFusionModel):
-        model = model.decoder
+    # Handle fusion models by extracting decoder
+    is_fusion_model = isinstance(model, (DeepFusionModel, EarlyFusionModel))
+    decoder = model.decoder if is_fusion_model else model
     tp_size = tp_mesh.size()
-    for m in list(model.modules()):
+    for m in list(decoder.modules()):
         if isinstance(m, MultiHeadAttention):
             # Adjust attention module to use the local number of heads
             if m.num_heads % tp_size != 0:
@@ -637,4 +615,7 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
+    
+    if is_fusion_model:
+        model.decoder = decoder
     return model
