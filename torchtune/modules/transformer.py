@@ -631,6 +631,7 @@ class TransformerDecoder(nn.Module):
         for i, layer in enumerate(self.layers):
             if i in self.output_hidden_states:
                 hidden.append(h)
+            print(f"{layer=}")
             # shape: [b, s, d]
             h = layer(
                 h,

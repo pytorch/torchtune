@@ -32,7 +32,7 @@ from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
-from torchtune.modules.model_fusion import DeepFusionModel
+from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
@@ -586,12 +586,12 @@ def prepare_mha_for_tp(
         >>> # embed_dim = 2048 (4096/2)
     """
     # Consider the case of Deep Fusion models
-    if isinstance(model, DeepFusionModel):
-        decoder = model.decoder
-    else:
-        decoder = model
+    whole_model = model
+    if isinstance(model, DeepFusionModel) or isinstance(model, EarlyFusionModel):
+        print(f"before {whole_model.decoder.layers[0].attn.num_heads=}")
+        model = model.decoder
     tp_size = tp_mesh.size()
-    for m in list(decoder.modules()):
+    for m in list(model.modules()):
         if isinstance(m, MultiHeadAttention):
             # Adjust attention module to use the local number of heads
             if m.num_heads % tp_size != 0:
@@ -612,4 +612,8 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
+    if isinstance(model, DeepFusionModel) or isinstance(model, EarlyFusionModel):
+        whole_model.decoder = model
+        print(f"after {whole_model.decoder.layers[0].attn.num_heads=}")
+        return whole_model
     return model
