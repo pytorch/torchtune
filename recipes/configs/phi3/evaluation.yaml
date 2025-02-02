@@ -7,7 +7,7 @@ output_dir: ./ # Not needed
 
 # Model Arguments
 model:
-  _component_: torchtune.models.phi4.phi4_mini
+  _component_: torchtune.models.phi4.phi4
 
 # Checkpointer
 checkpointer:
@@ -24,7 +24,7 @@ resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.phi4.phi4_mini_tokenizer
+  _component_: torchtune.models.phi4.phi4_tokenizer
   path: /tmp/phi-4/tokenizer.model
   max_seq_len: null
 

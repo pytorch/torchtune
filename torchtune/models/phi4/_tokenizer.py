@@ -39,7 +39,7 @@ CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}
 
 class Phi4MiniTokenizer(ModelTokenizer, Transform):
     """
-    TikToken tokenizer configured with Phi4 Mini's special tokens.
+    TikToken tokenizer configured with Phi4 (14B) special tokens.
 
     Args:
         path (str): Path to pretrained tokenizer file.
@@ -77,9 +77,9 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         )
 
         # Use custom EOS, BOS and pad ids instead of TikToken's
-        self.eos_id = self.special_tokens["<|endoftext|>"]
+        self.eos_id = self.special_tokens["<|im_end|>"]
         self.bos_id = self.special_tokens["<|endoftext|>"]
-        self.pad_id = self.special_tokens["<|endoftext|>"]
+        self.pad_id = self.special_tokens["<|dummy_87|>"]
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
@@ -138,6 +138,19 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             else:
                 ids_for_decode.append(token_id)
         return self.tt_model.decode(ids_for_decode)
+    
+    def _tokenize_header(self, role: str):
+        tokenized_messages = []
+        tokenized_messages.append(self.special_tokens["<|im_start|>"])
+        encoded = self.encode(
+                role,
+                add_bos=False,
+                add_eos=False,
+                trim_leading_whitespace=True,
+        )
+
+        tokenized_messages.extend(encoded)
+        tokenized_messages.append(self.special_tokens["<|im_end|>"])
 
     def tokenize_messages(
         self,
@@ -150,7 +163,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         returning a list of tokens and a list of masks.
 
         Example:
-            >>> tokenizer = Phi4MiniTokenizer(tokenizer_path, max_seq_len)
+            >>> tokenizer = Phi3MiniTokenizer(tokenizer_path, max_seq_len)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
@@ -203,49 +216,10 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 mask.append(message.masked)
 
             # Add special tokens
-            if message.role == "user":
-                tokenized_messages.append(self.special_tokens["<|im_start|>"])
-                encoded = self.encode(
-                    "system",
-                    add_bos=False,
-                    add_eos=False,
-                    trim_leading_whitespace=True,
-                )
-
-                tokenized_messages.extend(encoded)
-                tokenized_messages.append(self.special_tokens["<|im_end|>"])
-                mask.append(message.masked)
-            elif message.role == "assistant":
-                tokenized_messages.append(self.special_tokens["<|im_start|>"])
-                encoded = self.encode(
-                    "system",
-                    add_bos=False,
-                    add_eos=False,
-                    trim_leading_whitespace=True,
-                )
-
-                tokenized_messages.extend(encoded)
-                tokenized_messages.append(self.special_tokens["<|im_end|>"])
-                # If assistant message, this is the end of a turn
-                end_of_turn = True
-                mask.append(message.masked)
-            elif message.role == "system":
-                tokenized_messages.append(self.special_tokens["<|im_start|>"])
-
-                encoded = self.encode(
-                    "system",
-                    add_bos=False,
-                    add_eos=False,
-                    trim_leading_whitespace=True,
-                )
-
-                tokenized_messages.extend(encoded)
-                tokenized_messages.append(self.special_tokens["<|im_end|>"])
-                mask.append(message.masked)
-            else:
-                raise ValueError(
-                    f"Unknown role '{message.role}' for message: '{message.content}'"
-                )
+            tokenized_messages.extend(
+                self._tokenize_header(message.role)
+            )
+            mask.append(message.masked)
 
             # Add new line token
             tokenized_messages.extend(new_line_token_id)

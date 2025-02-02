@@ -8,15 +8,15 @@ import pytest
 
 from tests.common import ASSETS
 from torchtune.data import Message
-from torchtune.models.phi4 import phi4_mini_tokenizer
+from torchtune.models.phi4 import phi4_tokenizer
 
 
 class TestPhi4MiniTokenizer:
     @pytest.fixture
     def tokenizer(self):
-        # m.model is a pretrained Sentencepiece model using the following command:
-        # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return phi4_mini_tokenizer(
+       # Pretrained tiktoken model generated via the script in
+        # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
+        return phi4_tokenizer(
             path=str(ASSETS / "tiktoken_small.model"),
         )
 

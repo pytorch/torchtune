@@ -13,25 +13,25 @@ from torchtune.data._prompt_templates import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
-the ``phi4_mini`` model builder uses the ``phi4`` component builder.
+the ``phi4`` model builder uses the ``phi4`` component builder.
 """
 
 
-def phi4_mini() -> TransformerDecoder:
+def phi4() -> TransformerDecoder:
     """
-    Builder for creating the Phi4 Mini 16K Instruct Model.
+    Builder for creating the Phi4 (14B) Instruct Model.
 
     Note:
         This model does not currently support 128K context length nor optimizations
         such as sliding window attention.
 
     Returns:
-        TransformerDecoder: Instantiation of Phi4 Mini 16K Instruct Model
+        TransformerDecoder: Instantiation of Phi4 (14B) Instruct Model
     """
     return phi3(
         vocab_size=100_352,
         num_layers=40,
-        num_heads=20,
+        num_heads=40,
         num_kv_heads=10,
         embed_dim=5120,
         intermediate_dim=17920,
@@ -40,8 +40,8 @@ def phi4_mini() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi4_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
-    """Phi-4 Mini tokenizer.
+def phi4_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
+    """Phi4 (14B) tokenizer.
     Args:
         path (str): Path to the tiktoken tokenizer model.
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
@@ -62,7 +62,7 @@ def phi4_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None, ma
     return Phi4MiniTokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
-def lora_phi4_mini(
+def lora_phi4(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
@@ -75,7 +75,7 @@ def lora_phi4_mini(
     """
     Builder for creating a Phi4 (14b) model with LoRA enabled.
 
-    The Phi4 defaults are the same as in :func:`~torchtune.models.phi4.phi4_mini`.
+    The Phi4 defaults are the same as in :func:`~torchtune.models.phi4.phi4`.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -93,7 +93,7 @@ def lora_phi4_mini(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Phi4 Mini model with LoRA applied
+        TransformerDecoder: Instantiation of Phi4 (14B) model with LoRA applied
     """
     return lora_phi3(
         lora_attn_modules=lora_attn_modules,
@@ -101,7 +101,7 @@ def lora_phi4_mini(
         apply_lora_to_output=apply_lora_to_output,
         vocab_size=100_352,
         num_layers=40,
-        num_heads=20,
+        num_heads=40,
         num_kv_heads=10,
         embed_dim=5120,
         intermediate_dim=17920,
@@ -116,9 +116,9 @@ def lora_phi4_mini(
     )
 
 
-qlora_phi4_mini = partial(lora_phi4_mini, quantize_base=True)
-qlora_phi4_mini.__doc__ = """
-Builder for creating a Phi4 mini model with QLoRA enabled. Base model weights in linear layers
+qlora_phi4 = partial(lora_phi4, quantize_base=True)
+qlora_phi4.__doc__ = """
+Builder for creating a Phi4 (14B) model with QLoRA enabled. Base model weights in linear layers
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
-Please see `lora_phi4_mini` for full API arguments.
+Please see `lora_phi4` for full API arguments.
 """
