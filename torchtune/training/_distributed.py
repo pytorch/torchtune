@@ -588,7 +588,6 @@ def prepare_mha_for_tp(
     # Consider the case of Deep Fusion models
     whole_model = model
     if isinstance(model, DeepFusionModel) or isinstance(model, EarlyFusionModel):
-        print(f"before {whole_model.decoder.layers[0].attn.num_heads=}")
         model = model.decoder
     tp_size = tp_mesh.size()
     for m in list(model.modules()):
@@ -612,8 +611,7 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
-    if isinstance(model, DeepFusionModel) or isinstance(model, EarlyFusionModel):
+    if isinstance(whole_model, DeepFusionModel) or isinstance(whole_model, EarlyFusionModel):
         whole_model.decoder = model
-        print(f"after {whole_model.decoder.layers[0].attn.num_heads=}")
         return whole_model
     return model
