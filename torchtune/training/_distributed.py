@@ -587,9 +587,11 @@ def prepare_mha_for_tp(
     """
     # Consider the case of Deep Fusion models
     if isinstance(model, DeepFusionModel):
-        model = model.decoder
+        decoder = model.decoder
+    else:
+        decoder = model
     tp_size = tp_mesh.size()
-    for m in list(model.modules()):
+    for m in list(decoder.modules()):
         if isinstance(m, MultiHeadAttention):
             # Adjust attention module to use the local number of heads
             if m.num_heads % tp_size != 0:

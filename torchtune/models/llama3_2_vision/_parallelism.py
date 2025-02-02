@@ -13,6 +13,20 @@ from torch.distributed.tensor.parallel.style import ParallelStyle
 
 # Define the Tensor Parallel plan for Llama3.2 vision model
 LLAMA3_2_VISION_TP_PLAN = {
+    # "encoder.clip.layers.*.attn.q_proj": ColwiseParallel(),
+    # "encoder.clip.layers.*.attn.k_proj": ColwiseParallel(),
+    # "encoder.clip.layers.*.attn.v_proj": ColwiseParallel(),
+    # "encoder.clip.layers.*.attn.output_proj": RowwiseParallel(),
+    # "encoder.clip.layers.*.mlp.w1": ColwiseParallel(),
+    # "encoder.clip.layers.*.mlp.w2": RowwiseParallel(),
+    # "encoder.clip.layers.*.mlp.w3": ColwiseParallel(),
+    # "encoder.projection.layers.*.attn.q_proj": ColwiseParallel(),
+    # "encoder.projection.layers.*.attn.k_proj": ColwiseParallel(),
+    # "encoder.projection.layers.*.attn.v_proj": ColwiseParallel(),
+    # "encoder.projection.layers.*.attn.output_proj": RowwiseParallel(),
+    # "encoder.projection.layers.*.mlp.w1": ColwiseParallel(),
+    # "encoder.projection.layers.*.mlp.w2": RowwiseParallel(),
+    # "encoder.projection.layers.*.mlp.w3": ColwiseParallel(),
     "decoder.tok_embeddings.embedding": RowwiseParallel(
         input_layouts=Replicate()
     ),
@@ -29,13 +43,13 @@ LLAMA3_2_VISION_TP_PLAN = {
     "decoder.layers.*.layer.mlp.w1": ColwiseParallel(),
     "decoder.layers.*.layer.mlp.w2": RowwiseParallel(),
     "decoder.layers.*.layer.mlp.w3": ColwiseParallel(),
-    # "decoder.layers.*.fusion_layer.attn.q_proj": ColwiseParallel(),
-    # "decoder.layers.*.fusion_layer.attn.k_proj": ColwiseParallel(),
-    # "decoder.layers.*.fusion_layer.attn.v_proj": ColwiseParallel(),
-    # "decoder.layers.*.fusion_layer.attn.output_proj": RowwiseParallel(),
-    # "decoder.layers.*.fusion_layer.mlp.w1": ColwiseParallel(),
-    # "decoder.layers.*.fusion_layer.mlp.w2": RowwiseParallel(),
-    # "decoder.layers.*.fusion_layer.mlp.w3": ColwiseParallel(),
+    "decoder.layers.*.fusion_layer.attn.q_proj": ColwiseParallel(),
+    "decoder.layers.*.fusion_layer.attn.k_proj": ColwiseParallel(),
+    "decoder.layers.*.fusion_layer.attn.v_proj": ColwiseParallel(),
+    "decoder.layers.*.fusion_layer.attn.output_proj": RowwiseParallel(),
+    "decoder.layers.*.fusion_layer.mlp.w1": ColwiseParallel(),
+    "decoder.layers.*.fusion_layer.mlp.w2": RowwiseParallel(),
+    "decoder.layers.*.fusion_layer.mlp.w3": ColwiseParallel(),
 }
 
 
