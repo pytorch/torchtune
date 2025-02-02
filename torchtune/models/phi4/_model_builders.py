@@ -55,7 +55,7 @@ def phi4_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq
             prepend/append tags.
 
     Returns:
-        Phi4MiniTikTokenTokenizer: Instantiation of the SPM tokenizer.
+        Phi4MiniTikTokenTokenizer: Instantiation of the TikToken tokenizer.
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
     template = _get_prompt_template(prompt_template) if prompt_template is not None else None
