@@ -13,7 +13,7 @@ import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune import training
+from torchtune import training, utils
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import validate_messages
 from torchtune.modules.tokenizers import ModelTokenizer
@@ -36,20 +36,28 @@ class RLDataset(Dataset):
         problem_transform: Transform,
         tokenizer: ModelTokenizer,
         filter_fn: Optional[Callable] = None,
+        cheat_idx: int | None = None,
+        data_division: int = 1,
+        filter_kwargs: dict[str, Any] | None = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._problem_transform = problem_transform
         self._tokenizer = tokenizer
+        self._cheat_idx = cheat_idx
+        self._data_division = data_division
 
         self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
-            self._data = self._data.filter(filter_fn)
+            if filter_kwargs is None:
+                filter_kwargs = {}
+            self._data = self._data.filter(filter_fn, **filter_kwargs)
 
     def __len__(self):
-        return len(self._data)
+        return len(self._data) // self._data_division
 
     def __getitem__(self, index: int) -> Dict[str, Any]:
-        sample = self._data[index]
+        idx = index if self._cheat_idx is None else self._cheat_idx
+        sample = self._data[idx]
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
@@ -66,55 +74,77 @@ class RLDataset(Dataset):
 
 
 
-def extract_tags(text: str):
+def extract_tags(text: str) -> dict[str, list[str]]:
     # Add root element to make valid XML
     xml_string = f"<root>{text}</root>"
     root = ET.fromstring(xml_string)
 
     return {
-        'think': [elem.text for elem in root.findall('think')],
-        'answer': [elem.text for elem in root.findall('answer')]
+        'think': [elem.text if elem.text is not None else "" for elem in root.findall('think')],
+        'answer': [elem.text if elem.text is not None else "" for elem in root.findall('answer')]
     }
 
 
-def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> torch.Tensor:
+def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> [torch.Tensor, torch.Tensor]:
     batch_size, grpo_size, *_ = completions.shape
     rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    successes = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
     # completions :: [B, G, L]
     for b in range(batch_size):
         for g in range(grpo_size):
-            text_completion = tokenizer.decode(completions[b, g].tolist())
-            rewards[b, g] = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
+            text_completion = tokenizer.decode(completions[b, g].tolist())  # skips special tokens, stops at eos
+            reward, success = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
+            rewards[b, g] = reward
+            successes[b, g] = success
 
-    return rewards
+    return rewards, successes
 
-def shaped_correctness_reward(question: str, answer: str, completion: str) -> float:
+def shaped_correctness_reward(question: str, answer: str, completion: str) -> tuple[float, float]:
     question_chars = len(question)
     only_completion = completion[question_chars:]
+
+    reward = 0
+    success = 0
+
 
     try:
         tags = extract_tags("<think>" + only_completion)
     except ET.ParseError:
-        return -1.0
+        tags = {"think": [], "answer": []}
 
-    reward = 0
+
 
     if len(tags['answer']) == 1:
-        reward += 0.1
+        reward += 5.0
 
     if len(tags['think']) == 1:
-        reward += 0.1
+        reward += 5.0
+
+    if any(attempt == answer for attempt in tags["answer"]):
+        # One of the answer tags has the right answer
+        reward += 20.0
+
+    if any((answer in attempt) for attempt in tags["answer"]):
+        # One of the answer tags contains the right answer (might be e.g. $20 instead of 20)
+        reward += 10.0
+
+    # total_think_length = sum(len(c) + len("<think></think>") for c in tags["think"])
+    # total_answer_length = sum(len(a) + len("<answer></answer>") for a in tags["answer"])
+    # total_extra_length = len(only_completion) - total_think_length - total_answer_length
+
+    # reward -= 0.1 * total_extra_length
 
     if len(tags['answer']) > 0 and tags['answer'][-1] == answer:
-        reward += 1.0
+        reward = 100.0
+        success = 1
 
-    _, rank = training.get_world_size_and_rank()
+    _, rank = utils.get_world_size_and_rank()
     if rank == 0:
         print()
         print(f"{question=}\n{answer=}\n{reward=}\n{only_completion=}")
         print()
 
-    return reward
+    return reward, success
 
 
 def correctness_reward(question: str, answer: str, completion: str) -> float:

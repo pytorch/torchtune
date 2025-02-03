@@ -8,7 +8,7 @@ from typing import Callable, List, Optional, Tuple
 
 import torch
 
-from torchtune import training
+from torchtune import training, utils
 from torchtune.modules.transformer import TransformerDecoder
 
 from tqdm.auto import trange
@@ -347,7 +347,7 @@ def generate(
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits
 
-    _, rank = training.get_world_size_and_rank()
+    _, rank = utils.get_world_size_and_rank()
     for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank>0)):
         pbar.set_description(f"[rank {rank}]")
         # update stop_token_mask if we reached a stop token in a previous step
