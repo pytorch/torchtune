@@ -22,8 +22,8 @@ model:
   lora_attn_modules: ['q_proj', 'v_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
-  lora_rank: 8
-  lora_alpha: 16
+  lora_rank: 16
+  lora_alpha: 32
   lora_dropout: 0.0
 
 # Tokenizer
@@ -59,10 +59,11 @@ dataset:
    The conversation will be in the following format:\n'User': [user query]\n'Chatbot': [chatbot response]\
    Your task is to evaluate the conversation in the context of the policies, and determine which of the policies (if any) have been violated.
    Respond with a compliance evaluation starting with 'Compliance Evaluation':, followed by a numbered list corresponding to the policies, with the value for each policy being PASS or FAIL.\
+   For each policy in the numbered list, first provide a brief explanation of how the chatbot either followed or violated the policy. Cite specific examples of how the policy was followed or violated.\
+   Then, specify the compliance output as either PASS or FAIL. Your output for each numbered policy should end with \"Compliance output\":, followed by PASS or FAIL.\
    Output PASS for a policy if the conversation between the agent and the user was compliant with the policy.\
    Output FAIL for a policy if the agent at any time responded in a manner that violated the policy.
-   After outputting PASS or FAIL, you must also provide a brief explanation of how the chatbot either followed or violated the policy. Cite specific examples of how the policy was followed or violated.\
-   Your output must adhere to this following format:\n1. [PASS or FAIL] [explanation]\n2. [PASS or FAIL] [explanation]\n and so on, for each policy."
+   Your output must adhere to this following format:\n1. [explanation] Compliance output: [PASS or FAIL]\n2. [explanation] Compliance output: [PASS or FAIL]\n and so on, for each policy."
 seed: null
 shuffle: True
 batch_size: 2
@@ -72,7 +73,7 @@ optimizer:
   _component_: torch.optim.AdamW
   fused: True
   weight_decay: 0.01
-  lr: 3e-4
+  lr: 1e-4
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
