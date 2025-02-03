@@ -17,20 +17,20 @@
 # Single device full finetuning requires more memory optimizations. It's
 # best to use 3B_full_single_device.yaml for those cases
 
-name: debug
+name: grpo_sft_start
 output_dir: /checkpoint/kwiat/checkpoints/${name}
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /checkpoint/kwiat/tmp/Llama-3.1-8B/original/tokenizer.model
+#  path: /checkpoint/kwiat/tmp/Llama-3.1-8B/original/tokenizer.model
+  path: /checkpoint/kwiat/tmp/llama8B_gsm8k_sft_part0/epoch_0/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
 dataset:
   _component_: torchtune.datasets.gsm8k_dataset
-  cheat_idx: null
-  data_division: 1
+  partition: 1-9/10
 #  packed: False  # True increases speed
 seed: null
 shuffle: False
@@ -41,12 +41,13 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /checkpoint/kwiat/tmp/Llama-3.1-8B/
+#  checkpoint_dir: /checkpoint/kwiat/tmp/Llama-3.1-8B/
+  checkpoint_dir: /checkpoint/kwiat/tmp/llama8B_gsm8k_sft_part0/epoch_0/
   checkpoint_files: [
-    model-00001-of-00004.safetensors,
-    model-00002-of-00004.safetensors,
-    model-00003-of-00004.safetensors,
-    model-00004-of-00004.safetensors,
+    ft-model-00001-of-00004.safetensors,
+    ft-model-00002-of-00004.safetensors,
+    ft-model-00003-of-00004.safetensors,
+    ft-model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -55,10 +56,10 @@ resume_from_checkpoint: False
 save_every_n_epochs: 1
 
 # Fine-tuning arguments
-batch_size: 2
-grpo_samples: 32
+batch_size: 1
+grpo_samples: 16
 forward_batch_size: 1
-max_generated_tokens: 100
+max_generated_tokens: 150
 top_k: null
 temperature: 0.7
 
@@ -72,14 +73,14 @@ clip_grad_norm: 10.0
 epochs: 10
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 1e-5  # set 2e-7 to avoid nans?
+  lr: 1e-6  # set 2e-7 to avoid nans?
   fused: True
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 50
 loss:
   _component_: torchtune.rlhf.loss.GRPOLoss
-  kl_coeff: 0.001
+  kl_coeff: 0.1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase virtual batch size
 

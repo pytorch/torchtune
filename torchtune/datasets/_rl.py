@@ -38,6 +38,7 @@ class RLDataset(Dataset):
         filter_fn: Optional[Callable] = None,
         cheat_idx: int | None = None,
         data_division: int = 1,
+        filter_kwargs: dict[str, Any] | None = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._problem_transform = problem_transform
@@ -47,7 +48,9 @@ class RLDataset(Dataset):
 
         self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
-            self._data = self._data.filter(filter_fn)
+            if filter_kwargs is None:
+                filter_kwargs = {}
+            self._data = self._data.filter(filter_fn, **filter_kwargs)
 
     def __len__(self):
         return len(self._data) // self._data_division

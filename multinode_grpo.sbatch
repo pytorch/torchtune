@@ -49,4 +49,4 @@ source .venv/bin/activate
 
 # Adjust sbatch --ntasks and sbatch --nodes above and --nnodes below to your specific node count
 srun torchrun --nnodes 16 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
-    recipes/r1_full_finetune_distributed.py --config recipes/configs/llama3_2/8B_full_rl_cuda.yaml "$@"
+    recipes/r1_full_finetune_distributed.py --config recipes/configs/grpo_8b/8B_full_rl_cuda.yaml "$@"

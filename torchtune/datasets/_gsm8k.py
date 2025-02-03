@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import regex
+import re
 from xml.etree import ElementTree as ET
 from functools import partial
 
@@ -51,9 +51,22 @@ def gsm8k_dataset(
     split: str = "train",
     name: str = "main",
     cheat_idx: int | None = None,
-    data_division: int = 1,
+    partition: str | None = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> RLDataset:
+
+    def filter_fn(example: dict, idx: int):
+        if partition is None:
+            return True
+
+        match = re.match(r"^(\d+)-(\d+)/(\d+)$", partition)
+        if not match:
+            raise ValueError(f"Invalid partition format: {partition}. Expected format: start-end/total")
+
+        start, end, total = map(int, match.groups())
+
+        current = idx % total
+        return start <= current <= end
 
     ds = RLDataset(
         source=source,
@@ -61,8 +74,7 @@ def gsm8k_dataset(
         tokenizer=tokenizer,
         problem_transform=normalize_gsm,
         filter_fn=filter_fn,
-        cheat_idx=cheat_idx,
-        data_division=data_division,
+        filter_kwargs=dict(with_indices=True),
         split=split,
         **load_dataset_kwargs,
     )
@@ -74,9 +86,9 @@ def gsm8k_sft(
     tokenizer: ModelTokenizer,
     *,
     source: str = "openai/gsm8k",
-    filter_fn: Optional[Callable] = None,
     split: str = "train",
     name: str = "main",
+    partition: str | None = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> SFTDataset:
 
@@ -84,16 +96,30 @@ def gsm8k_sft(
         pre_tokens = tokenizer.encode(problem["preamble"], add_eos=False)
         trainable_tokens = tokenizer.encode(problem["trainable"], add_bos=False)
 
-        mask = [0 for t in pre_tokens] + [1 for t in trainable_tokens]
+        # 1 == discard the token, 0 == include the token in training
+        mask = [1 for t in pre_tokens] + [0 for t in trainable_tokens]
 
         return {"tokens": pre_tokens + trainable_tokens, "mask": mask}
 
+    def filter_fn(example: dict, idx: int):
+        if partition is None:
+            return True
+
+        match = re.match(r"^(\d+)-(\d+)/(\d+)$", partition)
+        if not match:
+            raise ValueError(f"Invalid partition format: {partition}. Expected format: start-end/total")
+
+        start, end, total = map(int, match.groups())
+
+        current = idx % total
+        return start <= current <= end
 
     ds = SFTDataset(
         source=source,
         message_transform=sft_gsm_transform,
         model_transform=model_transform,
         filter_fn=filter_fn,
+        filter_kwargs=dict(with_indices=True),
         split=split,
         name=name,
         **load_dataset_kwargs

@@ -18,19 +18,20 @@
 # best to use 8B_full_single_device.yaml for those cases
 
 base_dir: /checkpoint/kwiat/tmp
-name: llama8B_gsm8k_sft
+name: llama8B_gsm8k_sft_part0
 
 output_dir: ${base_dir}/${name}
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: ${base_dir}/Meta-Llama-3.1-8B/original/tokenizer.model
+  path: ${base_dir}/Llama-3.1-8B/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
 dataset:
   _component_: torchtune.datasets.gsm8k_sft
+  partition: 0-0/10
 seed: null
 shuffle: True
 
@@ -40,7 +41,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ${base_dir}/Meta-Llama-3.1-8B/
+  checkpoint_dir: ${base_dir}/Llama-3.1-8B/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
@@ -58,7 +59,7 @@ epochs: 1
 
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 2e-5
+  lr: 1e-5
   fused: True
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

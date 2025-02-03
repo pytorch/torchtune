@@ -104,6 +104,7 @@ class SFTDataset(Dataset):
         message_transform: Transform,
         model_transform: Transform,
         filter_fn: Optional[Callable] = None,
+        filter_kwargs: Optional[dict[str, Any]] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._message_transform = message_transform
@@ -111,7 +112,9 @@ class SFTDataset(Dataset):
 
         self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
-            self._data = self._data.filter(filter_fn)
+            if filter_kwargs is None:
+                filter_kwargs = {}
+            self._data = self._data.filter(filter_fn, **filter_kwargs)
 
         self._prepare_sample = SFTTransform(
             message_transform=self._message_transform,
