@@ -923,9 +923,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     (
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                        _,
-                        _,
+                        reference_chosen_logits,
+                        reference_rejected_logits,
                     ) = self.concatenated_forward(self._ref_model, batch)
+
+                del reference_chosen_logits, reference_rejected_logits
 
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
                     policy_chosen_log_probs,

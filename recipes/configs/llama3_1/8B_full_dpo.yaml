@@ -67,10 +67,10 @@ optimizer:
   _component_: torch.optim.AdamW
   fused: True
   weight_decay: 0.05
-  lr: 1e-6
+  lr: 2e-5
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 100
+  num_warmup_steps: 20
 
 loss:
   _component_: torchtune.rlhf.loss.DPOLoss
