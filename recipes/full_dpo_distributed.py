@@ -905,7 +905,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
                 # batch is input_ids, labels
                 with self.activations_handling_ctx:
-                    num_tokens += batch[0].numel()
+                    num_tokens += torch.tensor(batch[0].numel())
                     (
                         policy_chosen_log_probs,
                         policy_rejected_log_probs,
