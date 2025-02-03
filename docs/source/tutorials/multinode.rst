@@ -4,8 +4,8 @@
 Multi-node finetuning
 =====================
 
-Congratulations! After years of being `"GPU poor" <https://huggingface.co/settings/local-apps>`_, you've cobbled together more than a single node of GPUs and therefore graduated to the so-called **"GPU middle class"**.
-In many ways, your worries of yesteryear are gone (memory efficient training, who??). But new problems are on the horizon because multi-node can be a whole new beast.
+Congratulations! You've finally escaped the struggles of being "GPU poor" and now have access to a multi-node setup.
+You can bid farewell to the days of sweating over memory-efficient optimizations, but get ready for new challenges as you navigate the complexities of distributed computing.
 
 .. grid:: 2
 

@@ -85,6 +85,13 @@ torchtune tutorials.
    :link: tutorials/llama_kd_tutorial.html
    :tags: finetuning,llama3,kd
 
+.. customcarditem::
+   :header: Multi-node training w/ Llama3.3 70B
+   :card_description: Fine-tuning a large model on 2+ nodes
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/multinode.html
+   :tags: multinode,llama3,slurm
+
 .. customcardend::
 
 
