@@ -1243,9 +1243,15 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Log metrics and statistics for the current step to the metric logger.
         """
+        rewards = trajectory.rewards.mean()
+        torch.distributed.reduce(rewards, dst=0, op=torch.distributed.ReduceOp.AVG)
+
+        successes = trajectory.successes.mean()
+        torch.distributed.reduce(successes, dst=0, op=torch.distributed.ReduceOp.AVG)
+
         log_dict = {
-            "rewards": trajectory.rewards.mean(),
-            "successes": trajectory.successes.mean(),
+            "rewards": rewards,
+            "successes": successes,
             "num_stop_tokens": trajectory.response_padding_masks.any(-1).sum(),
             "loss": grpo_stats.loss.mean(),
             "policy_loss": grpo_stats.policy_loss.mean(),
@@ -1257,9 +1263,14 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             **extras
         }
 
-        for key, value in log_dict.items():
-            torch.distributed.all_reduce(value, op=torch.distributed.ReduceOp.AVG)
-            log_dict[key] = value
+        # for key, value in log_dict.items():
+        #     if not isinstance(value, torch.Tensor):
+        #         value = torch.tensor(value, device=self._device)
+        #     elif value.device != self._device:
+        #         value = value.to(self._device)
+        #
+        #     torch.distributed.all_reduce(value, op=torch.distributed.ReduceOp.AVG)
+        #     log_dict[key] = value.item()
 
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))

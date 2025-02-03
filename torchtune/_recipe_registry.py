@@ -33,7 +33,7 @@ _ALL_RECIPES = [
             ),
             Config(
                 name="8B_full_rl_cuda",
-                file_path="llama3_2/8B_full_rl_cuda.yaml"
+                file_path="grpo_8b/8B_full_rl_cuda.yaml"
             )
 
         ],
@@ -114,6 +114,7 @@ _ALL_RECIPES = [
         name="full_finetune_distributed",
         file_path="full_finetune_distributed.py",
         configs=[
+            Config(name="grpo_8b/8B_sft", file_path="grpo_8b/8B_sft.yaml"),
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
             Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
