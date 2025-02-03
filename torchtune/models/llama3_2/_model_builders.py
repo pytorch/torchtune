@@ -65,6 +65,7 @@ def lora_llama3_2_1b(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 1B model with LoRA enabled.
@@ -110,6 +111,7 @@ def lora_llama3_2_1b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        tie_word_embeddings=tie_word_embeddings,
     )
 def lora_llama3_2_3b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
@@ -120,6 +122,7 @@ def lora_llama3_2_3b(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 3B model with LoRA enabled.
@@ -166,6 +169,7 @@ def lora_llama3_2_3b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        tie_word_embeddings=tie_word_embeddings,
     )
 qlora_llama3_2_1b = partial(lora_llama3_2_1b, quantize_base=True)
 qlora_llama3_2_1b.__doc__ = """
