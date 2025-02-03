@@ -689,7 +689,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += batch[0].numel()
+                num_tokens += torch.tensor(batch[0].numel())
 
                 (
                     policy_chosen_log_probs,
