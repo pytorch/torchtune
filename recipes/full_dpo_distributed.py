@@ -171,10 +171,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 raise RuntimeError(
                     "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
                 )
-        elif (
-            self._enable_activation_checkpointing
-            and cfg.checkpointer.model_type != "LLAMA3_VISION"
-        ):
+        elif self._enable_activation_checkpointing:
             utils.log_rank_zero(
                 log,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
