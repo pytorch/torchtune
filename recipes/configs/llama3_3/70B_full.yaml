@@ -60,7 +60,7 @@ optimizer:
   lr: 2e-5
   # Note: highly recommended to use fused=True optimizer flag
   # with CPU offload for faster optimizer step.
-  fused: True
+  fused: False
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

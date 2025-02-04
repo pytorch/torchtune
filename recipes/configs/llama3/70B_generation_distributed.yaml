@@ -11,7 +11,7 @@ output_dir: ./
 
 # Model arguments
 model:
-  _component_: torchtune.models.llama3.llama3_8b
+  _component_: torchtune.models.llama3.llama3_70b
 
 parallelize_plan:
   _component_: torchtune.models.llama3.base_llama_tp_plan
@@ -19,17 +19,17 @@ parallelize_plan:
 # Transform arguments
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  path: /tmp/Meta-Llama-3-70B-Instruct/original/tokenizer.model
   prompt_template: null
   max_seq_len: 8192
 
 # Checkpointer
 checkpointer:
-  _component_: torchtune.training.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
-  checkpoint_files: [
-    consolidated.00.pth
-  ]
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3-70B-Instruct
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00030"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3

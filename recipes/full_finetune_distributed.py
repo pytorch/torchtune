@@ -534,22 +534,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 parallelize_plan=self.parallelize_plan,
             )
 
-        # Apply Fully Sharded Data Parallelism to the model
-        if self.data_parallel_dim > 1:
-            fsdp_shard_conditions = [
-                partial(
-                    training.get_shard_conditions,
-                    names_to_match=custom_sharded_layers,
-                )
-            ]
-            training.shard_model(
-                model=model,
-                shard_conditions=fsdp_shard_conditions,
-                cpu_offload=fsdp_cpu_offload,
-                reshard_after_forward=reshard_after_forward,
-                dp_mesh=self.device_mesh["dp"],
-            )
-
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
         # the older version of AC and this behavior is unchanged
@@ -567,6 +551,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if enable_activation_checkpointing and ac_mode is None:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
+
+        # Apply Fully Sharded Data Parallelism to the model
+        if self.data_parallel_dim > 1:
+            fsdp_shard_conditions = [
+                partial(
+                    training.get_shard_conditions,
+                    names_to_match=custom_sharded_layers,
+                )
+            ]
+            training.shard_model(
+                model=model,
+                shard_conditions=fsdp_shard_conditions,
+                cpu_offload=fsdp_cpu_offload,
+                reshard_after_forward=reshard_after_forward,
+                dp_mesh=self.device_mesh["dp"],
             )
 
         with training.set_default_dtype(self._dtype), self._device:
