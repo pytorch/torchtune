@@ -615,7 +615,7 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
-    
+
     if is_fusion_model:
         model.decoder = decoder
     return model

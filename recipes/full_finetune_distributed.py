@@ -522,7 +522,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         print(f"{self.tensor_parallel_dim=}")
         if self.tensor_parallel_dim > 1:
             if self.parallelize_plan is None:
-                raise ValueError("Parallelism plan need to be provided when tensor parallel is enabled.")
+                raise ValueError(
+                    "Parallelism plan need to be provided when tensor parallel is enabled."
+                )
             tp_mesh = self.device_mesh["tp"]
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
             model = training.prepare_mha_for_tp(model, tp_mesh)
@@ -531,7 +533,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 tp_mesh,
                 parallelize_plan=self.parallelize_plan,
             )
-        
+
         # Apply Fully Sharded Data Parallelism to the model
         if self.data_parallel_dim > 1:
             fsdp_shard_conditions = [

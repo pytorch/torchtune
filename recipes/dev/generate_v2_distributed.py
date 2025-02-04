@@ -112,7 +112,6 @@ class InferenceRecipe:
             parallelize_plan=config.instantiate(cfg.parallelize_plan),
         )
 
-
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
