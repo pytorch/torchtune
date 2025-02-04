@@ -9,6 +9,7 @@ from torchtune.data import ChatMLTemplate, Message, PromptTemplate, truncate
 from torchtune.models.qwen2._tokenizer import (
     DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
     ENDOFTEXT,
+    IM_END,
     QWEN2_SPECIAL_TOKENS,
     Qwen2Tokenizer,
 )
