@@ -279,8 +279,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
+        self._sampler, self._dataloader, self._valid_dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
+            valid_data_files=cfg.valid_data_files,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
@@ -498,6 +499,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
+        valid_data_files: str,
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
@@ -517,6 +519,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
+
+        cfg_dataset['data_files'] = valid_data_files
+        valid_ds = config.instantiate(cfg_dataset, self._tokenizer)
 
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
@@ -546,10 +551,26 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 else padded_collate_packed
             ),
         )
+        valid_dataloader = DataLoader(
+            dataset=valid_ds,
+            sampler=None,
+            batch_size=batch_size,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
+            collate_fn=(
+                partial(
+                    collate_fn,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else padded_collate_packed
+            ),
+        )
 
         log.info("Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        return sampler, dataloader, valid_dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -613,7 +634,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: Dict[str, torch.Tensor], return_metrics=False) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
@@ -621,6 +642,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         with self.activations_handling_ctx:
             logits = self._model(**batch)
 
+        # self._tokenizer.decode(labels[0].clamp(min=0).tolist())
+        # self._tokenizer.decode(batch['tokens'][0].tolist())
+        
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
         # But this way we dont need to slice the logits. We just add an ignore index to labels.
@@ -634,8 +658,25 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Compute loss
         loss = self._loss_fn(logits, labels)
 
+        if return_metrics:
+            seq_indices, eot_indices = torch.where(labels == self._tokenizer.eot_id)
+            compliance_labels = labels[seq_indices, eot_indices - 1]
+
+            logit_indices = (eot_indices - 1) // logits[0].shape[1]
+            compliance_logit_indices = (eot_indices - 1) % logits[0].shape[1]
+
+            accuracy = torch.zeros_like(compliance_labels, dtype=float)
+            confidence = torch.zeros_like(compliance_labels, dtype=float)
+            for i in range(logit_indices.shape[0]):
+                compliance_logits = logits[logit_indices[i]][i][compliance_logit_indices[i]]
+                accuracy[i] = (compliance_logits.argmax() == compliance_labels[i]).float()
+                confidence[i] = compliance_logits.softmax(dim=-1)[compliance_labels[i]]
+
         # free logits otherwise it peaks backward memory
         del logits
+
+        if return_metrics:
+            return loss, accuracy, confidence
 
         return loss
 
@@ -654,12 +695,41 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        def do_validation():
+            log.info("Running validation...")
+            with torch.inference_mode():
+                num_samples = 0
+                total_loss = 0
+                total_accuracy = 0
+                total_confidence = 0
+                for idx, batch in enumerate(self._valid_dataloader):
+                    utils.batch_to_device(batch, self._device)
+                    loss, accuracy, confidence = self._loss_step(batch, return_metrics=True)
+
+                    num_samples += batch['tokens'].shape[0]
+                    total_loss += loss.cpu() * batch['tokens'].shape[0]
+                    total_accuracy += accuracy.sum().cpu()
+                    total_confidence += confidence.sum().cpu()
+
+                log_dict = {
+                    "validation/loss": total_loss / num_samples,
+                    "validation/label_accuracy": total_accuracy / num_samples,
+                    "validation/label_confidence": total_confidence / num_samples,
+                }
+                self._metric_logger.log_dict(
+                    log_dict,
+                    step=self.global_step,
+                )
+
+
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
                 # Update the sampler to ensure data is correctly shuffled across epochs
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
+
+                do_validation()
 
                 pbar = tqdm(total=self._steps_per_epoch)
                 for idx, batch in enumerate(self._dataloader):
@@ -749,6 +819,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     prof.step()
 
                 self.epochs_run += 1
+
+                if curr_epoch == self.total_epochs - 1:
+                    do_validation()
+
                 start_save_checkpoint = time.perf_counter()
                 log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)

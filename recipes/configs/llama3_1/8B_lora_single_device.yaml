@@ -64,6 +64,7 @@ dataset:
    Output PASS for a policy if the conversation between the agent and the user was compliant with the policy.\
    Output FAIL for a policy if the agent at any time responded in a manner that violated the policy.
    Your output must adhere to this following format:\n1. [explanation] Compliance output: [PASS or FAIL]\n2. [explanation] Compliance output: [PASS or FAIL]\n and so on, for each policy."
+valid_data_files: data/validation_dataset.json
 seed: null
 shuffle: True
 batch_size: 2
@@ -92,6 +93,7 @@ output_dir: /fs/class-projects/fall2024/cmsc473/c473g002/lora_finetune_output
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
   project: torchtune
+  name: initial cot
 log_every_n_steps: 1
 log_peak_memory_stats: False
 
