@@ -7,6 +7,7 @@
 from typing import Callable, List, Optional, Tuple
 
 import torch
+from torch.nn import functional as F
 
 from torchtune import training, utils
 from torchtune.modules.transformer import TransformerDecoder
@@ -401,3 +402,195 @@ def generate(
             generated_logits *= stop_token_mask[:, :-generated_logits.shape[1], None]
 
     return generated_tokens, generated_logits
+
+
+
+def get_token_logprob(logits: torch.Tensor, token: torch.Tensor) -> torch.Tensor:
+    """Gets the log probability of the selected token from the logits.
+
+    Args:
+        logits (torch.Tensor): logits with shape [bsz x vocab_size]
+        token (torch.Tensor): selected token with shape [bsz x 1]
+
+    Returns:
+        torch.Tensor: log probability of selected token with shape [bsz x 1]
+    """
+    probs = F.softmax(logits, dim=-1)
+    return torch.log(torch.gather(probs, -1, token))
+
+
+def generate_next_token_with_logprob(
+        model: TransformerDecoder,
+        input_pos: torch.Tensor,
+        x: torch.Tensor,
+        q: Optional[torch.Tensor] = None,
+        *,
+        mask: Optional[torch.Tensor] = None,
+        temperature: float = 1.0,
+        top_k: Optional[int] = None,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Modified version of generate_next_token that returns logprob instead of full logits."""
+    logits = model(x, input_pos=input_pos, mask=mask)[:, -1]
+    token = sample(logits.clone(), temperature=temperature, top_k=top_k, q=q)
+    logprob = get_token_logprob(logits, token)
+    return token, logprob
+
+
+@torch.no_grad()
+def generate_with_logprobs(
+        model: TransformerDecoder,
+        prompt: torch.Tensor,
+        *,
+        max_generated_tokens: int,
+        pad_id: int = 0,
+        temperature: float = 1.0,
+        top_k: Optional[int] = None,
+        stop_tokens: Optional[List[int]] = None,
+        rng: Optional[torch.Generator] = None,
+        custom_generate_next_token: Optional[Callable] = None,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Modified version of generate that returns logprobs of selected tokens instead of full logits.
+
+    Args:
+        Same as the original generate function
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
+            - tokens (torch.Tensor): tensor with the generated tokens,
+                with shape [bsz x seq_len + num_generated_tokens]
+            - logprobs (torch.Tensor): tensor with the log probabilities of the generated tokens,
+                with shape [bsz x num_generated_tokens]
+    """
+    prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
+
+    if custom_generate_next_token is None:
+        custom_generate_next_token = generate_next_token_with_logprob
+
+    bsz, prompt_length = prompt.size()
+    total_response_length = prompt_length + max_generated_tokens
+
+    generated_tokens = prompt.clone()
+    incremental_decoding = model.caches_are_enabled()
+
+    # Get correct max_seq_len for masks/position ids
+    max_seq_len = (
+        total_response_length
+        if not incremental_decoding
+        else model.decoder_max_cache_seq_len
+    )
+
+    padding_masks = generated_tokens != pad_id
+
+    if not padding_masks.all():
+        padding_masks = torch.nn.functional.pad(
+            padding_masks, (0, max_generated_tokens), value=True
+        )
+        masks = get_causal_mask_from_padding_mask(
+            padding_masks, target_seq_len=max_seq_len
+        )
+        input_pos = get_position_ids_from_padding_mask(padding_masks)
+    else:
+        masks = torch.tril(
+            torch.ones(
+                total_response_length,
+                max_seq_len,
+                dtype=torch.bool,
+                device=prompt.device,
+            )
+        ).unsqueeze(0)
+        input_pos = torch.arange(
+            0, total_response_length, device=generated_tokens.device
+        ).unsqueeze(0)
+
+    if incremental_decoding:
+        curr_masks = masks[:, :prompt_length]
+    else:
+        curr_masks = masks[:, :prompt_length, :prompt_length]
+
+    q = None
+    if rng is not None:
+        q = torch.empty(
+            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+        ).exponential_(1, generator=rng)
+
+    tokens, logprob = generate_next_token_with_logprob(
+        model,
+        input_pos=input_pos[:, :prompt_length].squeeze(),
+        mask=curr_masks,
+        x=prompt,
+        temperature=temperature,
+        top_k=top_k,
+        q=q,
+    )
+
+    generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
+    generated_logprobs = logprob
+
+    curr_pos = prompt_length
+
+    # Track stop tokens
+    stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
+    stop_tokens = (
+        torch.tensor(stop_tokens, device=prompt.device, dtype=tokens.dtype)
+        if stop_tokens
+        else None
+    )
+
+    stop_token_mask = torch.ones(
+        (bsz, prompt_length + 1), dtype=torch.int32, device=prompt.device
+    )
+
+    if stop_tokens is not None:
+        stop_token_reached = update_stop_tokens_tracker(
+            tokens, stop_tokens, stop_token_reached
+        )
+        if stop_token_reached.all().item():
+            return generated_tokens, generated_logprobs
+
+    for _ in range(max_generated_tokens - 1):
+        if stop_tokens is not None:
+            stop_token_mask = torch.cat(
+                [stop_token_mask, ~stop_token_reached.reshape(bsz, 1)], dim=-1
+            )
+
+        if incremental_decoding:
+            curr_input_pos = input_pos[:, curr_pos].contiguous()
+            curr_masks = masks[:, curr_pos, None, :].contiguous()
+        else:
+            tokens = generated_tokens.clone()
+            curr_input_pos = input_pos[:, : curr_pos + 1]
+            curr_masks = masks[:, : curr_pos + 1, : curr_pos + 1]
+
+        q = None
+        if rng is not None:
+            q = torch.empty(
+                (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
+            ).exponential_(1, generator=rng)
+
+        tokens, logprob = custom_generate_next_token(
+            model,
+            input_pos=curr_input_pos,
+            x=tokens.clone(),
+            mask=curr_masks,
+            temperature=temperature,
+            top_k=top_k,
+            q=q,
+        )
+        generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
+        generated_logprobs = torch.cat([generated_logprobs, logprob], dim=1)
+        curr_pos += 1
+
+        if stop_tokens is not None:
+            stop_token_reached = update_stop_tokens_tracker(
+                tokens, stop_tokens, stop_token_reached
+            )
+            if stop_token_reached.all():
+                break
+
+    # Mask out generated tokens that came after stop tokens
+    if stop_tokens is not None:
+        generated_tokens *= stop_token_mask
+        generated_logprobs *= stop_token_mask[:, -generated_logprobs.shape[1]:]
+
+    return generated_tokens, generated_logprobs

@@ -108,7 +108,7 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> tu
 
 
     try:
-        tags = extract_tags("<think>" + only_completion)
+        tags = extract_tags("<think>" + only_completion.replace("<<", "").replace(">>", ""))
     except ET.ParseError:
         tags = {"think": [], "answer": []}
 

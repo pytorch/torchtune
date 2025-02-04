@@ -983,6 +983,32 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             seq_lens=seq_lens
         )
 
+
+
+    def generate_trajectory_batched(self, input_ids: torch.Tensor, answers: list[str]) -> R1Trajectory:
+        """
+        Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
+        See ``generate_trajectory`` for more details.
+
+        Args:
+            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
+
+        Returns:
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
+                the current trajectory.
+        """
+        trajectories: List[R1Trajectory] = []
+        with torch.no_grad():
+            for batch_start in range(0, self.batch_size, self._forward_batch_size):
+                batch_input_ids = input_ids[
+                    batch_start : batch_start + self._forward_batch_size
+                ]
+                batch_answers = answers[batch_start : batch_start + self._forward_batch_size]
+                torch.cuda.empty_cache()
+                trajectories.append(self.generate_trajectory(batch_input_ids, batch_answers))
+                torch.cuda.empty_cache()
+        return R1Trajectory(*map(torch.cat, zip(*trajectories)))
+
     def _grpo_step(
         self,
         trajectory: R1Trajectory,
@@ -1051,28 +1077,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             clipfrac / self._gradient_accumulation_steps,
             approx_policy_kls / self._gradient_accumulation_steps,
         )
-
-    def generate_trajectory_batched(self, input_ids: torch.Tensor, answers: list[str]) -> R1Trajectory:
-        """
-        Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
-        See ``generate_trajectory`` for more details.
-
-        Args:
-            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-
-        Returns:
-            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
-                the current trajectory.
-        """
-        trajectories: List[R1Trajectory] = []
-        with torch.no_grad():
-            for batch_start in range(0, self.batch_size, self._forward_batch_size):
-                batch_input_ids = input_ids[
-                    batch_start : batch_start + self._forward_batch_size
-                ]
-                batch_answers = answers[batch_start : batch_start + self._forward_batch_size]
-                trajectories.append(self.generate_trajectory(batch_input_ids, batch_answers))
-        return R1Trajectory(*map(torch.cat, zip(*trajectories)))
 
     def train(self) -> None:
         """

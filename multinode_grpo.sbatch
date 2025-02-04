@@ -48,5 +48,5 @@ source .venv/bin/activate
 #OUTPUT_DIR="$SHARED_FS/Llama3.3-70B-fft-output"
 
 # Adjust sbatch --ntasks and sbatch --nodes above and --nnodes below to your specific node count
-srun torchrun --nnodes 16 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
+srun --export ALL,PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True torchrun --nnodes 16 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
     recipes/r1_full_finetune_distributed.py --config recipes/configs/grpo_8b/8B_full_rl_cuda.yaml "$@"
