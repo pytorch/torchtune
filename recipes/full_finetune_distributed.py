@@ -519,6 +519,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Apply tensor parallelism to the model
+        print(f"{self.tensor_parallel_dim=}")
         if self.tensor_parallel_dim > 1:
             if self.parallelize_plan is None:
                 raise ValueError("Parallelism plan need to be provided when tensor parallel is enabled.")
