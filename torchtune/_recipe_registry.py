@@ -333,10 +333,6 @@ _ALL_RECIPES = [
                 name="llama3_1/8B_full_dpo",
                 file_path="llama3_1/8B_full_dpo.yaml",
             ),
-            Config(
-                name="llama3_1/70B_full_dpo",
-                file_path="llama3_1/70B_full_dpo.yaml",
-            ),
         ],
         supports_distributed=True,
     ),
