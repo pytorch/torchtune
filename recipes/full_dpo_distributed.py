@@ -96,6 +96,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
     The following losses are supported in this recipe:
         - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        
 
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
