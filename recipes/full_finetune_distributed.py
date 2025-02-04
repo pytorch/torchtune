@@ -512,6 +512,41 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
+        self.device_mesh = dist.init_device_mesh(
+            self._device.type,
+            mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
+            mesh_dim_names=("dp", "tp"),
+        )
+
+        # Apply tensor parallelism to the model
+        if self.tensor_parallel_dim > 1:
+            if self.parallelize_plan is None:
+                raise ValueError("Parallelism plan need to be provided when tensor parallel is enabled.")
+            tp_mesh = self.device_mesh["tp"]
+            # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
+            model = training.prepare_mha_for_tp(model, tp_mesh)
+            parallelize_module(
+                model,
+                tp_mesh,
+                parallelize_plan=self.parallelize_plan,
+            )
+        
+        # Apply Fully Sharded Data Parallelism to the model
+        if self.data_parallel_dim > 1:
+            fsdp_shard_conditions = [
+                partial(
+                    training.get_shard_conditions,
+                    names_to_match=custom_sharded_layers,
+                )
+            ]
+            training.shard_model(
+                model=model,
+                shard_conditions=fsdp_shard_conditions,
+                cpu_offload=fsdp_cpu_offload,
+                reshard_after_forward=reshard_after_forward,
+                dp_mesh=self.device_mesh["dp"],
+            )
+
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
         # the older version of AC and this behavior is unchanged
@@ -529,41 +564,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if enable_activation_checkpointing and ac_mode is None:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
-            )
-
-        self.device_mesh = dist.init_device_mesh(
-            self._device.type,
-            mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
-            mesh_dim_names=("dp", "tp"),
-        )
-
-        # Apply tensor parallelism to the model
-        if self.tensor_parallel_dim > 1:
-            if self.parallelize_plan is None:
-                raise ValueError("Parallelism plan need to be provided when tensor parallel is enabled.")
-            tp_mesh = self.device_mesh["tp"]
-            # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
-            # model = training.prepare_mha_for_tp(model, tp_mesh)
-            parallelize_module(
-                model,
-                tp_mesh,
-                parallelize_plan=self.parallelize_plan,
-            )
-
-        # Apply Fully Sharded Data Parallelism to the model
-        if self.data_parallel_dim > 1:
-            fsdp_shard_conditions = [
-                partial(
-                    training.get_shard_conditions,
-                    names_to_match=custom_sharded_layers,
-                )
-            ]
-            training.shard_model(
-                model=model,
-                shard_conditions=fsdp_shard_conditions,
-                cpu_offload=fsdp_cpu_offload,
-                reshard_after_forward=reshard_after_forward,
-                dp_mesh=self.device_mesh["dp"],
             )
 
         with training.set_default_dtype(self._dtype), self._device:
