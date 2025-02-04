@@ -87,6 +87,7 @@ def lora_llama3_2_1b(
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 1B model with LoRA applied
@@ -144,6 +145,7 @@ def lora_llama3_2_3b(
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 3B model with LoRA applied
