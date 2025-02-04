@@ -32,7 +32,7 @@ model:
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
-  max_seq_len: 1024 # higher increases memory
+  max_seq_len: null # higher increases memory
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -68,10 +68,11 @@ lr_scheduler:
 
 loss:
   _component_: torchtune.rlhf.loss.DPOLoss
+reg_lambda : 0.1
 
 # Training
 epochs: 1
-max_steps_per_epoch: 1000
+max_steps_per_epoch: null
 gradient_accumulation_steps: 8  # Use to increase effective batch size
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 

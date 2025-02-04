@@ -16,6 +16,7 @@ from torchtune.data import ChosenRejectedToMessages, CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 import random, json
+import os
 
 
 class PreferenceDataset(Dataset):
@@ -239,14 +240,16 @@ class Trajectory_DPO_Dataset(Dataset):
         filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
-        self._message_transform = message_transform
-        
-
-        with open(source, "r") as f:
-            self._data = json.load(f)
-        random.shuffle(self._data)
         self._tokenizer = tokenizer
-        # self._data = load_dataset(source)["train"]
+        self._message_transform = message_transform
+        path=source
+        if load_dataset_kwargs["split"]=="train":
+            path=os.path.join(source, "train.json")
+        elif load_dataset_kwargs["split"]=="validation":
+            path=os.path.join(source, "valid.json")
+        with open(path, "r") as f:
+            self._data = json.load(f)
+        # self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
             self._data = self._data.filter(filter_fn)
 

@@ -153,6 +153,5 @@ def multi_conversation_dataset(
         tokenizer=tokenizer,
         filter_fn=filter_fn,
         split=split,
-        data_dir="data/rl",
         **load_dataset_kwargs,
     )

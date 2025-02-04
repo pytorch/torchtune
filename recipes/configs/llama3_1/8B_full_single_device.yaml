@@ -23,7 +23,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
+  path: /mnt/verifiers/data/finetuning/base/models--meta-llama--Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
@@ -39,7 +39,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_dir: /mnt/verifiers/data/finetuning/base/models--meta-llama--Meta-Llama-3.1-8B-Instruct
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
