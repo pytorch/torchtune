@@ -33,6 +33,7 @@ from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel
+
 # from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
@@ -370,7 +371,6 @@ def gather_cpu_state_dict(
     #         return cpu_state_dict
     #     else:
     #         return {}
-
 
 
 def get_full_optimizer_state_dict(
