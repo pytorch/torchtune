@@ -468,7 +468,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed._tensor.placement_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">DTensorSpec</span><span class="p">,</span> <span class="n">TensorMeta</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint.state_dict</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_init_optim_state</span><span class="p">,</span>
-    <span class="n">get_model_state_dict</span><span class="p">,</span>
     <span class="n">get_optimizer_state_dict</span><span class="p">,</span>
     <span class="n">set_model_state_dict</span><span class="p">,</span>
     <span class="n">set_optimizer_state_dict</span><span class="p">,</span>
@@ -482,7 +481,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.attention</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiHeadAttention</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepFusionModel</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_adapter_state_dict</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_device</span><span class="p">,</span> <span class="n">get_logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
 
@@ -811,44 +810,26 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, Any]: State dict on CPU</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.</span>
     <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">sharded_sd</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
-    <span class="n">has_nf4</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
-        <span class="nb">hasattr</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s2">&quot;_local_tensor&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">has_nf4</span><span class="p">:</span>
-        <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">sharded_sd</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
-                <span class="c1"># Move back to device if offloaded to CPU</span>
-                <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s2">&quot;_local_tensor&quot;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
-                    <span class="n">param</span> <span class="o">=</span> <span class="n">_gather_nf4_tensor</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># Gather DTensor</span>
-                    <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
-                <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
-                <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">cpu_state_dict</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">options</span> <span class="o">=</span> <span class="n">StateDictOptions</span><span class="p">(</span>
-            <span class="n">full_state_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">broadcast_from_rank0</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">cpu_offload</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="n">get_model_state_dict</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">adapter_weights_only</span><span class="p">:</span>
-            <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="n">get_adapter_state_dict</span><span class="p">(</span><span class="n">cpu_state_dict</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">sharded_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">is_cpu</span><span class="p">:</span>
+            <span class="c1"># Move back to device if offloaded to CPU</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s2">&quot;_local_tensor&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="n">_gather_nf4_tensor</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Gather DTensor</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
+            <span class="c1"># upcasting NF4 to original dtype</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">cpu_state_dict</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">{}</span></div>
+            <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cpu_state_dict</span></div>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_full_optimizer_state_dict</span><span class="p">(</span>
