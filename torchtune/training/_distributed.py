@@ -40,8 +40,6 @@ from torchtune.utils._logging import deprecated
 _log: logging.Logger = get_logger()
 
 
-_valid_distributed_single_node_nnodes = ["1:1", "1"]
-
 torch_version = torch.__version__
 # TODO: Fix issues with DSD before uncommenting. See #2313 and #2277.
 # _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
@@ -98,6 +96,38 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         return tensor
 
 
+def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) -> str:
+    """Gets the PyTorch Distributed backend based on device type.
+
+    Args:
+        device_type (str): Device type to get backend for.
+        offload_ops_to_cpu (bool, optional): Flag to check if any operations should be offloaded to CPU.
+            Examples of these kinds of operations are CPU offload for FSDP and asynchronous save for distributed
+            checkpointing. Defaults to False.
+
+    Example:
+        >>> get_distributed_backend("cuda")
+        'nccl'
+        >>> get_distributed_backend("cpu")
+        'gloo'
+        >>> get_distributed_backend("cuda", offload_ops_to_cpu=True)
+        'cuda:nccl,cpu:gloo'
+
+    Returns:
+        str: Distributed backend for use in ``torch.distributed.init_process_group``.
+    """
+    default_device_backend_map = dist.Backend.default_device_backend_map
+    backend = "nccl"
+    if device_type in default_device_backend_map:
+        backend = default_device_backend_map[device_type]
+    if offload_ops_to_cpu:
+        backend = f"{device_type}:{backend},cpu:gloo"
+    return backend
+
+
+@deprecated(
+    msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
+)
 def init_distributed(**kwargs: Dict[str, Any]) -> bool:
     """Initialize process group required for ``torch.distributed``.
 
