@@ -18,6 +18,7 @@ from .rewards import (
 from .sequence_processing import (
     get_batch_log_probs,
     logits_to_logprobs,
+    batched_logits_to_logprobs,
     truncate_sequence_at_first_stop_token,
     truncate_sequence_for_logprobs,
 )
@@ -25,6 +26,7 @@ from .sequence_processing import (
 __all__ = [
     "truncate_sequence_at_first_stop_token",
     "logits_to_logprobs",
+    "batched_logits_to_logprobs",
     "truncate_sequence_for_logprobs",
     "get_reward_penalty_mask",
     "estimate_advantages",

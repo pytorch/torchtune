@@ -17,7 +17,7 @@
 # Single device full finetuning requires more memory optimizations. It's
 # best to use 3B_full_single_device.yaml for those cases
 
-name: grpo_sft_start_veryhighlr
+name: grpo_sft_start_eps02_normalloss
 output_dir: /checkpoint/kwiat/checkpoints/${name}
 
 # Tokenizer
@@ -59,9 +59,9 @@ save_every_n_epochs: 1
 batch_size: 1
 grpo_samples: 32
 forward_batch_size: 1
-max_generated_tokens: 100
+max_generated_tokens: 512
 top_k: null
-temperature: 0.7
+temperature: 1.0
 
 ppo_epochs: 3
 ppo_batch_size: 16
@@ -80,7 +80,8 @@ lr_scheduler:
   num_warmup_steps: 50
 loss:
   _component_: torchtune.rlhf.loss.GRPOLoss
-  kl_coeff: 0.001
+  kl_coeff: 0.01
+  epsilon: 0.2
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase virtual batch size
 

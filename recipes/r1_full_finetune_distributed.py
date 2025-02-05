@@ -541,17 +541,17 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
-            ref_model = config.instantiate(cfg_model)
+            # ref_model = config.instantiate(cfg_model)
 
 
-        ref_model.eval()
-        for p in ref_model.parameters():
-            p.requires_grad = False
+        # ref_model.eval()
+        # for p in ref_model.parameters():
+        #     p.requires_grad = False
 
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
-            training.compile_model(ref_model, verbose=self._is_rank_zero)
+            # training.compile_model(ref_model, verbose=self._is_rank_zero)
 
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
@@ -566,11 +566,11 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 ac_option,
             )
 
-            apply_selective_activation_checkpointing(
-                ref_model,
-                ac_mode,
-                ac_option
-            )
+            # apply_selective_activation_checkpointing(
+            #     ref_model,
+            #     ac_mode,
+            #     ac_option
+            # )
 
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
@@ -578,9 +578,9 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-            training.set_activation_checkpointing(
-                ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
-            )
+            # training.set_activation_checkpointing(
+            #     ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            # )
 
         # For FSDP sharding
         fsdp_shard_conditions = [
@@ -596,12 +596,12 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             reshard_after_forward=reshard_after_forward,
         )
 
-        training.shard_model(
-            model=ref_model,
-            shard_conditions=fsdp_shard_conditions,
-            cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=reshard_after_forward,
-        )
+        # training.shard_model(
+        #     model=ref_model,
+        #     shard_conditions=fsdp_shard_conditions,
+        #     cpu_offload=fsdp_cpu_offload,
+        #     reshard_after_forward=reshard_after_forward,
+        # )
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
@@ -609,9 +609,9 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
-            for m in ref_model.modules():
-                if hasattr(m, "rope_init"):
-                    m.rope_init()
+            # for m in ref_model.modules():
+            #     if hasattr(m, "rope_init"):
+            #         m.rope_init()
 
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
@@ -623,26 +623,26 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
             cpu_offload=fsdp_cpu_offload,
         )
 
-        training.load_from_full_model_state_dict(
-            ref_model,
-            model_state_dict,
-            self._device,
-            strict=True,
-            cpu_offload=fsdp_cpu_offload,
-        )
+        # training.load_from_full_model_state_dict(
+        #     ref_model,
+        #     model_state_dict,
+        #     self._device,
+        #     strict=True,
+        #     cpu_offload=fsdp_cpu_offload,
+        # )
 
         # activation offloading
         self.policy_activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
 
-        self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
-            ref_model, enable_activation_offloading
-        )
+        # self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
+        #     ref_model, enable_activation_offloading
+        # )
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
-        training.validate_no_params_on_meta_device(ref_model)
+        # training.validate_no_params_on_meta_device(ref_model)
 
         utils.log_rank_zero(
             log,
@@ -654,6 +654,8 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         # synchronize before training begins
         torch.distributed.barrier()
+
+        ref_model = None
 
         return model, ref_model
 
@@ -883,6 +885,10 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # print(f"{batch_input_ids.shape=}")
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
+
+        _, rank = utils.get_world_size_and_rank()
+
+        # print(f"[rank {rank}] trying to generate {batch_size * grpo_size} of length {context_length + self._max_generated_tokens}")
         with local_kv_cache(
                 model=self._model,
                 batch_size=batch_size * grpo_size,
@@ -897,10 +903,14 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 top_k=self._top_k,
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
-                return_logits=False
+                return_logits=False,
+                stop_tokens=self._tokenizer.stop_tokens
             )
 
-        # _, rank = training.get_world_size_and_rank()
+        training.recursive_reshard(self._model)
+        torch.cuda.empty_cache()
+
+
         # if rank == 0:
         #     for i, res in enumerate(query_responses):
         #         text = self._tokenizer.decode(res.tolist())
@@ -925,22 +935,25 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
 
         # step 2. estimate logprobs of the responses using the current policy
         logits = logits[:, context_length - 1 :]
-        logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
+        logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
 
         del logits
         torch.cuda.empty_cache()
 
+        # FIXME: this doesn't work for proper PPO, but might work for the trl-style GRPO?
+
         # torch.distributed.breakpoint()
         # step 2.1 estimate logprobs of the responses using the reference policy
-        ref_logits = self._ref_model(
-            query_responses, input_pos=position_ids, mask=masks
-        )
-        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
-        ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
+        # ref_logits = self._ref_model(
+        #     query_responses, input_pos=position_ids, mask=masks
+        # )
+        # ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
+        # ref_logprobs = rlhf.batched_logits_to_logprobs(ref_logits, responses, self._temperature)
 
-        del ref_logits
-        torch.cuda.empty_cache()
+        # del ref_logits
+        # torch.cuda.empty_cache()
 
+        ref_logprobs = logprobs.clone()
 
         # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
         # resulting in truncated responses
@@ -955,8 +968,10 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         rewards = rewards.to(self._device)
         successes = successes.to(self._device)
 
-        advantages = rewards - rewards.mean(1, keepdim=True) / (rewards.std(1, keepdim=True) + 1e-4)
+
+        advantages = (rewards - rewards.mean(1, keepdim=True)) / (rewards.std(1, keepdim=True) + 1e-4)
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
+
 
         # print(f"In generation:\n{rewards=}\n{advantages=}")
 
@@ -1040,8 +1055,8 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
-        pi_logprobs = rlhf.logits_to_logprobs(
-            pi_logits, trajectory.query_responses[:, context_length:], self._temperature
+        pi_logprobs = rlhf.batched_logits_to_logprobs(
+            pi_logits, trajectory.query_responses[:, context_length:], self._temperature, chunk_size=1
         )
 
         pi_logprobs[trajectory.response_padding_masks] = 1.0

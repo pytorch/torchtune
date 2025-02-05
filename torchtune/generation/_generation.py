@@ -392,7 +392,9 @@ def generate(
             stop_token_reached = update_stop_tokens_tracker(
                 tokens, stop_tokens, stop_token_reached
             )
-            if stop_token_reached.all():
+            all_done = stop_token_reached.all().int()
+            torch.distributed.all_reduce(all_done)
+            if all_done == torch.distributed.get_world_size():
                 break
 
     # mask out generated tokens in seqs that already hit a stop token

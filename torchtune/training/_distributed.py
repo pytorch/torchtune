@@ -583,6 +583,12 @@ def shard_model(
     fully_shard(model, **fsdp_kwargs)
 
 
+def recursive_reshard(module: nn.Module):
+    for n, m in reversed(list(module.named_modules())):
+        module.reshard()
+
+    module.reshard()
+
 def prepare_mha_for_tp(
     model: nn.Module,
     tp_mesh: DeviceMesh,
