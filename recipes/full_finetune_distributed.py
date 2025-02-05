@@ -144,6 +144,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._is_rank_zero = self.rank == 0
         self.parallelize_plan = config.instantiate(cfg.get("parallelize_plan", None))
         self.tensor_parallel_dim = cfg.get("tensor_parallel_dim", 1)
+        if self.tensor_parallel_dim > 1 and self.parallelize_plan is None:
+            raise ValueError(
+                "Parallelism plan need to be provided when tensor parallel is enabled."
+            )
         if self.world_size % self.tensor_parallel_dim != 0:
             raise ValueError(
                 f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
@@ -502,7 +506,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         utils.log_rank_zero(
             log,
-            "FSDP and TP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+            "Distributed training(FSDP and TP) is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
 
@@ -512,24 +516,21 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        self.device_mesh = dist.init_device_mesh(
+        device_mesh = dist.init_device_mesh(
             self._device.type,
             mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
             mesh_dim_names=("dp", "tp"),
         )
+        self.dp_size = device_mesh["dp"].size()
+        self.dp_rank = device_mesh["dp"].get_local_rank()
 
         # Apply tensor parallelism to the model
         if self.tensor_parallel_dim > 1:
-            if self.parallelize_plan is None:
-                raise ValueError(
-                    "Parallelism plan need to be provided when tensor parallel is enabled."
-                )
-            tp_mesh = self.device_mesh["tp"]
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
-            model = training.prepare_mha_for_tp(model, tp_mesh)
+            model = training.prepare_mha_for_tp(model, device_mesh["tp"])
             parallelize_module(
                 model,
-                tp_mesh,
+                device_mesh["tp"],
                 parallelize_plan=self.parallelize_plan,
             )
 
@@ -565,7 +566,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 shard_conditions=fsdp_shard_conditions,
                 cpu_offload=fsdp_cpu_offload,
                 reshard_after_forward=reshard_after_forward,
-                dp_mesh=self.device_mesh["dp"],
+                dp_mesh=device_mesh["dp"],
             )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -687,10 +688,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
-        dp_mesh = self.device_mesh["dp"]
-        dp_degree, dp_rank = dp_mesh.size(), dp_mesh.get_local_rank()
         sampler = DistributedSampler(
-            ds, num_replicas=dp_degree, rank=dp_rank, shuffle=shuffle, seed=0
+            ds, num_replicas=self.dp_size, rank=self.dp_rank, shuffle=shuffle, seed=0
         )
         dataloader = DataLoader(
             dataset=ds,

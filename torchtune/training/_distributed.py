@@ -534,11 +534,9 @@ def shard_model(
     Raises:
         ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.
     """
-    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
+    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward, "mesh": dp_mesh}
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
-    if dp_mesh:
-        fsdp_kwargs["mesh"] = dp_mesh
 
     # Shard the model with FSDP, iterating in reverse to start with
     # lowest-level modules first
