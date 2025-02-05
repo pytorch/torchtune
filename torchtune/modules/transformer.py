@@ -631,7 +631,7 @@ class TransformerDecoder(nn.Module):
         for i, layer in enumerate(self.layers):
             if i in self.output_hidden_states:
                 hidden.append(h)
-            print(f"{layer=} and {encoder_input=}")
+            print(f"{type(layer.attn.q_proj.weight)=}")
             # shape: [b, s, d]
             h = layer(
                 h,

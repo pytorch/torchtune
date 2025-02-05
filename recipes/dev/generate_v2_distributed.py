@@ -129,6 +129,8 @@ class InferenceRecipe:
         )
 
         self.model = model
+        self.model.eval()
+        print(f"{model=}")
         if self._is_rank_zero:
             self._logger.info(
                 f"Model was initialized with precision {self._dtype} and TP degree {tp_degree}."
