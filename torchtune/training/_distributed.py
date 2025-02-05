@@ -333,6 +333,7 @@ def gather_cpu_state_dict(
     Returns:
         Dict[str, Any]: State dict on CPU
     """
+    # TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.
     cpu_state_dict = {}
     sharded_sd = model.state_dict()
     for param_name, param in sharded_sd.items():
@@ -352,45 +353,6 @@ def gather_cpu_state_dict(
             cpu_state_dict[param_name] = param.cpu()
         torch.distributed.barrier()
     return cpu_state_dict
-    # TODO: Fix issues with DSD before uncommenting the following code. See #2313 and #2277.
-    # cpu_state_dict = {}
-    # sharded_sd = model.state_dict()
-    # has_nf4 = any(
-    #     hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
-    #     for param in sharded_sd.values()
-    # )
-    # if has_nf4:
-    #     cpu_state_dict = {}
-    #     sharded_sd = model.state_dict()
-    #     for param_name, param in sharded_sd.items():
-    #         if param.is_cpu:
-    #             # Move back to device if offloaded to CPU
-    #             param = param.to(device)
-    #         if hasattr(param, "_local_tensor"):
-    #             if isinstance(param._local_tensor, NF4Tensor):
-    #                 param = _gather_nf4_tensor(param)
-    #             else:
-    #                 # Gather DTensor
-    #                 param = param.full_tensor()
-    #         if isinstance(param, NF4Tensor):
-    #             param = param.to(param.dtype)
-    #         if is_rank_zero:
-    #             cpu_state_dict[param_name] = param.cpu()
-    #         torch.distributed.barrier()
-    #     return cpu_state_dict
-    # else:
-    #     options = StateDictOptions(
-    #         full_state_dict=True,
-    #         broadcast_from_rank0=True,
-    #         cpu_offload=True,
-    #     )
-    #     cpu_state_dict = get_model_state_dict(model=model, options=options)
-    #     if adapter_weights_only:
-    #         cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
-    #     if is_rank_zero:
-    #         return cpu_state_dict
-    #     else:
-    #         return {}
 
 
 def get_full_optimizer_state_dict(
