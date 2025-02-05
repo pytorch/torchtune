@@ -354,6 +354,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multinode.html">Multi-node finetuning</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -790,7 +791,7 @@ to those in the previously-linked table.</p>
 </section>
 </section>
 <section id="use-your-model-in-the-wild">
-<h2>Use your model in the wild<a class="headerlink" href="#use-your-model-in-the-wild" title="Permalink to this heading">¶</a></h2>
+<span id="use-model-in-wild"></span><h2>Use your model in the wild<a class="headerlink" href="#use-your-model-in-the-wild" title="Permalink to this heading">¶</a></h2>
 <p>Let’s say we’re happy with how our model is performing at this point - we want to do something with it! Productionize for serving, publish on the Hugging Face Hub, etc.
 As we mentioned above, one of the benefits of handling of the checkpoint conversion is that you can directly work with standard formats. This helps
 with interoperability with other libraries since torchtune doesn’t add yet another format to the mix.</p>

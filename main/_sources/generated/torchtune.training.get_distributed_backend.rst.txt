@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.training
+
+
+get_distributed_backend
+=======================
+
+.. autofunction:: get_distributed_backend

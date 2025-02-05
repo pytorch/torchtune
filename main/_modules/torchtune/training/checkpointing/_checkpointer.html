@@ -351,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/multinode.html">Multi-node finetuning</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -491,7 +492,7 @@
     <span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
     <span class="n">TORCH_INDEX_FNAME</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">log_rank_zero</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">get_world_size_and_rank</span><span class="p">,</span> <span class="n">log_rank_zero</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
 
@@ -1641,7 +1642,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_future</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir_prefix</span> <span class="o">=</span> <span class="s2">&quot;dist_epoch&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_file</span> <span class="o">=</span> <span class="s2">&quot;.metadata&quot;</span>
-        <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">get_world_size_and_rank</span><span class="p">()</span>
+        <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">dist</span><span class="o">.</span><span class="n">ProcessGroup</span><span class="p">]</span> <span class="o">=</span> <span class="n">process_group</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_latest_intermediate_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>

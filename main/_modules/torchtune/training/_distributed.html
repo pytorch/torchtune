@@ -351,6 +351,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/multinode.html">Multi-node finetuning</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -488,8 +489,6 @@
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
 
-<span class="n">_valid_distributed_single_node_nnodes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;1:1&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">]</span>
-
 <span class="n">torch_version</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span>
 <span class="c1"># TODO: Fix issues with DSD before uncommenting. See #2313 and #2277.</span>
 <span class="c1"># _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (</span>
@@ -546,7 +545,39 @@
         <span class="k">return</span> <span class="n">tensor</span>
 
 
-<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="get_distributed_backend"><a class="viewcode-back" href="../../../generated/torchtune.training.get_distributed_backend.html#torchtune.training.get_distributed_backend">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_distributed_backend</span><span class="p">(</span><span class="n">device_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">offload_ops_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets the PyTorch Distributed backend based on device type.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        device_type (str): Device type to get backend for.</span>
+<span class="sd">        offload_ops_to_cpu (bool, optional): Flag to check if any operations should be offloaded to CPU.</span>
+<span class="sd">            Examples of these kinds of operations are CPU offload for FSDP and asynchronous save for distributed</span>
+<span class="sd">            checkpointing. Defaults to False.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; get_distributed_backend(&quot;cuda&quot;)</span>
+<span class="sd">        &#39;nccl&#39;</span>
+<span class="sd">        &gt;&gt;&gt; get_distributed_backend(&quot;cpu&quot;)</span>
+<span class="sd">        &#39;gloo&#39;</span>
+<span class="sd">        &gt;&gt;&gt; get_distributed_backend(&quot;cuda&quot;, offload_ops_to_cpu=True)</span>
+<span class="sd">        &#39;cuda:nccl,cpu:gloo&#39;</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Distributed backend for use in ``torch.distributed.init_process_group``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">default_device_backend_map</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">Backend</span><span class="o">.</span><span class="n">default_device_backend_map</span>
+    <span class="n">backend</span> <span class="o">=</span> <span class="s2">&quot;nccl&quot;</span>
+    <span class="k">if</span> <span class="n">device_type</span> <span class="ow">in</span> <span class="n">default_device_backend_map</span><span class="p">:</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="n">default_device_backend_map</span><span class="p">[</span><span class="n">device_type</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">offload_ops_to_cpu</span><span class="p">:</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device_type</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2">,cpu:gloo&quot;</span>
+    <span class="k">return</span> <span class="n">backend</span></div>
+
+
+<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. &quot;</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize process group required for ``torch.distributed``.</span>
 
 <span class="sd">    Args:</span>
