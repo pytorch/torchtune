@@ -59,25 +59,49 @@ We're always adding new models, but feel free to [file an issue](https://github.
 
 &nbsp;
 
-### Finetuning recipes
+### Post-training recipes
 
-torchtune provides the following finetuning recipes for training on one or more devices.
+torchtune supports different kinds of post-training. A successful post-trained model will likely utilize several of the below methods.
 
+**Supervised Finetuning (SFT)**
 
-| Finetuning Method                          | 1 Device | >1 Device | >1 Node | Recipe  | Example Config(s) |
-|:-:|:-:|:-:|:-:|:-:|:-:|
-| Full Finetuning  | ✅ | ✅ | ✅ | [full_finetune_single_device](recipes/full_finetune_single_device.py) <br> [full_finetune_distributed](recipes/full_finetune_distributed.py)| [Llama3.1 8B single-device](recipes/configs/llama3_1/8B_full_single_device.yaml) <br> [Llama 3.1 70B distributed](recipes/configs/llama3_1/70B_full.yaml)
-| LoRA Finetuning | ✅ | ✅ | ❌ | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py) | [Qwen2 0.5B single-device](recipes/configs/qwen2/0.5B_lora_single_device.yaml) <br> [Gemma 7B distributed](recipes/configs/gemma/7B_lora.yaml)
-| QLoRA Finetuning | ✅ | ✅ | ❌ | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py)| [Phi3 Mini single-device](recipes/configs/phi3/mini_qlora_single_device.yaml) <br> [Llama 3.1 405B distributed](recipes/configs/llama3_1/405B_qlora.yaml)
-| DoRA/QDoRA Finetuning | ✅ | ✅ | ❌ | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py)| [Llama3 8B QDoRA single-device](recipes/configs/llama3/8B_qdora_single_device.yaml) <br> [Llama3 8B DoRA distributed](recipes/configs/llama3/8B_dora.yaml)
-| Quantization-Aware Training | ❌ | ✅ | ❌ | [qat_distributed](recipes/qat_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_full.yaml)
-| Quantization-Aware Training and LoRA Finetuning | ❌ | ✅ | ❌ | [qat_lora_finetune_distributed](recipes/qat_lora_finetune_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_lora.yaml)
-| Direct Preference Optimization | ✅ | ✅ | ❌ | [lora_dpo_single_device](recipes/lora_dpo_single_device.py) <br> [lora_dpo_distributed](recipes/lora_dpo_distributed.py) | [Llama2 7B single-device](recipes/configs/llama2/7B_lora_dpo_single_device.yaml) <br> [Llama2 7B distributed](recipes/configs/llama2/7B_lora_dpo.yaml)
-| Proximal Policy Optimization | ✅ | ❌ | ❌ |  [ppo_full_finetune_single_device](recipes/ppo_full_finetune_single_device.py) | [Mistral 7B](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)
-| LoRA Knowledge Distillation | ✅ | ✅ | ❌ | [knowledge_distillation_single_device](recipes/knowledge_distillation_single_device.py) <br> [knowledge_distillation_distributed](recipes/knowledge_distillation_distributed.py) | [Qwen2 1.5B -> 0.5B single-device](recipes/configs/qwen2/1.5B_to_0.5B_KD_lora_single_device.yaml) <br> [Qwen2 1.5B -> 0.5B distributed](recipes/configs/qwen2/1.5B_to_0.5B_KD_lora_distributed.yaml)
+| Type of Weight Update | 1 Device | >1 Device | >1 Node |
+|-----------------------|:--------:|:---------:|:-------:|
+| Full                  |    ✅    |     ✅    |   ✅    |
+| LoRA/QLoRA            |    ✅    |     ✅    |         |
 
+Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device``
 
-The above configs are just examples to get you started. If you see a model above not listed here, we likely still support it. If you're unsure whether something is supported, please open an issue on the repo.
+**Knowledge Distillation (KD)**
+
+| Type of Weight Update | 1 Device | >1 Device | >1 Node |
+|-----------------------|:--------:|:---------:|:-------:|
+| Full                  |          |           |         |
+| LoRA/QLoRA            |    ✅    |     ✅    |         |
+
+Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed``
+
+**Reinforcement Learning from Human Feedback (RLHF)**
+
+| Method | Type of Weight Update | 1 Device | >1 Device | >1 Node |
+|------------------------------|-----------------------|:--------:|:---------:|:-------:|
+| DPO                          | Full                  |    ✅    |           |         |
+|                           | LoRA/QLoRA            |    ✅    |     ✅    |         |
+| PPO                          | Full                  |    ✅    |           |         |
+|                           | LoRA/QLoRA            |          |           |         |
+
+Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device``
+
+**Quantize Aware Training (QAT)**
+
+| Type of Weight Update | 1 Device | >1 Device | >1 Node |
+|-----------------------|:--------:|:---------:|:-------:|
+| Full                  |        |     ✅    |       |
+| LoRA/QLoRA            |        |     ✅    |       |
+
+Example: ``tune run qat_distributed --config llama3_1/8B_qat_lora``
+
+The above configs are just examples to get you started. The full list of recipes can be found [here](recipes/). If you'd like to work on one of the gaps you see, please submit a PR! If there's a entirely new post-training method you'd like to see implemented in torchtune, feel free to open an Issue.
 
 &nbsp;
 
