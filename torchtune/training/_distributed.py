@@ -338,7 +338,7 @@ def gather_cpu_state_dict(
         hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
         for param in sharded_sd.values()
     )
-    if has_nf4:
+    if _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4:
         cpu_state_dict = {}
         sharded_sd = model.state_dict()
         for param_name, param in sharded_sd.items():
