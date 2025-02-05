@@ -725,14 +725,30 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                 # Update running metrics
                 running_loss += loss
-                scaling_factor = (1 / self._gradient_accumulation_steps) # to average out between grad_acc steps
-                running_metrics["rewards/chosen"] += scaling_factor * chosen_rewards.mean()
-                running_metrics["rewards/rejected"] += scaling_factor * rejected_rewards.mean()
-                running_metrics["rewards/accuracies"] += scaling_factor * reward_accuracies.mean()
-                running_metrics["log_probs/chosen"] += scaling_factor * policy_chosen_log_probs.detach().mean()
-                running_metrics["log_probs/rejected"] += scaling_factor * policy_rejected_log_probs.detach().mean()
-                running_metrics["logits/chosen"] += scaling_factor * policy_chosen_logits_mean
-                running_metrics["logits/rejected"] += scaling_factor * policy_rejected_logits_mean
+                scaling_factor = (
+                    1 / self._gradient_accumulation_steps
+                )  # to average out between grad_acc steps
+                running_metrics["rewards/chosen"] += (
+                    scaling_factor * chosen_rewards.mean()
+                )
+                running_metrics["rewards/rejected"] += (
+                    scaling_factor * rejected_rewards.mean()
+                )
+                running_metrics["rewards/accuracies"] += (
+                    scaling_factor * reward_accuracies.mean()
+                )
+                running_metrics["log_probs/chosen"] += (
+                    scaling_factor * policy_chosen_log_probs.detach().mean()
+                )
+                running_metrics["log_probs/rejected"] += (
+                    scaling_factor * policy_rejected_log_probs.detach().mean()
+                )
+                running_metrics["logits/chosen"] += (
+                    scaling_factor * policy_chosen_logits_mean
+                )
+                running_metrics["logits/rejected"] += (
+                    scaling_factor * policy_rejected_logits_mean
+                )
 
                 loss.backward()
 
@@ -743,7 +759,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(num_tokens)
 
                     for key in running_metrics:
-                        torch.distributed.all_reduce(running_metrics[key], op=torch.distributed.ReduceOp.AVG)
+                        torch.distributed.all_reduce(
+                            running_metrics[key], op=torch.distributed.ReduceOp.AVG
+                        )
 
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
@@ -767,13 +785,25 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / (time_per_step * world_size),
+                            "tokens_per_second_per_gpu": num_tokens
+                            / (time_per_step * world_size),
                             "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
-                            "rewards/rejected": running_metrics["rewards/rejected"].cpu(),
-                            "rewards/accuracies": running_metrics["rewards/accuracies"].cpu(),
-                            "rewards/margins": (running_metrics["rewards/chosen"] - running_metrics["rewards/rejected"]).cpu(),
-                            "log_probs/chosen": running_metrics["log_probs/chosen"].cpu(),
-                            "log_probs/rejected": running_metrics["log_probs/rejected"].cpu(),
+                            "rewards/rejected": running_metrics[
+                                "rewards/rejected"
+                            ].cpu(),
+                            "rewards/accuracies": running_metrics[
+                                "rewards/accuracies"
+                            ].cpu(),
+                            "rewards/margins": (
+                                running_metrics["rewards/chosen"]
+                                - running_metrics["rewards/rejected"]
+                            ).cpu(),
+                            "log_probs/chosen": running_metrics[
+                                "log_probs/chosen"
+                            ].cpu(),
+                            "log_probs/rejected": running_metrics[
+                                "log_probs/rejected"
+                            ].cpu(),
                             "logits/chosen": running_metrics["logits/chosen"].cpu(),
                             "logits/rejected": running_metrics["logits/rejected"].cpu(),
                         }

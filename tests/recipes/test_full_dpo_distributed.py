@@ -4,14 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import runpy
 import sys
 from pathlib import Path
 
 import pytest
 import torch
-from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     dummy_stack_exchange_dataset_config,
@@ -23,12 +21,6 @@ from tests.test_utils import (
     gen_log_file_name,
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
-)
-from torchtune import config
-from torchtune.training.checkpointing._utils import (
-    get_largest_iter_folder,
-    safe_torch_load,
-    SHARD_FNAME,
 )
 
 
@@ -141,4 +133,3 @@ class TestFullDPODistributedRecipe:
         torch.testing.assert_close(
             resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
-
