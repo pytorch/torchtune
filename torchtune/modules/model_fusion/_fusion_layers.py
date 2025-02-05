@@ -278,6 +278,7 @@ class FusionEmbedding(nn.Module):
         # [batch_size x seq_length x embed_dim]
         out = self._fused_embed(bs, seq_len)
         mask = mask.unsqueeze(-1).expand(bs, seq_len, self.dim)
+        print(f"{type(mask)=} and {type(embeds)=} and {type(fusion_embeds)=}")
         out = out.masked_scatter(mask, embeds)
         out = out.masked_scatter(~mask, fusion_embeds)
         return out
