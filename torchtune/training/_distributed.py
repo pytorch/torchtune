@@ -116,13 +116,7 @@ def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) 
     Returns:
         str: Distributed backend for use in ``torch.distributed.init_process_group``.
     """
-    default_device_backend_map = {
-        "cuda": "nccl",
-        "cpu": "gloo",
-        "xpu": "xccl",
-    }
-    # TODO: Uncomment the following line once PyTorch 2.6 is released
-    # default_device_backend_map = dist.Backend.default_device_backend_map
+    default_device_backend_map = dist.Backend.default_device_backend_map
     backend = "nccl"
     if device_type in default_device_backend_map:
         backend = default_device_backend_map[device_type]
