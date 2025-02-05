@@ -465,10 +465,15 @@
 <span class="sd">the llama3_2_1b model builder uses the llama3_2 component builder to create the</span>
 <span class="sd">Llama3.2 1B model.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<div class="viewcode-block" id="llama3_2_1b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.llama3_2_1b.html#torchtune.models.llama3_2.llama3_2_1b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_1b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama3_2_1b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.llama3_2_1b.html#torchtune.models.llama3_2.llama3_2_1b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_1b</span><span class="p">(</span>
+    <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama3.2 model initialized w/ the default 1b parameter values.</span>
 <span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        tie_word_embeddings (bool): whether the model&#39;s input and output word embeddings should be tied.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama3.2 1B model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -484,10 +489,16 @@
         <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
         <span class="n">rope_base</span><span class="o">=</span><span class="mi">500_000</span><span class="p">,</span>
         <span class="n">scale_factor</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
-<div class="viewcode-block" id="llama3_2_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.llama3_2_3b.html#torchtune.models.llama3_2.llama3_2_3b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_3b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<div class="viewcode-block" id="llama3_2_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.llama3_2_3b.html#torchtune.models.llama3_2.llama3_2_3b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_3b</span><span class="p">(</span>
+    <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama3.2 model initialized w/ the default 3b parameter values.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tie_word_embeddings (bool): whether the model&#39;s input and output word embeddings should be tied.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama3.2 3B model</span>
@@ -504,6 +515,7 @@
         <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
         <span class="n">rope_base</span><span class="o">=</span><span class="mi">500_000</span><span class="p">,</span>
         <span class="n">scale_factor</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
 <div class="viewcode-block" id="lora_llama3_2_1b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.lora_llama3_2_1b.html#torchtune.models.llama3_2.lora_llama3_2_1b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_1b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
@@ -514,6 +526,7 @@
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama3.2 1B model with LoRA enabled.</span>
@@ -535,6 +548,7 @@
 <span class="sd">        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as</span>
 <span class="sd">            introduced in &quot;DoRA: Weight-Decomposed Low-Rank Adaptation&quot; (https://arxiv.org/abs/2402.09353).</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
+<span class="sd">        tie_word_embeddings (bool): whether the model&#39;s input and output word embeddings should be tied.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama3.2 1B model with LoRA applied</span>
@@ -559,6 +573,7 @@
         <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
 <div class="viewcode-block" id="lora_llama3_2_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.lora_llama3_2_3b.html#torchtune.models.llama3_2.lora_llama3_2_3b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_3b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
@@ -569,6 +584,7 @@
     <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama3.2 3B model with LoRA enabled.</span>
@@ -590,6 +606,7 @@
 <span class="sd">        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as</span>
 <span class="sd">            introduced in &quot;DoRA: Weight-Decomposed Low-Rank Adaptation&quot; (https://arxiv.org/abs/2402.09353).</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
+<span class="sd">        tie_word_embeddings (bool): whether the model&#39;s input and output word embeddings should be tied.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama3.2 3B model with LoRA applied</span>
@@ -615,6 +632,7 @@
         <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+        <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
 <span class="n">qlora_llama3_2_1b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_llama3_2_1b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">qlora_llama3_2_1b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
