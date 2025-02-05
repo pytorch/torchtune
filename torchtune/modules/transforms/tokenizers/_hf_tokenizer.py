@@ -1,5 +1,11 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import json
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from tokenizers import Tokenizer
 from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
@@ -7,43 +13,107 @@ from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
 
 class HFTokenizer(BaseTokenizer):
     """
-    A wrapper around HuggingFace tokenizers. BLAH BLAH BLAH
+    A wrapper around Hugging Face tokenizers. This class can be used to load from a
+    Hugging Face tokenizer.json file into a torchtune BaseTokenizer.
 
     Args:
         path (str): Path to tokenizer.json file
-        config_path (str): Path to tokenizer_config.json file
+        config_path (Optional[str]): Path to tokenizer_config.json file. Default: None
+        generation_config_path (Optional[str]): Path to generation_config.json file.
+            Default: None
     """
 
-    def __init__(self, path: str, config_path: str):
+    def __init__(
+        self,
+        path: str,
+        config_path: Optional[str] = None,
+        generation_config_path: Optional[str] = None,
+    ):
         self.hf_tokenizer = Tokenizer.from_file(path)
-        with open(config_path, "rb") as f:
-            config = json.load(f)
+        if config_path:
+            with open(config_path, "rb") as f:
+                self.config = json.load(f)
+        else:
+            self.config = None
+        if generation_config_path:
+            with open(generation_config_path, "rb") as f:
+                self.generation_config = json.load(f)
+        else:
+            self.generation_config = None
+        self._infer_bos_eos_tokens()
 
-    def _infer_tokenizer_class_from_config(self):
-        pass
+    def _get_token_from_config(self, config: Dict[str, Any], key: str) -> str:
+        """
+        HF BOS/EOS tokens are either stored as e.g. {'bos_token': 5}
+        or {'bos_token': {'content': 5, ...}}. This utility handles both.
+        """
+        token = config.get(key)
+        if isinstance(token, Dict):
+            if "content" not in token:
+                raise ValueError(f"Could not parse {key} from config")
+            token = token["content"]
+        else:
+            if not isinstance(token, str):
+                raise ValueError(f"Could not parse {key} from config")
+        return token
+
+    def _infer_bos_eos_tokens(self):
+        """
+        Infer BOS and EOS token IDs from config and/or generation_config.
+
+        Will first try to infer ID directly from generation_config.
+        If that's not available, will infer token from config then map to ID.
+        Otherwise, raise a ValueError.
+        """
+        self.bos_id = None
+        self.eos_id = None
+
+        if self.generation_config:
+            self.bos_id = self.generation_config.get("bos_token_id")
+            self.eos_id = self.generation_config.get("eos_token_id")
+
+        if self.config:
+            bos_token = self._get_token_from_config(self.config, "bos_token")
+            eos_token = self._get_token_from_config(self.config, "eos_token")
+            if bos_token is not None and self.bos_id is None:
+                self.bos_id = self.hf_tokenizer.token_to_id(bos_token)
+            if eos_token is not None and self.eos_id is None:
+                self.eos_id = self.eos_id or self.hf_tokenizer.token_to_id(eos_token)
+
+        if self.bos_id is None or self.eos_id is None:
+            raise ValueError("Could not infer BOS and EOS token IDs from config")
 
     def encode(
-        self, text: str, add_bos: bool = False, add_eos: bool = False
+        self, text: str, add_bos: bool = True, add_eos: bool = True
     ) -> List[int]:
         """
         Encodes a string into a list of token ids.
 
         Args:
             text (str): The text to encode.
-            add_bos (bool): Whether to add a beginning-of-sequence token to the beginning of the
+            add_bos (bool): Whether to add the tokenizer's bos_id to the encoded string.
+                Default True.
+            add_eos (bool): Whether to add the tokenizer's eos_id to the encoded string.
+                Default True.
+
+        Returns:
+            List[int]: The list of token ids.
         """
         token_ids = self.hf_tokenizer.encode(text).ids
         if add_bos:
-            token_ids.insert(0, self.hf_tokenizer.bos_id)
+            token_ids.insert(0, self.bos_id)
         if add_eos:
-            token_ids.append(self.hf_tokenizer.eos_id)
+            token_ids.append(self.eos_id)
         return token_ids
 
     def decode(self, token_ids: List[int]) -> str:
         """
-        Decodes a list of token ids into a string.
+        Decode a list of token ids into a string.
 
         Args:
-            token_ids (List[int]): The list of token ids to decode.
+            token_ids (List[int]): The list of token ids.
+
+        Returns:
+            str: The decoded string.
         """
         return self.hf_tokenizer.decode(token_ids)
