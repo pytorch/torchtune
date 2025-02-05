@@ -19,7 +19,6 @@ from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
-    # get_model_state_dict,
     get_optimizer_state_dict,
     set_model_state_dict,
     set_optimizer_state_dict,
@@ -34,7 +33,6 @@ from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel
 
-# from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 
