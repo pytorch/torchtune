@@ -21,7 +21,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
@@ -275,8 +275,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            ac_mode=cfg.get("ac_mode", None),
-            ac_option=cfg.get("ac_option", None),
         )
 
         # TODO (@SalmanMohammadi) investigate TP for ref model
@@ -420,8 +418,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
-        ac_mode: Optional[str] = None,
-        ac_option: Optional[int] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -443,21 +439,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        # We currently have two versions of activation checkpointing in this recipe
-        # for testing and BC purposes. ``enable_activation_checkpointing`` controls
-        # the older version of AC and this behavior is unchanged
-        # ac_mode and ac_option together control selective AC. This is only enabled
-        # when these are set AND ``enable_activation_checkpointing`` is set to False
-        # We'll clean this up as soon as testing of AC is complete
-        if (not enable_activation_checkpointing) and (ac_mode is not None):
-            apply_selective_activation_checkpointing(
-                model,
-                ac_mode,
-                ac_option,
-            )
-
         # original activation checkpointing (full) - flip the condition above
-        if enable_activation_checkpointing and ac_mode is None:
+        if enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
@@ -980,14 +963,19 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(
                             running_metrics[key], op=torch.distributed.ReduceOp.AVG
                         )
-
+                    if self._clip_grad_norm is not None:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=float(self._clip_grad_norm),
+                        ).full_tensor()
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
-
+                    # Step the learning rate scheduler
+                    if self._lr_scheduler is not None:
+                        self._lr_scheduler.step()
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
@@ -1002,7 +990,13 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "lr": get_lr(
+                                (
+                                    self._optimizer
+                                    if not self._optimizer_in_bwd
+                                    else self._optim_ckpt_wrapper
+                                ),
+                            ),
                             "tokens_per_second_per_gpu": num_tokens
                             / (time_per_step * world_size),
                             "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
