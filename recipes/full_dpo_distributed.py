@@ -956,7 +956,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
-                    torch.distributed.all_reduce(running_loss)
+                    torch.distributed.all_reduce(
+                        running_loss, op=torch.distributed.ReduceOp.AVG
+                    )
                     torch.distributed.all_reduce(num_tokens)
 
                     for key in running_metrics:
