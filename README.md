@@ -37,14 +37,14 @@ torchtune provides:
 
 ### Post-training recipes
 
-torchtune supports different kinds of post-training. A successful post-trained model will likely utilize several of the below methods.
+torchtune supports [different kinds of post-training](https://pytorch.org/torchtune/main/recipes/recipes_overview.html). A successful post-trained model will likely utilize several of the below methods.
 
 **Supervised Finetuning (SFT)**
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
 | Full                  |    ✅    |     ✅    |   ✅    |
-| [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |         |
+| [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |    ❌    |
 
 Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device``
 
@@ -52,8 +52,8 @@ Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
-| Full                  |          |           |         |
-| LoRA/QLoRA            |    ✅    |     ✅    |         |
+| Full                  |    ❌    |     ❌    |    ❌    |
+| LoRA/QLoRA            |    ✅    |     ✅    |    ❌    |
 
 Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed``
 
@@ -61,12 +61,12 @@ Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.
 
 | Method | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |------------------------------|-----------------------|:--------:|:---------:|:-------:|
-| [DPO](https://pytorch.org/torchtune/stable/recipes/dpo.html)                          | Full                  |    ✅    |           |         |
-|                           | LoRA/QLoRA            |    ✅    |     ✅    |         |
-| PPO                          | Full                  |    ✅    |           |         |
-|                           | LoRA/QLoRA            |          |           |         |
+| [DPO](https://pytorch.org/torchtune/stable/recipes/dpo.html)                          | Full                  |    ✅    |     ❌    |    ❌    |
+|                           | LoRA/QLoRA            |    ✅    |     ✅    |    ❌    |
+| PPO                          | Full                  |    ✅    |     ❌    |    ❌    |
+|                           | LoRA/QLoRA            |    ❌    |     ❌    |    ❌    |
 | GRPO                         | Full                  |    🚧    |     🚧    |   🚧    |
-|                           | LoRA/QLoRA            |       |         |       |
+|                           | LoRA/QLoRA            |    ❌    |     ❌    |    ❌    |
 
 
 Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device``
@@ -75,8 +75,8 @@ Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_devic
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
-| [Full](https://pytorch.org/torchtune/stable/recipes/qat_distributed.html)                  |        |     ✅    |       |
-| LoRA/QLoRA            |        |     ✅    |       |
+| [Full](https://pytorch.org/torchtune/stable/recipes/qat_distributed.html)                  |    ❌    |     ✅    |    ❌    |
+| LoRA/QLoRA            |    ❌    |     ✅    |    ❌    |
 
 Example: ``tune run qat_distributed --config llama3_1/8B_qat_lora``
 
