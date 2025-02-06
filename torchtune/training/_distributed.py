@@ -378,11 +378,11 @@ def gather_cpu_state_dict(
         if isinstance(param, NF4Tensor):
             # upcasting NF4 to original dtype
             param = param.to(param.dtype)
-        if adapter_weights_only:
-            cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
         if is_rank_zero:
             cpu_state_dict[param_name] = param.cpu()
         torch.distributed.barrier()
+    if adapter_weights_only:
+        cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
     return cpu_state_dict
 
 
