@@ -28,10 +28,10 @@ from tests.test_utils import (
 class TestFullDPODistributedRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
-            "batch_size=8",
+            "batch_size=1",
             "device=cuda",
-            "enable_activation_checkpointing=False",
-            "enable_activation_offloading=False",
+            "enable_activation_checkpointing=True",
+            "enable_activation_offloading=True",
             f"dtype={dtype_str}",
             "dataset.train_on_input=False",
             "seed=9",
@@ -40,9 +40,9 @@ class TestFullDPODistributedRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-6",
             "log_every_n_steps=1",
-            "gradient_accumulation_steps=1",
+            "gradient_accumulation_steps=4",
             "clip_grad_norm=100",
-            "tokenizer.max_seq_len=512",
+            "tokenizer.max_seq_len=256",
         ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.integration_test
@@ -86,9 +86,12 @@ class TestFullDPODistributedRecipe:
             ref_checkpointer.model_type=LLAMA3 \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            tokenizer.max_seq_len=256 \
             metric_logger.filename={log_file} \
             enable_activation_checkpointing=True \
-            enable_activation_offloading=False \
+            enable_activation_offloading=True \
+            batch_size=1 \
+            gradient_accumulation_steps=4
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3"]
@@ -121,9 +124,12 @@ class TestFullDPODistributedRecipe:
             resume_from_checkpoint=True \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            tokenizer.max_seq_len=256 \
             metric_logger.filename={resumed_log_file} \
             enable_activation_checkpointing=True \
-            enable_activation_offloading=False \
+            enable_activation_offloading=True \
+            batch_size=1 \
+            gradient_accumulation_steps=4
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
