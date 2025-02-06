@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, TypeVar, Union
 from urllib import request
 
-from datasets import load_dataset
+from datasets import DatasetDict, load_dataset
 from datasets.distributed import split_dataset_by_node
 from torch.utils.data import default_collate, DistributedSampler
 
@@ -213,13 +213,21 @@ def load_hf_dataset(
             "name" not in load_dataset_kwargs
         ), f"found both 'subset' and 'name' found, you may only specify one, {load_dataset_kwargs=}"
         load_dataset_kwargs["name"] = load_dataset_kwargs.pop("subset")
+    if "data_dir" in load_dataset_kwargs:
+        load_dataset_kwargs[
+            "data_files"
+        ] = f"{load_dataset_kwargs.pop('data_dir')}/*.jsonl"
     dataset = load_dataset(source, streaming=streaming, **load_dataset_kwargs)
     if filter_fn is not None:
         dataset = dataset.filter(filter_fn)
 
     world_size, rank = get_world_size_and_rank()
     if streaming:
+        # Hack to avoid error in `split_dataset_by_node`
+        if isinstance(dataset, DatasetDict):
+            dataset = dataset["train"]
         dataset = split_dataset_by_node(dataset, rank=rank, world_size=world_size)
+
         if shuffle:
             dataset = dataset.shuffle(seed=seed)
         node = IterableWrapper(dataset)
