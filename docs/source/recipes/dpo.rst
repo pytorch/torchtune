@@ -13,7 +13,7 @@ To see the best results when using this recipe, it may be helpful to first fine-
 on-distribution for the domain you're interested in. To do this, check out our other fine-tuning recipes in the :ref:`recipe overview <recipes_overview_label>` which
 support a variety of SFT paradigms.
 
-After supervised fine-tuning, here is an example of Lora DPO and Full DPO with Llama 3.1 8B:
+After supervised fine-tuning, here is an example of using either LoRA-based finetuning, or full-finetuning Llama 3.1 8B with DPO:
 
 .. note::
 
