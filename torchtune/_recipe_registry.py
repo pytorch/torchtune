@@ -24,14 +24,17 @@ class Recipe:
 
 _ALL_RECIPES = [
     Recipe(
-        name="r1_full_finetune_distributed",
-        file_path="r1_full_finetune_distributed.py",
+        name="dev/r1_full_finetune_distributed",
+        file_path="dev/r1_full_finetune_distributed.py",
         configs=[
             Config(
-                name="8B_full_rl_cuda",
-                file_path="grpo_8b/8B_full_rl_cuda.yaml"
+                name="dev/8B_full_rl_cuda",
+                file_path="dev/grpo/8B_full_rl_cuda.yaml"
+            ),
+            Config(
+                name="dev/3B_full_rl_cuda",
+                file_path="dev/grpo_3B_full_rl_cuda.yaml"
             )
-
         ],
         supports_distributed=True
     ),
@@ -110,7 +113,8 @@ _ALL_RECIPES = [
         name="full_finetune_distributed",
         file_path="full_finetune_distributed.py",
         configs=[
-            Config(name="grpo_8b/8B_sft", file_path="grpo_8b/8B_sft.yaml"),
+            Config(name="dev/grpo/8B_sft", file_path="dev/grpo/8B_sft.yaml"),
+            Config(name="dev/grpo/3B_sft", file_path="dev/grpo/3B_sft.yaml"),
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
             Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
