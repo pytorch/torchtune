@@ -41,7 +41,6 @@ class TestFullDPODistributedRecipe:
             "optimizer.lr=2e-6",
             "log_every_n_steps=1",
             "gradient_accumulation_steps=4",
-            "clip_grad_norm=100",
             "tokenizer.max_seq_len=256",
         ] + dummy_stack_exchange_dataset_config()
 
@@ -95,10 +94,12 @@ class TestFullDPODistributedRecipe:
             gradient_accumulation_steps=4 \
             optimizer_in_bwd={optimizer_in_bwd}
         """.split()
-
         model_config = MODEL_TEST_CONFIGS["llama3"]
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
+        if not optimizer_in_bwd:
+            cmd_1 += ["clip_grad_norm=100"]
+
         monkeypatch.setattr(sys, "argv", cmd_1)
         # with pytest.raises(SystemExit, match=""):
         runpy.run_path(TUNE_PATH, run_name="__main__")
