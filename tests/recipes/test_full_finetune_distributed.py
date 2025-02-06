@@ -65,11 +65,12 @@ class TestFullFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd, tensor_parallel_dim",
         [
-            ("llama2/7B_full", "llama2", "hf", 1, 4, False),
-            ("llama3/8B_full", "llama3", "tune", 1, 4, False),
-            ("llama3/8B_full", "llama3", "tune", 4, 1, True),
+            # ("llama2/7B_full", "llama2", "hf", 1, 4, False, 1),
+            ("llama3/8B_full", "llama3", "tune", 1, 4, False, 1),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True, 1),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True, 2),
         ],
     )
     @gpu_test(gpu_count=2)
@@ -81,6 +82,7 @@ class TestFullFinetuneDistributedRecipe:
         model_type,
         ckpt_type,
         optim_in_bwd,
+        tensor_parallel_dim,
         tmpdir,
         monkeypatch,
     ):
@@ -107,6 +109,7 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
+            tensor_parallel_dim={tensor_parallel_dim} \
             metric_logger.filename={log_file} \
         """.split()
         model_config = MODEL_TEST_CONFIGS[model_type]
@@ -124,6 +127,8 @@ class TestFullFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
+        print(f"{loss_values=}")
+        assert False
         expected_loss_values = self._fetch_expected_loss_values_multi_rank(model_type)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
