@@ -72,7 +72,7 @@ class CheckpointClient:
         self._optimizer_in_bwd = self._cfg.get("optimizer_in_bwd", False)
         self._device = utils.get_device(device=self._cfg.device)
 
-        _, self._rank = training.get_world_size_and_rank()
+        _, self._rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self._rank == 0
 
     def _get_checkpointer(self):
