@@ -34,14 +34,11 @@ class PPOLoss(nn.Module):
         epsilon: float = 0.1,
         value_clip_range: float = 0.2,
         value_coeff: float = 0.1,
-        ignore_index: int = -100,
     ):
         super().__init__()
         self.epsilon = epsilon
         self.value_clip_range = value_clip_range
         self.value_coeff = value_coeff
-        self.ignore_index = ignore_index
-
 
     def forward(
         self,
