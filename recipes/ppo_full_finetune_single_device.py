@@ -358,7 +358,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     "This may lead to unexpected behaviour."
                 )
         else:
-            if not hasattr(self._tokenizer.stop_tokens):
+            if not hasattr(self._tokenizer, "stop_tokens"):
                 warn(
                     "No stop tokens defined in tokenizer, and no stop_token_ids provided. This may lead to unexpected behaviour."
                 )

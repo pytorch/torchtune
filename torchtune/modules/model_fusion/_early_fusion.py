@@ -137,8 +137,11 @@ class EarlyFusionModel(nn.Module):
         [!Note] This update changes the order of the OrderedDict
         """
         for n, p in module.tok_embeddings.named_parameters():
-            state_dict[f"{prefix}decoder.tok_embeddings.{n}"] = p
-            del state_dict[f"{prefix}tok_embeddings.{n}"]
+            orig_key = f"{prefix}tok_embeddings.{n}"
+            if orig_key in state_dict:
+                # preserve the original tensor with its requires_grad state
+                state_dict[f"{prefix}decoder.tok_embeddings.{n}"] = state_dict[orig_key]
+                del state_dict[orig_key]
 
     @staticmethod
     def _load_state_dict_hook(module, state_dict, prefix, *args, **kwargs):
