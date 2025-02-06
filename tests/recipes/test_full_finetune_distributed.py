@@ -193,7 +193,6 @@ class TestFullFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values_multi_rank(model_type)
-        print(f"{loss_values=}")
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
