@@ -20,6 +20,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    gpu_test,
     TOKENIZER_PATHS,
 )
 
@@ -45,6 +46,7 @@ class TestFullDPODistributedRecipe:
         ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=2)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
