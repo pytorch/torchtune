@@ -12,15 +12,17 @@ from ._model_builders import (
     lora_flux_1_schnell_flow_model,
 )
 from ._preprocess import flux_preprocessor
+from ._sample import FluxSampler
 from ._transform import FluxTransform
 
 __all__ = [
     "FluxLossStep",
-    "FluxTransform",
     "flux_1_autoencoder",
     "flux_1_dev_flow_model",
     "flux_1_schnell_flow_model",
     "lora_flux_1_dev_flow_model",
     "lora_flux_1_schnell_flow_model",
     "flux_preprocessor",
+    "FluxSampler",
+    "FluxTransform",
 ]

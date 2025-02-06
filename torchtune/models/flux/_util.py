@@ -3,17 +3,20 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
+import math
 from contextlib import nullcontext
-from typing import ContextManager, Optional
+from typing import Callable, ContextManager, Optional
 
 import torch
 from torch import Tensor
 
+from torchtune.models.flux._autoencoder import FluxDecoder
 from torchtune.models.flux._flow_model import FluxFlowModel
 
 PATCH_HEIGHT, PATCH_WIDTH = 2, 2
 POSITION_DIM = 3
+LATENT_CHANNELS = 16
+IMG_LATENT_SIZE_RATIO = 8
 
 
 def predict_noise(
@@ -189,3 +192,107 @@ def get_t5_max_seq_len(flux_model_name: str) -> int:
     if flux_model_name == "FLUX.1-schnell":
         return 256
     raise ValueError(f"Unknown Flux model: {flux_model_name}")
+
+
+def create_noise(
+    bsz: int,
+    img_height: int,
+    img_width: int,
+    device: torch.device,
+    dtype: torch.dtype,
+    seed: Optional[int] = None,
+):
+    return torch.randn(
+        bsz,
+        LATENT_CHANNELS,
+        img_height // IMG_LATENT_SIZE_RATIO,
+        img_width // IMG_LATENT_SIZE_RATIO,
+        device=device,
+        dtype=dtype,
+        generator=(
+            None if seed is None else torch.Generator(device=device).manual_seed(seed)
+        ),
+    )
+
+
+def generate_images(
+    model: FluxFlowModel,
+    decoder: FluxDecoder,
+    clip_encodings: Tensor,
+    t5_encodings: Tensor,
+    guidance: Tensor,
+    img_height: int,
+    img_width: int,
+    seed: int,
+    denoising_steps: int,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> Tensor:
+    # create initial latents
+    bsz = clip_encodings.shape[0]
+    latents = create_noise(bsz, img_height, img_width, device, dtype, seed)
+    _, latent_channels, latent_height, latent_width = latents.shape
+
+    # create denoising schedule
+    timesteps = _get_timesteps(denoising_steps, latent_channels, shift=True)
+
+    # create positional encodings
+    latent_pos_enc = create_position_encoding_for_latents(
+        bsz, latent_height, latent_width
+    ).to(latents)
+    text_pos_enc = torch.zeros(bsz, t5_encodings.shape[1], POSITION_DIM).to(latents)
+
+    # convert img-like latents into sequences of patches
+    latents = pack_latents(latents)
+
+    # iteratively denoise latents
+    for t_curr, t_prev in zip(timesteps[:-1], timesteps[1:]):
+        t_vec = torch.full((bsz,), t_curr, dtype=dtype, device=device)
+        pred = model(
+            img=latents,
+            img_ids=latent_pos_enc,
+            txt=t5_encodings,
+            txt_ids=text_pos_enc,
+            y=clip_encodings,
+            timesteps=t_vec,
+            guidance=guidance,
+        )
+        latents = latents + (t_prev - t_curr) * pred
+
+    # convert sequences of patches into img-like latents
+    latents = unpack_latents(latents, latent_height, latent_width)
+
+    # decode latents into images
+    imgs = decoder(latents)
+    return imgs
+
+
+def _get_timesteps(
+    num_steps: int,
+    image_seq_len: int,
+    base_shift: float = 0.5,
+    max_shift: float = 1.15,
+    shift: bool = True,
+) -> list[float]:
+    # extra step for zero
+    timesteps = torch.linspace(1, 0, num_steps + 1)
+
+    # shifting the schedule to favor high timesteps for higher signal images
+    if shift:
+        # estimate mu based on linear estimation between two points
+        mu = _get_lin_function(y1=base_shift, y2=max_shift)(image_seq_len)
+        timesteps = _time_shift(mu, 1.0, timesteps)
+
+    return timesteps.tolist()
+
+
+def _get_lin_function(
+    x1: float = 256, y1: float = 0.5, x2: float = 4096, y2: float = 1.15
+) -> Callable[[float], float]:
+    m = (y2 - y1) / (x2 - x1)
+    b = y1 - m * x1
+    return lambda x: m * x + b
+
+
+def _time_shift(mu: float, sigma: float, t: Tensor):
+    return math.exp(mu) / (math.exp(mu) + (1 / t - 1) ** sigma)
