@@ -19,7 +19,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, training, utils
+from torchtune import config, modules, training, utils, generation
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
@@ -697,13 +697,49 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         def do_validation():
             log.info("Running validation...")
+            self._model.eval()
             with torch.inference_mode():
                 num_samples = 0
                 total_loss = 0
                 total_accuracy = 0
                 total_confidence = 0
+                total_gen_accuracy = 0
                 for idx, batch in enumerate(self._valid_dataloader):
                     utils.batch_to_device(batch, self._device)
+                    
+                    self._model.set_num_output_chunks(0)
+                    for seq, labels in zip(batch['tokens'], batch['labels']):
+                        # where the first text (system prompt) ends and second (user query) begins
+                        start_idx = torch.where(seq == self._tokenizer.eot_id)[0][0]
+                        # the output i.e. where the non-masked part of the labels start
+                        end_idx = torch.where(labels == self._tokenizer.start_header_id)[0]
+                        
+                        generated_tokens, _ = generation.generate(
+                            model=self._model,
+                            prompt=seq[:end_idx],
+                            max_generated_tokens=1000,
+                            pad_id=self._tokenizer.pad_id,
+                            temperature=0.8,
+                            top_k=300,
+                            stop_tokens=self._tokenizer.stop_tokens,
+                            custom_generate_next_token=None,
+                        )
+                        generated_tokens = generated_tokens.tolist()
+
+                        log.info('Input: \n' + self._tokenizer.decode(seq[start_idx:end_idx].tolist()))
+                        output = self._tokenizer.decode(generated_tokens[0][end_idx:])
+                        log.info('Output: \n' + output)
+                        ground_truth = self._tokenizer.decode(labels[end_idx:][labels[end_idx:] >= 0].tolist())
+                        log.info('Ground Truth: \n' + ground_truth)
+
+                        pass_text = 'compliance output: pass'
+                        fail_text = 'compliance output: fail'
+
+                        if (pass_text in output.lower() and pass_text in ground_truth.lower()) or (fail_text in output.lower() and fail_text in ground_truth.lower()):
+                            total_gen_accuracy += 1
+
+                    self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+
                     loss, accuracy, confidence = self._loss_step(batch, return_metrics=True)
 
                     num_samples += batch['tokens'].shape[0]
@@ -715,11 +751,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     "validation/loss": total_loss / num_samples,
                     "validation/label_accuracy": total_accuracy / num_samples,
                     "validation/label_confidence": total_confidence / num_samples,
+                    "validation/generation_accuracy": total_gen_accuracy / num_samples,
                 }
                 self._metric_logger.log_dict(
                     log_dict,
                     step=self.global_step,
                 )
+            self._model.train()
 
 
         with self._profiler as prof:
