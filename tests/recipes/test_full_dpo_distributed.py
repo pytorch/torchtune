@@ -90,7 +90,6 @@ class TestFullDPODistributedRecipe:
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
             batch_size=1 \
-            gradient_accumulation_steps=4 \
             optimizer_in_bwd={optimizer_in_bwd}
         """.split()
         model_config = MODEL_TEST_CONFIGS["llama3"]
@@ -131,10 +130,11 @@ class TestFullDPODistributedRecipe:
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
             batch_size=1 \
-            gradient_accumulation_steps=4 \
             optimizer_in_bwd={optimizer_in_bwd}
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
+        if not optimizer_in_bwd:
+            cmd_2 += ["gradient_accumulation_steps=4"]
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
