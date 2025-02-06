@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from contextlib import nullcontext
 from typing import Any, ContextManager, Dict
 
@@ -5,7 +11,7 @@ import torch
 from torch import Tensor
 
 from torchtune.models.flux._flow_model import FluxFlowModel
-from torchtune.models.flux._util import predict_noise
+from torchtune.models.flux._utils import predict_noise
 
 
 class FluxLossStep:

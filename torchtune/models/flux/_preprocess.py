@@ -17,7 +17,7 @@ from torchtune.models.clip import clip_text_vit_large_patch14
 from torchtune.models.clip._convert_weights import clip_text_hf_to_tune
 from torchtune.models.flux import flux_1_autoencoder
 from torchtune.models.flux._convert_weights import flux_ae_hf_to_tune
-from torchtune.models.flux._util import get_t5_max_seq_len
+from torchtune.models.flux._utils import get_t5_max_seq_len
 from torchtune.models.t5 import t5_v1_1_xxl_encoder
 from torchtune.models.t5._convert_weights import t5_encoder_hf_to_tune
 from torchtune.training.checkpointing._utils import safe_torch_load

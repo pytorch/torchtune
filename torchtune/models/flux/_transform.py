@@ -10,7 +10,7 @@ import torch
 from torch import Tensor
 
 from torchtune.models.clip import clip_tokenizer
-from torchtune.models.flux._util import get_t5_max_seq_len
+from torchtune.models.flux._utils import get_t5_max_seq_len
 from torchtune.models.t5 import t5_tokenizer
 from torchtune.modules.transforms import Transform
 from torchvision import transforms

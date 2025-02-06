@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import math
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
@@ -8,7 +14,7 @@ from torch import Tensor
 
 from torchtune.models.flux._flow_model import FluxFlowModel
 from torchtune.models.flux._preprocess import FluxPreprocessor
-from torchtune.models.flux._util import generate_images
+from torchtune.models.flux._utils import generate_images
 
 POSITION_DIM = 3
 
