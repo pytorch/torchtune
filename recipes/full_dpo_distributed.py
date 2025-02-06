@@ -653,18 +653,51 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
     def _setup_lr_scheduler(
         self,
-        cfg_lr_scheduler: DictConfig,
+        cfg_lr_scheduler: Optional[DictConfig],
         num_training_steps: int,
         last_epoch: int,
-    ) -> Optimizer:
+    ) -> Optional[Optimizer]:
+        """
+        Set up the learning rate scheduler based on the provided configuration.
+        It supports both standard optimization and optimizer-in-backward cases.
+
+        Args:
+            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
+            num_training_steps (int): The total number of training steps.
+            last_epoch (int): The index of the last epoch.
+
+        Returns:
+            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
+        """
+        if cfg_lr_scheduler is None:
+            if self._is_rank_zero:
+                log.info(
+                    "No learning rate scheduler configured. Using constant learning rate."
+                )
+            return None
+
+        if self._optimizer_in_bwd:
+            # Use the first optimizer from the wrapper to represent the learning rate
+            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
+        else:
+            # Standard case: use the single optimizer
+            optimizer = self._optimizer
+
+        # Instantiate the learning rate scheduler
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
-            self._optimizer,
+            optimizer,
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
+
+        if self._optimizer_in_bwd:
+            # Modify the scheduler for optimizer_in_bwd case
+            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
+
         if self._is_rank_zero:
             log.info("Learning rate scheduler is initialized.")
+
         return lr_scheduler
 
     def _setup_data(
@@ -851,7 +884,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         world_size, rank = get_world_size_and_rank()
 
         # zero out the gradients before starting training
-        self._optimizer.zero_grad()
+        if not self._optimizer_in_bwd:
+            self._optimizer.zero_grad()
+        else:
+            for opt in self._optim_ckpt_wrapper.optim_map.values():
+                opt.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
@@ -951,33 +988,50 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     scaling_factor * policy_rejected_logits_mean
                 )
 
-                loss.backward()
-
-                # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    # Accumulate running metrics across all devices
+                # For optimizer in backward, we need to normalize before calling backward
+                # This case and gradient accumulation are mutually exclusive
+                if self._optimizer_in_bwd:
+                    torch.distributed.all_reduce(num_tokens)
                     torch.distributed.all_reduce(
                         running_loss, op=torch.distributed.ReduceOp.AVG
                     )
-                    torch.distributed.all_reduce(num_tokens)
-
                     for key in running_metrics:
                         torch.distributed.all_reduce(
                             running_metrics[key], op=torch.distributed.ReduceOp.AVG
                         )
-                    if self._clip_grad_norm is not None:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        ).full_tensor()
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
+                    # We multiply by world_size to undo FSDP2 gradient normalization.
+                    current_loss = current_loss * (world_size / num_tokens)
+
+                loss.backward()
+
+                # Step with optimizer
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    if not self._optimizer_in_bwd:
+                        # Accumulate running metrics across all devices
+                        torch.distributed.all_reduce(
+                            running_loss, op=torch.distributed.ReduceOp.AVG
+                        )
+                        torch.distributed.all_reduce(num_tokens)
+
+                        for key in running_metrics:
+                            torch.distributed.all_reduce(
+                                running_metrics[key], op=torch.distributed.ReduceOp.AVG
+                            )
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            ).full_tensor()
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
+
                     # Step the learning rate scheduler
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
+
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
@@ -1025,6 +1079,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
+                        if self._clip_grad_norm is not None:
+                            log_dict.update({"grad_norm": grad_norm})
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,

@@ -46,8 +46,9 @@ class TestFullDPODistributedRecipe:
         ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.integration_test
+    @pytest.mark.parametrize("optimizer_in_bwd", [True, False])
     @gpu_test(gpu_count=2)
-    def test_training_state_on_resume(self, tmpdir, monkeypatch):
+    def test_training_state_on_resume(self, tmpdir, monkeypatch, optimizer_in_bwd):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
@@ -91,7 +92,8 @@ class TestFullDPODistributedRecipe:
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
             batch_size=1 \
-            gradient_accumulation_steps=4
+            gradient_accumulation_steps=4 \
+            optimizer_in_bwd={optimizer_in_bwd}
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3"]
@@ -129,7 +131,8 @@ class TestFullDPODistributedRecipe:
             enable_activation_checkpointing=True \
             enable_activation_offloading=True \
             batch_size=1 \
-            gradient_accumulation_steps=4
+            gradient_accumulation_steps=4 \
+            optimizer_in_bwd={optimizer_in_bwd}
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
