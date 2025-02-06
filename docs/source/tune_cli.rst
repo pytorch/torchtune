@@ -122,7 +122,7 @@ with matching names. By default we ignore safetensor files, but if you want to i
 List built-in recipes and configs
 ---------------------------------
 
-The ``tune ls`` command lists out all the built-in recipes and configs within torchtune.
+The ``tune ls`` command lists out all the built-in recipes and configs within torchtune. Include the `--experimental` flag to view experimental new recipes as well.
 
 
 .. code-block:: bash
