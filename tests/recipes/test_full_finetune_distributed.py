@@ -65,12 +65,11 @@ class TestFullFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd, tensor_parallel_dim",
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
-            ("llama2/7B_full", "llama2", "hf", 1, 4, False, 1),
-            ("llama3/8B_full", "llama3", "tune", 1, 4, False, 1),
-            ("llama3/8B_full", "llama3", "tune", 4, 1, True, 1),
-            ("llama3/8B_full", "llama3", "tune", 4, 1, True, 2),
+            ("llama2/7B_full", "llama2", "hf", 1, 4, False),
+            ("llama3/8B_full", "llama3", "tune", 1, 4, False),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
     )
     @gpu_test(gpu_count=2)
@@ -82,7 +81,6 @@ class TestFullFinetuneDistributedRecipe:
         model_type,
         ckpt_type,
         optim_in_bwd,
-        tensor_parallel_dim,
         tmpdir,
         monkeypatch,
     ):
@@ -109,7 +107,6 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            tnesor_parallel_dim={tensor_parallel_dim} \
             metric_logger.filename={log_file} \
         """.split()
         model_config = MODEL_TEST_CONFIGS[model_type]
@@ -158,12 +155,13 @@ class TestFullFinetuneDistributedRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+        parallelize_plan = "torchtune.models.llama3.base_llama_tp_plan"
 
         # Config file needed for model conversion.
         write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed \
             --config {config} \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
@@ -175,7 +173,8 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            tnesor_parallel_dim={tensor_parallel_dim} \
+            tensor_parallel_dim={tensor_parallel_dim} \
+            parallelize_plan._component_={parallelize_plan} \
             metric_logger.filename={log_file} \
         """.split()
         model_config = MODEL_TEST_CONFIGS[model_type]
@@ -194,6 +193,7 @@ class TestFullFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values_multi_rank(model_type)
+        print(f"{loss_values=}")
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
