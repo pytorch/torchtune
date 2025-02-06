@@ -250,7 +250,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Sets up the recipe state correctly. This includes setting recipe attributes based
         on the ``resume_from_checkpoint`` flag.
         """
-        # import ipdb; ipdb.set_trace()
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
         # log config with parameter override
@@ -652,7 +651,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-        # import ipdb; ipdb.set_trace()
         if self._compile:
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
