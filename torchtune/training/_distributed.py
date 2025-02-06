@@ -19,7 +19,6 @@ from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
-    get_model_state_dict,
     get_optimizer_state_dict,
     set_model_state_dict,
     set_optimizer_state_dict,
@@ -33,14 +32,13 @@ from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel
+
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
 
 _log: logging.Logger = get_logger()
 
-
-_valid_distributed_single_node_nnodes = ["1:1", "1"]
 
 torch_version = torch.__version__
 # TODO: Fix issues with DSD before uncommenting. See #2313 and #2277.
@@ -129,6 +127,38 @@ def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) 
     return backend
 
 
+def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) -> str:
+    """Gets the PyTorch Distributed backend based on device type.
+
+    Args:
+        device_type (str): Device type to get backend for.
+        offload_ops_to_cpu (bool, optional): Flag to check if any operations should be offloaded to CPU.
+            Examples of these kinds of operations are CPU offload for FSDP and asynchronous save for distributed
+            checkpointing. Defaults to False.
+
+    Example:
+        >>> get_distributed_backend("cuda")
+        'nccl'
+        >>> get_distributed_backend("cpu")
+        'gloo'
+        >>> get_distributed_backend("cuda", offload_ops_to_cpu=True)
+        'cuda:nccl,cpu:gloo'
+
+    Returns:
+        str: Distributed backend for use in ``torch.distributed.init_process_group``.
+    """
+    default_device_backend_map = dist.Backend.default_device_backend_map
+    backend = "nccl"
+    if device_type in default_device_backend_map:
+        backend = default_device_backend_map[device_type]
+    if offload_ops_to_cpu:
+        backend = f"{device_type}:{backend},cpu:gloo"
+    return backend
+
+
+@deprecated(
+    msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
+)
 def init_distributed(**kwargs: Dict[str, Any]) -> bool:
     """Initialize process group required for ``torch.distributed``.
 
@@ -363,44 +393,28 @@ def gather_cpu_state_dict(
     Returns:
         Dict[str, Any]: State dict on CPU
     """
+    # TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.
     cpu_state_dict = {}
     sharded_sd = model.state_dict()
-    has_nf4 = any(
-        hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
-        for param in sharded_sd.values()
-    )
-    if has_nf4:
-        cpu_state_dict = {}
-        sharded_sd = model.state_dict()
-        for param_name, param in sharded_sd.items():
-            if param.is_cpu:
-                # Move back to device if offloaded to CPU
-                param = param.to(device)
-            if hasattr(param, "_local_tensor"):
-                if isinstance(param._local_tensor, NF4Tensor):
-                    param = _gather_nf4_tensor(param)
-                else:
-                    # Gather DTensor
-                    param = param.full_tensor()
-            if isinstance(param, NF4Tensor):
-                param = param.to(param.dtype)
-            if is_rank_zero:
-                cpu_state_dict[param_name] = param.cpu()
-            torch.distributed.barrier()
-        return cpu_state_dict
-    else:
-        options = StateDictOptions(
-            full_state_dict=True,
-            broadcast_from_rank0=True,
-            cpu_offload=True,
-        )
-        cpu_state_dict = get_model_state_dict(model=model, options=options)
-        if adapter_weights_only:
-            cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
+    for param_name, param in sharded_sd.items():
+        if param.is_cpu:
+            # Move back to device if offloaded to CPU
+            param = param.to(device)
+        if hasattr(param, "_local_tensor"):
+            if isinstance(param._local_tensor, NF4Tensor):
+                param = _gather_nf4_tensor(param)
+            else:
+                # Gather DTensor
+                param = param.full_tensor()
+        if isinstance(param, NF4Tensor):
+            # upcasting NF4 to original dtype
+            param = param.to(param.dtype)
         if is_rank_zero:
-            return cpu_state_dict
-        else:
-            return {}
+            cpu_state_dict[param_name] = param.cpu()
+        torch.distributed.barrier()
+    if adapter_weights_only:
+        cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
+    return cpu_state_dict
 
 
 def get_full_optimizer_state_dict(

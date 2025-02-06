@@ -120,6 +120,10 @@ _ALL_RECIPES = [
             Config(name="llama3/70B_full", file_path="llama3/70B_full.yaml"),
             Config(name="llama3_1/70B_full", file_path="llama3_1/70B_full.yaml"),
             Config(name="llama3_3/70B_full", file_path="llama3_3/70B_full.yaml"),
+            Config(
+                name="llama3_3/70B_full_multinode",
+                file_path="llama3_3/70B_full_multinode.yaml",
+            ),
             Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
             Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
             Config(name="gemma/7B_full", file_path="gemma/7B_full.yaml"),

@@ -53,6 +53,7 @@ Utilities for enabling and working with distributed training.
     init_distributed
     is_distributed
     gather_cpu_state_dict
+    get_distributed_backend
 
 .. _ac_label:
 
