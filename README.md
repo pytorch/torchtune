@@ -7,7 +7,7 @@
 ![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
 [![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**License**](#license) | [**Citing torchtune**](#citing-torchtune)
+[**Overview**](#overview) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**Citing torchtune**](#citing-torchtune) | [**License**](#license)
 
 ### 📣 Recent updates 📣
 * *February 2025*: Multi-node training is officially [open for business in torchtune](https://pytorch.org/torchtune/main/tutorials/multinode.html)! Full finetune on multiple nodes to take advantage of larger batch sizes and models.
@@ -20,7 +20,8 @@
 
 &nbsp;
 
-## Introduction
+## Overview 📚
+
 
 torchtune is a PyTorch library for easily authoring, finetuning and experimenting with LLMs.
 
@@ -31,31 +32,6 @@ torchtune provides:
 - Out-of-the-box memory efficiency, performance improvements, and scaling with the latest PyTorch APIs
 - YAML configs for easily configuring training, evaluation, quantization or inference recipes
 - Built-in support for many popular dataset formats and prompt templates
-
-
-&nbsp;
-
-### Models
-
-torchtune currently supports the following models.
-
-| Model                                         | Sizes     |
-|-----------------------------------------------|-----------|
-| [Llama3.3](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_3)    | 70B [[models](torchtune/models/llama3_3/_model_builders.py), [configs](recipes/configs/llama3_3/)]        |
-| [Llama3.2-Vision](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2#-llama-3.2-vision-models-(11b/90b)-)    | 11B, 90B [[models](torchtune/models/llama3_2_vision/_model_builders.py), [configs](recipes/configs/llama3_2_vision/)]        |
-| [Llama3.2](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2)    | 1B, 3B [[models](torchtune/models/llama3_2/_model_builders.py), [configs](recipes/configs/llama3_2/)]        |
-| [Llama3.1](https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1)    | 8B, 70B, 405B [[models](torchtune/models/llama3_1/_model_builders.py), [configs](recipes/configs/llama3_1/)]        |
-| [Llama3](https://llama.meta.com/llama3)    | 8B, 70B [[models](torchtune/models/llama3/_model_builders.py), [configs](recipes/configs/llama3/)]        |
-| [Llama2](https://llama.meta.com/llama2/)   | 7B, 13B, 70B [[models](torchtune/models/llama2/_model_builders.py), [configs](recipes/configs/llama2/)]        |
-| [Code-Llama2](https://ai.meta.com/blog/code-llama-large-language-model-coding/)   | 7B, 13B, 70B [[models](torchtune/models/code_llama2/_model_builders.py), [configs](recipes/configs/code_llama2/)] |
-| [Mistral](https://huggingface.co/mistralai)   | 7B [[models](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
-| [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[models](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
-| [Gemma2](https://huggingface.co/docs/transformers/main/en/model_doc/gemma2)   | 2B, 9B, 27B [[models](torchtune/models/gemma2/_model_builders.py), [configs](recipes/configs/gemma2/)] |
-| [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[models](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
-| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 0.5B, 1.5B, 7B [[models](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
-| [Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) | 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B [[models](torchtune/models/qwen2_5/), [configs](recipes/configs/qwen2_5/)]
-
-We're always adding new models, but feel free to [file an issue](https://github.com/pytorch/torchtune/issues/new) if there's a new one you would like to see in torchtune.
 
 &nbsp;
 
@@ -68,7 +44,7 @@ torchtune supports different kinds of post-training. A successful post-trained m
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
 | Full                  |    ✅    |     ✅    |   ✅    |
-| LoRA/QLoRA            |    ✅    |     ✅    |         |
+| [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |         |
 
 Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device``
 
@@ -81,14 +57,17 @@ Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single
 
 Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed``
 
-**Reinforcement Learning from Human Feedback (RLHF)**
+**Reinforcement Learning + Reinforcement Learning from Human Feedback (RLHF)**
 
 | Method | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |------------------------------|-----------------------|:--------:|:---------:|:-------:|
-| DPO                          | Full                  |    ✅    |           |         |
+| [DPO](https://pytorch.org/torchtune/stable/recipes/dpo.html)                          | Full                  |    ✅    |           |         |
 |                           | LoRA/QLoRA            |    ✅    |     ✅    |         |
 | PPO                          | Full                  |    ✅    |           |         |
 |                           | LoRA/QLoRA            |          |           |         |
+| GRPO                         | Full                  |    🚧    |     🚧    |   🚧    |
+|                           | LoRA/QLoRA            |       |         |       |
+
 
 Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device``
 
@@ -96,12 +75,20 @@ Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_devic
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
-| Full                  |        |     ✅    |       |
+| [Full](https://pytorch.org/torchtune/stable/recipes/qat_distributed.html)                  |        |     ✅    |       |
 | LoRA/QLoRA            |        |     ✅    |       |
 
 Example: ``tune run qat_distributed --config llama3_1/8B_qat_lora``
 
 The above configs are just examples to get you started. The full list of recipes can be found [here](recipes/). If you'd like to work on one of the gaps you see, please submit a PR! If there's a entirely new post-training method you'd like to see implemented in torchtune, feel free to open an Issue.
+
+&nbsp;
+
+### Models
+
+For the above recipes, torchtune supports state-of-the-art models available on the [Hugging Face Hub](https://huggingface.co/models) or [Kaggle Hub](https://www.kaggle.com/models). Some of these models include [Llama3.3](https://pytorch.org/torchtune/stable/api_ref_models.html#llama3-3), [Llama3.2](https://pytorch.org/torchtune/stable/api_ref_models.html#llama3-2), [Gemma2](https://pytorch.org/torchtune/stable/api_ref_models.html#gemma2), [Phi3](https://pytorch.org/torchtune/stable/api_ref_models.html#phi3), and [Qwen2.5](https://pytorch.org/torchtune/stable/api_ref_models.html#qwen2-5). We also support vision models such as [Llama3.2V](https://pytorch.org/torchtune/stable/api_ref_models.html#llama3-2v)!
+
+For a full list of supported models, please see our [model docs](https://pytorch.org/torchtune/stable/api_ref_models.html) or [model configs on Github](https://github.com/pytorch/torchtune/tree/main/recipes/configs). And if there's one you would like us to add, please feel free to open a PR with the chances *or* submit a Github Issue.
 
 &nbsp;
 
@@ -174,7 +161,8 @@ batch_size=2
 
 &nbsp;
 
-## Installation
+## Installation 🛠️
+
 
 torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
 torchvision for finetuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
@@ -224,7 +212,8 @@ options:
 
 &nbsp;
 
-## Get Started
+## Get Started 🚀
+
 
 To get started with torchtune, see our [First Finetune Tutorial](https://pytorch.org/torchtune/main/tutorials/first_finetune_tutorial.html). Our [End-to-End Workflow Tutorial](https://pytorch.org/torchtune/main/tutorials/e2e_flow.html) will show you how to evaluate, quantize and run inference with a Llama model. The rest of this section will provide a quick overview of these steps with Llama3.1.
 
@@ -310,7 +299,8 @@ torchtune supports finetuning on a variety of different datasets, including [ins
 
 &nbsp;
 
-## Community
+## Community 🌍
+
 
 torchtune focuses on integrating with popular tools and libraries from the ecosystem. These are just a few examples, with more under development:
 
@@ -340,7 +330,7 @@ We really value our community and the contributions made by our wonderful users.
 
 &nbsp;
 
-## Acknowledgements
+## Acknowledgements 🙏
 
 The Llama2 code in this repository is inspired by the original [Llama2 code](https://github.com/meta-llama/llama/blob/main/llama/model.py).
 
@@ -356,13 +346,8 @@ We also want to acknowledge some awesome libraries and tools from the ecosystem:
 
 &nbsp;
 
+## Citing torchtune 📝
 
-## License
-
-torchtune is released under the [BSD 3 license](./LICENSE). However you may have other legal obligations that govern your use of other content, such as the terms of service for third-party models.
-
-
-## Citing torchtune
 
 If you find the torchtune library useful, please cite it in your work as below.
 
@@ -376,3 +361,9 @@ If you find the torchtune library useful, please cite it in your work as below.
   year = {2024}
 }
 ```
+
+&nbsp;
+
+## License
+
+torchtune is released under the [BSD 3 license](./LICENSE). However you may have other legal obligations that govern your use of other content, such as the terms of service for third-party models.
