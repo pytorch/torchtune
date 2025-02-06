@@ -482,6 +482,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.attention</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiHeadAttention</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepFusionModel</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_adapter_state_dict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_device</span><span class="p">,</span> <span class="n">get_logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
 
@@ -829,6 +830,8 @@
         <span class="k">if</span> <span class="n">is_rank_zero</span><span class="p">:</span>
             <span class="n">cpu_state_dict</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">adapter_weights_only</span><span class="p">:</span>
+        <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="n">get_adapter_state_dict</span><span class="p">(</span><span class="n">cpu_state_dict</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cpu_state_dict</span></div>
 
 
