@@ -6,14 +6,12 @@
 
 import sys
 import time
-
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
-
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
@@ -21,28 +19,19 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
-from torchtune.modules.peft import (
-    disable_adapter,
-    DoRALinear,
-    get_adapter_params,
-    get_adapter_state_dict,
-    get_lora_module_names,
-    get_merged_lora_ckpt,
-    LoRALinear,
-    set_trainable_params,
-    validate_missing_and_unexpected_for_lora,
-)
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.lr_schedulers import get_lr
+from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
 
-class LoRADPORecipeDistributed(FTRecipeInterface):
+class FullDPORecipeDistributed(FTRecipeInterface):
     """
-    Distributed LoRA DPO recipe for dense transformer-based LLMs such as Llama2. This recipe supports
-    distributed training and can be run on a single node (1 to 8 GPUs). This is based on HF's DPOTrainer
-    in the TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
+    Full DPO finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
+    distributed training and can be run on a single node (1 to 8 GPUs).
 
     Features:
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
@@ -51,7 +40,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
 
-        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
             activations in memory and instead recompute them during the backward pass. This is especially
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
@@ -90,24 +79,26 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             checkpointing.
 
         - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-            training. Currently we checkpoint both the adapter weights (trainable params only) and the
-            complete merged weights (adapter weights added back to the base model). For more details
-            please take a look at our LoRA tutorial
-            (https://pytorch.org/torchtune/main/tutorials/lora_finetune.html).
+            training. Optimizer state and recipe state (seed, total_epochs, number of epochs run etc) are
+            only saved at the end of a given epoch and used in case of resuming training.
 
-            Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
-            only saved at the end of a given epoch and used in case of resuming training. Resuming
-            training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
+            Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
             currently not supported.
 
             For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
+
+        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. By default,
+            ``clip_grad_norm`` is set to ``None``. If you only want to log the grad norm, you can set
+            ``clip_grad_norm='inf'``.
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
     The following losses are supported in this recipe:
-        - :class:`~torchtune.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.modules.rlhf.loss.DPOLoss`: Direct Preference Optimization (DPO).
         - :class:`~torchtune.rlhf.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+
+
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.
@@ -117,7 +108,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
-        ValueError: If world_size is 1
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
         RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
@@ -132,10 +122,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = utils.get_world_size_and_rank()
-
-        self._is_rank_zero = rank == 0
-
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -146,6 +132,28 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
+
+        _, rank = get_world_size_and_rank()
+        self._is_rank_zero = rank == 0
+
+        # Training cfg
+        self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+
+        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
+        if self._optimizer_in_bwd:
+            if self._clip_grad_norm is not None:
+                raise RuntimeError(
+                    "Gradient clipping is not supported with optimizer in bwd."
+                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
+                )
+            if self._gradient_accumulation_steps > 1:
+                raise RuntimeError(
+                    "Gradient accumulation is not supported with optimizer in bwd."
+                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+                )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -177,15 +185,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
-        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def _load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
-        Extract the checkpoint state from file and validate. This includes the
-        base model weights. If resume_from_checkpoint is True, this also includes
-        the adapter weights and recipe state
+        Extract the checkpoint state from file and validate. If resume_from_checkpoint
+        is True, this also includes the recipe state.
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
@@ -193,18 +197,19 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
-        # When resuming from checkpoint for LoRA, the recipe expects the adapter weights
-        # and recipe state to be present. The keys should match up with what ``save_checkpoint``
-        # used to create these intermediate checkpoints
         if self._resume_from_checkpoint:
-            if training.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError(
-                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
-                )
-            # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
-            # no need to check here
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
+
+    def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the reference model checkpoint state from file.
+        """
+        _ref_checkpointer = config.instantiate(
+            cfg_ref_checkpointer, should_load_recipe_state=False
+        )
+        checkpoint_dict = _ref_checkpointer.load_checkpoint()
+        return checkpoint_dict[training.MODEL_KEY]
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -257,28 +262,35 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
-        utils.log_rank_zero(log, "metric logger is initialized.")
+        # Load the base model
+        checkpoint_dict = self._load_checkpoint(cfg.checkpointer)
+        ref_checkpoint_dict = self._load_ref_checkpoint(cfg.ref_checkpointer)
 
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-
+        self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            lora_weights_state_dict=(
-                checkpoint_dict[training.ADAPTER_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
         )
+
+        # TODO (@SalmanMohammadi) investigate TP for ref model
+        self._ref_model = self._setup_reference_model(
+            cfg_model=cfg.model,
+            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
+            model_state_dict=ref_checkpoint_dict,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+        )
+
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
+            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
                 if self._resume_from_checkpoint
@@ -286,12 +298,17 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
+        # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
 
-        utils.log_rank_zero(log, "Loss is initialized.")
+        if self._compile:
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
+
+        if self._is_rank_zero:
+            log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
-        # setup after all of these are setup
+        # setup after all of these are initialized
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
@@ -300,11 +317,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
-
+        #
         # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader and the max_steps_per_epoch param set by the user and is used
-        # for logging and tracking training state. This should be computed after the dataloader
-        # has been setup
+        # by the dataloader, the max_steps_per_epoch param set by the user and the
+        # gradient_accumulation_steps param. This value is used for logging and tracking
+        # training state. The computation should happen after the dataloader has been setup
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
@@ -314,7 +331,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
-
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -322,6 +338,76 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
+        # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
+        # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+    def _setup_profiler(
+        self, cfg_profiler: Optional[DictConfig] = None
+    ) -> Union[torch.profiler.profile, DummyProfiler]:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
+                `recipe.main`). Default None.
+
+        Returns:
+            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+
+        .. code-block:: yaml
+            profiler:
+                enabled: bool
+
+                #Output directory of trace artifacts
+                output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            cpu: bool
+            cuda: bool
+
+                #Trace options
+                profile_memory: bool
+                with_stack: bool
+                record_shapes: bool
+                with_flops: bool
+
+            # `torch.profiler.schedule` options:
+            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+            wait_steps: int
+            warmup_steps: int
+            active_steps: int
+            num_cycles: int
+        """
+        # Missing profiler section in config, assume disabled
+        if cfg_profiler is None:
+            cfg_profiler = DictConfig({"enabled": False})
+
+        # Check that component is included and set correctly
+        if cfg_profiler.get("_component_", None) is None:
+            cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
+        else:
+            assert (
+                cfg_profiler.get("_component_")
+                == "torchtune.training.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
+
+        profiler, profiler_cfg = config.instantiate(cfg_profiler)
+
+        if self._is_rank_zero:
+            log.info(f" Profiler config after instantiation: {profiler_cfg}")
+
+            self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+            if profiler_cfg["enabled"]:
+                self.profiler_wait_steps = profiler_cfg["wait_steps"]
+                self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+                self.profiler_active_steps = profiler_cfg["active_steps"]
+
+        return profiler
 
     def _setup_model(
         self,
@@ -330,9 +416,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        base_model_state_dict: Dict[str, Any],
+        model_state_dict: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -340,27 +425,21 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
               the right dtype
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
-           c. We register (pre-)forward hooks with ``fully_shard`` instead of wrapping `nn.Module`
         """
-        self._lora_rank = cfg_model.lora_rank
-        self._lora_alpha = cfg_model.lora_alpha
-        self._lora_attn_modules = list(cfg_model.lora_attn_modules)
-        self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
-        self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
-
-        init_start = time.perf_counter()
 
         utils.log_rank_zero(
             log,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
+        init_start = time.perf_counter()
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        self.adapter_params = get_adapter_params(model)
-        set_trainable_params(model, self.adapter_params)
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
 
+        # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
@@ -380,70 +459,139 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             reshard_after_forward=reshard_after_forward,
         )
 
-        if lora_weights_state_dict:
-            lora_missing, lora_unexpected = training.load_from_full_model_state_dict(
-                model,
-                lora_weights_state_dict,
-                self._device,
-                cpu_offload=fsdp_cpu_offload,
-            )
-        else:
-            lora_missing, lora_unexpected = None, None
-
-        # Initialize LoRA params and RoPE buffers
         with training.set_default_dtype(self._dtype), self._device:
-            lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
-                if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
-                ) and not lora_weights_state_dict:
-                    # lora may not be covered in state dict
-                    # if finetune for the 1st time
-                    m.to_empty(device=lora_device)
-                    m.initialize_parameters()
                 # RoPE is not covered in state dict
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
-        base_missing, base_unexpected = training.load_from_full_model_state_dict(
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
+        training.load_from_full_model_state_dict(
             model,
-            base_model_state_dict,
+            model_state_dict,
             self._device,
+            strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
-        is_dora = False
-        for m in model.modules():
-            if hasattr(m, "initialize_dora_magnitude"):
-                is_dora = True
-                m.initialize_dora_magnitude()
-        if is_dora:
-            for m in model.modules():
-                if hasattr(m, "initialize_dora_magnitude"):
-                    m.initialize_dora_magnitude()
-        validate_missing_and_unexpected_for_lora(
-            lora_attn_modules=self._lora_attn_modules,
-            apply_lora_to_mlp=self._apply_lora_to_mlp,
-            apply_lora_to_output=self._apply_lora_to_output,
-            base_missing=base_missing,
-            base_unexpected=base_unexpected,
-            lora_missing=lora_missing,
-            lora_unexpected=lora_unexpected,
-        )
-        # Ensure no params and buffers are on meta device
 
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
 
+        # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
+
         utils.log_rank_zero(
             log,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
+
         if self._is_rank_zero:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
+
+        # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
+        # between ref policy and current policy
+        for module in model.modules():
+            if isinstance(module, torch.nn.Dropout):
+                warn(
+                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
+                )
+                module.p = 0
+
+        # synchronize before training begins
+        torch.distributed.barrier()
+
+        return model
+
+    def _setup_reference_model(
+        self,
+        cfg_model: DictConfig,
+        fsdp_cpu_offload: bool,
+        reshard_after_forward: bool,
+        model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
+    ) -> nn.Module:
+        """
+        Similar to `self._setup_model`:
+           a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
+
+        Additionally, since the reference model is inference-only, we omit some training-specific
+        optimizations.
+        """
+
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating reference model and loading checkpoint on Rank 0 ...",
+        )
+        init_start = time.perf_counter()
+
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
+            model = config.instantiate(cfg_model)
+
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
+
+        # For FSDP sharding
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
+            )
+        ]
+        training.shard_model(
+            model=model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
+        )
+
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+
+        # This method will convert the full model state dict into a sharded state
+        # dict and load into the model
+        training.load_from_full_model_state_dict(
+            model,
+            model_state_dict,
+            self._device,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
+        )
+
+        # Ensure no params and buffers are on meta device
+        training.validate_no_params_on_meta_device(model)
+
+        utils.log_rank_zero(
+            log,
+            f"Instantiating reference model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        )
+
+        if self._is_rank_zero:
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
+
+        # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
+        # between ref policy and current policy
+        for module in model.modules():
+            if isinstance(module, torch.nn.Dropout):
+                warn(
+                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
+                )
+                module.p = 0
+
+        for p in model.parameters():
+            p.requires_grad = False
+
+        model.eval()
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -451,19 +599,57 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
-    ) -> Optimizer:
-        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-        if opt_state_dict:
-            training.load_from_full_optimizer_state_dict(
-                self._model,
-                optimizer,
-                opt_state_dict,
-                self._device,
-            )
+        self,
+        cfg_optimizer: DictConfig,
+        optimizer_in_bwd: bool = False,
+        opt_state_dict: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Optimizer]:
+        if optimizer_in_bwd:
+            # Maintain a dict of optims for every parameter.
+            optim_dict = {
+                param: config.instantiate(cfg_optimizer, [param])
+                for param in self._model.parameters()
+            }
 
-        utils.log_rank_zero(log, "Optimizer and loss are initialized.")
-        return optimizer
+            # Register optimizer step hooks on the model to run optimizer in backward.
+            training.register_optim_in_bwd_hooks(
+                model=self._model, optim_dict=optim_dict
+            )
+            # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
+                model=self._model, optim_dict=optim_dict
+            )
+            # Load optimizer states for each param. If optimizer states are being restored in an optimizer in
+            # backward run, these need to have been saved with the same setting. Cannot restore from runs that
+            # did not use optimizer in backward.
+            if opt_state_dict is not None:
+                for param in opt_state_dict.keys():
+                    try:
+                        training.load_from_full_optimizer_state_dict(
+                            self._model,
+                            self._optim_ckpt_wrapper.state_dict()[param],
+                            opt_state_dict[param],
+                            self._device,
+                        )
+                    except BaseException as e:
+                        raise RuntimeError(
+                            "Failed loading in-backward optimizer checkpoints."
+                            "Please make sure run being restored from was using in-backward optimizer."
+                        ) from e
+            utils.log_rank_zero(log, "In-backward optimizers are set up.")
+            return None
+        else:
+            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+            if opt_state_dict:
+                training.load_from_full_optimizer_state_dict(
+                    self._model,
+                    optimizer,
+                    opt_state_dict,
+                    self._device,
+                )
+
+            utils.log_rank_zero(log, "Optimizer and loss are initialized.")
+            return optimizer
 
     def _setup_lr_scheduler(
         self,
@@ -477,8 +663,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-
-        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
+        if self._is_rank_zero:
+            log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -492,7 +678,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -520,7 +706,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
+        if self._is_rank_zero:
+            log.info("Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -531,54 +718,66 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
         contains the following information:
-        - Merged weights with key MODEL_KEY
-        - Adapter weights with key ADAPTER_KEY
+        - Model weights with key training.MODEL_KEY
         - Relevant recipe state if training is not complete
-        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
 
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights."""
+        Checkpointer will save the model weights and recipe state in
+        different checkpoint files. To correctly resume training from an intermediate checkpoint,
+        the model weights and recipe state must be provided.
+        """
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
+
+        if self._is_rank_zero:
+            log.info(
+                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
+            )
+            start = time.perf_counter()
+
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.gather_cpu_state_dict(
             self._model,
             self._is_rank_zero,
             device=self._device,
-            adapter_weights_only=self._save_adapter_weights_only,
         )
+
+        if self._is_rank_zero:
+            log.info(
+                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
+            )
+
         if intermediate_checkpoint:
-            opt_state_dict = training.get_full_optimizer_state_dict(
-                self._model,
-                self._optimizer,
-                self._is_rank_zero,
-                device=self._device,
+            start = time.perf_counter()
+            utils.log_rank_zero(log, "Getting optimizer state dict...")
+            if not self._optimizer_in_bwd:
+                opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._model,
+                    self._optimizer,
+                    self._is_rank_zero,
+                    device=self._device,
+                )
+            else:
+                opt_state_dict = {}
+                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
+                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
+                        self._model, opt, self._is_rank_zero, device=self._device
+                    )
+            utils.log_rank_zero(
+                log,
+                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
             )
         else:
             opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
-        if self._is_rank_zero:
-            if self._save_adapter_weights_only:
-                adapter_state_dict = cpu_state_dict
-            else:
-                # Filter out the adapter keys and weights from the model state dict. These will
-                # be saved separately
-                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
 
-                # merge the adapter weights and base weights to create the model checkpoint
-                merged_state_dict = get_merged_lora_ckpt(
-                    cpu_state_dict,
-                    rank=self._lora_rank,
-                    alpha=self._lora_alpha,
-                )
-                checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
+        if self._is_rank_zero:
+            start = time.perf_counter()
+            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
@@ -593,26 +792,20 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     }
                 )
 
-            adapter_config = {
-                "r": self._lora_rank,
-                "lora_alpha": self._lora_alpha,
-                "target_modules": get_lora_module_names(
-                    self._lora_attn_modules,
-                    self._apply_lora_to_mlp,
-                    self._apply_lora_to_output,
-                ),
-                "peft_type": "LORA",
-            }
-            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
-                adapter_only=self._save_adapter_weights_only,
             )
+            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+
+        torch.distributed.barrier()
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+        self,
+        model: nn.Module,
+        batch: Tuple[torch.Tensor, torch.Tensor],
+        activations_handling: Optional[bool] = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
@@ -631,13 +824,23 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # formed by concatenating an equal number of "chosen" and "rejected".
         len_chosen = concatenated_input_ids.shape[0] // 2
 
-        with self.activations_handling_ctx:
+        if activations_handling:
+            with self.activations_handling_ctx:
+                all_logits = model(concatenated_input_ids)
+        else:
             all_logits = model(concatenated_input_ids)
 
-        all_log_probs = rlhf.get_batch_log_probs(all_logits, concatenated_labels)
+        chosen_log_probs = rlhf.get_batch_log_probs(
+            all_logits[:len_chosen],
+            concatenated_labels[:len_chosen],
+            return_average_logprobs=False,
+        )
 
-        chosen_log_probs = all_log_probs[:len_chosen]
-        rejected_log_probs = all_log_probs[len_chosen:]
+        rejected_log_probs = rlhf.get_batch_log_probs(
+            all_logits[len_chosen:],
+            concatenated_labels[len_chosen:],
+            return_average_logprobs=False,
+        )
 
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
@@ -646,12 +849,13 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
     def train(self) -> None:
         """
-        The core training loop.
+        The core training loop. Supports training on subsets of the dataset using the
+        ``max_steps_per_epoch``.
         """
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -672,6 +876,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         }
         num_tokens = 0
 
+        self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -690,7 +895,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                 # batch is input_ids, labels
                 num_tokens += torch.tensor(batch[0].numel())
-
                 (
                     policy_chosen_log_probs,
                     policy_rejected_log_probs,
@@ -704,13 +908,18 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
                 del policy_chosen_logits, policy_rejected_logits
 
-                with torch.no_grad(), disable_adapter(self._model):
+                with torch.no_grad():
                     (
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                        _,
-                        _,
-                    ) = self.concatenated_forward(self._model, batch)
+                        reference_chosen_logits,
+                        reference_rejected_logits,
+                    ) = self.concatenated_forward(
+                        self._ref_model, batch, activations_handling=False
+                    )
+
+                del reference_chosen_logits, reference_rejected_logits
+
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
                     policy_chosen_log_probs,
                     policy_rejected_log_probs,
@@ -755,21 +964,28 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
-                    torch.distributed.all_reduce(running_loss)
+                    torch.distributed.all_reduce(
+                        running_loss, op=torch.distributed.ReduceOp.AVG
+                    )
                     torch.distributed.all_reduce(num_tokens)
 
                     for key in running_metrics:
                         torch.distributed.all_reduce(
                             running_metrics[key], op=torch.distributed.ReduceOp.AVG
                         )
-
+                    if self._clip_grad_norm is not None:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=float(self._clip_grad_norm),
+                        ).full_tensor()
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
-
+                    # Step the learning rate scheduler
+                    if self._lr_scheduler is not None:
+                        self._lr_scheduler.step()
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
@@ -784,7 +1000,13 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "lr": get_lr(
+                                (
+                                    self._optimizer
+                                    if not self._optimizer_in_bwd
+                                    else self._optim_ckpt_wrapper
+                                ),
+                            ),
                             "tokens_per_second_per_gpu": num_tokens
                             / (time_per_step * world_size),
                             "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
@@ -823,8 +1045,15 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                     t0 = time.perf_counter()
 
+                    # Step profiler
+                    # Note that this is called within gradient accumulation block, hence
+                    # will include multiple forward / backward passes if gradient accumulation > 1
+                    self._profiler.step()
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+
+        self._profiler.stop()
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
@@ -846,15 +1075,16 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
+
     init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
 
-    config.log_config(recipe_name="LoRADPORecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="FullDPORecipeDistributed", cfg=cfg)
 
-    recipe = LoRADPORecipeDistributed(cfg=cfg)
+    recipe = FullDPORecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
