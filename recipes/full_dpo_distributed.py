@@ -1000,7 +1000,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                             running_metrics[key], op=torch.distributed.ReduceOp.AVG
                         )
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    current_loss = current_loss * (world_size / num_tokens)
+                    loss = loss * (world_size / num_tokens)
 
                 loss.backward()
 
