@@ -1,11 +1,9 @@
 #!/bin/bash
-#SBATCH --time=72:00:00
+#SBATCH --time=01:00:00
 #SBATCH --constraint=volta32gb
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-# #SBATCH --gpus=8
 #SBATCH --gpus-per-node=8
-#SBATCH --partition=learnlab
 #SBATCH --no-requeue
 #SBATCH --exclusive
 
@@ -13,9 +11,12 @@
 #SBATCH --output=slurm_logs/%j.out
 #SBATCH --error=slurm_logs/%j.err
 
-source /private/home/kwiat/projects/torchtune/.venv/bin/activate
+# /\ Customize SBATCH directives to custommize your hardware
 
-srun torchrun \
+# \/ Customize the virtual env/module load - this assumes a virtual env in root of torchtune
+source ../../.venv/bin/activate
+
+srun tune run \
 --nnodes 1 \
 --nproc_per_node 8 \
-recipes/r1_full_finetune_distributed.py --config recipes/configs/llama3_2/8B_full_rl_cuda.yaml "$@"
+full_finetune_distributed --config dev/grpo/3B_sft "$@"

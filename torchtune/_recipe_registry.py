@@ -24,8 +24,8 @@ class Recipe:
 
 _ALL_RECIPES = [
     Recipe(
-        name="dev/r1_full_finetune_distributed",
-        file_path="dev/r1_full_finetune_distributed.py",
+        name="dev/grpo_full_finetune_distributed",
+        file_path="dev/grpo_full_finetune_distributed.py",
         configs=[
             Config(
                 name="dev/8B_full_rl_cuda", file_path="dev/grpo/8B_full_rl_cuda.yaml"
