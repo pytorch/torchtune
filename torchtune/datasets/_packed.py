@@ -95,7 +95,13 @@ if _TORCHDATA_INSTALLED:
                 self._current_pack["source_progress"] = _source_progress
 
             if len(self._current_pack["tokens"]) > self.max_seq_len:
-                pack, self._current_pack = self._split_and_add_pack(self._current_pack)
+                pack, self._current_pack = _split_and_add_pack(
+                    self._current_pack,
+                    max_seq_len=self.max_seq_len,
+                    padding_idx=self.padding_idx,
+                    previous_sample_boundary=self.previous_sample_boundary,
+                    split_across_pack=self.split_across_pack,
+                )
                 self.previous_sample_boundary = len(self._current_pack["tokens"])
 
                 return pack
@@ -106,53 +112,6 @@ if _TORCHDATA_INSTALLED:
             return {
                 "source": self.source.state_dict(),
                 "_yielded_packs": self._yielded_packs,
-            }
-
-        def _split_and_add_pack(
-            self, current_pack: PACK_TYPE
-        ) -> Tuple[PACK_TYPE, PACK_TYPE]:
-            """Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and
-            returns the start of the next pack."""
-
-            if self.split_across_pack:
-                boundary = self.max_seq_len
-                # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
-                leftover_seq_len = self.max_seq_len - sum(current_pack["seq_lens"][:-1])
-                seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
-            else:
-                boundary = self.previous_sample_boundary
-                # If we aren't splitting across packs, we leave out the last sample b/c
-                # it will go into the next pack
-                seq_len_padding = []
-
-            pack = {
-                "tokens": current_pack["tokens"][:boundary],
-                "labels": current_pack["labels"][:boundary],
-                "input_pos": current_pack["input_pos"][:boundary],
-                "seq_lens": current_pack["seq_lens"][:-1] + seq_len_padding,
-                "source_progress": current_pack["source_progress"],
-            }
-
-            # # Process and add the pack
-            pack = _convert_to_tensors(pack)
-            pack = _pad_pack(
-                pack, padding_idx=self.padding_idx, max_seq_len=self.max_seq_len
-            )
-
-            # Return the length of the first sample in next pack if we are splitting across packs,
-            # otherwise return the length of the last sample in the current pack
-            next_seq_len = (
-                len(current_pack["tokens"][boundary:])
-                if self.split_across_pack
-                else current_pack["seq_lens"][-1]
-            )
-
-            return pack, {
-                "tokens": current_pack["tokens"][boundary:],
-                "labels": current_pack["labels"][boundary:],
-                "input_pos": current_pack["input_pos"][boundary:],
-                "seq_lens": [next_seq_len],
-                "source_progress": current_pack["source_progress"],
             }
 
 
@@ -303,7 +262,14 @@ class PackedDataset(Dataset):
                 len(current_pack["tokens"]) > self.max_seq_len
                 and not self._should_stop_packing()
             ):
-                current_pack = self._split_and_add_pack(current_pack)
+                pack, current_pack = _split_and_add_pack(
+                    current_pack,
+                    max_seq_len=self.max_seq_len,
+                    padding_idx=self.padding_idx,
+                    previous_sample_boundary=self.previous_sample_boundary,
+                    split_across_pack=self.split_across_pack,
+                )
+                self.packs.append(pack)
 
             if rank == 0:
                 pbar.update()
@@ -366,53 +332,48 @@ class PackedDataset(Dataset):
             return True
         return False
 
-    def _split_and_add_pack(self, current_pack: PACK_TYPE) -> PACK_TYPE:
-        """Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and
-        returns the start of the next pack."""
+    # def _split_and_add_pack(self, current_pack: PACK_TYPE) -> PACK_TYPE:
+    #     """Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and
+    #     returns the start of the next pack."""
 
-        if self.split_across_pack:
-            boundary = self.max_seq_len
-            # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
-            leftover_seq_len = self.max_seq_len - sum(current_pack["seq_lens"][:-1])
-            seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
-        else:
-            boundary = self.previous_sample_boundary
-            # If we aren't splitting across packs, we leave out the last sample b/c
-            # it will go into the next pack
-            seq_len_padding = []
+    #     if self.split_across_pack:
+    #         boundary = self.max_seq_len
+    #         # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
+    #         leftover_seq_len = self.max_seq_len - sum(current_pack["seq_lens"][:-1])
+    #         seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
+    #     else:
+    #         boundary = self.previous_sample_boundary
+    #         # If we aren't splitting across packs, we leave out the last sample b/c
+    #         # it will go into the next pack
+    #         seq_len_padding = []
 
-        pack = {
-            "tokens": current_pack["tokens"][:boundary],
-            "labels": current_pack["labels"][:boundary],
-            "input_pos": current_pack["input_pos"][:boundary],
-            "seq_lens": current_pack["seq_lens"][:-1] + seq_len_padding,
-        }
+    #     pack = {
+    #         "tokens": current_pack["tokens"][:boundary],
+    #         "labels": current_pack["labels"][:boundary],
+    #         "input_pos": current_pack["input_pos"][:boundary],
+    #         "seq_lens": current_pack["seq_lens"][:-1] + seq_len_padding,
+    #     }
 
-        # Process and add the pack
-        self._add_pack(pack)
+    #     # Process and add the pack
+    #     pack = _convert_to_tensors(pack)
+    #     pack = _pad_pack(
+    #         pack, padding_idx=self.padding_idx, max_seq_len=self.max_seq_len
+    #     )
 
-        # Return the length of the first sample in next pack if we are splitting across packs,
-        # otherwise return the length of the last sample in the current pack
-        next_seq_len = (
-            len(current_pack["tokens"][boundary:])
-            if self.split_across_pack
-            else current_pack["seq_lens"][-1]
-        )
+    #     # Return the length of the first sample in next pack if we are splitting across packs,
+    #     # otherwise return the length of the last sample in the current pack
+    #     next_seq_len = (
+    #         len(current_pack["tokens"][boundary:])
+    #         if self.split_across_pack
+    #         else current_pack["seq_lens"][-1]
+    #     )
 
-        return {
-            "tokens": current_pack["tokens"][boundary:],
-            "labels": current_pack["labels"][boundary:],
-            "input_pos": current_pack["input_pos"][boundary:],
-            "seq_lens": [next_seq_len],
-        }
-
-    def _add_pack(self, pack: PACK_TYPE) -> None:
-        """Processes, pads and adds a pack to ``self.packs``."""
-        pack = _convert_to_tensors(pack)
-        pack = _pad_pack(
-            pack, padding_idx=self.padding_idx, max_seq_len=self.max_seq_len
-        )
-        self.packs.append(pack)
+    #     return pack, {
+    #         "tokens": current_pack["tokens"][boundary:],
+    #         "labels": current_pack["labels"][boundary:],
+    #         "input_pos": current_pack["input_pos"][boundary:],
+    #         "seq_lens": [next_seq_len],
+    #     }
 
     def __len__(self) -> int:
         return len(self.packs)
@@ -478,3 +439,58 @@ def _convert_to_tensors(pack: PACK_TYPE) -> PACK_TYPE:
     if "source_progress" in pack:
         ret["source_progress"] = pack["source_progress"]
     return ret
+
+
+def _split_and_add_pack(
+    current_pack: PACK_TYPE,
+    max_seq_len: int,
+    padding_idx: int,
+    previous_sample_boundary: int,
+    split_across_pack: bool,
+) -> Tuple[PACK_TYPE, PACK_TYPE]:
+    """Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and
+    returns the start of the next pack."""
+
+    if split_across_pack:
+        boundary = max_seq_len
+        # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
+        leftover_seq_len = max_seq_len - sum(current_pack["seq_lens"][:-1])
+        seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
+    else:
+        boundary = previous_sample_boundary
+        # If we aren't splitting across packs, we leave out the last sample b/c
+        # it will go into the next pack
+        seq_len_padding = []
+
+    pack = {
+        "tokens": current_pack["tokens"][:boundary],
+        "labels": current_pack["labels"][:boundary],
+        "input_pos": current_pack["input_pos"][:boundary],
+        "seq_lens": current_pack["seq_lens"][:-1] + seq_len_padding,
+    }
+    if "source_progress" in current_pack:
+        pack["source_progress"] = current_pack["source_progress"]
+
+    # Process and add the pack
+    pack = _convert_to_tensors(pack)
+    pack = _pad_pack(pack, padding_idx=padding_idx, max_seq_len=max_seq_len)
+
+    # Return the length of the first sample in next pack if we are splitting across packs,
+    # otherwise return the length of the last sample in the current pack
+    next_seq_len = (
+        len(current_pack["tokens"][boundary:])
+        if split_across_pack
+        else current_pack["seq_lens"][-1]
+    )
+
+    ret = {
+        "tokens": current_pack["tokens"][boundary:],
+        "labels": current_pack["labels"][boundary:],
+        "input_pos": current_pack["input_pos"][boundary:],
+        "seq_lens": [next_seq_len],
+    }
+
+    if "source_progress" in current_pack:
+        ret["source_progress"] = current_pack["source_progress"]
+
+    return pack, ret
