@@ -3,7 +3,7 @@
 #SBATCH --partition=class
 #SBATCH --account=class
 #SBATCH --qos=default
-#SBATCH --mem=16gb
+#SBATCH --mem=40gb
 #SBATCH --gres=gpu:rtxa5000:1
 #SBATCH --time=12:00:00
 
