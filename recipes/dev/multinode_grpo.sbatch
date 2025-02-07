@@ -14,7 +14,6 @@
 #SBATCH --exclusive
 #SBATCH --gpus-per-task=8
 #SBATCH --cpus-per-task=80
-#SBATCH --partition=learnlab
 #SBATCH --output=slurm_logs/%j/%N.out
 #SBATCH --error=slurm_logs/%j/%N.err
 
