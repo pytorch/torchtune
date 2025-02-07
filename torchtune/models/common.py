@@ -4,14 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
 import torch.nn as nn
-from omegaconf import DictConfig
-from torchtune import config
 from torchtune.config._utils import _get_component_from_path
 from typing import Dict, Any
 
-def classifier_model(num_classes, base_model: str, **base_model_kwargs: Dict[str, Any]) -> nn.Module:
+from torchtune.modules.tied_linear import TiedLinear
+
+def classifier_model(num_classes: int, base_model: str, **base_model_kwargs: Dict[str, Any]) -> nn.Module:
     """
     Create a classifier model from a base model by adapting the output layer.
 
@@ -24,7 +23,9 @@ def classifier_model(num_classes, base_model: str, **base_model_kwargs: Dict[str
         nn.Module: The classifier model.
     """
     model = _get_component_from_path(base_model)(**base_model_kwargs)
-    if hasattr(model.output, "weight"):
+    if isinstance(model.output, TiedLinear):
+        del model.output.tied_module.weight
+    else:
         del model.output.weight
     if hasattr(model.output, "bias"):
         del model.output.bias
