@@ -802,7 +802,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+        self,
+        model: nn.Module,
+        batch: Tuple[torch.Tensor, torch.Tensor],
+        activations_handling: Optional[bool] = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
@@ -821,7 +824,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         # formed by concatenating an equal number of "chosen" and "rejected".
         len_chosen = concatenated_input_ids.shape[0] // 2
 
-        all_logits = model(concatenated_input_ids)
+        if activations_handling:
+            with self.activations_handling_ctx:
+                all_logits = model(concatenated_input_ids)
+        else:
+            all_logits = model(concatenated_input_ids)
 
         chosen_log_probs = rlhf.get_batch_log_probs(
             all_logits[:len_chosen],
@@ -887,14 +894,13 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                with self.activations_handling_ctx:
-                    num_tokens += torch.tensor(batch[0].numel())
-                    (
-                        policy_chosen_log_probs,
-                        policy_rejected_log_probs,
-                        policy_chosen_logits,
-                        policy_rejected_logits,
-                    ) = self.concatenated_forward(self._model, batch)
+                num_tokens += torch.tensor(batch[0].numel())
+                (
+                    policy_chosen_log_probs,
+                    policy_rejected_log_probs,
+                    policy_chosen_logits,
+                    policy_rejected_logits,
+                ) = self.concatenated_forward(self._model, batch)
 
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
@@ -908,7 +914,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         reference_rejected_log_probs,
                         reference_chosen_logits,
                         reference_rejected_logits,
-                    ) = self.concatenated_forward(self._ref_model, batch)
+                    ) = self.concatenated_forward(
+                        self._ref_model, batch, activations_handling=False
+                    )
 
                 del reference_chosen_logits, reference_rejected_logits
 
