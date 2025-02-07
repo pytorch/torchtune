@@ -12,11 +12,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
-import torch.distributed as dist
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
-from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed import (
+    destroy_process_group,
+    init_device_mesh,
+    init_process_group,
+)
 from torch.distributed.tensor.parallel import parallelize_module
 
 from torch.optim import Optimizer
@@ -529,7 +532,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        device_mesh = dist.init_device_mesh(
+        device_mesh = init_device_mesh(
             self._device.type,
             mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
             mesh_dim_names=("dp", "tp"),
