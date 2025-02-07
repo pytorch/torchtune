@@ -11,6 +11,7 @@ from torchtune.training._activation_offloading import (
 from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     gather_cpu_state_dict,
+    get_distributed_backend,
     get_full_optimizer_state_dict,
     get_shard_conditions,
     get_world_size_and_rank,
@@ -18,6 +19,7 @@ from torchtune.training._distributed import (
     is_distributed,
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
+    prepare_mha_for_tp,
     set_torch_num_threads,
     shard_model,
     validate_no_params_on_meta_device,
@@ -74,6 +76,7 @@ from torchtune.training.seed import set_seed
 
 __all__ = [
     "get_act_offloading_ctx_manager",
+    "prepare_mha_for_tp",
     "apply_selective_activation_checkpointing",
     "get_dtype",
     "set_default_dtype",
@@ -97,6 +100,7 @@ __all__ = [
     "TOTAL_EPOCHS_KEY",
     "get_quantizer_mode",
     "get_cosine_schedule_with_warmup",
+    "get_distributed_backend",
     "get_lr",
     "cleanup_before_training",
     "create_optim_in_bwd_wrapper",

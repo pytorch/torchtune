@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-
 import re
 import shutil
 import string
@@ -36,7 +35,7 @@ SAFETENSOR_INDEX_FNAME = "model.safetensors.index.json"
 TORCH_INDEX_FNAME = "pytorch_model.bin.index.json"
 
 # standardize checkpointing
-SHARD_FNAME = "ft-model-{cpt_idx}-of-{num_shards}"
+SHARD_FNAME = "model-{cpt_idx}-of-{num_shards}"
 RECIPE_STATE_DIRNAME = "recipe_state"
 
 # Needed when setting up output dir in checkpointing
@@ -93,6 +92,7 @@ class ModelType(Enum):
             See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`
         QWEN2 (str): Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`
         CLIP_TEXT (str): CLIP text encoder. See :func:`~torchtune.models.clip.clip_text_encoder_large`
+        T5_ENCODER (str): T5 text encoder. See :func:`~torchtune.models.t5.t5_v1_1_xxl_encoder`
 
     Example:
         >>> # Usage in a checkpointer class
@@ -113,6 +113,7 @@ class ModelType(Enum):
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
     CLIP_TEXT: str = "clip_text"
+    T5_ENCODER: str = "t5_encoder"
 
 
 class FormattedCheckpointFiles:
@@ -283,8 +284,9 @@ def update_state_dict_for_classifier(
             if ``output.weight != model.output.weight``.
 
     Raises:
-        AssertionError: if ``state_dict`` does not contain ``output.weight``.
-        AssertionError: if ``model_named_parameters`` does not contain ``output.weight``.
+        AssertionError:
+            If ``state_dict`` does not contain ``output.weight``, **or**
+            if ``model_named_parameters`` does not contain ``output.weight``.
 
     """
     output_weight = dict(model_named_parameters).get("output.weight", None)

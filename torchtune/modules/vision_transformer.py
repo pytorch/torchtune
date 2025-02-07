@@ -190,9 +190,10 @@ class VisionTransformer(nn.Module):
             Default is False, which adds CLS token to the beginning of the sequence.
 
     Raises:
-        ValueError: If `tile_size` is not greater than 0.
-        ValueError: If `patch_size` is not greater than 0.
-        ValueError: If `len(out_indices)` is greater than `num_layers`.
+        ValueError:
+            If `tile_size` is not greater than 0, **or**
+            if `patch_size` is not greater than 0, **or**
+            if `len(out_indices)` is greater than `num_layers`.
     """
 
     def __init__(

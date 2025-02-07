@@ -73,10 +73,11 @@ class MultiHeadAttention(nn.Module):
             Default value is 0.0.
 
     Raises:
-        ValueError: If ``num_heads % num_kv_heads != 0``
-        ValueError: If ``embed_dim % num_heads != 0``
-        ValueError: If ``attn_dropout < 0`` or ``attn_dropout > 1``
-        ValueError: if q_norm is defined without k_norm or vice versa
+        ValueError:
+            If ``num_heads % num_kv_heads != 0``, **or**
+            if ``embed_dim % num_heads != 0``, **or**
+            if ``attn_dropout < 0`` or ``attn_dropout > 1``, **or**
+            if q_norm is defined without k_norm or vice versa
     """
 
     def __init__(

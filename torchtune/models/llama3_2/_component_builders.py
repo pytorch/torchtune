@@ -52,6 +52,7 @@ def llama3_2(
     intermediate_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
     scale_factor: int = 32,
+    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the Llama3.2 model. This includes:
@@ -78,6 +79,7 @@ def llama3_2(
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
         scale_factor (int): scaling factor for RoPE. Default: 32
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 model.
@@ -85,7 +87,8 @@ def llama3_2(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
-    layers = []
+    
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = MultiHeadAttention(
             embed_dim=embed_dim,
@@ -109,10 +112,13 @@ def llama3_2(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    output_proj = TiedLinear(tok_embeddings)
+    if tie_word_embeddings:
+        output_proj = TiedLinear(tok_embeddings)
+    else:
+        output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,
@@ -161,6 +167,7 @@ def lora_llama3_2(
     use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
+    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Return a version of Llama3.2 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -197,6 +204,7 @@ def lora_llama3_2(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 model with LoRA applied to
@@ -207,7 +215,8 @@ def lora_llama3_2(
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     head_dim = embed_dim // num_heads
     rope = Llama3ScaledRoPE(dim=head_dim, max_seq_len=max_seq_len, base=rope_base, scale_factor=scale_factor)
-    layers = []
+    
+    layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = lora_llama3_2_self_attention(
             lora_modules=lora_attn_modules,
@@ -245,7 +254,7 @@ def lora_llama3_2(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
-    layers = nn.ModuleList(layers)
+        
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
     if apply_lora_to_output:
@@ -253,7 +262,11 @@ def lora_llama3_2(
             "apply_lora_to_output is currently not supporting in llama3.2 1b and 3b,"
             "as the projection layer weights are tied to the embeddings"
         )
-    output_proj = TiedLinear(tok_embeddings)
+    if tie_word_embeddings:
+        output_proj = TiedLinear(tok_embeddings)
+    else:
+        output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+        
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,

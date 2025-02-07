@@ -161,7 +161,6 @@ class TiledTokenPositionalEmbeddingTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = torch._inductor.aoti_compile_and_package(
                 tpe_ep,
-                (self.x, self.aspect_ratio),
                 package_path=os.path.join(tmpdir, "tpe.pt2"),
             )
             tpe_aoti = load_package(path)

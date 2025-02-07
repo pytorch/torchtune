@@ -39,18 +39,22 @@ class SingleTurnYAMLToMessages(Transform):
 
         # Iterate through roles and add content
         for role, content in prompt.items():
-            if isinstance(content, str):
+            if content is None:
+                continue
+            elif isinstance(content, str):
                 new_content = [{"type": "text", "content": content}]
-            else:
-                assert (
-                    "image" in content.keys()
-                ), "Multiple entries per role expect an image key"
+            elif "image" in content.keys():
                 image_loc = content["image"]
                 image = load_image(image_loc)
                 new_content = [
                     {"type": "image", "content": image},
                     {"type": "text", "content": content["text"]},
                 ]
+            else:
+                assert (
+                    "text" in content.keys()
+                ), "Multiple entries per role expect at least a text key"
+                new_content = [{"type": "text", "content": content["text"]}]
             messages.append(Message(role=role, content=new_content))
 
         # Finally, add an empty assistant message to kick-start generation
@@ -109,11 +113,13 @@ class InferenceRecipe:
             f"Time for inference: {total_time:.02f} sec total, {tokens_per_second:.02f} tokens/sec"
         )
         self._logger.info(
-            f"Bandwidth achieved: {model_size * tokens_per_second / 1e9:.02f} GB/s"
+            f"Bandwidth achieved: {model_size * tokens_per_second / (1024**3):.02f} GiB/s"
         )
-        self._logger.info(
-            f"Max memory allocated: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB"
-        )
+        if self._device.type != "cpu":
+            torch_device = utils.get_torch_device_namespace()
+            self._logger.info(
+                f"Max memory allocated: {torch_device.max_memory_allocated() / (1024**3):.02f} GiB"
+            )
 
     @torch.inference_mode()
     def generate(self, cfg: DictConfig):

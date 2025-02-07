@@ -107,6 +107,10 @@ _ALL_RECIPES = [
             Config(name="llama3/70B_full", file_path="llama3/70B_full.yaml"),
             Config(name="llama3_1/70B_full", file_path="llama3_1/70B_full.yaml"),
             Config(name="llama3_3/70B_full", file_path="llama3_3/70B_full.yaml"),
+            Config(
+                name="llama3_3/70B_full_multinode",
+                file_path="llama3_3/70B_full_multinode.yaml",
+            ),
             Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
             Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
             Config(name="gemma/7B_full", file_path="gemma/7B_full.yaml"),
@@ -432,6 +436,25 @@ _ALL_RECIPES = [
             ),
         ],
         supports_distributed=False,
+    ),
+    Recipe(
+        name="dev/generate_v2_distributed",
+        file_path="dev/generate_v2_distributed.py",
+        configs=[
+            Config(
+                name="llama3/70B_generation_distributed",
+                file_path="llama3/70B_generation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_1/70B_generation_distributed",
+                file_path="llama3_1/70B_generation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_3/70B_generation_distributed",
+                file_path="llama3_3/70B_generation_distributed.yaml",
+            ),
+        ],
+        supports_distributed=True,
     ),
     Recipe(
         name="dev/early_exit_finetune_distributed",

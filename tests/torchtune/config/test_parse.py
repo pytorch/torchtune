@@ -13,7 +13,7 @@ from torchtune import config
 
 from torchtune.config._parse import TuneRecipeArgumentParser
 
-_CONFIG = {"a": 1, "b": 2}
+_CONFIG = {"a": 1, "b": 2, "c": "foo", "d": "${c}/bar"}
 
 
 class TestParse:
@@ -41,7 +41,9 @@ class TestArgParse:
         parser = TuneRecipeArgumentParser("Test parser")
         return parser
 
-    @patch("torchtune.config._parse.OmegaConf.load", return_value=_CONFIG)
+    @patch(
+        "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
+    )
     def test_parse_known_args(self, mock_load, parser):
         """
         Test that the parser can load a config and override parameters provided on CLI.
@@ -65,3 +67,11 @@ class TestArgParse:
             _ = parser.parse_known_args(
                 ["--config", "test.yaml", "--b", "3"],
             )
+
+        # Test that parsing does not prematurely interpolate variables.
+        config_args, cli_args = parser.parse_known_args(
+            ["--config", "test.yaml", "c=bazz"]
+        )
+        assert (
+            config_args.d == "${c}/bar"
+        ), f"d == {config_args.d} not ${{c}}/bar as set in config."

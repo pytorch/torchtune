@@ -7,7 +7,7 @@
 import pytest
 
 from tests.common import ASSETS
-from torchtune.modules.tokenizers import SentencePieceBaseTokenizer
+from torchtune.modules.transforms.tokenizers import SentencePieceBaseTokenizer
 
 
 class TestSentencePieceBaseTokenizer:

@@ -130,23 +130,28 @@ class EarlyFusionModel(nn.Module):
         set_trainable_params(self, trainable_params)
 
     @staticmethod
-    def _state_dict_hook(module, state_dict, *args, **kwargs):
+    def _state_dict_hook(module, state_dict, prefix, *args, **kwargs):
         """
         Keep tok_embeddings inside of decoder state_dict
 
         [!Note] This update changes the order of the OrderedDict
         """
         for n, p in module.tok_embeddings.named_parameters():
-            state_dict[f"decoder.tok_embeddings.{n}"] = p
-            del state_dict[f"tok_embeddings.{n}"]
+            orig_key = f"{prefix}tok_embeddings.{n}"
+            if orig_key in state_dict:
+                # preserve the original tensor with its requires_grad state
+                state_dict[f"{prefix}decoder.tok_embeddings.{n}"] = state_dict[orig_key]
+                del state_dict[orig_key]
 
     @staticmethod
-    def _load_state_dict_hook(module, state_dict, *args, **kwargs):
+    def _load_state_dict_hook(module, state_dict, prefix, *args, **kwargs):
         """Undo the change from _state_dict_hook"""
         old_keys = list(state_dict.keys())
         for key in old_keys:
-            if key.startswith("decoder.tok_embeddings"):
-                state_dict[key[len("decoder.") :]] = state_dict[key]
+            if "decoder.tok_embeddings" in key:
+                state_dict[prefix + key[len("decoder.") + len(prefix) :]] = state_dict[
+                    key
+                ]
                 del state_dict[key]
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
@@ -185,7 +190,9 @@ class EarlyFusionModel(nn.Module):
 
     def _decoder_embed(self, tokens) -> Tuple[torch.Tensor, torch.Tensor]:
         """Embed the text-only tokens with the decoder's tok_embeddings"""
-        encoder_token_ids = torch.tensor(list(self.encoder_tokens.values()))
+        encoder_token_ids = torch.tensor(
+            list(self.encoder_tokens.values()), device=tokens.device
+        )
         # [bsz, seq_len], True indicates the token is not an encoder special token
         is_text = ~torch.isin(tokens, encoder_token_ids)
         text_tokens = torch.masked_select(tokens, is_text)

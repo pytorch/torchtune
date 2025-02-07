@@ -95,6 +95,7 @@ Example message transforms
 --------------------------
 - Instruct
     - :class:`~torchtune.data.InputOutputToMessages`
+    - :class:`~torchtune.data.AlpacaToMessages`
 - Chat
     - :class:`~torchtune.data.ShareGPTToMessages`
     - :class:`~torchtune.data.OpenAIToMessages`

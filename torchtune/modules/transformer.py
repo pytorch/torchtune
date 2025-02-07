@@ -344,8 +344,9 @@ class TransformerDecoder(nn.Module):
         output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
 
     Raises:
-        AssertionError: num_layers is set and layer is a list
-        AssertionError: num_layers is not set and layer is an nn.Module
+        AssertionError:
+            If ``num_layers`` is set and layer is a list, **or**
+            ``num_layers`` is not set and layer is an ``nn.Module``.
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -418,12 +419,11 @@ class TransformerDecoder(nn.Module):
             encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
             decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
-
         has_encoder_layers = any(
             isinstance(m, TransformerCrossAttentionLayer) for m in self.modules()
         )
         has_decoder_layers = any(
-            isinstance(l, TransformerSelfAttentionLayer) for l in self.layers
+            isinstance(m, TransformerSelfAttentionLayer) for m in self.modules()
         )
 
         if has_encoder_layers:
@@ -437,7 +437,6 @@ class TransformerDecoder(nn.Module):
                 self.decoder_max_cache_seq_len = decoder_max_seq_len
             else:
                 self.decoder_max_cache_seq_len = self.max_seq_len
-
         for layer in self.layers:
             layer.setup_caches(
                 batch_size,
@@ -519,10 +518,11 @@ class TransformerDecoder(nn.Module):
             input_pos (Optional[torch.Tensor]): Input tensor position IDs.
 
         Raises:
-            ValueError: if seq_len of x is bigger than max_seq_len
-            ValueError: if the model has caches which have been setup with self-attention layers and ``mask`` is not provided.
-            ValueError: if the model has caches which have been setup with encoder layers and ``encoder_mask`` is not provided.
-            ValueError: if the model has caches which have been setup ``input_pos`` is not provided.
+            ValueError:
+                If seq_len of x is bigger than max_seq_len, **or**
+                if the model has caches which have been setup with self-attention layers and ``mask`` is not provided, **or**
+                if the model has caches which have been setup with encoder layers and ``encoder_mask`` is not provided, **or**
+                if the model has caches which have been setup ``input_pos`` is not provided.
         """
 
         if seq_len > self.max_seq_len:
