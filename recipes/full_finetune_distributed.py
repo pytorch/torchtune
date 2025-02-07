@@ -519,7 +519,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         utils.log_rank_zero(
             log,
-            "Distributed training(FSDP and TP) is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+            "Distributed training is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
 
