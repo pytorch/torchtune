@@ -6,7 +6,14 @@
 
 
 from .dpo import DPOLoss, RSOLoss
+from .grpo import GRPOCompletionLoss, GRPOLoss, GRPOSimpleLoss
 from .ppo import PPOLoss
-from .grpo import GRPOLoss, GRPOCompletionLoss, GRPOSimpleLoss
 
-__all__ = ["DPOLoss", "RSOLoss", "PPOLoss", "GRPOLoss", "GRPOCompletionLoss", "GRPOSimpleLoss"]
+__all__ = [
+    "DPOLoss",
+    "RSOLoss",
+    "PPOLoss",
+    "GRPOLoss",
+    "GRPOCompletionLoss",
+    "GRPOSimpleLoss",
+]

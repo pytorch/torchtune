@@ -6,7 +6,6 @@
 
 from ._generation import (
     generate,
-    generate_with_logprobs,
     generate_next_token,
     get_causal_mask_from_padding_mask,
     get_position_ids_from_padding_mask,
@@ -15,7 +14,6 @@ from ._generation import (
 
 __all__ = [
     "generate",
-    "generate_with_logprobs",
     "generate_next_token",
     "get_causal_mask_from_padding_mask",
     "get_position_ids_from_padding_mask",

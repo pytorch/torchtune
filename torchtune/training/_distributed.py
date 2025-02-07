@@ -572,6 +572,7 @@ def recursive_reshard(module: nn.Module):
 
     module.reshard()
 
+
 def prepare_mha_for_tp(
     model: nn.Module,
     tp_mesh: DeviceMesh,

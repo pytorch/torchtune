@@ -59,6 +59,7 @@ class R1Trajectory(NamedTuple):
     response_padding_masks: torch.Tensor  # [B x G, L]
     seq_lens: torch.Tensor
 
+
 class GRPOStats(NamedTuple):
     loss: torch.Tensor
     policy_loss: torch.Tensor
@@ -66,6 +67,7 @@ class GRPOStats(NamedTuple):
     ratios: torch.Tensor
     clipfrac: torch.Tensor
     approx_policy_kls: torch.Tensor
+
 
 class PPOStats(NamedTuple):
     """

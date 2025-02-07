@@ -257,6 +257,7 @@ def padded_collate_rl(
 
     return {"tokens": input_ids.long(), "answers": answers}
 
+
 # TODO: Generalize this to support any type of encoder input, right now this assumes
 # a specific encoder_input signature
 def padded_collate_tiled_images_and_mask(

@@ -101,7 +101,12 @@ def logits_to_logprobs(
     ).squeeze(-1)
 
 
-def batched_logits_to_logprobs(logits: torch.Tensor, sequences: torch.Tensor, temperature: float = 1.0, chunk_size: int = 4):
+def batched_logits_to_logprobs(
+    logits: torch.Tensor,
+    sequences: torch.Tensor,
+    temperature: float = 1.0,
+    chunk_size: int = 4,
+):
     batch_size = logits.shape[0]
     result = torch.empty_like(sequences, dtype=torch.float32, device=logits.device)
 
@@ -110,18 +115,16 @@ def batched_logits_to_logprobs(logits: torch.Tensor, sequences: torch.Tensor, te
 
         # Process log_softmax for this batch chunk
         chunk_log_probs = F.log_softmax(
-            logits[chunk_start:chunk_end] / temperature,
-            dim=-1
+            logits[chunk_start:chunk_end] / temperature, dim=-1
         )
 
         # Gather for this chunk
         result[chunk_start:chunk_end] = torch.gather(
-            chunk_log_probs,
-            2,
-            sequences[chunk_start:chunk_end].unsqueeze(-1)
+            chunk_log_probs, 2, sequences[chunk_start:chunk_end].unsqueeze(-1)
         ).squeeze(-1)
 
     return result
+
 
 def get_batch_log_probs(
     logits: torch.FloatTensor,

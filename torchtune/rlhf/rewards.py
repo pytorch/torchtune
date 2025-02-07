@@ -117,6 +117,7 @@ def masked_sum(
 ) -> torch.Tensor:
     return (x * mask).sum(dim=dim)
 
+
 def masked_var(
     centered_values: torch.Tensor, mask: torch.Tensor, unbiased: bool = True
 ) -> torch.Tensor:

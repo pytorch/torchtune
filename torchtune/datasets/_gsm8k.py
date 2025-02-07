@@ -4,22 +4,23 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import re
-from xml.etree import ElementTree as ET
-from functools import partial
+from typing import Any, Callable, Dict, Optional
 
-from typing import Any, Callable, Dict, Optional, Union, TypedDict
-
-from torchtune.data._messages import AlpacaToMessages
+from torchtune.datasets._rl import ReasoningProblem, RLDataset
 from torchtune.datasets._sft import SFTDataset
-
-from torchtune.datasets._packed import PackedDataset
-from torchtune.datasets._rl import RLDataset, ReasoningProblem
 from torchtune.modules.tokenizers import ModelTokenizer
 
 # TODO: dedup this between here and _rl
 # SFT_PROMPT =  Assistant: <think>{cot}</think> <answer>{answer}</answer>
-PREAMBLE_PROMPT = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think></think> and <answer></answer> tags, respectively, i.e., <think>reasoning process here</think> <answer>answer here</answer>. User: {question} Assistant: """
-TRAINABLE_PROMPT = """<think>{cot}</think> <answer>{answer}</answer>"""
+PREAMBLE_PROMPT = (
+    "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. "
+    "The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. "
+    "The reasoning process and answer are enclosed within <think></think> and <answer></answer> tags, respectively, "
+    "i.e., <think>reasoning process here</think> <answer>answer here</answer>. User: {question} Assistant: "
+)
+
+TRAINABLE_PROMPT = "<think>{cot}</think> <answer>{answer}</answer>"
+
 
 def normalize_gsm(problem: dict[str, str]) -> ReasoningProblem:
     """
@@ -48,7 +49,6 @@ def sft_gsm_transform(problem: dict[str, str]) -> dict[str, str]:
     return {"preamble": preamble, "trainable": trainable}
 
 
-
 def gsm8k_dataset(
     tokenizer: ModelTokenizer,
     *,
@@ -69,7 +69,9 @@ def gsm8k_dataset(
 
         match = re.match(r"^(\d+)-(\d+)/(\d+)$", partition)
         if not match:
-            raise ValueError(f"Invalid partition format: {partition}. Expected format: start-end/total")
+            raise ValueError(
+                f"Invalid partition format: {partition}. Expected format: start-end/total"
+            )
 
         start, end, total = map(int, match.groups())
 
@@ -121,7 +123,9 @@ def gsm8k_sft(
 
         match = re.match(r"^(\d+)-(\d+)/(\d+)$", partition)
         if not match:
-            raise ValueError(f"Invalid partition format: {partition}. Expected format: start-end/total")
+            raise ValueError(
+                f"Invalid partition format: {partition}. Expected format: start-end/total"
+            )
 
         start, end, total = map(int, match.groups())
 
@@ -138,7 +142,7 @@ def gsm8k_sft(
         filter_kwargs=dict(with_indices=True),
         split=split,
         name=name,
-        **load_dataset_kwargs
+        **load_dataset_kwargs,
     )
 
     return ds

@@ -3,25 +3,23 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+
+from typing import Any, Callable, Dict, Optional
+
 import regex
-from functools import partial
 
-from typing import Any, Callable, Dict, Optional, Union, TypedDict
-
-from torchtune.data._messages import AlpacaToMessages
-
-from torchtune.datasets._packed import PackedDataset
-from torchtune.datasets._rl import RLDataset, ReasoningProblem
+from torchtune.datasets._rl import ReasoningProblem, RLDataset
 from torchtune.modules.tokenizers import ModelTokenizer
+
+# Attempts to extract the last boxed expression from the solution, which should be the final answer..
+REGEXP = r"\\boxed{((?:[^{}]+|\{(?1)\})*)}"
 
 
 def normalize_math(problem: dict[str, str]) -> ReasoningProblem:
     question = problem["problem"]
-    REGEXP = r"\\boxed{((?:[^{}]+|\{(?1)\})*)}"
     answer = regex.findall(REGEXP, problem["solution"])[-1]
 
     return {"question": question, "cot": "", "answer": answer}
-
 
 
 def math_dataset(
@@ -45,4 +43,3 @@ def math_dataset(
     )
 
     return ds
-

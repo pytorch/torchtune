@@ -7,12 +7,11 @@
 from typing import Callable, List, Optional, Tuple
 
 import torch
-from torch.nn import functional as F
 
-from torchtune import training, utils
+from torchtune import utils
 from torchtune.modules.transformer import TransformerDecoder
-
 from tqdm.auto import trange
+
 
 def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
     """Samples from a multinomial distribution."""
@@ -227,6 +226,7 @@ def generate(
             you want to specify a ``torch.compile`` version of the generate next token for
             performance reasons. If None, we use the default :func:`generate_next_token`.
             Default is None.
+        return_logits (bool): whether to return logits associated with the generated tokens, default True.
 
     Note:
         This function has only been tested with decoder-only models.
@@ -349,7 +349,7 @@ def generate(
             return generated_tokens, generated_logits
 
     _, rank = utils.get_world_size_and_rank()
-    for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank>0)):
+    for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank > 0)):
         pbar.set_description(f"[rank {rank}]")
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
@@ -401,6 +401,6 @@ def generate(
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
         if return_logits:
-            generated_logits *= stop_token_mask[:, :-generated_logits.shape[1], None]
+            generated_logits *= stop_token_mask[:, : -generated_logits.shape[1], None]
 
     return generated_tokens, generated_logits

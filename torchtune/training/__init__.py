@@ -23,7 +23,7 @@ from torchtune.training._distributed import (
     recursive_reshard,
     set_torch_num_threads,
     shard_model,
-    validate_no_params_on_meta_device, get_distributed_backend,
+    validate_no_params_on_meta_device,
 )
 from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._profiler import (
@@ -137,5 +137,5 @@ __all__ = [
     "FormattedCheckpointFiles",
     "scale_grads",
     "get_distributed_backend",
-    "recursive_reshard"
+    "recursive_reshard",
 ]

@@ -4,21 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from functools import partial
-from unittest.mock import patch
 
 import pytest
-from datasets import Dataset
 
-from tests.test_utils import assert_dialogue_equal, DummyTokenizer
-from torchtune.data import Message, padded_collate_rl
-from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.datasets._math import (
-    math_dataset,
-    normalize_math
-)
-
+from tests.test_utils import DummyTokenizer
 from torch.utils.data import DataLoader, DistributedSampler
-
+from torchtune.data import padded_collate_rl
+from torchtune.datasets._math import math_dataset
 
 
 class TestMATHDataset:
@@ -67,7 +59,6 @@ class TestMATHDataset:
         for idx, batch in enumerate(dataloader):
             print(idx, batch)
             break
-
 
     # @patch("torchtune.datasets._sft.load_dataset")
     # def test_label_no_masking(self, load_dataset, tokenizer, sample):

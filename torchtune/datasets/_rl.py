@@ -7,29 +7,32 @@
 from typing import Any, Callable, Dict, Mapping, Optional, TypedDict
 from xml.etree import ElementTree as ET
 
-import numpy as np
 import torch
-
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune import training, utils
-from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.data._messages import validate_messages
+from torchtune import utils
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
+BASE_PROMPT = (
+    "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. "
+    "The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. "
+    "The reasoning process and answer are enclosed within <think></think> and <answer></answer> tags, respectively, "
+    "i.e., <think>reasoning process here</think> <answer>answer here</answer>. User: %s. Assistant: <think>"
+)
 
-BASE_PROMPT = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think></think> and <answer></answer> tags, respectively, i.e., <think>reasoning process here</think> <answer>answer here</answer>. User: %s. Assistant: <think>"""
 
 class ReasoningProblem(TypedDict):
     question: str
     cot: str
     answer: str
 
+
 class RLDataset(Dataset):
     """
-    Base class for datasets used in reinforcement learning, which provide a reference answer that can be verified to compute rewards.
+    Base class for datasets used in reinforcement learning,
+    which provide a reference answer that can be verified to compute rewards.
     """
 
     def __init__(
@@ -59,7 +62,9 @@ class RLDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
-        transformed_sample = self._problem_transform(sample)  # keys "question" and "answer"
+        transformed_sample = self._problem_transform(
+            sample
+        )  # keys "question" and "answer"
 
         question = BASE_PROMPT % transformed_sample["question"]
 
@@ -67,9 +72,7 @@ class RLDataset(Dataset):
         mask = [1 for _ in q_tokens]
         answer = transformed_sample["answer"]
 
-
         return {"tokens": q_tokens, "mask": mask, "answer": answer}
-
 
 
 def extract_tags(text: str) -> dict[str, list[str]]:
@@ -81,12 +84,19 @@ def extract_tags(text: str) -> dict[str, list[str]]:
     root = ET.fromstring(xml_string)
 
     return {
-        'think': [elem.text if elem.text is not None else "" for elem in root.findall('think')],
-        'answer': [elem.text if elem.text is not None else "" for elem in root.findall('answer')]
+        "think": [
+            elem.text if elem.text is not None else "" for elem in root.findall("think")
+        ],
+        "answer": [
+            elem.text if elem.text is not None else ""
+            for elem in root.findall("answer")
+        ],
     }
 
 
-def shaped_correctness_reward(question: str, answer: str, completion: str) -> tuple[float, float]:
+def shaped_correctness_reward(
+    question: str, answer: str, completion: str
+) -> tuple[float, float]:
     """
     Reward function for verifiable rewards with some mild shaping.
     """
@@ -96,18 +106,17 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> tu
     reward = 0
     success = 0
 
-
     try:
-        tags = extract_tags("<think>" + only_completion.replace("<<", "").replace(">>", ""))
+        tags = extract_tags(
+            "<think>" + only_completion.replace("<<", "").replace(">>", "")
+        )
     except ET.ParseError:
         tags = {"think": [], "answer": []}
 
-
-
-    if len(tags['answer']) == 1:
+    if len(tags["answer"]) == 1:
         reward += 5.0
 
-    if len(tags['think']) == 1:
+    if len(tags["think"]) == 1:
         reward += 5.0
 
     if any(attempt == answer for attempt in tags["answer"]):
@@ -124,7 +133,7 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> tu
 
     # reward -= 0.1 * total_extra_length
 
-    if len(tags['answer']) > 0 and tags['answer'][-1] == answer:
+    if len(tags["answer"]) > 0 and tags["answer"][-1] == answer:
         reward = 100.0
         success = 1
 
@@ -137,8 +146,9 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> tu
     return reward, success
 
 
-def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> [
-    torch.Tensor, torch.Tensor]:
+def batch_shaped_correctness_reward(
+    tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]
+) -> [torch.Tensor, torch.Tensor]:
     """Utility function to apply the shaped reward function to a GRPO-style batch of completions."""
 
     batch_size, grpo_size, *_ = completions.shape
@@ -147,8 +157,12 @@ def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torc
     # completions :: [B, G, L]
     for b in range(batch_size):
         for g in range(grpo_size):
-            text_completion = tokenizer.decode(completions[b, g].tolist())  # skips special tokens, stops at eos
-            reward, success = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
+            text_completion = tokenizer.decode(
+                completions[b, g].tolist()
+            )  # skips special tokens, stops at eos
+            reward, success = shaped_correctness_reward(
+                question="", answer=answers[b], completion=text_completion
+            )
             rewards[b, g] = reward
             successes[b, g] = success
 

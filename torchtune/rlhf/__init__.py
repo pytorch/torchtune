@@ -16,9 +16,9 @@ from .rewards import (
     whiten,
 )
 from .sequence_processing import (
+    batched_logits_to_logprobs,
     get_batch_log_probs,
     logits_to_logprobs,
-    batched_logits_to_logprobs,
     truncate_sequence_at_first_stop_token,
     truncate_sequence_for_logprobs,
 )

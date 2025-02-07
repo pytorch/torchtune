@@ -9,9 +9,9 @@ from torchtune.data._collate import (
     padded_collate,
     padded_collate_dpo,
     padded_collate_packed,
+    padded_collate_rl,
     padded_collate_sft,
     padded_collate_tiled_images_and_mask,
-    padded_collate_rl
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._messages import (
