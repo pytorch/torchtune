@@ -134,8 +134,10 @@ if _TORCHDATA_INSTALLED:
             }
 
             # # Process and add the pack
-            pack = self._convert_to_tensors(pack)
-            pack = self._pad_pack(pack, self.padding_idx)
+            pack = _convert_to_tensors(pack)
+            pack = _pad_pack(
+                pack, padding_idx=self.padding_idx, max_seq_len=self.max_seq_len
+            )
 
             # Return the length of the first sample in next pack if we are splitting across packs,
             # otherwise return the length of the last sample in the current pack
@@ -151,59 +153,6 @@ if _TORCHDATA_INSTALLED:
                 "input_pos": current_pack["input_pos"][boundary:],
                 "seq_lens": [next_seq_len],
                 "source_progress": current_pack["source_progress"],
-            }
-
-        def _pad_pack(self, pack: PACK_TYPE, padding_idx: int) -> PACK_TYPE:
-            """Pads a pack to ``self.max_seq_len``."""
-            # Pad tokens
-            num_padding_tokens = self.max_seq_len - len(pack["tokens"])
-            padded_tokens = F.pad(
-                pack["tokens"],
-                (0, num_padding_tokens),
-                value=padding_idx,
-            )
-
-            # Pad labels
-            padded_labels = F.pad(
-                pack["labels"],
-                (0, self.max_seq_len - len(pack["labels"])),
-                value=CROSS_ENTROPY_IGNORE_IDX,
-            )
-
-            # Add padding tokens as a last seq len to ensure sum is max_seq_len
-            padded_seq_lens = (
-                torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
-                if num_padding_tokens > 0
-                else pack["seq_lens"]
-            )
-
-            # Pad input_pos continuing the sequence from last value
-            # in input_pos
-            # e.g. [0 1 2] -> [0 1 2 3 4 5] for self.max_seq_len = 6
-            num_range = torch.arange(
-                pack["input_pos"][-1] + 1,
-                pack["input_pos"][-1] + self.max_seq_len - len(pack["input_pos"]) + 1,
-            )
-            # Clamp to max_seq_len - 1 to avoid out of bounds error
-            clamped_num_range = torch.clamp(num_range, 0, self.max_seq_len - 1)
-            padded_input_pos = torch.cat([pack["input_pos"], clamped_num_range])
-
-            return {
-                "tokens": padded_tokens,
-                "labels": padded_labels,
-                "input_pos": padded_input_pos,
-                "seq_lens": padded_seq_lens,
-                "source_progress": pack["source_progress"],
-            }
-
-        def _convert_to_tensors(self, pack: PACK_TYPE) -> PACK_TYPE:
-            """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors."""
-            return {
-                "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
-                "labels": torch.tensor(pack["labels"], dtype=torch.long),
-                "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
-                "seq_lens": torch.tensor(pack["seq_lens"], dtype=torch.long),
-                "source_progress": pack["source_progress"],
             }
 
 
@@ -459,63 +408,73 @@ class PackedDataset(Dataset):
 
     def _add_pack(self, pack: PACK_TYPE) -> None:
         """Processes, pads and adds a pack to ``self.packs``."""
-        pack = self._convert_to_tensors(pack)
-        pack = self._pad_pack(pack, padding_idx=self.padding_idx)
+        pack = _convert_to_tensors(pack)
+        pack = _pad_pack(
+            pack, padding_idx=self.padding_idx, max_seq_len=self.max_seq_len
+        )
         self.packs.append(pack)
-
-    def _convert_to_tensors(self, pack: PACK_TYPE) -> PACK_TYPE:
-        """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors."""
-        return {
-            "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
-            "labels": torch.tensor(pack["labels"], dtype=torch.long),
-            "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
-            "seq_lens": torch.tensor(pack["seq_lens"], dtype=torch.long),
-        }
-
-    def _pad_pack(self, pack: PACK_TYPE, padding_idx: int) -> PACK_TYPE:
-        """Pads a pack to ``self.max_seq_len``."""
-        # Pad tokens
-        num_padding_tokens = self.max_seq_len - len(pack["tokens"])
-        padded_tokens = F.pad(
-            pack["tokens"],
-            (0, num_padding_tokens),
-            value=padding_idx,
-        )
-
-        # Pad labels
-        padded_labels = F.pad(
-            pack["labels"],
-            (0, self.max_seq_len - len(pack["labels"])),
-            value=CROSS_ENTROPY_IGNORE_IDX,
-        )
-
-        # Add padding tokens as a last seq len to ensure sum is max_seq_len
-        padded_seq_lens = (
-            torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
-            if num_padding_tokens > 0
-            else pack["seq_lens"]
-        )
-
-        # Pad input_pos continuing the sequence from last value
-        # in input_pos
-        # e.g. [0 1 2] -> [0 1 2 3 4 5] for self.max_seq_len = 6
-        num_range = torch.arange(
-            pack["input_pos"][-1] + 1,
-            pack["input_pos"][-1] + self.max_seq_len - len(pack["input_pos"]) + 1,
-        )
-        # Clamp to max_seq_len - 1 to avoid out of bounds error
-        clamped_num_range = torch.clamp(num_range, 0, self.max_seq_len - 1)
-        padded_input_pos = torch.cat([pack["input_pos"], clamped_num_range])
-
-        return {
-            "tokens": padded_tokens,
-            "labels": padded_labels,
-            "input_pos": padded_input_pos,
-            "seq_lens": padded_seq_lens,
-        }
 
     def __len__(self) -> int:
         return len(self.packs)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         return self.packs[idx]
+
+
+def _pad_pack(pack: PACK_TYPE, padding_idx: int, max_seq_len: int) -> PACK_TYPE:
+    """Pads a pack to ``self.max_seq_len``."""
+    # Pad tokens
+    num_padding_tokens = max_seq_len - len(pack["tokens"])
+    padded_tokens = F.pad(
+        pack["tokens"],
+        (0, num_padding_tokens),
+        value=padding_idx,
+    )
+
+    # Pad labels
+    padded_labels = F.pad(
+        pack["labels"],
+        (0, max_seq_len - len(pack["labels"])),
+        value=CROSS_ENTROPY_IGNORE_IDX,
+    )
+
+    # Add padding tokens as a last seq len to ensure sum is max_seq_len
+    padded_seq_lens = (
+        torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
+        if num_padding_tokens > 0
+        else pack["seq_lens"]
+    )
+
+    # Pad input_pos continuing the sequence from last value
+    # in input_pos
+    # e.g. [0 1 2] -> [0 1 2 3 4 5] for self.max_seq_len = 6
+    num_range = torch.arange(
+        pack["input_pos"][-1] + 1,
+        pack["input_pos"][-1] + max_seq_len - len(pack["input_pos"]) + 1,
+    )
+    # Clamp to max_seq_len - 1 to avoid out of bounds error
+    clamped_num_range = torch.clamp(num_range, 0, max_seq_len - 1)
+    padded_input_pos = torch.cat([pack["input_pos"], clamped_num_range])
+
+    ret = {
+        "tokens": padded_tokens,
+        "labels": padded_labels,
+        "input_pos": padded_input_pos,
+        "seq_lens": padded_seq_lens,
+    }
+    if "source_progress" in pack:
+        ret["source_progress"] = pack["source_progress"]
+    return ret
+
+
+def _convert_to_tensors(pack: PACK_TYPE) -> PACK_TYPE:
+    """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors."""
+    ret = {
+        "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
+        "labels": torch.tensor(pack["labels"], dtype=torch.long),
+        "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
+        "seq_lens": torch.tensor(pack["seq_lens"], dtype=torch.long),
+    }
+    if "source_progress" in pack:
+        ret["source_progress"] = pack["source_progress"]
+    return ret
