@@ -44,10 +44,8 @@ __all__ = [
     "wikitext_dataset",
     "PreferenceDataset",
     "SFTDataset",
-    "ReasoningSFTDataset",
     "hh_rlhf_helpful_dataset",
     "multimodal",
-    "math_dataset",
     "gsm8k_dataset",
     "gsm8k_sft",
 ]
