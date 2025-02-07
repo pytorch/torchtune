@@ -8,17 +8,17 @@
 # It can be beneficial to first train the base model with SFT using the 3B_sft recipe.
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 full_finetune_distributed --config dev/grpo/3B_sft
+#   tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/grpo/3B_full_rl
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 4 full_finetune_distributed --config dev/grpo/3B_sft checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/grpo/3B_full_rl checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 #
-# Furthermore, you can launch it on multiple nodes using
-#  sbatch recipes/dev/multinode_grpo.sbatch
+# Furthermore, you can launch it on multiple nodes by going to recipes/dev/ and using
+#  sbatch multinode_grpo.sbatch
 
 base_dir: /tmp
 name: grpo_sft_start
@@ -49,8 +49,8 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: ${base_model_path}
   checkpoint_files: [
-    ft-model-00001-of-00002.safetensors,
-    ft-model-00002-of-00002.safetensors,
+    model-00001-of-00002.safetensors,  # Add ft- if starting from SFT model
+    model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}

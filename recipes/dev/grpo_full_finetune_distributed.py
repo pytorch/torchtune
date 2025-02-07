@@ -348,11 +348,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
-
         # RL params
         self.grpo_samples = cfg.grpo_samples
         self._temperature = cfg.temperature
@@ -744,7 +739,6 @@ class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
                 partial(
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
                 )
                 if not packed
                 else padded_collate_packed
