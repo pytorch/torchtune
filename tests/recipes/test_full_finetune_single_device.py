@@ -169,6 +169,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            optimizer_in_bwd=True \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2"]
@@ -200,6 +201,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
+            optimizer_in_bwd=True \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
