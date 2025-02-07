@@ -31,6 +31,7 @@ from torchtune.training.checkpointing._checkpoint_client import (
     TrainingProgress,
 )
 from torchtune.training.lr_schedulers import get_lr
+from torchtune.training.quantization import Int8MixedPrecisionTrainingQuantizer
 
 from tqdm import tqdm
 
@@ -196,6 +197,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
+        if cfg.mixed_precision.enabled:
+            if (
+                cfg.mixed_precision._component_
+                == "torchtune.training.quantization.Int8MixedPrecisionTrainingQuantizer"
+            ):
+                Int8MixedPrecisionTrainingQuantizer.validate_config(
+                    compile=cfg.compile,
+                    dataset_packed=cfg.dataset.packed,
+                    optimizer_path=cfg.optimizer._component_,
+                )
+
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
@@ -273,6 +285,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
+            mixed_precision_cfg=cfg.mixed_precision,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -494,6 +507,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         custom_sharded_layers: Optional[List[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
+        mixed_precision_cfg: Optional[DictConfig] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -533,6 +547,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
+
+        if mixed_precision_cfg is not None and mixed_precision_cfg.enabled:
+            log.info(f"Preparing model with {mixed_precision_cfg._component_}")
+            cfg = mixed_precision_cfg.copy()
+            cfg.pop("enabled", None)
+            quantizer = config.instantiate(cfg)
+            model = quantizer.prepare(model)
 
         # For FSDP sharding
         fsdp_shard_conditions = [

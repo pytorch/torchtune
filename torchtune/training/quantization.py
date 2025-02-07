@@ -6,6 +6,9 @@
 
 from typing import Callable, Optional
 
+import torch
+import torchao
+from packaging.version import Version
 from torch import nn
 from torchtune.modules.peft.lora import LoRALinear, QATLoRALinear
 
@@ -47,6 +50,19 @@ except ImportError:
     )
 
 
+_SUPPORTS_INT8_MIXED_PRECISION_TRAINING = (
+    Version(torchao.__version__) >= Version("0.7.0.dev")
+    and torch.cuda.is_available()
+    and torch.cuda.get_device_capability() >= (8, 0)
+)
+
+if _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
+    from torchao.prototype.quantized_training import (
+        int8_mixed_precision_training,
+        Int8MixedPrecisionTrainingConfig,
+    )
+
+
 __all__ = [
     "get_quantizer_mode",
     "Int4WeightOnlyQuantizer",
@@ -55,6 +71,7 @@ __all__ = [
     "Int8DynActInt4WeightQuantizer",
     "Int8DynActInt4WeightQATQuantizer",
     "Int8DynActInt4WeightQATQuantizerModuleSwap",
+    "Int8MixedPrecisionTrainingQuantizer",
 ]
 
 
@@ -158,6 +175,94 @@ _quantizer_mode_to_disable_fake_quant[
 _quantizer_mode_to_enable_fake_quant[
     "8da4w-qat-module-swap"
 ] = enable_8da4w_fake_quant_module_swap
+
+
+class Int8MixedPrecisionTrainingQuantizer:
+    """Apply INT8 mixed-precision training. This only affects weights of ``nn.Linear``
+    modules. During training, weights and activations are dynamically quantized to INT8
+    to utilize fast matrix multiplication with INT8 tensor cores. This is also done in
+    the backward pass.
+
+    The expected end2end speedup is 40% on a single A100 and 70% on a single 4090, with
+    minimal accuracy loss. If convergence is an issue, please refer to torchao
+    documentation below.
+
+    For more details, as well as details about arguments of this quantizer, please refer to
+    https://github.com/pytorch/ao/tree/main/torchao/prototype/quantized_training#int8-mixed-precision
+
+    Args:
+        output (bool): whether to apply INT8 mixed-precision for calculating output. Default: True
+        grad_input (bool): whether to apply INT8 mixed-precision for calculating grad_input. Default: True
+        grad_weight (bool): whether to apply INT8 mixed-precision for calculating grad_weight. Default: True
+
+    Raises:
+        RuntimeError: If runtime requirements for INT8 mixed-precision training are not met.
+
+    NOTE: Due to the limitations of the current implementation, the following
+    requirements must be satisfied to enjoy the expected speedup:
+
+    1. Must use ``torch.compile()`` (set ``compile=True``).
+    2. Inputs to the model must not be too dynamic. For example, when input tokens
+    length changes for every batch, you won't see the expected speedup.
+
+    To satisfy (2), you can use :class:`~torchtune.datasets.PackedDataset` (set
+    ``dataset.packed=True`` and ``tokenizer.max_seq_len`` to a desired value.), which
+    ensures input tokens always have fixed length.
+    """
+
+    def __init__(
+        self,
+        output: bool = True,
+        grad_input: bool = True,
+        grad_weight: bool = True,
+    ) -> None:
+        if not _SUPPORTS_INT8_MIXED_PRECISION_TRAINING:
+            raise RuntimeError(
+                "INT8 mixed-precision training requires torch>=2.4, torchao>=0.7, and"
+                " a CUDA-capable device with compute capability >= 8.0"
+            )
+
+        self._config = Int8MixedPrecisionTrainingConfig(
+            output=output,
+            grad_input=grad_input,
+            grad_weight=grad_weight,
+        )
+
+    @staticmethod
+    def validate_config(
+        *, compile: bool, dataset_packed: bool, optimizer_path: str
+    ) -> None:
+        if not (compile and dataset_packed):
+            raise ValueError(
+                "Both compile and dataset.packed must be True to use INT8 mixed-precision training."
+            )
+
+        if not optimizer_path.startswith("torch.optim."):
+            warn(
+                "Using low-bit optimizer might have convergence issues with INT8 mixed-precision training. "
+                "If you observe divergence, try again with the standard torch.optim.AdamW instead."
+            )
+
+        warn(
+            "INT8 mixed-precision might not speedup training if model and/or batch size is too small "
+            "for the current GPU(s). If it is the case, try increasing batch size or sequence length. "
+            "On A100, Llama-3-8B only has speedup for batch_size=4, max_seq_len=2048 and above."
+        )
+
+    def prepare(self, model: nn.Module) -> nn.Module:
+        # we use module-swap implementation so that the state_dict remains plain tensors,
+        # as well as better FSDP compatibility in torchtune.
+        quantize_fn = int8_mixed_precision_training(self._config, module_swap=True)
+
+        def filter_fn(module: nn.Module, name: str) -> bool:
+            # skip LM head since end2end speedup is slightly worse.
+            # there are also possible issues with tied word embeddings.
+            return isinstance(module, nn.Linear) and module.out_features < 32_000
+
+        # don't set inductor config, otherwise compile will be very slow
+        # (it will affect global torch.compile() config)
+        quantize_(model, quantize_fn, filter_fn=filter_fn, set_inductor_config=False)
+        return model
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
