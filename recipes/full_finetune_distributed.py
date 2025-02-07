@@ -360,6 +360,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             collate_fn=collate_name,
         )
 
+        # Setup validation dataloader if validation dataset is provided
+        self._val_sampler, self._val_dataloader = None, None
+        if cfg.get("dataset_validation") is not None:
+            self._val_sampler, self._val_dataloader = self._setup_data(
+                cfg_dataset=cfg.dataset_validation,
+                batch_size=cfg.batch_size,
+                collate_fn=collate_name,
+                shuffle=False,
+            )
+
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
         #
@@ -387,6 +397,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+        # Add validation config parameters
+        self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
+        self._max_validation_batches = cfg.get("max_validation_batches", -1)
 
         # Used to ignore labels for loss computation
         self.ignore_labels_cache = torch.full(
@@ -737,6 +751,63 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return dataloader
 
+    def validate(self) -> float:
+        """
+        Run validation loop and return average validation loss.
+        """
+        if self._val_dataloader is None:
+            return 0.0
+
+        self._model.eval()
+        total_val_loss = torch.tensor(0.0, device=self._device)
+        total_val_tokens = torch.tensor(0.0, device=self._device)
+
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(self._val_dataloader):
+                if (self._max_validation_batches > 0 and
+                    batch_idx >= self._max_validation_batches):
+                    break
+
+                utils.batch_to_device(batch, self._device)
+
+                # Count tokens excluding padding
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+
+                labels = batch.pop("labels")
+
+                with self.activations_handling_ctx:
+                    logits = self._model(**batch)
+
+                # Shift labels to compute loss
+                labels = torch.hstack(
+                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                )
+                if not isinstance(logits, list):
+                    labels = labels.reshape(-1)
+                    logits = logits.reshape(-1, logits.size(-1))
+
+                # Compute loss
+                val_loss = self._loss_fn(logits, labels) * current_num_tokens
+
+                total_val_loss += val_loss
+                total_val_tokens += current_num_tokens
+
+        # Aggregate validation metrics across all ranks
+        if torch.distributed.is_initialized():
+            torch.distributed.all_reduce(total_val_loss)
+            torch.distributed.all_reduce(total_val_tokens)
+
+        avg_val_loss = (
+            (total_val_loss / total_val_tokens).item()
+            if total_val_tokens > 0
+            else float('inf')
+        )
+
+        self._model.train()
+        return avg_val_loss
+
     def train(self) -> None:
         """
         The core training loop.
@@ -902,6 +973,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
+
+                    # Run validation after gradient update
+                    if (self._run_val_every_n_steps is not None and
+                        self.global_step % self._run_val_every_n_steps == 0):
+                        pbar.refresh()
+                        val_loss = self.validate()
+                        if self._is_rank_zero:
+                            log.info(f"Validation loss: {val_loss:.4f}")
+                            self._metric_logger.log_dict(
+                                {"val_loss": val_loss},
+                                step=self.global_step,
+                            )
 
                 if (
                     (idx + 1) // self._gradient_accumulation_steps
