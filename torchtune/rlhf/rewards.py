@@ -123,6 +123,9 @@ def masked_sum(
         mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
             should participate in the sum calculation.
         dim (Optional[int]): The axis to calculate the sum over. Default None.
+
+    Returns:
+        torch.Tensor: The sum tensor.
     """
     return (x * mask).sum(dim=dim)
 

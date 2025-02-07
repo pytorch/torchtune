@@ -27,9 +27,7 @@ _ALL_RECIPES = [
         name="dev/grpo_full_finetune_distributed",
         file_path="dev/grpo_full_finetune_distributed.py",
         configs=[
-            Config(
-                name="dev/3B_full_rl", file_path="dev/grpo/3B_full_rl.yaml"
-            ),
+            Config(name="dev/3B_full_rl", file_path="dev/grpo/3B_full_rl.yaml"),
         ],
         supports_distributed=True,
     ),
