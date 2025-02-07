@@ -460,7 +460,7 @@ or to be <a class="reference external" href="https://arxiv.org/abs/2204.05862">h
 <p>To see the best results when using this recipe, it may be helpful to first fine-tune your model with using supervised fine-tuning to ensure your model is
 on-distribution for the domain you’re interested in. To do this, check out our other fine-tuning recipes in the <a class="reference internal" href="recipes_overview.html#recipes-overview-label"><span class="std std-ref">recipe overview</span></a> which
 support a variety of SFT paradigms.</p>
-<p>After supervised fine-tuning, here is an example of DPO with Llama 3.1 8B:</p>
+<p>After supervised fine-tuning, here is an example of using either LoRA-based finetuning, or full-finetuning Llama 3.1 8B with DPO:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You may need to be granted access to the Llama model you’re interested in. See
@@ -470,11 +470,14 @@ support a variety of SFT paradigms.</p>
 --ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated.00.pth&quot;</span>
 --HF_TOKEN<span class="w"> </span>&lt;HF_TOKEN&gt;
 
-<span class="c1"># run on a single device</span>
+<span class="c1"># run lora dpo on a single device</span>
 tune<span class="w"> </span>run<span class="w"> </span>lora_dpo_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_1/8B_lora_dpo_single_device
 
-<span class="c1"># run on two gpus</span>
+<span class="c1"># run lora dpo on two gpus</span>
 tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_dpo_distributed<span class="w"> </span>--config<span class="w"> </span>llama3_1/8B_lora_dpo
+
+<span class="c1"># run full dpo on four gpus</span>
+tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">4</span><span class="w"> </span>full_dpo_distributed<span class="w"> </span>--config<span class="w"> </span>llama3_1/8B_full_dpo
 </pre></div>
 </div>
 <p>It’s easy to get started with this recipe with your dataset of choice, including custom local datasets,
