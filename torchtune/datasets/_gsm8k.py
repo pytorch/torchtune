@@ -22,6 +22,9 @@ PREAMBLE_PROMPT = """A conversation between User and Assistant. The user asks a 
 TRAINABLE_PROMPT = """<think>{cot}</think> <answer>{answer}</answer>"""
 
 def normalize_gsm(problem: dict[str, str]) -> ReasoningProblem:
+    """
+    Parses an item from the GSM8K dataset into a ReasoningProblem by splitting it up into the question, cot, and answer.
+    """
     question = problem["question"]
     solution = problem["answer"]
 
@@ -31,6 +34,9 @@ def normalize_gsm(problem: dict[str, str]) -> ReasoningProblem:
 
 
 def sft_gsm_transform(problem: dict[str, str]) -> dict[str, str]:
+    """
+    Prepares an item from the GSM8k into a format that can be used for SFT.
+    """
     question = problem["question"]
     solution = problem["answer"]
 
@@ -50,12 +56,14 @@ def gsm8k_dataset(
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     name: str = "main",
-    cheat_idx: int | None = None,
     partition: str | None = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> RLDataset:
+    """
+    GSM8k dataset from OpenAI, prepared for RL-based training with verifiable rewards.
+    """
 
-    def filter_fn(example: dict, idx: int):
+    def default_filter_fn(example: dict, idx: int):
         if partition is None:
             return True
 
@@ -67,6 +75,8 @@ def gsm8k_dataset(
 
         current = idx % total
         return start <= current <= end
+
+    filter_fn = filter_fn if filter_fn is not None else default_filter_fn
 
     ds = RLDataset(
         source=source,
@@ -86,13 +96,17 @@ def gsm8k_sft(
     tokenizer: ModelTokenizer,
     *,
     source: str = "openai/gsm8k",
+    filter_fn: Optional[Callable] = None,
     split: str = "train",
     name: str = "main",
     partition: str | None = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> SFTDataset:
+    """
+    GSM8k dataset from OpenAI, prepared for SFT-based training with CoT.
+    """
 
-    def model_transform(problem: dict[str, str]) -> list[int]:
+    def model_transform(problem: dict[str, str]) -> dict[str, list[int]]:
         pre_tokens = tokenizer.encode(problem["preamble"], add_eos=False)
         trainable_tokens = tokenizer.encode(problem["trainable"], add_bos=False)
 
@@ -101,7 +115,7 @@ def gsm8k_sft(
 
         return {"tokens": pre_tokens + trainable_tokens, "mask": mask}
 
-    def filter_fn(example: dict, idx: int):
+    def default_filter_fn(example: dict, idx: int):
         if partition is None:
             return True
 
@@ -113,6 +127,8 @@ def gsm8k_sft(
 
         current = idx % total
         return start <= current <= end
+
+    filter_fn = filter_fn if filter_fn is not None else default_filter_fn
 
     ds = SFTDataset(
         source=source,

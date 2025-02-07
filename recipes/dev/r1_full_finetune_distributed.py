@@ -24,7 +24,7 @@ from torchtune import config, modules, training, utils, generation, rlhf
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
-from torchtune.datasets._rl import correctness_reward, shaped_correctness_reward, batch_shaped_correctness_reward
+from torchtune.datasets._rl import batch_shaped_correctness_reward
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf._types import R1Trajectory, GRPOStats

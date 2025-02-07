@@ -28,6 +28,9 @@ class ReasoningProblem(TypedDict):
     answer: str
 
 class RLDataset(Dataset):
+    """
+    Base class for datasets used in reinforcement learning, which provide a reference answer that can be verified to compute rewards.
+    """
 
     def __init__(
         self,
@@ -36,15 +39,11 @@ class RLDataset(Dataset):
         problem_transform: Transform,
         tokenizer: ModelTokenizer,
         filter_fn: Optional[Callable] = None,
-        cheat_idx: int | None = None,
-        data_division: int = 1,
         filter_kwargs: dict[str, Any] | None = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._problem_transform = problem_transform
         self._tokenizer = tokenizer
-        self._cheat_idx = cheat_idx
-        self._data_division = data_division
 
         self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
@@ -53,11 +52,10 @@ class RLDataset(Dataset):
             self._data = self._data.filter(filter_fn, **filter_kwargs)
 
     def __len__(self):
-        return len(self._data) // self._data_division
+        return len(self._data)
 
     def __getitem__(self, index: int) -> Dict[str, Any]:
-        idx = index if self._cheat_idx is None else self._cheat_idx
-        sample = self._data[idx]
+        sample = self._data[index]
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
@@ -75,7 +73,10 @@ class RLDataset(Dataset):
 
 
 def extract_tags(text: str) -> dict[str, list[str]]:
-    # Add root element to make valid XML
+    """
+    Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
+    The values are lists of strings, with each string being the content of a tag.
+    """
     xml_string = f"<root>{text}</root>"
     root = ET.fromstring(xml_string)
 
@@ -85,21 +86,10 @@ def extract_tags(text: str) -> dict[str, list[str]]:
     }
 
 
-def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> [torch.Tensor, torch.Tensor]:
-    batch_size, grpo_size, *_ = completions.shape
-    rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
-    successes = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
-    # completions :: [B, G, L]
-    for b in range(batch_size):
-        for g in range(grpo_size):
-            text_completion = tokenizer.decode(completions[b, g].tolist())  # skips special tokens, stops at eos
-            reward, success = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
-            rewards[b, g] = reward
-            successes[b, g] = success
-
-    return rewards, successes
-
 def shaped_correctness_reward(question: str, answer: str, completion: str) -> tuple[float, float]:
+    """
+    Reward function for verifiable rewards with some mild shaping.
+    """
     question_chars = len(question)
     only_completion = completion[question_chars:]
 
@@ -147,18 +137,19 @@ def shaped_correctness_reward(question: str, answer: str, completion: str) -> tu
     return reward, success
 
 
-def correctness_reward(question: str, answer: str, completion: str) -> float:
-    question_chars = len(question)
-    only_completion = completion[question_chars:]
+def batch_shaped_correctness_reward(tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]) -> [
+    torch.Tensor, torch.Tensor]:
+    """Utility function to apply the shaped reward function to a GRPO-style batch of completions."""
 
-    try:
-        tags = extract_tags("<think>" + only_completion)
-    except ET.ParseError:
-        return 0.0
+    batch_size, grpo_size, *_ = completions.shape
+    rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    successes = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    # completions :: [B, G, L]
+    for b in range(batch_size):
+        for g in range(grpo_size):
+            text_completion = tokenizer.decode(completions[b, g].tolist())  # skips special tokens, stops at eos
+            reward, success = shaped_correctness_reward(question="", answer=answers[b], completion=text_completion)
+            rewards[b, g] = reward
+            successes[b, g] = success
 
-    if tags['answer'][-1] == answer:
-        return 1.0
-    else:
-        return 0.0
-
-
+    return rewards, successes
