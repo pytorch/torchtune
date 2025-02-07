@@ -5,7 +5,7 @@
 #SBATCH --qos=default
 #SBATCH --mem=40gb
 #SBATCH --gres=gpu:rtxa5000:1
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 
 module load cuda/12.4.1
 conda init bash

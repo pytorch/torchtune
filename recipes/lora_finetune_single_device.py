@@ -39,6 +39,7 @@ from torchtune.training import (
     PROFILER_KEY,
 )
 from tqdm import tqdm
+import wandb
 
 log = utils.get_logger("DEBUG")
 
@@ -695,8 +696,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
-        def do_validation():
+        def do_validation(epoch: int):
             log.info("Running validation...")
+            generation_results = wandb.Table(columns=[
+                'epoch',
+                'example_idx',
+                'input',
+                'model_output',
+                'ground_truth',
+                'classification'
+            ])
             self._model.eval()
             with torch.inference_mode():
                 num_samples = 0
@@ -709,7 +718,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     
                     self._model.set_num_output_chunks(0)
                     for seq, labels in zip(batch['tokens'], batch['labels']):
-                        # where the first text (system prompt) ends and second (user query) begins
+                        # where the first text (system prompt) ends and second (user prompt) begins
                         start_idx = torch.where(seq == self._tokenizer.eot_id)[0][0]
                         # the output i.e. where the non-masked part of the labels start
                         end_idx = torch.where(labels == self._tokenizer.start_header_id)[0]
@@ -726,7 +735,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         )
                         generated_tokens = generated_tokens.tolist()
 
-                        log.info('Input: \n' + self._tokenizer.decode(seq[start_idx:end_idx].tolist()))
+                        prompt = self._tokenizer.decode(seq[start_idx:end_idx].tolist())
+                        log.info('Input: \n' + prompt)
                         output = self._tokenizer.decode(generated_tokens[0][end_idx:])
                         log.info('Output: \n' + output)
                         ground_truth = self._tokenizer.decode(labels[end_idx:][labels[end_idx:] >= 0].tolist())
@@ -735,14 +745,29 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         pass_text = 'compliance output: pass'
                         fail_text = 'compliance output: fail'
 
-                        if (pass_text in output.lower() and pass_text in ground_truth.lower()) or (fail_text in output.lower() and fail_text in ground_truth.lower()):
+                        # assuming the ground truth will always have a pass or fail,
+                        # this is the default if the model did not follow the format and specify pass or fail
+                        classification = 'null'
+
+                        if pass_text in output.lower() and pass_text in ground_truth.lower():
+                            classification = 'true_pass'
+                        if pass_text in output.lower() and fail_text in ground_truth.lower():
+                            classification = 'false_pass'
+                        if fail_text in output.lower() and fail_text in ground_truth.lower():
+                            classification = 'true_fail'
+                        if fail_text in output.lower() and pass_text in ground_truth.lower():
+                            classification = 'false_fail'
+
+                        if classification == 'true_pass' or classification == 'true_fail':
                             total_gen_accuracy += 1
+
+                        generation_results.add_data(epoch, num_samples, prompt, output, ground_truth, classification)
+                        num_samples += 1
 
                     self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
                     loss, accuracy, confidence = self._loss_step(batch, return_metrics=True)
 
-                    num_samples += batch['tokens'].shape[0]
                     total_loss += loss.cpu() * batch['tokens'].shape[0]
                     total_accuracy += accuracy.sum().cpu()
                     total_confidence += confidence.sum().cpu()
@@ -752,6 +777,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     "validation/label_accuracy": total_accuracy / num_samples,
                     "validation/label_confidence": total_confidence / num_samples,
                     "validation/generation_accuracy": total_gen_accuracy / num_samples,
+                    "validation/generation_results": generation_results,
                 }
                 self._metric_logger.log_dict(
                     log_dict,
@@ -767,7 +793,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
 
-                do_validation()
+                do_validation(curr_epoch)
 
                 pbar = tqdm(total=self._steps_per_epoch)
                 for idx, batch in enumerate(self._dataloader):
@@ -859,7 +885,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self.epochs_run += 1
 
                 if curr_epoch == self.total_epochs - 1:
-                    do_validation()
+                    do_validation(self.total_epochs)
 
                 start_save_checkpoint = time.perf_counter()
                 log.info("Starting checkpoint save...")
