@@ -42,12 +42,8 @@ export LOGLEVEL=INFO
 # ...or venv
 # source torchtune/bin/activate
 
-source .venv/bin/activate
-#
-#SHARED_FS=/checkpoint/kwiat # <-- Replace w/ your filesystem
-#CHECKPOINT_DIR="$SHARED_FS/Llama-3.3-70B-Instruct"
-#OUTPUT_DIR="$SHARED_FS/Llama3.3-70B-fft-output"
+source ../../.venv/bin/activate
 
 # Adjust sbatch --ntasks and sbatch --nodes above and --nnodes below to your specific node count
-srun --export=ALL,OMP_NUM_THREADS=8 torchrun --nnodes 16 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
-    recipes/r1_full_finetune_distributed.py --config recipes/configs/grpo_8b/3B_full_rl_cuda.yaml "$@"
+srun --export=ALL,OMP_NUM_THREADS=8 tune run --nnodes 16 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
+    dev/grpo_full_finetune_distributed --config grpo/3B_full_rl_cuda "$@"
