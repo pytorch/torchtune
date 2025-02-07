@@ -30,6 +30,7 @@ if _SUPPORTS_FLEX_ATTENTION:
         # If user's torch version is <torch-2.7.0.dev20250205, compiling may fail.
         # using max-autotune fixes this issue. Context: https://github.com/pytorch/torchtune/issues/2113
         # TODO: deprecate me once 2.7 becomes stable.
+        _log.info("Compiling flex_attention failed. Retrying with mode='max-autotune'.")
         flex_attention_compiled = torch.compile(
             torch.compile(flex_attention, dynamic=False, mode="max-autotune")
         )
