@@ -107,6 +107,17 @@ def batched_logits_to_logprobs(
     temperature: float = 1.0,
     chunk_size: int = 4,
 ):
+    """
+    Converts to logits to logprobs in a batched manner, to minimize the memory spike.
+
+    Args:
+        logits (torch.Tensor): The logits tensor of shape [b, response_length, vocab_size].
+        sequences (torch.Tensor): The corresponding tokens of shape [b, response_length].
+        temperature (float): The temperature to scale the logits. Default 1.0
+        chunk_size (int): The size of the chunks to process at a time. Default 4.
+    Returns:
+        torch.Tensor: The log probabilities corresponding to each token in ``sequences``. Shape [b, response_length].
+    """
     batch_size = logits.shape[0]
     result = torch.empty_like(sequences, dtype=torch.float32, device=logits.device)
 
