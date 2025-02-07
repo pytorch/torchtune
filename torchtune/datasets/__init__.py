@@ -13,7 +13,6 @@ from torchtune.datasets._grammar import grammar_dataset
 from torchtune.datasets._gsm8k import gsm8k_dataset, gsm8k_sft
 from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset
-from torchtune.datasets._math import math_dataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
