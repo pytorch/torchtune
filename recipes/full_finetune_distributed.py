@@ -372,10 +372,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
         """
         if cfg_lr_scheduler is None:
-            if self._is_rank_zero:
-                log.info(
-                    "No learning rate scheduler configured. Using constant learning rate."
-                )
+            utils.log_rank_zero(
+                log,
+                "No learning rate scheduler configured. Using constant learning rate.",
+            )
             return None
 
         if self._optimizer_in_bwd:
@@ -397,8 +397,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Modify the scheduler for optimizer_in_bwd case
             self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+        utils.log_rank_zero(
+            log,
+            "Learning rate scheduler is initialized.",
+        )
 
         return lr_scheduler
 

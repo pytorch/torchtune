@@ -668,6 +668,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if intermediate_checkpoint:
             utils.log_rank_zero(log, "Retrieving optimizer state dict...")
+            start = time.perf_counter()
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._model,
                 self._optimizer,

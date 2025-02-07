@@ -304,8 +304,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        utils.log_rank_zero(
+            log,
+            "Loss is initialized.",
+        )
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are initialized
@@ -398,14 +400,16 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        utils.log_rank_zero(
+            log,
+            f" Profiler config after instantiation: {profiler_cfg}",
+        )
 
-            self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
-            if profiler_cfg["enabled"]:
-                self.profiler_wait_steps = profiler_cfg["wait_steps"]
-                self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
-                self.profiler_active_steps = profiler_cfg["active_steps"]
+        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
+        if profiler_cfg["enabled"]:
+            self.profiler_wait_steps = profiler_cfg["wait_steps"]
+            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
+            self.profiler_active_steps = profiler_cfg["active_steps"]
 
         return profiler
 
@@ -670,10 +674,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
         """
         if cfg_lr_scheduler is None:
-            if self._is_rank_zero:
-                log.info(
-                    "No learning rate scheduler configured. Using constant learning rate."
-                )
+            utils.log_rank_zero(
+                log,
+                "No learning rate scheduler configured. Using constant learning rate.",
+            )
             return None
 
         if self._optimizer_in_bwd:
@@ -695,8 +699,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             # Modify the scheduler for optimizer_in_bwd case
             self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+        utils.log_rank_zero(
+            log,
+            "Learning rate scheduler is initialized.",
+        )
 
         return lr_scheduler
 
@@ -763,11 +769,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
-        if self._is_rank_zero:
-            log.info(
-                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
-            )
-            start = time.perf_counter()
+        utils.log_rank_zero(
+            log,
+            "Saving checkpoint. This may take some time. Retrieving full model state dict...",
+        )
+        start = time.perf_counter()
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
@@ -777,14 +783,15 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             device=self._device,
         )
 
-        if self._is_rank_zero:
-            log.info(
-                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
-            )
+        utils.log_rank_zero(
+            log,
+            f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
+        )
 
         if intermediate_checkpoint:
-            start = time.perf_counter()
+            opt_state_dict = {}
             utils.log_rank_zero(log, "Getting optimizer state dict...")
+            start = time.perf_counter()
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._model,
@@ -793,7 +800,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     device=self._device,
                 )
             else:
-                opt_state_dict = {}
                 for param, opt in self._optim_ckpt_wrapper.optim_map.items():
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
                         self._model, opt, self._is_rank_zero, device=self._device
@@ -830,7 +836,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+            utils.log_rank_zero(
+                log,
+                f"Saving checkpoint took {time.perf_counter() - start:.2f} secs",
+            )
 
         torch.distributed.barrier()
 
