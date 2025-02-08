@@ -145,6 +145,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         init_process_group(self.distributed_backend)
 
         world_size, rank = utils.get_world_size_and_rank()
+        self.rank = rank
+        self.world_size = world_size
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -706,7 +708,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -725,7 +726,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=self.seed
+            ds,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=shuffle,
+            seed=self.seed,
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -868,8 +873,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         batch_input_ids = batch_input_ids.reshape(batch_size * grpo_size, -1)
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-
-        _, rank = utils.get_world_size_and_rank()
 
         with local_kv_cache(
             model=self._model,
@@ -1086,8 +1089,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
@@ -1107,7 +1108,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
