@@ -14,7 +14,7 @@ from torchtune.models.phi4 import phi4_tokenizer
 class TestPhi4MiniTokenizer:
     @pytest.fixture
     def tokenizer(self):
-       # Pretrained tiktoken model generated via the script in
+        # Pretrained tiktoken model generated via the script in
         # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
         return phi4_tokenizer(
             path=str(ASSETS / "tiktoken_small.model"),

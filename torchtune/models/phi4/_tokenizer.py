@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.data._utils import truncate
-from torchtune.modules.tokenizers import ModelTokenizer, GPT2BaseTokenizer
+from torchtune.modules.tokenizers import GPT2BaseTokenizer, ModelTokenizer
 from torchtune.modules.transforms import Transform
 
 PHI4_SPECIAL_TOKENS = {
@@ -42,7 +42,8 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
     TikToken tokenizer configured with Phi4 (14B) special tokens.
 
     Args:
-        path (str): Path to pretrained tokenizer file.
+        merges_path (str): Path to merges.txt file.
+        vocab_path (str): Path to vocab.json file.
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Phi4 special tokens.
@@ -59,7 +60,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
     Examples:
-        >>> tokenizer = Phi4MiniTokenizer("/path/to/tiktoken_model")
+        >>> tokenizer = Phi4MiniTokenizer("vocab.json", "merges.txt")
         >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
@@ -136,15 +137,15 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             else:
                 ids_for_decode.append(token_id)
         return self.tt_model.decode(ids_for_decode)
-    
+
     def _tokenize_header(self, role: str):
         tokenized_messages = []
         tokenized_messages.append(self.special_tokens["<|im_start|>"])
         encoded = self.encode(
-                role,
-                add_bos=False,
-                add_eos=False,
-                trim_leading_whitespace=True,
+            role,
+            add_bos=False,
+            add_eos=False,
+            trim_leading_whitespace=True,
         )
 
         tokenized_messages.extend(encoded)
@@ -217,9 +218,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             # Add special tokens
             tokenized_header = self._tokenize_header(message.role)
 
-            tokenized_messages.extend(
-                tokenized_header
-            )
+            tokenized_messages.extend(tokenized_header)
 
             # Minus 1, because the len(tokenized_header) is bigger then 1.
             mask.extend([message.masked] * (len(tokenized_header) - 1))

@@ -4,16 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Iterator, List
-
 import json
 import re
-from torchtune.modules.tokenizers._utils import BaseTokenizer
 from functools import lru_cache
+from typing import List
+
+from torchtune.modules.tokenizers._utils import BaseTokenizer
 
 # Constants controlling encode logic
 MAX_ENCODE_CHARS = 400_000
 MAX_NO_WHITESPACE_CHARS = 25_000
+
 
 @lru_cache()
 def bytes_to_unicode():
@@ -21,10 +22,13 @@ def bytes_to_unicode():
     Returns list of utf-8 byte and a mapping to unicode strings. We specifically avoids mapping to whitespace/control
     characters the bpe code barfs on.
 
-    This is standard implementation based on: https://github.com/huggingface/transformers/blob/6b550462139655d488d4c663086a63e98713c6b9/src/transformers/models/gpt2/tokenization_gpt2.py#L36
+    This is standard implementation based on:
+    https://github.com/huggingface/transformers/blob/6b550462139655d488d4c663086a63e98713c6b9/src/transformers/models/gpt2/tokenization_gpt2.py#L36
     """
     bs = (
-        list(range(ord("!"), ord("~") + 1)) + list(range(ord("¡"), ord("¬") + 1)) + list(range(ord("®"), ord("ÿ") + 1))
+        list(range(ord("!"), ord("~") + 1))
+        + list(range(ord("¡"), ord("¬") + 1))
+        + list(range(ord("®"), ord("ÿ") + 1))
     )
     cs = bs[:]
     n = 0
@@ -36,12 +40,14 @@ def bytes_to_unicode():
     cs = [chr(n) for n in cs]
     return dict(zip(bs, cs))
 
-def get_pairs(word: tuple):
+
+def get_pairs(word: tuple) -> set:
     """
-    Return set of symbol pairs in a word.
-    
     Args:
-        word (str): Word is represented as tuple of symbols (symbols being variable-length strings).
+        word (tuple): Word is represented as tuple of symbols (symbols being variable-length strings).
+
+    Returns:
+        set of symbol pairs in a word.
     """
     pairs = set()
     prev_char = word[0]
@@ -64,7 +70,6 @@ class GPT2BaseTokenizer(BaseTokenizer):
         eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.
         pad_id (int): padding token id. This can be present or absent in ``special_tokens``.
 
-        special_tokens (Dict[str, int]): Mapping of special tokens to their ids.
 
     Examples:
         >>> tokenizer = GPT2BaseTokenizer("vocab.json", "merges.txt", "replace", 1, 1, 1, 1)
@@ -97,18 +102,29 @@ class GPT2BaseTokenizer(BaseTokenizer):
 
         # Should have added re.IGNORECASE so BPE merges can happen for capitalized versions of contractions
         # We do not use external regex library, so this is slightly modified version of the original line
-        self.pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?[^\W\d_]+| ?\d+| ?[^\s\W\d_]+|\s+(?!\S)|\s+""")
+        self.pat = re.compile(
+            r"""'s|'t|'re|'ve|'m|'ll|'d| ?[^\W\d_]+| ?\d+| ?[^\s\W\d_]+|\s+(?!\S)|\s+"""
+        )
 
-        self.unk_id = unk_id 
-        self.bos_id = bos_id 
-        self.eos_id = eos_id 
+        self.unk_id = unk_id
+        self.bos_id = bos_id
+        self.eos_id = eos_id
         self.pad_id = pad_id
 
     @property
-    def vocab_size(self):
+    def vocab_size(self) -> int:
         return len(self.encoder)
 
-    def bpe(self, token):
+    def bpe(self, token: str) -> str:
+        """
+        Returns pair for the given token.
+
+        Args:
+            token (str): Passed token.
+
+        Returns:
+            Pair token for the give token.
+        """
         if token in self.cache:
             return self.cache[token]
         word = tuple(token)
@@ -154,18 +170,25 @@ class GPT2BaseTokenizer(BaseTokenizer):
         self,
         text: str,
     ) -> List[int]:
-        """Tokenize a string."""
+        """
+        Tokenize, but not encode given text.
+
+        Args:
+            text (str): text to tokenize
+
+        Returns:
+            BPE Tokens.
+        """
         bpe_tokens = []
         for token in re.findall(self.pat, text):
             token = "".join(
                 self.byte_encoder[b] for b in token.encode("utf-8")
             )  # Maps all our bytes to unicode strings, avoiding control tokens of the BPE (spaces in our case)
             bpe_tokens.extend(bpe_token for bpe_token in self.bpe(token).split(" "))
-       
+
         return bpe_tokens
-    
-    def _convert_token_to_id(self, token):
-        """Converts a token (str) in an id using the vocab."""
+
+    def _convert_token_to_id(self, token: str):
         return self.encoder.get(token, self.encoder.get(self.unk_id))
 
     def encode(
@@ -174,6 +197,17 @@ class GPT2BaseTokenizer(BaseTokenizer):
         add_bos: bool = True,
         add_eos: bool = True,
     ):
+        """
+        Tokenize and encode given text.
+
+        Args:
+            text (str): text to encode.
+            add_bos (bool): True if bos token must be added.
+            add_eos (bool): True if eos token must be added.
+
+        Returns:
+            Tokenized and encoded text.
+        """
         bpe_tokens = list(map(self._convert_token_to_id, self._tokenize(text)))
 
         if add_bos:
