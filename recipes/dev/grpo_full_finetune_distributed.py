@@ -33,9 +33,9 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
+class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
     """
-    Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
+    Full finetuning recipe for dense transformer-based LLMs such as Llama2, trained with GRPO. This recipe supports
     distributed training and can be run on a single node (1 to 8 GPUs).
 
     Features:
@@ -1313,7 +1313,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line
     """
 
-    recipe = FullRLFinetuneRecipeDistributed(cfg=cfg)
+    recipe = FullGRPOFinetuneRecipeDistributed(cfg=cfg)
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 
     utils.log_rank_zero(log, "Instantiated the recipe")
