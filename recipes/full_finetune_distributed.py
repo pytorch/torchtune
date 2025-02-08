@@ -20,8 +20,8 @@ from torch.distributed import (
     init_device_mesh,
     init_process_group,
 )
+from torch.distributed._tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
-
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
@@ -832,7 +832,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
                                 max_norm=float(self._clip_grad_norm),
-                            ).full_tensor()
+                            )
+                            # If sharded, collect the DTensor here
+                            if isinstance(grad_norm, DTensor):
+                                grad_norm = grad_norm.full_tensor()
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 

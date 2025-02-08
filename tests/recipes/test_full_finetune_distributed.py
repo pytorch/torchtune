@@ -134,6 +134,7 @@ class TestFullFinetuneDistributedRecipe:
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd, tensor_parallel_dim",
         [
             ("llama3/8B_full", "llama3", "tune", 4, 1, True, 2),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True, 4),
         ],
     )
     @gpu_test(gpu_count=4)
