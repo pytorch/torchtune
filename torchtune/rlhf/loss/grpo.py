@@ -17,11 +17,11 @@ class GRPOLoss(nn.Module):
     Group Relative Policy Optimization (GRPO) Loss module.
     Introduced by https://arxiv.org/abs/2402.03300, popularized by https://arxiv.org/abs/2501.12948.
 
-    This loss implementation follows the usual formulation of PPO with clipped ratios of token-wise logprobs.
+    This loss implementation follows the usual formulation of GRPO with clipped ratios of token-wise logprobs.
     Currently not validated to perform well.
 
     Args:
-        epsilon (float): clipping range for PPO update.
+        epsilon (float): clipping range for GRPO update.
         kl_coeff (float): KL divergence coefficient (also known as beta).
     """
 
@@ -100,14 +100,14 @@ class GRPOLoss(nn.Module):
 
 class GRPOCompletionLoss(nn.Module):
     """
-    Group Relative Policy Optimization (PPO) Loss module.
+    Group Relative Policy Optimization (GRPO) Loss module.
     Introduced by https://arxiv.org/abs/2402.03300, popularized by https://arxiv.org/abs/2501.12948.
 
-    This loss implementation follows the usual formulation of PPO with clipped ratios of full completion logprobs.
+    This loss implementation follows the usual formulation of GRPO with clipped ratios of full completion logprobs.
     Currently not validated to perform well.
 
     Args:
-        epsilon (float): clipping range for PPO update.
+        epsilon (float): clipping range for GRPO update.
         kl_coeff (float): KL divergence coefficient (also known as beta).
     """
 
@@ -186,7 +186,7 @@ class GRPOCompletionLoss(nn.Module):
 
 class GRPOSimpleLoss(nn.Module):
     """
-    Group Relative Policy Optimization (PPO) Loss module.
+    Group Relative Policy Optimization (GRPO) Loss module.
     Introduced by https://arxiv.org/abs/2402.03300, popularized by https://arxiv.org/abs/2501.12948.
 
     This loss implementation is based on TRL's implementation of GRPO,
@@ -194,7 +194,7 @@ class GRPOSimpleLoss(nn.Module):
      This empirically seems to perform well.
 
     Args:
-        epsilon (float): clipping range for PPO update.
+        epsilon (float): clipping range for GRPO update.
         kl_coeff (float): KL divergence coefficient (also known as beta).
     """
 
