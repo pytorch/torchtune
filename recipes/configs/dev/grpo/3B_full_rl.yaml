@@ -49,7 +49,7 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: ${base_model_path}
   checkpoint_files: [
-    model-00001-of-00002.safetensors,  # Add ft- if starting from SFT model
+    model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
