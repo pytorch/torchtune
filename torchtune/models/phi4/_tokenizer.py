@@ -151,6 +151,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
         tokenized_messages.extend(encoded)
         tokenized_messages.append(self.special_tokens["<|im_end|>"])
+        return tokenized_messages
 
     def tokenize_messages(
         self,
@@ -216,9 +217,13 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 mask.append(message.masked)
 
             # Add special tokens
+            tokenized_header = self._tokenize_header(message.role)
+
             tokenized_messages.extend(
-                self._tokenize_header(message.role)
+                tokenized_header
             )
+
+            mask.extend([message.masked] * (len(tokenized_header) - 1))
             mask.append(message.masked)
 
             # Add new line token
@@ -263,6 +268,9 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 tokenized_messages, self.max_seq_len, self.eos_id if add_eos else None
             )
             mask = truncate(mask, self.max_seq_len, message.masked if add_eos else None)
+
+        # print("Mask length: ", len(mask))
+        # print("Message length: ", len(tokenized_messages))
 
         return tokenized_messages, mask
 
