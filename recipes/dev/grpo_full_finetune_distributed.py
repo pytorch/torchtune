@@ -837,23 +837,23 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
     def generate_trajectory(
-        self, input_ids: torch.Tensor, answers: list[str]
+        self, input_ids: torch.Tensor, answers: List[str]
     ) -> GRPOTrajectory:
         """
-        Generates a trajectory given the current policy and value models, the reference policy model, the reward model,
+        Generates a trajectory given the current policy model, the reference policy model, the reward model,
         and batch of inputs. This is done over the following steps:
 
         1: Generate responses, and logits corresponding to the responses using the current policy,
             generating (query, response) pairs.
         2. Estimate logprobs of the generated responses using the current policy.
-        3. Estimate values from the generated responses using the current value function.
-        4. Replace any tokens in the response after the first stop token (usually EOS token) with padding,
-            producting truncated responses.
-        5. Run the reward model on the (query, truncated-response) pairs.
-        6. Mask out all the invalid values in the trajectory due to padding tokens.
+        3. Compute rewards and successes for the generated responses.
+        4. Estimate advantages using GRPO.
+        5. Replace any tokens in the response after the first stop token (usually EOS token) with padding,
+            producing truncated responses.
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
+            answers (List[str]): list of answers corresponding to the input_ids
 
         Returns:
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
