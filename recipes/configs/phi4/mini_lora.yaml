@@ -17,7 +17,7 @@
 # For single device LoRA finetuning please use mini_lora_single_device.yaml
 # or mini_qlora_single_device.yaml
 
-output_dir: /tmp/torchtune/phi4/lora # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/phi-4/lora # /tmp may be deleted by your system. Change it to your preference.
 
 # Model arguments
 model:
@@ -32,7 +32,8 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi4.phi4_tokenizer
-  path: /tmp/phi-4/tokenizer.model
+  vocab_path: /tmp/phi-4/vocab.json
+  merges_path: /tmp/phi-4/merges.txt
   max_seq_len: null
 
 # Checkpointer

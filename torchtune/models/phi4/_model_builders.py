@@ -40,7 +40,7 @@ def phi4() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi4_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
+def phi4_tokenizer(vocab_path: str, merges_path: str, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
     """Phi4 (14B) tokenizer.
     Args:
         path (str): Path to the tiktoken tokenizer model.
@@ -59,7 +59,7 @@ def phi4_tokenizer(path: str, special_tokens_path: Optional[str] = None, max_seq
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
     template = _get_prompt_template(prompt_template) if prompt_template is not None else None
-    return Phi4MiniTokenizer(path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
+    return Phi4MiniTokenizer(vocab_path=vocab_path, merges_path=merges_path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
 def lora_phi4(
