@@ -36,11 +36,12 @@ def bytes_to_unicode():
     cs = [chr(n) for n in cs]
     return dict(zip(bs, cs))
 
-def get_pairs(word):
+def get_pairs(word: tuple):
     """
     Return set of symbol pairs in a word.
-
-    Word is represented as tuple of symbols (symbols being variable-length strings).
+    
+    Args:
+        word (str): Word is represented as tuple of symbols (symbols being variable-length strings).
     """
     pairs = set()
     prev_char = word[0]
@@ -52,22 +53,24 @@ def get_pairs(word):
 
 class GPT2BaseTokenizer(BaseTokenizer):
     """
-    A lightweight version of the base GPT2Tokenizer.
+    A lightweight version of the basic GPT2Tokenizer.
 
     Args:
-        path (str): Path to pretrained tokenizer checkpoint file.
-        name (str): Name of the tokenizer (used by tiktoken for identification).
-        pattern (str): Regex pattern used to split input text into chunks before passing
-            to byte-pair encoding.
+        vocab_path (str): Path to vocab.json file.
+        merges_path (str): Path to merges.txt file.
+        errors (str): Paradigm to follow when decoding.
+        unk_id (int): unkown token id. This can be present or absent in ``special_tokens``.
         bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.
         eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.
+        pad_id (int): padding token id. This can be present or absent in ``special_tokens``.
+
         special_tokens (Dict[str, int]): Mapping of special tokens to their ids.
 
     Examples:
-        >>> tokenizer = TikTokenBaseTokenizer("/path/to/tt_model")
-        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = GPT2BaseTokenizer("vocab.json", "merges.txt", "replace", 1, 1, 1, 1)
+        >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
-        [1, 31587, 29644, 102, 2]
+        [1, 9906, 1917, 1]
     """
 
     def __init__(
