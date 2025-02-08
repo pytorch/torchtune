@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.data._utils import truncate
-from torchtune.modules.tokenizers import GPT2BaseTokenizer, ModelTokenizer
+from torchtune.modules.tokenizers import GPT2BaseTokenizer, TikTokenBaseTokenizer, ModelTokenizer
 from torchtune.modules.transforms import Transform
 
 PHI4_SPECIAL_TOKENS = {
@@ -60,7 +60,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
 
     Examples:
-        >>> tokenizer = Phi4MiniTokenizer("vocab.json", "merges.txt")
+        >>> tokenizer = Phi4MiniTokenizer(vocab_path="vocab.json", merges_path="merges.txt")
         >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
@@ -68,8 +68,9 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
     def __init__(
         self,
-        merges_path: str,
-        vocab_path: str,
+        path: str = None,
+        merges_path: str = None,
+        vocab_path: str = None,
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
@@ -90,15 +91,27 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
         self.prompt_template = prompt_template
 
-        self.tt_model = GPT2BaseTokenizer(
-            vocab_path,
-            merges_path,
-            "replace",
-            self.eos_id,
-            self.bos_id,
-            self.eos_id,
-            self.pad_id,
-        )
+        if path is None:
+            self.tt_model = GPT2BaseTokenizer(
+                vocab_path,
+                merges_path,
+                "replace",
+                self.eos_id,
+                self.bos_id,
+                self.eos_id,
+                self.pad_id,
+            )
+        else:
+            # To be still flexible at the point of tokenizer.model
+            self.tt_model = TikTokenBaseTokenizer(
+                path,
+                "phi4_tiktoken",
+                CL100K_PATTERN,
+                bos_id=self.bos_id,
+                eos_id=self.eos_id,
+                special_tokens=self.special_tokens,
+            )
+
 
     @property
     def vocab_size(self):
@@ -214,6 +227,9 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             if start_of_turn:
                 tokenized_messages.append(self.bos_id)
                 mask.append(message.masked)
+
+            if message.role == "assistant":
+                end_of_turn = True
 
             # Add special tokens
             tokenized_header = self._tokenize_header(message.role)
