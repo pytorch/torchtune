@@ -330,6 +330,17 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="full_dpo_distributed",
+        file_path="full_dpo_distributed.py",
+        configs=[
+            Config(
+                name="llama3_1/8B_full_dpo",
+                file_path="llama3_1/8B_full_dpo.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="ppo_full_finetune_single_device",
         file_path="ppo_full_finetune_single_device.py",
         configs=[
