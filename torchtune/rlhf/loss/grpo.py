@@ -14,7 +14,7 @@ from torchtune.rlhf import masked_sum
 
 class GRPOLoss(nn.Module):
     """
-    Group Relative Policy Optimization (PPO) Loss module.
+    Group Relative Policy Optimization (GRPO) Loss module.
     Introduced by https://arxiv.org/abs/2402.03300, popularized by https://arxiv.org/abs/2501.12948.
 
     This loss implementation follows the usual formulation of PPO with clipped ratios of token-wise logprobs.
