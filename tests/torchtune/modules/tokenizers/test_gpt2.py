@@ -13,7 +13,15 @@ from torchtune.modules.tokenizers import GPT2BaseTokenizer
 class TestGPT2BaseTokenizer:
     @pytest.fixture
     def tokenizer(self):
-        tokenizer = GPT2BaseTokenizer(ASSETS / "tiny_vocab.json", ASSETS / "tiny_bpe_merges.txt", "replace", 1, 1, 1, 1)
+        tokenizer = GPT2BaseTokenizer(
+            ASSETS / "tiny_vocab.json",
+            ASSETS / "tiny_bpe_merges.txt",
+            "replace",
+            1,
+            1,
+            1,
+            1,
+        )
         return tokenizer
 
     def test_encode(self, tokenizer):
