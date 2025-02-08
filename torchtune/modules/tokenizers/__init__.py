@@ -6,6 +6,7 @@
 
 from ._sentencepiece import SentencePieceBaseTokenizer
 from ._tiktoken import TikTokenBaseTokenizer
+from ._gpt2 import GPT2BaseTokenizer
 from ._utils import (
     BaseTokenizer,
     ModelTokenizer,
@@ -16,6 +17,7 @@ from ._utils import (
 __all__ = [
     "SentencePieceBaseTokenizer",
     "TikTokenBaseTokenizer",
+    "GPT2BaseTokenizer",
     "ModelTokenizer",
     "BaseTokenizer",
     "tokenize_messages_no_special_tokens",

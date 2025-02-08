@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.data._utils import truncate
-from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
+from torchtune.modules.tokenizers import ModelTokenizer, GPT2BaseTokenizer
 from torchtune.modules.transforms import Transform
 
 PHI4_SPECIAL_TOKENS = {
@@ -67,7 +67,8 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
     def __init__(
         self,
-        path: str,
+        merges_path: str,
+        vocab_path: str,
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
@@ -88,22 +89,19 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
         self.prompt_template = prompt_template
 
-        self.tt_model = TikTokenBaseTokenizer(
-            path,
-            "phi4_tiktoken",
-            CL100K_PATTERN,
-            bos_id=self.bos_id,
-            eos_id=self.eos_id,
-            special_tokens=self.special_tokens,
+        self.tt_model = GPT2BaseTokenizer(
+            vocab_path,
+            merges_path,
+            "replace",
+            self.eos_id,
+            self.bos_id,
+            self.eos_id,
+            self.pad_id,
         )
 
     @property
     def vocab_size(self):
         return self.tt_model.vocab_size
-
-    @property
-    def base_vocab_size(self) -> int:
-        return self.tt_model.base_vocab_size
 
     def encode(
         self,
@@ -164,7 +162,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         returning a list of tokens and a list of masks.
 
         Example:
-            >>> tokenizer = Phi3MiniTokenizer(tokenizer_path, max_seq_len)
+            >>> tokenizer = Phi4MiniTokenizer(tokenizer_path, max_seq_len)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
