@@ -304,10 +304,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        # if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-        #     # set num_output_chunks for model
-        #     self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-
         utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
