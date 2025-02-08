@@ -118,10 +118,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
         device_type = cfg.device
 
-        # if self._dtype == torch.float16:
-        #     raise ValueError(
-        #         "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
-        #     )
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
 
         # logging attributes
         self._output_dir = cfg.output_dir
