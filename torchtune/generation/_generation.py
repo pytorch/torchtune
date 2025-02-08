@@ -406,6 +406,6 @@ def generate(
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
         if return_logits:
-            generated_logits *= stop_token_mask[:, : -generated_logits.shape[1], None]
+            generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
 
     return generated_tokens, generated_logits
