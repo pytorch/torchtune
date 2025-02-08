@@ -225,6 +225,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            seed=cfg.get("seed") or 0,
         )
 
         self._setup_training_parameters(cfg)
@@ -651,7 +652,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             return optimizer
 
     def _setup_data(
-        self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
+        self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int, seed: int
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here.
@@ -670,7 +671,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
+            seed=seed,
         )
         dataloader = DataLoader(
             dataset=ds,

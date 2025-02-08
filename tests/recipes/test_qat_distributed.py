@@ -45,8 +45,8 @@ class TestQATDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5211, 10.5217, 10.4944, 10.5134],
-            "llama3": [11.9836, 11.9683, 11.9594, 11.9366],
+            "llama2": [10.5337, 10.5563, 10.4786, 10.5002],
+            "llama3": [11.9270, 11.9240, 11.9731, 11.9751],
         }
         return loss_values_map[model_type]
 

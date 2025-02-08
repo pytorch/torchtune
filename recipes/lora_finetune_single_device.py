@@ -308,6 +308,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
+            seed=cfg.get("seed") or 0,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -516,6 +517,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
+        seed: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
@@ -543,7 +545,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
+            seed=seed,
         )
         dataloader = DataLoader(
             dataset=ds,

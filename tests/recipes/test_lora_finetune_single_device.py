@@ -52,15 +52,15 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
-            "llama3": [11.9838, 11.9691, 11.9616, 11.9383],
+            "llama2": [10.5320, 10.5608, 10.4895, 10.5068],
+            "llama3": [11.9265, 11.9255, 11.9754, 11.9780],
         }
         return loss_values_map[model_type]
 
     def _fetch_qlora_expected_loss_values(self, dtype):
         if dtype == "bf16":
-            return [10.5197, 10.5272, 10.5129, 10.5243]
-        return [10.5198, 10.5271, 10.5131, 10.5244]
+            return [10.5313, 10.5575, 10.4884, 10.5073]
+        return [10.5313, 10.5576, 10.4885, 10.5071]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
