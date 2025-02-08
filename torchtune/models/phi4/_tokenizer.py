@@ -223,6 +223,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 tokenized_header
             )
 
+            # Minus 1, because the len(tokenized_header) is bigger then 1.
             mask.extend([message.masked] * (len(tokenized_header) - 1))
             mask.append(message.masked)
 
@@ -268,9 +269,6 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 tokenized_messages, self.max_seq_len, self.eos_id if add_eos else None
             )
             mask = truncate(mask, self.max_seq_len, message.masked if add_eos else None)
-
-        # print("Mask length: ", len(mask))
-        # print("Message length: ", len(tokenized_messages))
 
         return tokenized_messages, mask
 
