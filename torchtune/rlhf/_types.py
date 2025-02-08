@@ -47,7 +47,7 @@ class Trajectory(NamedTuple):
     seq_lens: torch.Tensor
 
 
-class R1Trajectory(NamedTuple):
+class GRPOTrajectory(NamedTuple):
     query_responses: torch.Tensor  # [B x G, P+L]
     logprobs: torch.Tensor  # [B x G, L]
     ref_logprobs: torch.Tensor  # [B x G, L]

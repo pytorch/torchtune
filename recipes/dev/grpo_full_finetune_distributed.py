@@ -19,12 +19,11 @@ from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.datasets._rl import batch_shaped_correctness_reward
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.rlhf._types import GRPOStats, R1Trajectory
+from torchtune.rlhf._types import GRPOStats, GRPOTrajectory
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
@@ -715,14 +714,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
-            packed = False
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
-            packed = cfg_dataset.get("packed", False)
 
         # Instantiate collate_fn
-        if "left_pad_sequence" in collate_fn:
-            raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
@@ -743,8 +738,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                 )
-                if not packed
-                else padded_collate_packed
             ),
         )
 
@@ -845,7 +838,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
     def generate_trajectory(
         self, input_ids: torch.Tensor, answers: list[str]
-    ) -> R1Trajectory:
+    ) -> GRPOTrajectory:
         """
         Generates a trajectory given the current policy and value models, the reference policy model, the reward model,
         and batch of inputs. This is done over the following steps:
@@ -958,8 +951,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
 
-        # print(f"In generation:\n{rewards=}\n{advantages=}")
-
         del responses
         torch.cuda.empty_cache()
 
@@ -969,7 +960,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         logprobs[response_padding_masks] = 1.0
         ref_logprobs[response_padding_masks] = 1.0
 
-        return R1Trajectory(
+        return GRPOTrajectory(
             query_responses=query_responses,
             logprobs=logprobs,
             ref_logprobs=ref_logprobs,
@@ -983,20 +974,21 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
     def generate_trajectory_batched(
-        self, input_ids: torch.Tensor, answers: list[str]
-    ) -> R1Trajectory:
+        self, input_ids: torch.Tensor, answers: List[str]
+    ) -> GRPOTrajectory:
         """
         Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
         See ``generate_trajectory`` for more details.
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
+            answers: (List[str]): list of answers corresponding to the input_ids
 
         Returns:
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
-        trajectories: List[R1Trajectory] = []
+        trajectories: List[GRPOTrajectory] = []
         with torch.no_grad():
             for batch_start in range(0, self.batch_size, self._forward_batch_size):
                 batch_input_ids = input_ids[
@@ -1010,11 +1002,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     self.generate_trajectory(batch_input_ids, batch_answers)
                 )
                 torch.cuda.empty_cache()
-        return R1Trajectory(*map(torch.cat, zip(*trajectories)))
+        return GRPOTrajectory(*map(torch.cat, zip(*trajectories)))
 
     def _grpo_step(
         self,
-        trajectory: R1Trajectory,
+        trajectory: GRPOTrajectory,
         context_length: int,
     ) -> GRPOStats:
         """
@@ -1126,26 +1118,13 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                # print(f"{batch=}")
                 tokens = batch["tokens"]  # type: ignore
                 answers = batch["answers"]  # type: ignore
                 tokens = tokens.to(self._device)  # [B, P]
 
                 _, context_length = tokens.shape
 
-                # if self._is_rank_zero:
-                #     print(f"{tokens.shape=}")
-                #     import ipdb; ipdb.set_trace()
                 trajectory = self.generate_trajectory_batched(tokens, answers)
-
-                # print(f"{trajectory=}")
-                # log.info(f"{trajectory.query_responses.shape=}")
-                # log.info(f"{trajectory.logprobs.shape=}")
-                # log.info(f"{trajectory.ref_logprobs.shape=}")
-                # log.info(f"{trajectory.advantages.shape=}")
-                # log.info(f"{trajectory.masks.shape=}")
-                # log.info(f"{trajectory.position_ids.shape=}")
-                # log.info(f"{trajectory.response_padding_masks.shape=}")  # True means that it's masked out
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
@@ -1167,11 +1146,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                                 j : j + self._ppo_backward_batch_size
                             ]
 
-                            # print(f"{backward_batch_idxs.shape=}")
-                            # print(f"{backward_batch_idxs=}")
-                            # for k, v in trajectory._asdict().items():
-                            #     print(f"{k=} {v.shape=}")
-                            batch_trajectory = R1Trajectory(
+                            batch_trajectory = GRPOTrajectory(
                                 *map(
                                     partial(
                                         torch.index_select,
@@ -1195,9 +1170,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                                 grad_norm = torch.nn.utils.clip_grad_norm_(
                                     self._model.parameters(),
                                     max_norm=float(self._clip_grad_norm),
-                                    # error_if_nonfinite=True
                                 )
-                            # print(f"PERFORMING A GRADIENT UPDATE")
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
 
@@ -1241,7 +1214,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.stop()
 
     def log_metrics(
-        self, trajectory: R1Trajectory, grpo_stats: GRPOStats, **extras
+        self, trajectory: GRPOTrajectory, grpo_stats: GRPOStats, **extras
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.
@@ -1266,15 +1239,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             **extras,
         }
 
-        # for key, value in log_dict.items():
-        #     if not isinstance(value, torch.Tensor):
-        #         value = torch.tensor(value, device=self._device)
-        #     elif value.device != self._device:
-        #         value = value.to(self._device)
-        #
-        #     torch.distributed.all_reduce(value, op=torch.distributed.ReduceOp.AVG)
-        #     log_dict[key] = value.item()
-
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))
         if self._is_rank_zero:
@@ -1287,7 +1251,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
     def cleanup_after_step(
         self,
-        trajectory: R1Trajectory,
+        trajectory: GRPOTrajectory,
         l_grpo_stats: list[GRPOStats],
     ) -> None:
         for v in trajectory:
