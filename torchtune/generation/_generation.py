@@ -346,7 +346,7 @@ def generate(
             tokens, stop_tokens, stop_token_reached
         )
         if stop_token_reached.all().item():
-            return generated_tokens, generated_logits
+            return generated_tokens, generated_logits if return_logits else None
 
     world_size, rank = utils.get_world_size_and_rank()
     for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank > 0)):
