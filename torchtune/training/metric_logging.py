@@ -48,6 +48,17 @@ def save_config(config: DictConfig) -> Path:
         log.warning(f"Error saving config.\nError: \n{e}.")
 
 
+def flatten_dict(d, parent_key="", sep="."):
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
 class MetricLoggerInterface(Protocol):
     """Abstract metric logger."""
 
@@ -469,3 +480,159 @@ class CometLogger(MetricLoggerInterface):
 
     def __del__(self) -> None:
         self.close()
+
+
+class MetricLoggerInterface(Protocol):
+    """Abstract metric logger."""
+
+    def log(
+        self,
+        name: str,
+        data: Scalar,
+        step: int,
+    ) -> None:
+        """Log scalar data.
+
+        Args:
+            name (str): tag name used to group scalars
+            data (Scalar): scalar data to log
+            step (int): step value to record
+        """
+        pass
+
+    def log_config(self, config: DictConfig) -> None:
+        """Logs the config as file
+
+        Args:
+            config (DictConfig): config to log
+        """
+        pass
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        """Log multiple scalar values.
+
+        Args:
+            payload (Mapping[str, Scalar]): dictionary of tag name and scalar value
+            step (int): step value to record
+        """
+        pass
+
+    def close(self) -> None:
+        """
+        Close log resource, flushing if necessary.
+        Logs should not be written after `close` is called.
+        """
+        pass
+
+
+class MLFlowLogger(MetricLoggerInterface):
+    """Logger for use w/ MLFlow.
+
+    Args:
+        experiment_name (Optional[str]): MLFlow experiment name. If not specified, will
+            default to MLFLOW_EXPERIMENT_NAME environment variable if set, or default.
+        tracking_uri (Optional[str]): MLFlow tracking uri. If not specified, will default
+            to MLFLOW_TRACKING_URI environment variable if set, or default.
+        run_id (Optional[str]): MLFlow run name. If not specified, will default
+            to mlflow-generated HRID. Unused if run_id is specified or MLFLOW_RUN_ID
+            environment variable is found.
+        run_name (Optional[str]): MLFlow run ID. If not specified, will default
+            to MLFLOW_RUN_ID environment variable if set, or a new run will be created.
+
+    Example:
+        >>> logger = MLFlowLogger(experiment_name="my_experiment", run_name="run1", log_dir="./mlruns")
+        >>> logger.log("accuracy", 0.95, step=1)
+        >>> logger.log_dict({"loss": 0.1, "accuracy": 0.95}, step=1)
+        >>> logger.log_config(config)
+        >>> logger.close()
+
+    Raises:
+        ImportError: If ``mlflow`` package is not installed.
+
+    Note:
+        This logger requires the mlflow package to be installed.
+        You can install it with `pip install mlflow`.
+    """
+
+    def __init__(
+        self,
+        experiment_name: Optional[str] = None,
+        tracking_uri: Optional[str] = None,
+        run_id: Optional[str] = None,
+        run_name: Optional[str] = None,
+    ):
+        try:
+            import mlflow
+        except ImportError as e:
+            raise ImportError(
+                "``mlflow`` package not found. Please install mlflow using `pip install mlflow` to use MLFlowLogger."
+                "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
+            ) from e
+
+        _, self.rank = get_world_size_and_rank()
+
+        self._mlflow = mlflow
+
+        self._tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI", None)
+        self._experiment_name = experiment_name or os.getenv(
+            "MLFLOW_EXPERIMENT_NAME", None
+        )
+        self._run_id = run_id or os.getenv("MLFLOW_RUN_ID", None)
+
+        if self.rank == 0:
+            if not self._mlflow.is_tracking_uri_set():
+                if self._tracking_uri:
+                    self._mlflow.set_tracking_uri(self._tracking_uri)
+
+            if self._mlflow.active_run() is None or self._nested_run or self._run_id:
+                if self._experiment_name:
+                    # Use of set_experiment() ensure that Experiment is created if not exists
+                    self._mlflow.set_experiment(self._experiment_name)
+                run = self._mlflow.start_run(run_name=run_name)
+                self._run_id = run.info.run_id
+
+    def log_config(self, config: DictConfig) -> None:
+        """Saves the config locally and also logs the config to mlflow. The config is
+        stored in the same directory as the checkpoint.
+
+        Args:
+            config (DictConfig): config to log
+        """
+        if self._mlflow.active_run():
+            resolved = OmegaConf.to_container(config, resolve=True)
+
+            # mlflow's params must be flat key-value pairs
+            config_as_params = flatten_dict(resolved)
+            self._mlflow.log_params(config_as_params, run_id=self._run_id)
+
+            output_config_fname = save_config(config)
+
+            # this avoids break if config's output_dir is an absolute path
+            artifact_path = str(output_config_fname.parent).lstrip("/")
+
+            self._mlflow.log_artifact(
+                output_config_fname,
+                artifact_path=artifact_path,
+                run_id=self._run_id,
+            )
+
+    def log(self, name: str, data: Scalar, step: int) -> None:
+        if self._mlflow.active_run():
+            self._mlflow.log_metric(name, data, step=step, run_id=self._run_id)
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        if self._mlflow.active_run():
+            self._mlflow.log_metrics(payload, step=step, run_id=self._run_id)
+
+    def close(self) -> None:
+        """
+        Ends the MLflow run.
+        After calling close, no further logging should be performed.
+        """
+        if self.rank == 0 and self._mlflow.active_run():
+            self._mlflow.end_run()
+
+    def __del__(self) -> None:
+        # Ensure the MLflow run is closed when the logger is deleted.
+        if hasattr(self, "_mlflow") and self._mlflow.active_run():
+            self._mlflow.end_run()
