@@ -205,7 +205,7 @@ def generate(
     rng: Optional[torch.Generator] = None,
     custom_generate_next_token: Optional[Callable] = None,
     return_logits: bool = True,
-) -> Tuple[torch.Tensor, torch.Tensor | None]:
+) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
 
