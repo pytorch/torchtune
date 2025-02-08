@@ -101,7 +101,6 @@ optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_ste
 
 # Reduced precision
 dtype: bf16
-custom_sharded_layers: ['decoder.tok_embeddings']
 
 
 # Logging
