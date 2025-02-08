@@ -482,49 +482,6 @@ class CometLogger(MetricLoggerInterface):
         self.close()
 
 
-class MetricLoggerInterface(Protocol):
-    """Abstract metric logger."""
-
-    def log(
-        self,
-        name: str,
-        data: Scalar,
-        step: int,
-    ) -> None:
-        """Log scalar data.
-
-        Args:
-            name (str): tag name used to group scalars
-            data (Scalar): scalar data to log
-            step (int): step value to record
-        """
-        pass
-
-    def log_config(self, config: DictConfig) -> None:
-        """Logs the config as file
-
-        Args:
-            config (DictConfig): config to log
-        """
-        pass
-
-    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
-        """Log multiple scalar values.
-
-        Args:
-            payload (Mapping[str, Scalar]): dictionary of tag name and scalar value
-            step (int): step value to record
-        """
-        pass
-
-    def close(self) -> None:
-        """
-        Close log resource, flushing if necessary.
-        Logs should not be written after `close` is called.
-        """
-        pass
-
-
 class MLFlowLogger(MetricLoggerInterface):
     """Logger for use w/ MLFlow.
 
