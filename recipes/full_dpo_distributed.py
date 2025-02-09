@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
+import omegaconf
 import time
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -277,14 +278,25 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
         )
 
+        # reference: true is not exposed in the configs.
+        try:
+            self._reference = config.instantiate(cfg.reference)
+            log.info("Concatenated forward is initialized.")
+        except omegaconf.errors.ConfigAttributeError:
+            log.info(
+                "reference: false was not selected, going with true."
+            )
+            self._reference = True
+
         # TODO (@SalmanMohammadi) investigate TP for ref model
-        self._ref_model = self._setup_reference_model(
-            cfg_model=cfg.model,
-            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
-            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=ref_checkpoint_dict,
-            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
-        )
+        if self._reference:
+            self._ref_model = self._setup_reference_model(
+                cfg_model=cfg.model,
+                fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+                reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
+                model_state_dict=ref_checkpoint_dict,
+                custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -306,7 +318,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")
-
+        
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are initialized
         self._sampler, self._dataloader = self._setup_data(
@@ -801,52 +813,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         torch.distributed.barrier()
 
-    def concatenated_forward(
-        self,
-        model: nn.Module,
-        batch: Tuple[torch.Tensor, torch.Tensor],
-        activations_handling: Optional[bool] = True,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Run forward pass of the model with chosen and rejected samples concatenated.
-
-        Args:
-            model (nn.Module): The model to be used for the forward pass.
-            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
-
-        Returns:
-            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
-        """
-        concatenated_input_ids, concatenated_labels = batch
-        concatenated_input_ids = concatenated_input_ids.to(self._device)
-        concatenated_labels = concatenated_labels.to(self._device)
-
-        # formed by concatenating an equal number of "chosen" and "rejected".
-        len_chosen = concatenated_input_ids.shape[0] // 2
-
-        if activations_handling:
-            with self.activations_handling_ctx:
-                all_logits = model(concatenated_input_ids)
-        else:
-            all_logits = model(concatenated_input_ids)
-
-        chosen_log_probs = rlhf.get_batch_log_probs(
-            all_logits[:len_chosen],
-            concatenated_labels[:len_chosen],
-            return_average_logprobs=False,
-        )
-
-        rejected_log_probs = rlhf.get_batch_log_probs(
-            all_logits[len_chosen:],
-            concatenated_labels[len_chosen:],
-            return_average_logprobs=False,
-        )
-
-        chosen_logits = all_logits[:len_chosen]
-        rejected_logits = all_logits[len_chosen:]
-
-        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
-
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
@@ -900,7 +866,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     policy_rejected_log_probs,
                     policy_chosen_logits,
                     policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                    *args,
+                ) = self._loss_fn.concatenated_forward(
+                    self._model, batch, self._device, self.activations_handling_ctx
+                )
 
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
@@ -908,24 +877,35 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
                 del policy_chosen_logits, policy_rejected_logits
 
-                with torch.no_grad():
-                    (
-                        reference_chosen_log_probs,
-                        reference_rejected_log_probs,
-                        reference_chosen_logits,
-                        reference_rejected_logits,
-                    ) = self.concatenated_forward(
-                        self._ref_model, batch, activations_handling=False
+                # At this point we have different loss forward and concatenated_forward
+
+                if self._reference:
+                    with torch.no_grad():
+                        (
+                            reference_chosen_log_probs,
+                            reference_rejected_log_probs,
+                            reference_chosen_logits,
+                            reference_rejected_logits,
+                        ) = self._loss_fn.concatenated_forward(
+                            self._ref_model, batch, self._device, self.activations_handling_ctx
+                        )
+
+                    del reference_chosen_logits, reference_rejected_logits
+
+                if self._reference:
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn.forward(
+                       policy_chosen_log_probs,
+                       policy_rejected_log_probs,
+                       reference_chosen_log_probs,
+                       reference_rejected_log_probs,
+                       *args
                     )
-
-                del reference_chosen_logits, reference_rejected_logits
-
-                loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    reference_chosen_log_probs,
-                    reference_rejected_log_probs,
-                )
+                else:
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn.forward(
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
+                       *args
+                    )
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
                 loss = loss.mean()

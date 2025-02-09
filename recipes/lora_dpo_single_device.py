@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
+import omegaconf
 import time
 
 from functools import partial
@@ -241,6 +242,16 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
         log.info("Loss function is initialized.")
 
+        # reference: true is not exposed in the configs.
+        try:
+            self._reference = config.instantiate(cfg.reference)
+            log.info("Concatenated forward is initialized.")
+        except omegaconf.errors.ConfigAttributeError:
+            log.info(
+                "reference: false was not selected, going with true."
+            )
+            self._reference = True
+
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         self._sampler, self._dataloader = self._setup_data(
@@ -468,39 +479,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
-    def concatenated_forward(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Run forward pass of the model with chosen and rejected samples concatenated.
-
-        Args:
-            model (nn.Module): The model to be used for the forward pass.
-            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
-
-        Returns:
-            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
-        """
-        concatenated_input_ids, concatenated_labels = batch
-        concatenated_input_ids = concatenated_input_ids.to(self._device)
-        concatenated_labels = concatenated_labels.to(self._device)
-
-        # formed by concatenating an equal number of "chosen" and "rejected".
-        len_chosen = concatenated_input_ids.shape[0] // 2
-
-        with self.activations_handling_ctx:
-            all_logits = model(concatenated_input_ids)
-
-        all_log_probs = rlhf.get_batch_log_probs(all_logits, concatenated_labels)
-
-        chosen_log_probs = all_log_probs[:len_chosen]
-        rejected_log_probs = all_log_probs[len_chosen:]
-
-        chosen_logits = all_logits[:len_chosen]
-        rejected_logits = all_logits[len_chosen:]
-
-        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
-
     def train(self) -> None:
         """
         The core training loop.
@@ -536,7 +514,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     policy_rejected_log_probs,
                     policy_chosen_logits,
                     policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                    *args,
+                ) = self._loss_fn.concatenated_forward(self._model, batch, self._device, self.activations_handling_ctx)
 
                 policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
@@ -544,19 +523,21 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
                 del policy_chosen_logits, policy_rejected_logits
 
-                with torch.no_grad(), disable_adapter(self._model):
-                    (
+                if self._reference:
+                    with torch.no_grad(), disable_adapter(self._model):
+                        (
+                           reference_chosen_log_probs,
+                           reference_rejected_log_probs,
+                           _,
+                           _,
+                        ) = self._loss_fn.concatenated_forward(self._model, batch, self._device, self.activations_handling_ctx)
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn.forward(
+                        policy_chosen_log_probs,
+                        policy_rejected_log_probs,
                         reference_chosen_log_probs,
                         reference_rejected_log_probs,
-                        _,
-                        _,
-                    ) = self.concatenated_forward(self._model, batch)
-                loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    reference_chosen_log_probs,
-                    reference_rejected_log_probs,
-                )
+                        *args,
+                    )
 
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
