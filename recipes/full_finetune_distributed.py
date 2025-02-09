@@ -25,6 +25,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training._optimizer_wrapper import OptimizerWrapper
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing._checkpoint_client import (
     CheckpointClient,
@@ -276,15 +277,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
-        self._optimizer = self._setup_optimizer(
+        self._optimizer = OptimizerWrapper(
+            model=self._model,
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
-                if training.OPT_KEY in checkpoint_dict
+                if self._resume_from_checkpoint
                 else None
             ),
         )
+
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
@@ -391,12 +394,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 )
             return None
 
-        if self._optimizer_in_bwd:
-            # Use the first optimizer from the wrapper to represent the learning rate
-            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
-        else:
-            # Standard case: use the single optimizer
-            optimizer = self._optimizer
+        optimizer = self._optimizer
 
         # Instantiate the learning rate scheduler
         lr_scheduler = config.instantiate(
@@ -406,9 +404,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        if self._optimizer_in_bwd:
-            # Modify the scheduler for optimizer_in_bwd case
-            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
+       
+        self._optimizer.set_lr(lr_scheduler)
 
         if self._is_rank_zero:
             log.info("Learning rate scheduler is initialized.")
@@ -585,59 +582,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
         return model
-
-    def _setup_optimizer(
-        self,
-        cfg_optimizer: DictConfig,
-        optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Optimizer]:
-        if optimizer_in_bwd:
-            # Maintain a dict of optims for every parameter.
-            optim_dict = {
-                param: config.instantiate(cfg_optimizer, [param])
-                for param in self._model.parameters()
-            }
-
-            # Register optimizer step hooks on the model to run optimizer in backward.
-            training.register_optim_in_bwd_hooks(
-                model=self._model, optim_dict=optim_dict
-            )
-            # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
-                model=self._model, optim_dict=optim_dict
-            )
-            # Load optimizer states for each param. If optimizer states are being restored in an optimizer in
-            # backward run, these need to have been saved with the same setting. Cannot restore from runs that
-            # did not use optimizer in backward.
-            if opt_state_dict is not None:
-                for param in opt_state_dict.keys():
-                    try:
-                        training.load_from_full_optimizer_state_dict(
-                            self._model,
-                            self._optim_ckpt_wrapper.state_dict()[param],
-                            opt_state_dict[param],
-                            self._device,
-                        )
-                    except BaseException as e:
-                        raise RuntimeError(
-                            "Failed loading in-backward optimizer checkpoints."
-                            "Please make sure run being restored from was using in-backward optimizer."
-                        ) from e
-            utils.log_rank_zero(log, "In-backward optimizers are set up.")
-            return None
-        else:
-            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-            if opt_state_dict:
-                training.load_from_full_optimizer_state_dict(
-                    self._model,
-                    optimizer,
-                    opt_state_dict,
-                    self._device,
-                )
-
-            utils.log_rank_zero(log, "Optimizer is initialized.")
-            return optimizer
 
     def _setup_data(
         self,
