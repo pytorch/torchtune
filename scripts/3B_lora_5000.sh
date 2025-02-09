@@ -11,4 +11,4 @@ module load cuda/12.4.1
 conda init bash
 conda shell.bash activate torchtune
 
-tune run lora_finetune_single_device --config recipes/configs/guardian_models/8B_lora_2500.yaml
+tune run lora_finetune_single_device --config recipes/configs/guardian_models/3B_lora_5000.yaml

@@ -777,7 +777,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     "validation/label_accuracy": total_accuracy / num_samples,
                     "validation/label_confidence": total_confidence / num_samples,
                     "validation/generation_accuracy": total_gen_accuracy / num_samples,
-                    "validation/generation_results": generation_results,
+                    f"validation/generation_results_{epoch}": generation_results,
                 }
                 self._metric_logger.log_dict(
                     log_dict,
