@@ -22,18 +22,26 @@ if _SUPPORTS_FLEX_ATTENTION:
         flex_attention,
     )
 
-    try:
-        flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
-    except Exception as e:
-        # If user's torch version is <torch-2.7.0.dev20250205, compiling may fail.
-        # using max-autotune fixes this issue. Context: https://github.com/pytorch/torchtune/issues/2113
-        # TODO: deprecate me once 2.7 becomes stable.
-        _log.info(
-            f"Compiling flex_attention failed with error {e}. Retrying with mode='max-autotune'."
-        )
-        flex_attention_compiled = torch.compile(
-            flex_attention, dynamic=False, mode="max-autotune"
-        )
+    def compile_flex_attention():
+        try:
+            return torch.compile(flex_attention, dynamic=False)
+        except Exception as e:
+            # It may fail on some combinations of hardware/versions. Using max-autotune fixes this issue.
+            # Context: https://github.com/pytorch/torchtune/issues/2113
+            _log.info(
+                f"Compiling flex_attention failed with error '{e}'. Retrying with mode='max-autotune'."
+            )
+            try:
+                return torch.compile(flex_attention, dynamic=False, mode="max-autotune")
+            except Exception as e:
+                _log.info(
+                    f"Compiling flex_attention failed with error: '{e}', "
+                    "Consider updating your pytorch version to nightlies or setting in your config "
+                    "dataset.packed=False, to avoid using flex attention."
+                )
+                raise
+
+    flex_attention_compiled = compile_flex_attention()
 
     # We cannot do nested compile, but flex attention only has perf benefits
     # when compiled. To insulate it from the compiler, we wrap it with
