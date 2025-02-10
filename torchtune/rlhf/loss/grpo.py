@@ -241,8 +241,8 @@ class GRPOSimpleLoss(nn.Module):
 
         # [B x G, L]
         per_token_kl = (
-            torch.exp(pi_logprobs.detach() - ref_logprobs)
-            - (pi_logprobs.detach() - ref_logprobs)
+            torch.exp(ref_logprobs.detach() - pi_logprobs)
+            - (ref_logprobs.detach() - pi_logprobs)
             - 1
         )
 

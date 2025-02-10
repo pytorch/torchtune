@@ -1019,6 +1019,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 _, context_length = tokens.shape
 
                 trajectory = self.generate_trajectory_batched(tokens, answers)
+                torch.distributed.barrier()
 
                 effective_batch_size = self.batch_size * self.grpo_samples  # = B x G
                 grpo_stats: list[GRPOStats] = []
@@ -1060,6 +1061,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                                 self._model.parameters(),
                                 max_norm=float(self._clip_grad_norm),
                             )
+                        torch.distributed.barrier()
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
