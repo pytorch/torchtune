@@ -123,7 +123,7 @@ class GPT2BaseTokenizer(BaseTokenizer):
             token (str): Passed token.
 
         Returns:
-            Pair token for the give token.
+            Pair token for the given token.
         """
         if token in self.cache:
             return self.cache[token]
