@@ -1018,9 +1018,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
                 trajectory = self.generate_trajectory_batched(tokens, answers)
 
-                # Calculate the number of unmasked tokens in the current batch
-                # and increment the total number of tokens seen in the step
-
                 effective_batch_size = self.batch_size * self.grpo_samples  # = B x G
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
