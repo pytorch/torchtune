@@ -14,8 +14,8 @@ class TestGPT2BaseTokenizer:
     @pytest.fixture
     def tokenizer(self):
         tokenizer = GPT2BaseTokenizer(
-            ASSETS / "tiny_vocab.json",
-            ASSETS / "tiny_bpe_merges.txt",
+            ASSETS / "vocab.json",
+            ASSETS / "merges.txt",
             "replace",
             1,
             1,
@@ -27,47 +27,40 @@ class TestGPT2BaseTokenizer:
     def test_encode(self, tokenizer):
         assert tokenizer.encode("Hello world!") == [
             tokenizer.bos_id,
-            2,
-            3,
-            4,
-            5,
+            9906,
+            1917,
             tokenizer.eos_id,
         ]
         assert tokenizer.encode("Hello world!", add_eos=False) == [
             tokenizer.bos_id,
-            2,
-            3,
-            4,
-            5,
+            9906,
+            1917,
         ]
         assert tokenizer.encode("Hello world!", add_bos=False) == [
-            2,
-            3,
-            4,
-            5,
+            9906,
+            1917,
             tokenizer.eos_id,
         ]
         assert tokenizer.encode("Hello world!", add_eos=False, add_bos=False) == [
-            2,
-            3,
-            4,
-            5,
+            9906,
+            1917,
         ]
 
     def test_decode(self, tokenizer):
-        tokens = [2, 3, 4, 5]
+        tokens = [
+            9906,
+            1917,
+        ]
 
-        assert tokenizer.decode(tokens) == ["H", "ell", "o", "Ġworld"]
+        assert tokenizer.decode(tokens) == ["Hello", "Ġworld"]
         assert tokenizer.decode(
             tokenizer.encode("Hello world!", add_eos=False, add_bos=False)
-        ) == ["H", "ell", "o", "Ġworld"]
+        ) == ["Hello", "Ġworld"]
         assert tokenizer.decode(tokenizer.encode("Hello world!")) == [
-            None,
-            "H",
-            "ell",
-            "o",
+            '"',
+            "Hello",
             "Ġworld",
-            None,
+            '"',
         ]
 
     def test_token_ids(self, tokenizer):
@@ -77,4 +70,4 @@ class TestGPT2BaseTokenizer:
         assert tokenizer.unk_id == 1
 
     def test_tokenizer_vocab_size(self, tokenizer):
-        assert tokenizer.vocab_size == 4
+        assert tokenizer.vocab_size == 63668
