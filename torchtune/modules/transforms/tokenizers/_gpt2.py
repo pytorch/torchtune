@@ -11,16 +11,14 @@ from typing import List
 
 from torchtune.modules.tokenizers._utils import BaseTokenizer
 
-# Constants controlling encode logic
-MAX_ENCODE_CHARS = 400_000
-MAX_NO_WHITESPACE_CHARS = 25_000
-
 
 @lru_cache()
 def bytes_to_unicode():
     """
     Returns list of utf-8 byte and a mapping to unicode strings. We specifically avoids mapping to whitespace/control
     characters the bpe code barfs on.
+
+    Original paper: https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf
 
     This is standard implementation based on:
     https://github.com/huggingface/transformers/blob/6b550462139655d488d4c663086a63e98713c6b9/src/transformers/models/gpt2/tokenization_gpt2.py#L36
@@ -65,10 +63,10 @@ class GPT2BaseTokenizer(BaseTokenizer):
         vocab_path (str): Path to vocab.json file.
         merges_path (str): Path to merges.txt file.
         errors (str): Paradigm to follow when decoding.
-        unk_id (int): unkown token id. This can be present or absent in ``special_tokens``.
-        bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.
-        eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.
-        pad_id (int): padding token id. This can be present or absent in ``special_tokens``.
+        unk_id (int): unkown token id.
+        bos_id (int): beginning-of-sequence token id.
+        eos_id (int): end-of-sequence token id.
+        pad_id (int): padding token id.
 
 
     Examples:
@@ -83,10 +81,10 @@ class GPT2BaseTokenizer(BaseTokenizer):
         vocab_path: str,
         merges_path: str,
         errors: str,
-        unk_id: int,
-        bos_id: int,
-        eos_id: int,
-        pad_id: int,
+        unk_id: int = None,
+        bos_id: int = None,
+        eos_id: int = None,
+        pad_id: int = None,
     ):
         with open(vocab_path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)
@@ -169,7 +167,7 @@ class GPT2BaseTokenizer(BaseTokenizer):
     def _tokenize(
         self,
         text: str,
-    ) -> List[int]:
+    ) -> List[str]:
         """
         Tokenize, but not encode given text.
 
@@ -188,15 +186,32 @@ class GPT2BaseTokenizer(BaseTokenizer):
 
         return bpe_tokens
 
-    def _convert_token_to_id(self, token: str):
+    def _convert_token_to_id(self, token: str) -> int:
         return self.encoder.get(token, self.encoder.get(self.unk_id))
+
+    def _convert_id_to_token(self, index: int) -> str:
+        return self.decoder.get(index)
+
+    def decode(self, tokens: list) -> List[str]:
+        """
+        Decode sequence of the given tokens into string.
+
+        Args:
+            tokens (list): List of the integers, which represent encoded tokens.
+
+        Returns:
+            Decoced text.
+        """
+
+        decoded_tokens = list(map(self._convert_id_to_token, tokens))
+        return decoded_tokens
 
     def encode(
         self,
         text: str,
         add_bos: bool = True,
         add_eos: bool = True,
-    ):
+    ) -> List[int]:
         """
         Tokenize and encode given text.
 

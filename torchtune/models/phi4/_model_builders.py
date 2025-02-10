@@ -55,7 +55,7 @@ def phi4_tokenizer(vocab_path: str = None, merges_path: str = None, path: str = 
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
     template = _get_prompt_template(prompt_template) if prompt_template is not None else None
-    return Phi4MiniTokenizer(vocab_path=vocab_path, merges_path=merges_path, path=path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
+    return Phi4MiniTokenizer(vocab_path=vocab_path, merges_path=merges_path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
 def lora_phi4(

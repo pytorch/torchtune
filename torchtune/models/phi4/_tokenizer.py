@@ -9,12 +9,9 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.data._utils import truncate
-from torchtune.modules.tokenizers import (
-    GPT2BaseTokenizer,
-    ModelTokenizer,
-    TikTokenBaseTokenizer,
-)
+from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import GPT2BaseTokenizer
 
 PHI4_SPECIAL_TOKENS = {
     "<|dummy_0|>": 100256,
@@ -46,7 +43,6 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
     TikToken tokenizer configured with Phi4 (14B) special tokens.
 
     Args:
-        path (str): Path to tokenizer.model file.
         merges_path (str): Path to merges.txt file.
         vocab_path (str): Path to vocab.json file.
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
@@ -73,7 +69,6 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
     def __init__(
         self,
-        path: str = None,
         merges_path: str = None,
         vocab_path: str = None,
         special_tokens: Optional[Dict[str, int]] = None,
@@ -87,7 +82,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         # Use custom EOS, BOS and pad ids instead of TikToken's
         self.eos_id = self.special_tokens["<|im_end|>"]
         self.bos_id = self.special_tokens["<|endoftext|>"]
-        self.pad_id = self.special_tokens["<|dummy_87|>"]
+        self.pad_id = self.special_tokens["<|dummy_85|>"]
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
@@ -96,26 +91,15 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
         self.prompt_template = prompt_template
 
-        if path is None:
-            self.tt_model = GPT2BaseTokenizer(
-                vocab_path,
-                merges_path,
-                "replace",
-                self.eos_id,
-                self.bos_id,
-                self.eos_id,
-                self.pad_id,
-            )
-        else:
-            # To be still flexible at the point of tokenizer.model
-            self.tt_model = TikTokenBaseTokenizer(
-                path,
-                "phi4_tiktoken",
-                CL100K_PATTERN,
-                bos_id=self.bos_id,
-                eos_id=self.eos_id,
-                special_tokens=self.special_tokens,
-            )
+        self.tokenizer_model = GPT2BaseTokenizer(
+            vocab_path,
+            merges_path,
+            "replace",
+            self.eos_id,
+            self.bos_id,
+            self.eos_id,
+            self.pad_id,
+        )
 
     @property
     def vocab_size(self):
@@ -126,9 +110,8 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         text: str,
         add_bos: bool = True,
         add_eos: bool = True,
-        trim_leading_whitespace: bool = False,
     ) -> List[int]:
-        return self.tt_model.encode(
+        return self.tokenizer_model.encode(
             text=text,
             add_bos=add_bos,
             add_eos=add_eos,
@@ -155,14 +138,13 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 ids_for_decode.append(token_id)
         return self.tt_model.decode(ids_for_decode)
 
-    def _tokenize_header(self, role: str):
+    def _tokenize_header(self, role: str) -> list:
         tokenized_messages = []
         tokenized_messages.append(self.special_tokens["<|im_start|>"])
         encoded = self.encode(
             role,
             add_bos=False,
             add_eos=False,
-            trim_leading_whitespace=True,
         )
 
         tokenized_messages.extend(encoded)
@@ -256,7 +238,6 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                         item["content"].rstrip(" "),
                         add_bos=False,
                         add_eos=False,
-                        trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
                     )
                 else:
                     raise RuntimeError(

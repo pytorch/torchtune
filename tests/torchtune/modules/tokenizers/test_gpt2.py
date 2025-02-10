@@ -7,7 +7,7 @@
 import pytest
 
 from tests.common import ASSETS
-from torchtune.modules.tokenizers import GPT2BaseTokenizer
+from torchtune.modules.transforms.tokenizers import GPT2BaseTokenizer
 
 
 class TestGPT2BaseTokenizer:
@@ -52,6 +52,22 @@ class TestGPT2BaseTokenizer:
             3,
             4,
             5,
+        ]
+
+    def test_decode(self, tokenizer):
+        tokens = [2, 3, 4, 5]
+
+        assert tokenizer.decode(tokens) == ["H", "ell", "o", "Ġworld"]
+        assert tokenizer.decode(
+            tokenizer.encode("Hello world!", add_eos=False, add_bos=False)
+        ) == ["H", "ell", "o", "Ġworld"]
+        assert tokenizer.decode(tokenizer.encode("Hello world!")) == [
+            None,
+            "H",
+            "ell",
+            "o",
+            "Ġworld",
+            None,
         ]
 
     def test_token_ids(self, tokenizer):
