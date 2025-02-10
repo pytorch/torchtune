@@ -105,7 +105,7 @@ class InferenceRecipe:
         tp_device_mesh = dist.init_device_mesh("cuda", tp_mesh_shape)
 
         # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
-        training.prepare_mha_for_tp(model, tp_device_mesh)
+        model = training.prepare_mha_for_tp(model, tp_device_mesh)
         parallelize_module(
             model,
             tp_device_mesh,
