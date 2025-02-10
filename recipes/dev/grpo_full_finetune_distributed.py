@@ -265,7 +265,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._model, self._ref_model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
-            enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -478,7 +477,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
-        enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
@@ -589,12 +587,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
-
-        # activation offloading
-        self.policy_activations_handling_ctx = training.get_act_offloading_ctx_manager(
-            model, enable_activation_offloading
-        )
-
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
