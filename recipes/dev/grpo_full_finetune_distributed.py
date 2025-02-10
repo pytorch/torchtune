@@ -157,27 +157,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
         )
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading:
-            if self._device.type != "cuda":
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
-                )
-            if not self._enable_activation_checkpointing:
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
-                )
-        elif (
-            self._enable_activation_checkpointing
-            and cfg.checkpointer.model_type != "LLAMA3_VISION"
-        ):
-            utils.log_rank_zero(
-                log,
-                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further.",
-            )
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -761,7 +740,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self, input_ids: torch.Tensor, answers: List[str]
     ) -> GRPOTrajectory:
         """
-        Generates a trajectory given the current policy model, the reference policy model, the reward model,
+        Generates a trajectory given the current policy model, the reference policy model, the reward function,
         and batch of inputs. This is done over the following steps:
 
         1: Generate responses, and logits corresponding to the responses using the current policy,
