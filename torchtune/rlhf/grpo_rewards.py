@@ -30,9 +30,16 @@ def shaped_correctness_reward(
 ) -> tuple[float, float]:
     """
     Reward function for verifiable rewards with some mild shaping.
+
+    Args:
+        answer (str): ground-truth answer to the current problem
+        completion (str): model's completion, starting immediately after "Assistant: <think>"
+    Returns:
+        reward: (float) a shaped reward indicating the correct answer and the correct format
+        success: (float) a binary measure of success (1 if the answer is correct and correctly formatted, 0 otherwise)
     """
-    reward = 0
-    success = 0
+    reward = 0.0
+    success = 0.0
 
     try:
         tags = extract_tags(
