@@ -51,18 +51,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
 
-        - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
-            flag. Activation offloading is a technique similar to activations checkpointing that helps
-            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
-            checkpointing drops the activation in the forward to recompute it later in the backward,
-            activations offloading will drop the activation in the forward to the CPU and bring it
-            back during the backward pass. As always, there is a tradeoff--these savings in memory can
-            come at the cost of training performance and CPU resources. To recover some runtime cost,
-            we've added an option to enable offloading on a different stream to permit overlapping with
-            the computation. This option is currently only available on PyTorch 2.5 or later and will
-            be enabled by default if an acceptable torch version is found. Activation offloading can be
-            used in conjunction with activation checkpointing.
-
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
             most cases this should halve the memory footprint of full precision (fp32) training, without
@@ -108,8 +96,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
         RuntimeError: If ``left_pad_sequence`` is set as the data collator.
-        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
-        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -153,7 +139,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
-        # activation checkpointing/offloading
+        # activation checkpointing
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
         )
