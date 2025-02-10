@@ -151,21 +151,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-
-        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
-        if self._optimizer_in_bwd:
-            if self._clip_grad_norm is not None:
-                raise RuntimeError(
-                    "Gradient clipping is not supported with optimizer in bwd."
-                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
-                )
-            if self._gradient_accumulation_steps > 1:
-                raise RuntimeError(
-                    "Gradient accumulation is not supported with optimizer in bwd."
-                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
-                )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -291,7 +277,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
                 if self._resume_from_checkpoint
@@ -406,12 +391,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 )
             return None
 
-        if self._optimizer_in_bwd:
-            # Use the first optimizer from the wrapper to represent the learning rate
-            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
-        else:
-            # Standard case: use the single optimizer
-            optimizer = self._optimizer
+        optimizer = self._optimizer
 
         # Instantiate the learning rate scheduler
         lr_scheduler = config.instantiate(
@@ -420,10 +400,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-
-        if self._optimizer_in_bwd:
-            # Modify the scheduler for optimizer_in_bwd case
-            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
         if self._is_rank_zero:
             log.info("Learning rate scheduler is initialized.")
@@ -619,13 +595,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             model, enable_activation_offloading
         )
 
-        self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
-            ref_model, enable_activation_offloading
-        )
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
-        # training.validate_no_params_on_meta_device(ref_model)
+        training.validate_no_params_on_meta_device(ref_model)
 
         utils.log_rank_zero(
             log,
@@ -638,62 +611,24 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # synchronize before training begins
         torch.distributed.barrier()
 
-        # ref_model = None
-
         return model, ref_model
 
     def _setup_optimizer(
         self,
         cfg_optimizer: DictConfig,
-        optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
-        if optimizer_in_bwd:
-            # Maintain a dict of optims for every parameter.
-            optim_dict = {
-                param: config.instantiate(cfg_optimizer, [param])
-                for param in self._model.parameters()
-            }
-
-            # Register optimizer step hooks on the model to run optimizer in backward.
-            training.register_optim_in_bwd_hooks(
-                model=self._model, optim_dict=optim_dict
+        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+        if opt_state_dict:
+            training.load_from_full_optimizer_state_dict(
+                self._model,
+                optimizer,
+                opt_state_dict,
+                self._device,
             )
-            # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
-                model=self._model, optim_dict=optim_dict
-            )
-            # Load optimizer states for each param. If optimizer states are being restored in an optimizer in
-            # backward run, these need to have been saved with the same setting. Cannot restore from runs that
-            # did not use optimizer in backward.
-            if opt_state_dict is not None:
-                for param in opt_state_dict.keys():
-                    try:
-                        training.load_from_full_optimizer_state_dict(
-                            self._model,
-                            self._optim_ckpt_wrapper.state_dict()[param],
-                            opt_state_dict[param],
-                            self._device,
-                        )
-                    except BaseException as e:
-                        raise RuntimeError(
-                            "Failed loading in-backward optimizer checkpoints."
-                            "Please make sure run being restored from was using in-backward optimizer."
-                        ) from e
-            utils.log_rank_zero(log, "In-backward optimizers are set up.")
-            return None
-        else:
-            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-            if opt_state_dict:
-                training.load_from_full_optimizer_state_dict(
-                    self._model,
-                    optimizer,
-                    opt_state_dict,
-                    self._device,
-                )
 
-            utils.log_rank_zero(log, "Optimizer is initialized.")
-            return optimizer
+        utils.log_rank_zero(log, "Optimizer is initialized.")
+        return optimizer
 
     def _setup_data(
         self,
@@ -786,19 +721,13 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if intermediate_checkpoint:
             start = time.perf_counter()
             utils.log_rank_zero(log, "Getting optimizer state dict...")
-            if not self._optimizer_in_bwd:
-                opt_state_dict = training.get_full_optimizer_state_dict(
-                    self._model,
-                    self._optimizer,
-                    self._is_rank_zero,
-                    device=self._device,
-                )
-            else:
-                opt_state_dict = {}
-                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
-                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        self._model, opt, self._is_rank_zero, device=self._device
-                    )
+            opt_state_dict = training.get_full_optimizer_state_dict(
+                self._model,
+                self._optimizer,
+                self._is_rank_zero,
+                device=self._device,
+            )
+
             utils.log_rank_zero(
                 log,
                 f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
@@ -1081,11 +1010,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         training.cleanup_before_training()
 
         # zero out the gradients before starting training
-        if not self._optimizer_in_bwd:
-            self._optimizer.zero_grad()
-        else:
-            for opt in self._optim_ckpt_wrapper.optim_map.values():
-                opt.zero_grad()
+        self._optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
@@ -1164,14 +1089,13 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
                         grpo_stats.append(GRPOStats(*map(sum, zip(*batch_grpo_stats))))
 
-                        if not self._optimizer_in_bwd:
-                            if self._clip_grad_norm is not None:
-                                grad_norm = torch.nn.utils.clip_grad_norm_(
-                                    self._model.parameters(),
-                                    max_norm=float(self._clip_grad_norm),
-                                )
-                            self._optimizer.step()
-                            self._optimizer.zero_grad(set_to_none=True)
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
 
                         self.global_step += 1
 
@@ -1181,13 +1105,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
                     extra_metrics = {}
-                    extra_metrics["lr"] = get_lr(
-                        (
-                            self._optimizer
-                            if not self._optimizer_in_bwd
-                            else self._optim_ckpt_wrapper
-                        ),
-                    )
+                    extra_metrics["lr"] = get_lr(self._optimizer)
                     if grad_norm is not None:
                         extra_metrics["grad_norm"] = grad_norm
 
