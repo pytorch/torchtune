@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+# flake8: noqa: E128
+
 import pytest
 
 from tests.common import ASSETS
@@ -35,8 +37,8 @@ class TestPhi4MiniTokenizer:
           630, 346, 531, 476, 505, 768, 1233, 342, 1923, 292, 522, 662, 280, 274, 913, 601, 359, 300, 44, 335, 834, 335,
           531, 476, 505, 604, 264, 509, 1456, 258, 771, 543, 1719, 405, 710, 665, 668, 1280, 46, 100266, 10,
           100265]  # noqa
-        return tokens
         # fmt: on
+        return tokens
 
     def test_tokenize_messages(self, tokenizer, expected_tokens):
         messages = [
@@ -63,8 +65,6 @@ class TestPhi4MiniTokenizer:
         expected_mask = [True] * 101 + [False] * 131
         assert expected_tokens == tokens
         assert expected_mask == mask
-    
-
 
     def test_tokenize_messages_no_system_prompt(self, tokenizer):
         messages = [
@@ -137,8 +137,7 @@ class TestPhi4MiniTokenizer:
         tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
 
         # fmt: off
-        expected_tokens = \
-        [100257, 100264, 115, 121, 322, 398, 100265, 10, 1539, 470, 258, 1444, 933, 1940, 511, 446, 100266,
+        expected_tokens = [100257, 100264, 115, 121, 322, 398, 100265, 10, 1539, 470, 258, 1444, 933, 1940, 511, 446, 100266,
         10, 100264, 477, 273, 100265, 10, 66, 478, 299, 351, 362, 292, 1160, 117, 807, 334, 958, 99, 445, 98,
         300, 258, 256, 281, 107, 46, 411, 114, 561, 258, 1156, 279, 316, 334, 604, 337, 112, 445, 1827, 512,
         1080, 116, 300, 262, 1249, 524, 340, 10, 35, 35, 35, 828, 1160, 117, 807, 1037, 71, 1414, 534, 258,

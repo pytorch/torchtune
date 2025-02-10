@@ -9,7 +9,11 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.data._utils import truncate
-from torchtune.modules.tokenizers import GPT2BaseTokenizer, TikTokenBaseTokenizer, ModelTokenizer
+from torchtune.modules.tokenizers import (
+    GPT2BaseTokenizer,
+    ModelTokenizer,
+    TikTokenBaseTokenizer,
+)
 from torchtune.modules.transforms import Transform
 
 PHI4_SPECIAL_TOKENS = {
@@ -42,6 +46,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
     TikToken tokenizer configured with Phi4 (14B) special tokens.
 
     Args:
+        path (str): Path to tokenizer.model file.
         merges_path (str): Path to merges.txt file.
         vocab_path (str): Path to vocab.json file.
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
@@ -111,7 +116,6 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 eos_id=self.eos_id,
                 special_tokens=self.special_tokens,
             )
-
 
     @property
     def vocab_size(self):
