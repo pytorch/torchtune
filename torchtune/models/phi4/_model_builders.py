@@ -13,7 +13,7 @@ from torchtune.data._prompt_templates import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
-the ``phi4`` model builder uses the ``phi4`` component builder.
+the ``phi4`` model builder uses the ``phi3`` component builder.
 """
 
 
