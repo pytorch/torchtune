@@ -111,6 +111,10 @@ _ALL_RECIPES = [
             Config(name="llama3/70B_full", file_path="llama3/70B_full.yaml"),
             Config(name="llama3_1/70B_full", file_path="llama3_1/70B_full.yaml"),
             Config(name="llama3_3/70B_full", file_path="llama3_3/70B_full.yaml"),
+            Config(
+                name="llama3_3/70B_full_multinode",
+                file_path="llama3_3/70B_full_multinode.yaml",
+            ),
             Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
             Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
             Config(name="gemma/7B_full", file_path="gemma/7B_full.yaml"),
@@ -339,6 +343,17 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="full_dpo_distributed",
+        file_path="full_dpo_distributed.py",
+        configs=[
+            Config(
+                name="llama3_1/8B_full_dpo",
+                file_path="llama3_1/8B_full_dpo.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="ppo_full_finetune_single_device",
         file_path="ppo_full_finetune_single_device.py",
         configs=[
@@ -448,6 +463,25 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="dev/generate_v2_distributed",
+        file_path="dev/generate_v2_distributed.py",
+        configs=[
+            Config(
+                name="llama3/70B_generation_distributed",
+                file_path="llama3/70B_generation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_1/70B_generation_distributed",
+                file_path="llama3_1/70B_generation_distributed.yaml",
+            ),
+            Config(
+                name="llama3_3/70B_generation_distributed",
+                file_path="llama3_3/70B_generation_distributed.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="dev/early_exit_finetune_distributed",
         file_path="dev/early_exit_finetune_distributed.py",
         configs=[
@@ -472,6 +506,10 @@ _ALL_RECIPES = [
                 file_path="qwen2/evaluation.yaml",
             ),
             Config(
+                name="qwen2_5/evaluation",
+                file_path="qwen2_5/evaluation.yaml",
+            ),
+            Config(
                 name="gemma/evaluation",
                 file_path="gemma/evaluation.yaml",
             ),
@@ -486,6 +524,10 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2/evaluation",
                 file_path="llama3_2/evaluation.yaml",
+            ),
+            Config(
+                name="code_llama2/evaluation",
+                file_path="code_llama2/evaluation.yaml",
             ),
         ],
         supports_distributed=False,

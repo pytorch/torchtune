@@ -124,7 +124,7 @@ class TheCauldronToMessages(Transform):
 def the_cauldron_dataset(
     model_transform: Transform,
     *,
-    subset: str,
+    subset: str = "orcvqa",
     source: str = "HuggingFaceM4/the_cauldron",
     column_map: Optional[Dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
@@ -138,8 +138,8 @@ def the_cauldron_dataset(
     `The Cauldron <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_
     from Hugging Face Datasets.
 
-    The Cauldron consists of numerous datasets. You must specify one of the datasets
-    using the ``subset`` argument.
+    The Cauldron consists of numerous datasets. You can specify one of the datasets
+    using the ``subset`` argument. The default value is the ``orcvqa`` dataset.
 
     The model transform is expected to be a callable that applies pre-processing steps specific
     to a model. For multimodal datasets, this is expected to be at minimum a tokenizer and
@@ -181,8 +181,8 @@ def the_cauldron_dataset(
             transforms on the keys. It should consist of at minimum two components: text tokenization (called
             on the "messages" field) and image transform (called on the "images" field). The keys returned by
             the model transform should be aligned with the expected inputs into the model.
-        subset (str): name of the subset of the dataset to load. See the `dataset card
-            <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_ for options.
+        subset (str): name of the subset of the dataset to load. Default is `orcvqa`, see the `dataset card
+            <https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>`_ for other options.
         source (str): path to dataset repository on Hugging Face. For local datasets,
             define source as the data file type (e.g. "json", "csv", "text") and pass
             in the filepath in ``data_files``. See `Hugging Face's

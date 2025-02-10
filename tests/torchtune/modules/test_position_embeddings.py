@@ -136,20 +136,21 @@ class TestRotaryPositionEmbedding:
 
 class TestVisionRotaryPositionEmbedding:
 
-    EXPECTED_X_OUT_MEAN = tensor(0.0789793)
-    EXPECTED_X_OUT_SUM = tensor(25.2733822)
-    EXPECTED_X_OUT_MAX = tensor(3.1225626)
+    EXPECTED_X_OUT_MEAN = tensor(-0.00903320)
+    EXPECTED_X_OUT_SUM = tensor(-29.48437119)
+    EXPECTED_X_OUT_MAX = tensor(4.07074356)
 
     @pytest.fixture
     def input_params(self):
         bsz = 2
+        max_num_tiles = 3
         num_heads = 8
         embed_dim = 32
         head_dim = embed_dim // num_heads
-        seq_len = 5
         patch_size = 4
         tile_size = 16
-        return bsz, num_heads, head_dim, seq_len, patch_size, tile_size
+        seq_len = ((tile_size // patch_size) ** 2 + 1) * max_num_tiles
+        return bsz, num_heads, head_dim, seq_len, max_num_tiles, patch_size, tile_size
 
     @pytest.fixture
     def input(self, input_params) -> tensor:
@@ -158,9 +159,12 @@ class TestVisionRotaryPositionEmbedding:
 
     @pytest.fixture
     def rope(self, input_params):
-        _, _, head_dim, _, patch_size, tile_size = input_params
+        _, _, head_dim, _, max_num_tiles, patch_size, tile_size = input_params
         return VisionRotaryPositionalEmbeddings(
-            patch_size=patch_size, tile_size=tile_size, dim=head_dim // 2
+            patch_size=patch_size,
+            tile_size=tile_size,
+            max_num_tiles=max_num_tiles,
+            dim=head_dim // 2,
         )
 
     @mps_ignored_test()
@@ -175,63 +179,20 @@ class TestVisionRotaryPositionEmbedding:
         # check shapes
         assert_expected(x_out.shape, input.shape)
 
-    @mps_ignored_test()
-    def test_forward_with_curr_pos(self, input, rope) -> None:
-        (
-            _,
-            seq_len,
-            _,
-            _,
-        ) = input.shape
-        x_out = rope(input, input_pos=torch.arange(seq_len))
-
-        # these values should be exactly the same as test_forward
-        # since in this case input_pos covers the entire input
-        # sequence. This tests that input_pos works as expected i.e.
-        # extracts the embeddings for the relevant positions
-        assert_expected(x_out.mean(), self.EXPECTED_X_OUT_MEAN, atol=1e-4)
-        assert_expected(x_out.sum(), self.EXPECTED_X_OUT_SUM)
-        assert_expected(x_out.max(), self.EXPECTED_X_OUT_MAX)
-
-        # check shapes
-        assert_expected(x_out.shape, input.shape)
-
-    @mps_ignored_test()
-    def test_forward_with_packed_pos(self, input, rope) -> None:
-        """
-        Use input_pos to indicate positions of each token relative to its sequence
-        when sample is packed.
-        """
-        (
-            bsz,
-            seq_len,
-            _,
-            _,
-        ) = input.shape
-        x_out = rope(
-            input, input_pos=torch.arange(seq_len).unsqueeze(0).expand(bsz, seq_len)
-        )
-
-        # these values should be exactly the same as test_forward
-        # AND test_forward_with_current_pos. In this case input_pos
-        # covers the entire batch dim and is defined for each sample separately.
-        # This tests that input_pos works as expected i.e.
-        # extracts the embeddings for the relevant positions for each sample
-        assert_expected(x_out.mean(), self.EXPECTED_X_OUT_MEAN, atol=1e-4)
-        assert_expected(x_out.sum(), self.EXPECTED_X_OUT_SUM)
-        assert_expected(x_out.max(), self.EXPECTED_X_OUT_MAX)
-
-        # check shapes
-        assert_expected(x_out.shape, input.shape)
-
     def test_rope_init_meta_device(self, input_params):
-        _, _, head_dim, _, patch_size, tile_size = input_params
+        _, _, head_dim, _, max_num_tiles, patch_size, tile_size = input_params
         rope_on_device = VisionRotaryPositionalEmbeddings(
-            dim=head_dim, patch_size=patch_size, tile_size=tile_size
+            dim=head_dim,
+            patch_size=patch_size,
+            max_num_tiles=max_num_tiles,
+            tile_size=tile_size,
         )
         with torch.device("meta"):
             meta_rope = VisionRotaryPositionalEmbeddings(
-                dim=head_dim, patch_size=patch_size, tile_size=tile_size
+                dim=head_dim,
+                patch_size=patch_size,
+                tile_size=tile_size,
+                max_num_tiles=max_num_tiles,
             )
 
         meta_rope.rope_init()

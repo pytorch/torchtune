@@ -72,7 +72,7 @@ class CheckpointClient:
         self._optimizer_in_bwd = self._cfg.get("optimizer_in_bwd", False)
         self._device = utils.get_device(device=self._cfg.device)
 
-        _, self._rank = training.get_world_size_and_rank()
+        _, self._rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self._rank == 0
 
     def _get_checkpointer(self):
@@ -188,7 +188,7 @@ class CheckpointClient:
             # To prevent GPU memory from spiking during checkpoint save,
             # we consolidate the full model and optim state dicts on CPU for rank 0
             model_state_dict = training.gather_cpu_state_dict(
-                model.state_dict(),
+                model,
                 self._is_rank_zero,
                 device=self._device,
             )
@@ -208,6 +208,7 @@ class CheckpointClient:
             if no_dist:
                 if not self._optimizer_in_bwd:
                     optim_state_dict = training.get_full_optimizer_state_dict(
+                        model,
                         optimizer,
                         self._is_rank_zero,
                         device=self._device,
@@ -217,7 +218,7 @@ class CheckpointClient:
                         optim_state_dict[
                             param
                         ] = training.get_full_optimizer_state_dict(
-                            opt, self._is_rank_zero, device=self._device
+                            model, opt, self._is_rank_zero, device=self._device
                         )
             else:
                 optim_state_dict = optimizer.state_dict()
