@@ -62,12 +62,6 @@ def shaped_correctness_reward(
         reward = 100.0
         success = 1
 
-    _, rank = utils.get_world_size_and_rank()
-    if rank == 0:
-        print()
-        print(f"{question=}\n{answer=}\n{reward=}\n{only_completion=}")
-        print()
-
     return reward, success
 
 
