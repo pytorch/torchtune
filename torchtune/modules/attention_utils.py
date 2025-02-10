@@ -36,8 +36,8 @@ if _SUPPORTS_FLEX_ATTENTION:
             except Exception as e:
                 _log.info(
                     f"Compiling flex_attention failed with error: '{e}', "
-                    "Consider updating your pytorch version to nightlies or setting in your config "
-                    "dataset.packed=False, to avoid using flex attention."
+                    "Updating your pytorch version to nightlies may solve it, or you can set"
+                    "in your config dataset.packed=False to avoid using flex attention."
                 )
                 raise
 
