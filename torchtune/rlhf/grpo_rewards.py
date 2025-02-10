@@ -58,12 +58,6 @@ def shaped_correctness_reward(
         # One of the answer tags contains the right answer (might be e.g. $20 instead of 20)
         reward += 10.0
 
-    # total_think_length = sum(len(c) + len("<think></think>") for c in tags["think"])
-    # total_answer_length = sum(len(a) + len("<answer></answer>") for a in tags["answer"])
-    # total_extra_length = len(only_completion) - total_think_length - total_answer_length
-
-    # reward -= 0.1 * total_extra_length
-
     if len(tags["answer"]) > 0 and tags["answer"][-1] == answer:
         reward = 100.0
         success = 1
