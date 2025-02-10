@@ -23,6 +23,10 @@ from .sequence_processing import (
     truncate_sequence_for_logprobs,
 )
 
+from .grpo_rewards import (
+    batch_shaped_correctness_reward
+)
+
 __all__ = [
     "truncate_sequence_at_first_stop_token",
     "logits_to_logprobs",

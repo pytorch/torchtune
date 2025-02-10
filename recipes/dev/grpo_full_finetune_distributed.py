@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
-from torchtune.datasets._rl import batch_shaped_correctness_reward
+from torchtune.rlhf import batch_shaped_correctness_reward
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf._types import GRPOStats, GRPOTrajectory
@@ -756,7 +756,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             answers (List[str]): list of answers corresponding to the input_ids
 
         Returns:
-            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
+            Trajectory: An instance of :class:`~torchtune.rlhf.GRPOTrajectory` comprising
                 the current trajectory.
         """
         batch_size, context_length = input_ids.shape
