@@ -227,7 +227,6 @@ def load_from_full_model_state_dict(
         for param_name, full_tensor in full_sd.items():
             sharded_meta_param = meta_sharded_sd.get(param_name)
             full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
-            # print(f"{param_name=} and {sharded_meta_param=}")
             if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
                 sharded_meta_param._local_tensor, NF4Tensor
             ):
@@ -243,7 +242,6 @@ def load_from_full_model_state_dict(
                 # requires dispatching `c10d.scatter_``
                 # long-term solution is `swap_tensor`
                 mesh = sharded_meta_param.device_mesh
-                print(f"{mesh=}")
                 if mesh.ndim > 1:
                     raise NotImplementedError(
                         f"only support 1D FSDP but got {mesh.ndim=}"
@@ -278,32 +276,10 @@ def load_from_full_model_state_dict(
                 # In cases where parts of the model aren't sharded, some parameters will be plain tensors
                 sharded_tensor = full_tensor
             else:
-                # sharded_tensor = distribute_tensor(
-                #     full_tensor,
-                #     sharded_meta_param.device_mesh,
-                #     sharded_meta_param.placements,
-                # )
-                def shard(
-                    full_tensor: torch.Tensor,
-                    placements: Sequence[Placement],
-                    device_mesh: DeviceMesh,
-                ) -> DTensor:
-                    device_mesh = device_mesh
-
-                    shape, offset = compute_local_shape_and_global_offset(
-                        full_tensor.shape, device_mesh, placements
-                    )
-                    slices = [
-                        slice(cur_offset, cur_offset + cur_shape)
-                        for cur_shape, cur_offset in zip(shape, offset)
-                    ]
-                    local_tensor = full_tensor[slices]
-                    return DTensor.from_local(local_tensor, device_mesh, placements)
-
-                sharded_tensor = shard(
+                sharded_tensor = distribute_tensor(
                     full_tensor,
+                    sharded_meta_param.device_mesh,
                     sharded_meta_param.placements,
-                    sharded_meta_param.device_mesh
                 )
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
