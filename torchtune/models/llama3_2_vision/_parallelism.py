@@ -34,11 +34,11 @@ LLAMA3_2_VISION_TP_PLAN = {
         input_layouts=Replicate(),
     ),
     "decoder.output": ColwiseParallel(
-        output_layouts=Replicate()
+        output_layouts=Replicate(),
     ),
-    "decoder.layers.*.attn.q_proj": ColwiseParallel(input_layouts=Replicate()),
-    "decoder.layers.*.attn.k_proj": ColwiseParallel(input_layouts=Replicate()),
-    "decoder.layers.*.attn.v_proj": ColwiseParallel(input_layouts=Replicate()),
+    "decoder.layers.*.attn.q_proj": ColwiseParallel(),
+    "decoder.layers.*.attn.k_proj": ColwiseParallel(),
+    "decoder.layers.*.attn.v_proj": ColwiseParallel(),
     "decoder.layers.*.attn.output_proj": RowwiseParallel(),
     "decoder.layers.*.mlp.w1": ColwiseParallel(),
     "decoder.layers.*.mlp.w2": RowwiseParallel(),
