@@ -184,6 +184,19 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
+    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the reference checkpoint state from file and validate.
+        """
+        self._ref_checkpointer = config.instantiate(
+            cfg_ref_checkpointer,
+            resume_from_checkpoint=False
+        )
+
+        ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
+
+        return ref_checkpoint_dict
+
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
@@ -239,6 +252,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        ref_checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.ref_checkpointer)
 
         self._compile = cfg.get("compile", False)
         self._model, self._ref_model = self._setup_model(
@@ -248,6 +262,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
+            ref_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
         )
@@ -459,6 +474,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
+        ref_model_state_dict: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
@@ -561,7 +577,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         training.load_from_full_model_state_dict(
             ref_model,
-            model_state_dict,
+            ref_model_state_dict,
             self._device,
             strict=True,
             cpu_offload=fsdp_cpu_offload,

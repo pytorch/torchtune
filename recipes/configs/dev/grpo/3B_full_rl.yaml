@@ -55,6 +55,20 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3
+
+
+ref_checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: ${base_model_path}
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}/ref  # shouldn't be used?
+  model_type: LLAMA3
+
+
 resume_from_checkpoint: False
 save_every_n_epochs: 1
 
@@ -95,9 +109,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
-enable_activation_offloading: True  # True reduces memory
 compile: False  # pytorch compile, set to true for better perf/memory
-optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 
 # Reduced precision
 dtype: bf16
