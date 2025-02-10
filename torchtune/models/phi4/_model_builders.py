@@ -13,11 +13,11 @@ from torchtune.data._prompt_templates import _get_prompt_template
 
 """
 Model builders build specific instantiations using component builders. For example
-the ``phi4`` model builder uses the ``phi3`` component builder.
+the ``phi4_14b`` model builder uses the ``phi3`` component builder.
 """
 
 
-def phi4() -> TransformerDecoder:
+def phi4_14b() -> TransformerDecoder:
     """
     Builder for creating the Phi4 (14B) Instruct Model.
 
@@ -36,7 +36,7 @@ def phi4() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi4_tokenizer(vocab_path: str = None, merges_path: str = None, path: str = None, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
+def phi4_14b_tokenizer(vocab_path: str = None, merges_path: str = None, path: str = None, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
     """Phi4 (14B) tokenizer.
     Args:
         path (str): Path to the tiktoken tokenizer model.
@@ -58,7 +58,7 @@ def phi4_tokenizer(vocab_path: str = None, merges_path: str = None, path: str = 
     return Phi4MiniTokenizer(vocab_path=vocab_path, merges_path=merges_path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
 
 
-def lora_phi4(
+def lora_phi4_14b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
@@ -112,9 +112,9 @@ def lora_phi4(
     )
 
 
-qlora_phi4 = partial(lora_phi4, quantize_base=True)
-qlora_phi4.__doc__ = """
+qlora_phi4_14b = partial(lora_phi4_14b, quantize_base=True)
+qlora_phi4_14b.__doc__ = """
 Builder for creating a Phi4 (14B) model with QLoRA enabled. Base model weights in linear layers
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
-Please see `lora_phi4` for full API arguments.
+Please see `lora_phi4_14b` for full API arguments.
 """
