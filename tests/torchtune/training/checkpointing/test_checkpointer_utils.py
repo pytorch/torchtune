@@ -13,6 +13,8 @@ from torchtune.models.llama2 import llama2, llama2_classifier
 from torchtune.training.checkpointing._utils import (
     check_outdir_not_in_ckptdir,
     FormattedCheckpointFiles,
+    get_all_checkpoints_in_dir,
+    prune_surplus_checkpoints,
     safe_torch_load,
     update_state_dict_for_classifier,
 )
@@ -271,3 +273,93 @@ class TestCheckOutdirNotInCkptdir:
             match="The output directory cannot be the same as or a subdirectory of the checkpoint directory.",
         ):
             check_outdir_not_in_ckptdir(ckpt_dir, out_dir)
+
+
+class TestGetAllCheckpointsInDir:
+    """Series of tests for the ``get_all_checkpoints_in_dir`` function."""
+
+    def test_get_all_ckpts_simple(self, tmp_dir):
+        ckpt_dir_0 = tmp_dir / "epoch_0"
+        ckpt_dir_0.mkdir(parents=True, exist_ok=True)
+
+        ckpt_dir_1 = tmp_dir / "epoch_1"
+        ckpt_dir_1.mkdir(parents=True, exist_ok=True)
+
+        all_ckpts = get_all_checkpoints_in_dir(tmp_dir)
+        assert len(all_ckpts) == 2
+        assert all_ckpts == [ckpt_dir_0, ckpt_dir_1]
+
+    def test_get_all_ckpts_with_pattern_that_matches_some(self, tmp_dir):
+        """Test that we only return the checkpoints that match the pattern."""
+        ckpt_dir_0 = tmp_dir / "epoch_0"
+        ckpt_dir_0.mkdir(parents=True, exist_ok=True)
+
+        ckpt_dir_1 = tmp_dir / "step_1"
+        ckpt_dir_1.mkdir(parents=True, exist_ok=True)
+
+        all_ckpts = get_all_checkpoints_in_dir(tmp_dir)
+        assert len(all_ckpts) == 1
+        assert all_ckpts == [ckpt_dir_0]
+
+    def test_get_all_ckpts_override_pattern(self, tmp_dir):
+        """Test that we can override the default pattern and it works."""
+        ckpt_dir_0 = tmp_dir / "epoch_0"
+        ckpt_dir_0.mkdir(parents=True, exist_ok=True)
+
+        ckpt_dir_1 = tmp_dir / "step_1"
+        ckpt_dir_1.mkdir(parents=True, exist_ok=True)
+
+        all_ckpts = get_all_checkpoints_in_dir(tmp_dir, pattern="step_*")
+        assert len(all_ckpts) == 1
+        assert all_ckpts == [ckpt_dir_1]
+
+    def test_get_all_ckpts_only_return_dirs(self, tmp_dir):
+        """Test that even if a file matches the pattern, we only return directories."""
+        ckpt_dir_0 = tmp_dir / "epoch_0"
+        ckpt_dir_0.mkdir(parents=True, exist_ok=True)
+
+        file = tmp_dir / "epoch_1"
+        ckpt_dir_1.touch()
+
+        all_ckpts = get_all_checkpoints_in_dir(tmp_dir)
+        assert len(all_ckpts) == 1
+        assert all_ckpts == [ckpt_dir_0]
+
+    def test_get_all_ckpts_non_unique(self, tmp_dir):
+        """Test that we return all checkpoints, even if they have the same name."""
+        ckpt_dir_0 = tmp_dir / "epoch_0"
+        ckpt_dir_0.mkdir(parents=True, exist_ok=True)
+
+        ckpt_dir_1 = tmp_dir / "epoch_0"
+        ckpt_dir_1.mkdir(parents=True, exist_ok=True)
+
+        all_ckpts = get_all_checkpoints_in_dir(tmp_dir)
+        assert len(all_ckpts) == 2
+        assert all_ckpts == [ckpt_dir_0, ckpt_dir_1]
+
+
+class TestPruneSurplusCheckpoints:
+    """Series of tests for the ``prune_surplus_checkpoints`` function."""
+
+    def test_prune_surplus_checkpoints_simple(self, tmp_dir):
+        ckpt_dir_0 = tmp_dir / "epoch_0"
+        ckpt_dir_0.mkdir(parents=True, exist_ok=True)
+
+        ckpt_dir_1 = tmp_dir / "epoch_1"
+        ckpt_dir_1.mkdir(parents=True, exist_ok=True)
+
+        prune_surplus_checkpoints(tmp_dir, 1)
+        remaining_ckpts = os.listdir(tmp_dir)
+        assert len(remaining_ckpts) == 1
+        assert remaining_ckpts == ["epoch_1"]
+
+    def test_prune_surplus_checkpoints_keep_last_invalid(self, tmp_dir):
+        """Test that we raise an error if keep_last_n_checkpoints is not >= 1"""
+        ckpt_dir_0 = tmp_dir / "epoch_0"
+        ckpt_dir_0.mkdir(parents=True, exist_ok=True)
+
+        ckpt_dir_1 = tmp_dir / "epoch_1"
+        ckpt_dir_1.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="keep_last_n_checkpoints must be >= 1"):
+            prune_surplus_checkpoints(tmp_dir, 0)
