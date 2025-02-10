@@ -26,20 +26,17 @@ def extract_tags(text: str) -> dict[str, list[str]]:
 
 
 def shaped_correctness_reward(
-    question: str, answer: str, completion: str
+    answer: str, completion: str
 ) -> tuple[float, float]:
     """
     Reward function for verifiable rewards with some mild shaping.
     """
-    question_chars = len(question)
-    only_completion = completion[question_chars:]
-
     reward = 0
     success = 0
 
     try:
         tags = extract_tags(
-            "<think>" + only_completion.replace("<<", "").replace(">>", "")
+            "<think>" + completion.replace("<<", "").replace(">>", "")
         )
     except ET.ParseError:
         tags = {"think": [], "answer": []}
@@ -80,7 +77,7 @@ def batch_shaped_correctness_reward(
                 completions[b, g].tolist()
             )  # skips special tokens, stops at eos
             reward, success = shaped_correctness_reward(
-                question="", answer=answers[b], completion=text_completion
+                answer=answers[b], completion=text_completion
             )
             rewards[b, g] = reward
             successes[b, g] = success
