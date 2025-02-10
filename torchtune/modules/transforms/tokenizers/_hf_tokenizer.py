@@ -17,19 +17,26 @@ class HFTokenizer(BaseTokenizer):
     Hugging Face tokenizer.json file into a torchtune BaseTokenizer.
 
     Args:
-        path (str): Path to tokenizer.json file
+        tokenizer_json_path (str): Path to tokenizer.json file
         config_path (Optional[str]): Path to tokenizer_config.json file. Default: None
         generation_config_path (Optional[str]): Path to generation_config.json file.
             Default: None
+
+    Raises:
+        ValueError: If neither config_path or generation_config_path are specified.
     """
 
     def __init__(
         self,
-        path: str,
+        tokenizer_json_path: str,
         config_path: Optional[str] = None,
         generation_config_path: Optional[str] = None,
     ):
-        self.hf_tokenizer = Tokenizer.from_file(path)
+        self.hf_tokenizer = Tokenizer.from_file(tokenizer_json_path)
+        if not (config_path or generation_config_path):
+            raise ValueError(
+                "At least one of config_path or generation_config_path must be specified."
+            )
         if config_path:
             with open(config_path, "rb") as f:
                 self.config = json.load(f)
@@ -68,17 +75,19 @@ class HFTokenizer(BaseTokenizer):
         self.bos_id = None
         self.eos_id = None
 
-        if self.generation_config:
-            self.bos_id = self.generation_config.get("bos_token_id")
-            self.eos_id = self.generation_config.get("eos_token_id")
-
         if self.config:
             bos_token = self._get_token_from_config(self.config, "bos_token")
             eos_token = self._get_token_from_config(self.config, "eos_token")
-            if bos_token is not None and self.bos_id is None:
+            if bos_token is not None:
                 self.bos_id = self.hf_tokenizer.token_to_id(bos_token)
-            if eos_token is not None and self.eos_id is None:
-                self.eos_id = self.eos_id or self.hf_tokenizer.token_to_id(eos_token)
+            if eos_token is not None:
+                self.eos_id = self.hf_tokenizer.token_to_id(eos_token)
+
+        if self.generation_config:
+            if self.bos_id is None:
+                self.bos_id = self.generation_config.get("bos_token_id")
+            if self.eos_id is None:
+                self.eos_id = self.generation_config.get("eos_token_id")
 
         if self.bos_id is None or self.eos_id is None:
             raise ValueError("Could not infer BOS and EOS token IDs from config")

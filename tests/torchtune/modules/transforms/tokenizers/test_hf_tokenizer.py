@@ -70,9 +70,9 @@ class TestHFTokenizer:
         ]
 
     def test_invalid_hf_tokenizer(self):
-        with pytest.raises(ValueError, match="Could not infer"):
+        with pytest.raises(ValueError, match="At least one of"):
             _ = HFTokenizer(
-                path=str(ASSETS / "tokenizer.json"),
+                tokenizer_json_path=str(ASSETS / "tokenizer.json"),
             )
 
     @pytest.mark.parametrize(
@@ -109,7 +109,7 @@ class TestHFTokenizer:
         # Tokenizer artifacts for this test were created from tiktoken_small.model
         # using the script in https://gist.github.com/ebsmothers/55b2f177f5ed15a3b81508f8f8b91159
         hf_tokenizer = HFTokenizer(
-            path=str(ASSETS / "tokenizer.json"),
+            tokenizer_json_path=str(ASSETS / "tokenizer.json"),
             config_path=config_path,
             generation_config_path=generation_config_path,
         )
