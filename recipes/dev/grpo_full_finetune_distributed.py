@@ -814,9 +814,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         del logits
         torch.cuda.empty_cache()
 
-        # FIXME: this doesn't work for proper PPO, but might work for the trl-style GRPO?
-
-        # torch.distributed.breakpoint()
         # step 2.1 estimate logprobs of the responses using the reference policy
         ref_logits = self._ref_model(
             query_responses, input_pos=position_ids, mask=masks
@@ -1025,7 +1022,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 # and increment the total number of tokens seen in the step
 
                 effective_batch_size = self.batch_size * self.grpo_samples  # = B x G
-                # torch.distributed.breakpoint()
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
                     # batch_idxs = torch.randperm(effective_batch_size, device=self._device)
