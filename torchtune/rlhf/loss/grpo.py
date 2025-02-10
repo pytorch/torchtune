@@ -241,15 +241,15 @@ class GRPOSimpleLoss(nn.Module):
 
         # [B x G, L]
         per_token_kl = (
-            torch.exp(pi_logprobs.detach() - pi_logprobs)
-            - (pi_logprobs.detach() - pi_logprobs)
+            torch.exp(pi_logprobs.detach() - ref_logprobs)
+            - (pi_logprobs.detach() - ref_logprobs)
             - 1
         )
 
         advantages = advantages[:, None]  # [B x G, 1]
 
         per_token_policy_loss = (
-            torch.exp(pi_logprobs - ref_logprobs.detach()) * advantages
+            torch.exp(pi_logprobs - pi_logprobs.detach()) * advantages
         )
 
         per_token_loss = -(per_token_policy_loss - self.kl_coeff * per_token_kl)
@@ -263,7 +263,7 @@ class GRPOSimpleLoss(nn.Module):
         )
         kl_loss = rlhf.masked_mean(per_token_kl, padding_masks, dim=1).mean().detach()
 
-        return (  # TODO: readd tracking
+        return (  # This loss doesn't track clipfrac and ratios
             loss,
             policy_loss,
             kl_loss,
