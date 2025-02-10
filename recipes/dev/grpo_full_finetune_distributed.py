@@ -526,15 +526,15 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
-            # ref_model = config.instantiate(cfg_model)
+            ref_model = config.instantiate(cfg_model)
 
-        # ref_model.eval()
-        # for p in ref_model.parameters():
-        #     p.requires_grad = False
+        ref_model.eval()
+        for p in ref_model.parameters():
+            p.requires_grad = False
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
-            # training.compile_model(ref_model, verbose=self._is_rank_zero)
+            training.compile_model(ref_model, verbose=self._is_rank_zero)
 
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
@@ -549,11 +549,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 ac_option,
             )
 
-            # apply_selective_activation_checkpointing(
-            #     ref_model,
-            #     ac_mode,
-            #     ac_option
-            # )
+            apply_selective_activation_checkpointing(
+                ref_model,
+                ac_mode,
+                ac_option
+            )
 
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
@@ -561,9 +561,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-            # training.set_activation_checkpointing(
-            #     ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
-            # )
+            training.set_activation_checkpointing(
+                ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
 
         # For FSDP sharding
         fsdp_shard_conditions = [
@@ -579,12 +579,12 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             reshard_after_forward=reshard_after_forward,
         )
 
-        # training.shard_model(
-        #     model=ref_model,
-        #     shard_conditions=fsdp_shard_conditions,
-        #     cpu_offload=fsdp_cpu_offload,
-        #     reshard_after_forward=reshard_after_forward,
-        # )
+        training.shard_model(
+            model=ref_model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
+        )
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
@@ -592,9 +592,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
-            # for m in ref_model.modules():
-            #     if hasattr(m, "rope_init"):
-            #         m.rope_init()
+            for m in ref_model.modules():
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
 
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
@@ -606,22 +606,22 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             cpu_offload=fsdp_cpu_offload,
         )
 
-        # training.load_from_full_model_state_dict(
-        #     ref_model,
-        #     model_state_dict,
-        #     self._device,
-        #     strict=True,
-        #     cpu_offload=fsdp_cpu_offload,
-        # )
+        training.load_from_full_model_state_dict(
+            ref_model,
+            model_state_dict,
+            self._device,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
+        )
 
         # activation offloading
         self.policy_activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
         )
 
-        # self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
-        #     ref_model, enable_activation_offloading
-        # )
+        self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            ref_model, enable_activation_offloading
+        )
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
@@ -638,7 +638,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # synchronize before training begins
         torch.distributed.barrier()
 
-        ref_model = None
+        # ref_model = None
 
         return model, ref_model
 
@@ -886,6 +886,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 stop_tokens=self._tokenizer.stop_tokens,
             )
 
+        torch.distributed.barrier()
         training.recursive_reshard(self._model)
         torch.cuda.empty_cache()
 
@@ -917,16 +918,14 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         # torch.distributed.breakpoint()
         # step 2.1 estimate logprobs of the responses using the reference policy
-        # ref_logits = self._ref_model(
-        #     query_responses, input_pos=position_ids, mask=masks
-        # )
-        # ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
-        # ref_logprobs = rlhf.batched_logits_to_logprobs(ref_logits, responses, self._temperature)
+        ref_logits = self._ref_model(
+            query_responses, input_pos=position_ids, mask=masks
+        )
+        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
+        ref_logprobs = rlhf.batched_logits_to_logprobs(ref_logits, responses, self._temperature)
 
-        # del ref_logits
-        # torch.cuda.empty_cache()
-
-        ref_logprobs = logprobs.clone()
+        del ref_logits
+        torch.cuda.empty_cache()
 
         # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
         # resulting in truncated responses

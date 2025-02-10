@@ -249,7 +249,7 @@ class GRPOSimpleLoss(nn.Module):
         advantages = advantages[:, None]  # [B x G, 1]
 
         per_token_policy_loss = (
-            torch.exp(pi_logprobs - pi_logprobs.detach()) * advantages
+            torch.exp(pi_logprobs - ref_logprobs.detach()) * advantages
         )
 
         per_token_loss = -(per_token_policy_loss - self.kl_coeff * per_token_kl)

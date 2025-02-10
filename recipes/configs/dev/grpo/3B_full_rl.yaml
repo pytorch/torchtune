@@ -66,7 +66,7 @@ max_generated_tokens: 512
 top_k: null
 temperature: 1.0
 
-fsdp_reshard_after_forward: True
+fsdp_reshard_after_forward: False
 
 ppo_epochs: 1
 ppo_batch_size: ${grpo_samples}  # single-step for the "simple" loss
