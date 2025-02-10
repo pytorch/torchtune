@@ -9,7 +9,7 @@ import re
 from functools import lru_cache
 from typing import List
 
-from torchtune.modules.tokenizers._utils import BaseTokenizer
+from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
 
 
 @lru_cache()
