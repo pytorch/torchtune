@@ -909,7 +909,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         context_length: int,
     ) -> GRPOStats:
         """
-        Perform a single GRPO optimisation step over a batch of trajectories and corresponding advantages and returns.
+        Perform a single GRPO optimization step over a batch of trajectories and corresponding advantages and returns.
 
         Args:
             trajectory (Trajectory): a batch of trajectories
