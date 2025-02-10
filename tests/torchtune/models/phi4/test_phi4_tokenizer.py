@@ -10,7 +10,7 @@ import pytest
 
 from tests.common import ASSETS
 from torchtune.data import Message
-from torchtune.models.phi4 import phi4_tokenizer
+from torchtune.models.phi4 import phi4_14b_tokenizer
 
 
 class TestPhi4MiniTokenizer:
@@ -18,7 +18,7 @@ class TestPhi4MiniTokenizer:
     def tokenizer(self):
         # Pretrained tiktoken model generated via the script in
         # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
-        return phi4_tokenizer(
+        return phi4_14b_tokenizer(
             vocab_path=(ASSETS / "vocab.json"),
             merges_path=(ASSETS / "merges.txt"),
         )
