@@ -6,12 +6,12 @@
 #   tune download microsoft/phi-4 --output-dir /tmp/phi-4 --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config phi4/mini_lora
+#   tune run --nproc_per_node 2 lora_finetune_distributed --config phi4/mini_lora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config phi4/mini_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 2 lora_finetune_distributed --config phi4/mini_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # For single device LoRA finetuning please use mini_lora_single_device.yaml
