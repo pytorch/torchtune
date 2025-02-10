@@ -1,7 +1,7 @@
 # Config for EleutherEvalRecipe in eleuther_eval.py
 #
 # To launch, run the following command:
-#    tune run eleuther_eval --config phi3/evaluation
+#    tune run eleuther_eval --config phi4/evaluation
 
 output_dir: ./ # Not needed
 
