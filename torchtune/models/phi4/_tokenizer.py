@@ -185,7 +185,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             ignore_system_prompt (bool): Whether to ignore system prompt, defaults to False.
 
         Raises:
-            ValueError: If the role is not "user", "assistant", or "system".
+            RuntimeError: If the message type is unsupported.
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages

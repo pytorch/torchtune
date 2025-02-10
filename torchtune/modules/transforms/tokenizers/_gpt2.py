@@ -13,7 +13,7 @@ from torchtune.modules.tokenizers._utils import BaseTokenizer
 
 
 @lru_cache()
-def bytes_to_unicode():
+def bytes_to_unicode() -> dict:
     """
     Returns list of utf-8 byte and a mapping to unicode strings. We specifically avoids mapping to whitespace/control
     characters the bpe code barfs on.
