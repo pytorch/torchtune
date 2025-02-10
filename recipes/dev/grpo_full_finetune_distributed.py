@@ -903,7 +903,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 torch.cuda.empty_cache()
         return GRPOTrajectory(*map(torch.cat, zip(*trajectories)))
 
-    def _grpo_step(
+    def grpo_step(
         self,
         trajectory: GRPOTrajectory,
         context_length: int,
@@ -1052,7 +1052,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                                 )
                             )
                             batch_grpo_stats.append(
-                                self._grpo_step(  # .backward() happens here
+                                self.grpo_step(  # .backward() happens here
                                     batch_trajectory, context_length
                                 )
                             )
