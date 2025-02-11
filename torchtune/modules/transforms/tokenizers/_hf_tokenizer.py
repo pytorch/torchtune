@@ -11,7 +11,7 @@ from tokenizers import Tokenizer
 from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
 
 
-class HFTokenizer(BaseTokenizer):
+class HuggingFaceTokenizer(BaseTokenizer):
     """
     A wrapper around Hugging Face tokenizers. This class can be used to load from a
     Hugging Face tokenizer.json file into a torchtune BaseTokenizer.
@@ -22,27 +22,28 @@ class HFTokenizer(BaseTokenizer):
 
     Args:
         tokenizer_json_path (str): Path to tokenizer.json file
-        config_path (Optional[str]): Path to tokenizer_config.json file. Default: None
+        tokenizer_config_json_path (Optional[str]): Path to tokenizer_config.json file. Default: None
         generation_config_path (Optional[str]): Path to generation_config.json file.
             Default: None
 
     Raises:
-        ValueError: If neither config_path or generation_config_path are specified.
+        ValueError: If neither tokenizer_config_json_path or generation_config_path are specified.
     """
 
     def __init__(
         self,
+        *,
         tokenizer_json_path: str,
-        config_path: Optional[str] = None,
+        tokenizer_config_json_path: Optional[str] = None,
         generation_config_path: Optional[str] = None,
     ):
-        self.hf_tokenizer = Tokenizer.from_file(tokenizer_json_path)
-        if not (config_path or generation_config_path):
+        self.tokenizer = Tokenizer.from_file(tokenizer_json_path)
+        if not (tokenizer_config_json_path or generation_config_path):
             raise ValueError(
-                "At least one of config_path or generation_config_path must be specified."
+                "At least one of tokenizer_config_json_path or generation_config_path must be specified."
             )
-        if config_path:
-            with open(config_path, "rb") as f:
+        if tokenizer_config_json_path:
+            with open(tokenizer_config_json_path, "rb") as f:
                 self.config = json.load(f)
         else:
             self.config = None
@@ -83,9 +84,9 @@ class HFTokenizer(BaseTokenizer):
             bos_token = self._get_token_from_config(self.config, "bos_token")
             eos_token = self._get_token_from_config(self.config, "eos_token")
             if bos_token is not None:
-                self.bos_id = self.hf_tokenizer.token_to_id(bos_token)
+                self.bos_id = self.tokenizer.token_to_id(bos_token)
             if eos_token is not None:
-                self.eos_id = self.hf_tokenizer.token_to_id(eos_token)
+                self.eos_id = self.tokenizer.token_to_id(eos_token)
 
         if self.generation_config:
             if self.bos_id is None:
@@ -112,7 +113,7 @@ class HFTokenizer(BaseTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        token_ids = self.hf_tokenizer.encode(text).ids
+        token_ids = self.tokenizer.encode(text).ids
         if add_bos:
             token_ids.insert(0, self.bos_id)
         if add_eos:
@@ -129,4 +130,4 @@ class HFTokenizer(BaseTokenizer):
         Returns:
             str: The decoded string.
         """
-        return self.hf_tokenizer.decode(token_ids)
+        return self.tokenizer.decode(token_ids)

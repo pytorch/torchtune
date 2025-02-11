@@ -8,14 +8,17 @@ import pytest
 from tests.common import ASSETS
 from tokenizers import Tokenizer
 from torchtune.models.llama3._tokenizer import CL100K_PATTERN
-from torchtune.modules.transforms.tokenizers import HFTokenizer, TikTokenBaseTokenizer
+from torchtune.modules.transforms.tokenizers import (
+    HuggingFaceTokenizer,
+    TikTokenBaseTokenizer,
+)
 
 
 TOKENIZER_CONFIG_PATH = ASSETS / "tokenizer_config.json"
 GENERATION_CONFIG_PATH = ASSETS / "generation_config.json"
 
 
-class TestHFTokenizer:
+class TestHuggingFaceTokenizer:
     @pytest.fixture
     def tt_tokenizer(self):
         # Pretrained tiktoken model generated via the script in
@@ -71,7 +74,7 @@ class TestHFTokenizer:
 
     def test_invalid_hf_tokenizer(self):
         with pytest.raises(ValueError, match="At least one of"):
-            _ = HFTokenizer(
+            _ = HuggingFaceTokenizer(
                 tokenizer_json_path=str(ASSETS / "tokenizer.json"),
             )
 
@@ -108,9 +111,9 @@ class TestHFTokenizer:
         )
         # Tokenizer artifacts for this test were created from tiktoken_small.model
         # using the script in https://gist.github.com/ebsmothers/55b2f177f5ed15a3b81508f8f8b91159
-        hf_tokenizer = HFTokenizer(
+        hf_tokenizer = HuggingFaceTokenizer(
             tokenizer_json_path=str(ASSETS / "tokenizer.json"),
-            config_path=config_path,
+            tokenizer_config_json_path=config_path,
             generation_config_path=generation_config_path,
         )
 
