@@ -27,7 +27,7 @@ _ALL_RECIPES = [
         name="dev/grpo_full_finetune_distributed",
         file_path="dev/grpo_full_finetune_distributed.py",
         configs=[
-            Config(name="dev/3B_full_rl", file_path="dev/grpo/3B_full_rl.yaml"),
+            Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
         ],
         supports_distributed=True,
     ),
@@ -106,7 +106,7 @@ _ALL_RECIPES = [
         name="full_finetune_distributed",
         file_path="full_finetune_distributed.py",
         configs=[
-            Config(name="dev/grpo/3B_sft", file_path="dev/grpo/3B_sft.yaml"),
+            Config(name="dev/3B_grpo_sft", file_path="dev/3B_grpo_sft.yaml"),
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
             Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),

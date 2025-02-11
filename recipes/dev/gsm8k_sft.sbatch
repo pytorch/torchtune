@@ -19,4 +19,4 @@ source ../../.venv/bin/activate
 srun tune run \
 --nnodes 1 \
 --nproc_per_node 8 \
-full_finetune_distributed --config dev/grpo/3B_sft "$@"
+full_finetune_distributed --config dev/3B_sft_for_grpo "$@"

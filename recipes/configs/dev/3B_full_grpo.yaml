@@ -85,7 +85,7 @@ fsdp_reshard_after_forward: False
 ppo_epochs: 1
 ppo_batch_size: ${grpo_samples}  # single-step for the "simple" loss
 
-num_steps: 10000
+num_steps: 200
 
 clip_grad_norm: 1.0
 
@@ -99,9 +99,8 @@ lr_scheduler:
   num_warmup_steps: 50
 loss:
   _component_: torchtune.rlhf.loss.GRPOSimpleLoss
-  kl_coeff: 0.04
+  kl_coeff: 0.01
   epsilon: 0.2
-max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase virtual batch size
 
 # Training env
