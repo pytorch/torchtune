@@ -114,10 +114,8 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.training.metric_logging.WandBLogger
-  project: grpo_gsm8k_torchtune
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}/logs
-  name: ${name}
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
