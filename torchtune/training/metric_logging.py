@@ -530,11 +530,9 @@ class MLFlowLogger(MetricLoggerInterface):
 
         self._mlflow = mlflow
 
-        self._tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI", None)
-        self._experiment_name = experiment_name or os.getenv(
-            "MLFLOW_EXPERIMENT_NAME", None
-        )
-        self._run_id = run_id or os.getenv("MLFLOW_RUN_ID", None)
+        self._tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI")
+        self._experiment_name = experiment_name or os.getenv("MLFLOW_EXPERIMENT_NAME")
+        self._run_id = run_id or os.getenv("MLFLOW_RUN_ID")
 
         if self.rank == 0:
             if not self._mlflow.is_tracking_uri_set():
