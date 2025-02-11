@@ -44,7 +44,7 @@ class TestPhi4MiniTokenizer:
         ]
         tokens, mask = tokenizer.tokenize_messages(messages, add_eos=True)
 
-        expected_mask = [True] * 20 + [False] * 10
+        expected_mask = [True] * 20 + [False] * 9
         assert expected_tokens == tokens
         assert expected_mask == mask
 
@@ -69,7 +69,7 @@ class TestPhi4MiniTokenizer:
         expected_tokens = [100264, 882, 100266, 14149, 28514, 374, 279, 1888, 6875, 0, 100265, 100264, 78191, 100266, 9642, 11, 433, 374, 0, 100265]
         # fmt: on
 
-        expected_mask = [True] * 11 + [False] * 10
+        expected_mask = [True] * 11 + [False] * 9
         assert expected_tokens == tokens
         assert expected_mask == mask
 
@@ -92,12 +92,7 @@ class TestPhi4MiniTokenizer:
         ]
 
         tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
-
-        # fmt: off
-        expected_tokens = [100264, 9125, 100266, 2675, 527, 264, 11190, 18328, 100264, 882, 100266, 14149, 28514, 374, 279, 1888, 6875, 0, 100264, 78191, 100266, 9642, 11, 433, 374, 0]
-        # fmt: on
-
-        expected_mask = [True] * 18 + [False] * 8
+        expected_mask = [True] * 20 + [False] * 8
         # Drop eos token.
-        assert expected_tokens == tokens
+        assert expected_tokens[:-1] == tokens
         assert expected_mask == mask

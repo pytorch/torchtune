@@ -136,14 +136,13 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                         f"Unsupported message content type: {item['type']}"
                     )
 
-            if add_eos:
+            if add_eos and message.role == "assistant":
+                tokens.append(self.special_tokens["<|im_end|>"])
+            elif message.role != "assistant":
                 tokens.append(self.special_tokens["<|im_end|>"])
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
-
-            if add_eos and message.role == "assistant":
-                mask.append(message.masked)
 
             if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
