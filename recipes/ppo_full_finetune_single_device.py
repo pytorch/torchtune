@@ -24,7 +24,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -568,20 +568,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
         # between ref policy and current policy
-        for module in policy_model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
-        for module in value_model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
+        disable_dropout(policy_model)
+        disable_dropout(value_model)
 
-        # disabling grad and dropout in reward and reference policy models
+        # disabling grad in reward and reference policy models
         reward_model.eval()
         ref_policy_model.eval()
 

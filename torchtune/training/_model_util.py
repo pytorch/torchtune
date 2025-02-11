@@ -16,8 +16,8 @@ def disable_dropout(model: torch.nn.Module) -> None:
         model (torch.nn.Module): The model in which dropout layers should be disabled.
     """
     for module in model.modules():
-        if isinstance(module, torch.nn.Dropout):
+        if isinstance(module, torch.nn.Dropout) and module.p != 0:
             warnings.warn(
-                f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
+                f"Found Dropout with value {module.p} in module {module}. Setting to zero."
             )
             module.p = 0
