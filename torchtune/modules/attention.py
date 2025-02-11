@@ -232,9 +232,7 @@ class MultiHeadAttention(nn.Module):
         s_y = y.shape[1] if y is not None else 0
 
         # q has shape [b, s_x, num_heads * head_dim]
-        print(f"{type(self.q_proj.weight)=} and {type(x)=}")
         q = self.q_proj(x)
-        print(f"{type(q)}")
 
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads

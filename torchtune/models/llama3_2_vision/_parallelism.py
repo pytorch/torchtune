@@ -7,26 +7,18 @@
 from typing import Dict
 
 from torch.distributed._tensor import Replicate, Shard
-from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
+from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel, parallelize_module
 from torch.distributed.tensor.parallel.style import ParallelStyle
+from torchtune.modules.model_fusion import FusionLayer
+from torchtune.modules import TransformerSelfAttentionLayer
+from torch.distributed.device_mesh import DeviceMesh
+
+import torch
 
 
 # Define the Tensor Parallel plan for Llama3.2 vision model
+# TODO: wildcard is not working for the 3.2 deep fusion model. Use `parallelize_llama3_2_vision` for now.
 LLAMA3_2_VISION_TP_PLAN = {
-    # "encoder.clip.layers.*.attn.q_proj": ColwiseParallel(),
-    # "encoder.clip.layers.*.attn.k_proj": ColwiseParallel(),
-    # "encoder.clip.layers.*.attn.v_proj": ColwiseParallel(),
-    # "encoder.clip.layers.*.attn.output_proj": RowwiseParallel(),
-    # "encoder.clip.layers.*.mlp.w1": ColwiseParallel(),
-    # "encoder.clip.layers.*.mlp.w2": RowwiseParallel(),
-    # "encoder.clip.layers.*.mlp.w3": ColwiseParallel(),
-    # "encoder.projection.layers.*.attn.q_proj": ColwiseParallel(),
-    # "encoder.projection.layers.*.attn.k_proj": ColwiseParallel(),
-    # "encoder.projection.layers.*.attn.v_proj": ColwiseParallel(),
-    # "encoder.projection.layers.*.attn.output_proj": RowwiseParallel(),
-    # "encoder.projection.layers.*.mlp.w1": ColwiseParallel(),
-    # "encoder.projection.layers.*.mlp.w2": RowwiseParallel(),
-    # "encoder.projection.layers.*.mlp.w3": ColwiseParallel(),
     "decoder.tok_embeddings.embedding": RowwiseParallel(
         input_layouts=Replicate(),
     ),
@@ -58,6 +50,78 @@ LLAMA3_2_VISION_TP_PLAN = {
     "decoder.layers.*.fusion_layer.mlp.w2": RowwiseParallel(),
     "decoder.layers.*.fusion_layer.mlp.w3": ColwiseParallel(),
 }
+
+
+def parallelize_llama3_2_vision(
+    model: torch.nn.Module,
+    tp_device_mesh: DeviceMesh,
+) -> None:
+    """
+    Helper function to parallelize Llama3.2 vision model in a for loop manner.
+
+    Args:
+        model (torch.nn.Module): The model to be parallelized.
+        tp_device_mesh (DeviceMesh): The device mesh to be used for tensor parallelism.
+    """
+    # Parallelize the model
+    parallelize_module(
+        model,
+        tp_device_mesh,
+        {
+            "decoder.tok_embeddings.embedding": RowwiseParallel(
+                input_layouts=Replicate(),
+            ),
+            "decoder.tok_embeddings.fusion_embedding": RowwiseParallel(
+                input_layouts=Replicate(),
+            ),
+            "decoder.output": ColwiseParallel(
+                output_layouts=Replicate(),
+            ),
+        },
+    )
+
+    for transformer_block in model.decoder.layers:
+        if isinstance(transformer_block, TransformerSelfAttentionLayer):
+            layer_plan = {
+                "attn.q_proj": ColwiseParallel(),
+                "attn.k_proj": ColwiseParallel(),
+                "attn.v_proj": ColwiseParallel(),
+                "attn.output_proj": RowwiseParallel(),
+                "mlp.w1": ColwiseParallel(),
+                "mlp.w2": RowwiseParallel(),
+                "mlp.w3": ColwiseParallel(),
+            }
+
+            parallelize_module(
+                module=transformer_block,
+                device_mesh=tp_device_mesh,
+                parallelize_plan=layer_plan,
+            )
+        elif isinstance(transformer_block, FusionLayer):
+            layer_plan = {
+                "layer.attn.q_proj": ColwiseParallel(),
+                "layer.attn.k_proj": ColwiseParallel(),
+                "layer.attn.v_proj": ColwiseParallel(),
+                "layer.attn.output_proj": RowwiseParallel(),
+                "layer.mlp.w1": ColwiseParallel(),
+                "layer.mlp.w2": RowwiseParallel(),
+                "layer.mlp.w3": ColwiseParallel(),
+                "fusion_layer.attn.q_proj": ColwiseParallel(),
+                "fusion_layer.attn.k_proj": ColwiseParallel(),
+                "fusion_layer.attn.v_proj": ColwiseParallel(),
+                "fusion_layer.attn.output_proj": RowwiseParallel(),
+                "fusion_layer.mlp.w1": ColwiseParallel(),
+                "fusion_layer.mlp.w2": RowwiseParallel(),
+                "fusion_layer.mlp.w3": ColwiseParallel(),
+            }
+
+            parallelize_module(
+                module=transformer_block,
+                device_mesh=tp_device_mesh,
+                parallelize_plan=layer_plan,
+            )
+        else:
+            raise ValueError("Unsupported transformer block type")
 
 
 def llama3_2_vision_tp_plan() -> Dict[str, ParallelStyle]:

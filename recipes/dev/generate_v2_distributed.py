@@ -7,8 +7,6 @@ import itertools
 import sys
 import time
 from typing import Any, Dict, List
-from torch.distributed._tensor import Replicate, Shard
-from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
 
 import torch
 import torch.distributed as dist
@@ -17,13 +15,11 @@ from torch.distributed.tensor.parallel import parallelize_module
 
 from torchtune import config, training, utils
 from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
-from torchtune.modules.model_fusion import FusionLayer
-from torchtune.modules import TransformerSelfAttentionLayer
-
+from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.generation import sample
 
 from torchtune.modules.transforms import Transform
-
+from torchtune.models.llama3_2_vision import parallelize_llama3_2_vision
 
 class SingleTurnYAMLToMessages(Transform):
     """
@@ -111,72 +107,16 @@ class InferenceRecipe:
         # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
         model = training.prepare_mha_for_tp(model, tp_device_mesh)
         
-        # debugging hack
-        parallelize_module(
-            model,
-            tp_device_mesh,
-            {
-                "decoder.tok_embeddings.embedding": RowwiseParallel(
-                    input_layouts=Replicate(),
-                ),
-                "decoder.tok_embeddings.fusion_embedding": RowwiseParallel(
-                    input_layouts=Replicate(),
-                ),
-                "decoder.output": ColwiseParallel(
-                    output_layouts=Replicate(),
-                ),
-            },
-        )
-
-        for transformer_block in model.decoder.layers:
-            if isinstance(transformer_block, TransformerSelfAttentionLayer):
-                layer_plan = {
-                    "attn.q_proj": ColwiseParallel(),
-                    "attn.k_proj": ColwiseParallel(),
-                    "attn.v_proj": ColwiseParallel(),
-                    "attn.output_proj": RowwiseParallel(),
-                    "mlp.w1": ColwiseParallel(),
-                    "mlp.w2": RowwiseParallel(),
-                    "mlp.w3": ColwiseParallel(),
-                }
-
-                parallelize_module(
-                    module=transformer_block,
-                    device_mesh=tp_device_mesh,
-                    parallelize_plan=layer_plan,
-                )
-            elif isinstance(transformer_block, FusionLayer):
-                layer_plan = {
-                    "layer.attn.q_proj": ColwiseParallel(),
-                    "layer.attn.k_proj": ColwiseParallel(),
-                    "layer.attn.v_proj": ColwiseParallel(),
-                    "layer.attn.output_proj": RowwiseParallel(),
-                    "layer.mlp.w1": ColwiseParallel(),
-                    "layer.mlp.w2": RowwiseParallel(),
-                    "layer.mlp.w3": ColwiseParallel(),
-                    "fusion_layer.attn.q_proj": ColwiseParallel(),
-                    "fusion_layer.attn.k_proj": ColwiseParallel(),
-                    "fusion_layer.attn.v_proj": ColwiseParallel(),
-                    "fusion_layer.attn.output_proj": RowwiseParallel(),
-                    "fusion_layer.mlp.w1": ColwiseParallel(),
-                    "fusion_layer.mlp.w2": RowwiseParallel(),
-                    "fusion_layer.mlp.w3": ColwiseParallel(),
-                }
-
-                parallelize_module(
-                    module=transformer_block,
-                    device_mesh=tp_device_mesh,
-                    parallelize_plan=layer_plan,
-                )
-            else:
-                print(f"{type(transformer_block)=}")
-        # finish debugging 
-        
-        # parallelize_module(
-        #     model,
-        #     tp_device_mesh,
-        #     parallelize_plan=config.instantiate(cfg.parallelize_plan),
-        # )
+        # Special handling for 3.2 vision model, we need to parallelize the model differently as wildcard is not
+        # working for now. Need to change back to wildcard once the issue is fixed.
+        if isinstance(model, DeepFusionModel):
+            parallelize_llama3_2_vision(model, tp_device_mesh)
+        else:
+            parallelize_module(
+                model,
+                tp_device_mesh,
+                parallelize_plan=config.instantiate(cfg.parallelize_plan),
+            )
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
@@ -196,7 +136,6 @@ class InferenceRecipe:
 
         self.model = model
         self.model.eval()
-        print(f"{model=}")
         if self._is_rank_zero:
             self._logger.info(
                 f"Model was initialized with precision {self._dtype} and TP degree {tp_degree}."
