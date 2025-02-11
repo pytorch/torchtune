@@ -8,7 +8,7 @@ from typing import Dict
 
 import torch
 
-from torch.distributed._tensor import Replicate, Shard
+from torch.distributed._tensor import Replicate
 from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
@@ -66,6 +66,9 @@ def parallelize_llama3_2_vision(
     Args:
         model (torch.nn.Module): The model to be parallelized.
         tp_device_mesh (DeviceMesh): The device mesh to be used for tensor parallelism.
+
+    Raises:
+        ValueError: If the model has a transformer block that is not supported.
     """
     # Parallelize the model
     parallelize_module(

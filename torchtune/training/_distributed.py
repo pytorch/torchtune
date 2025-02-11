@@ -8,16 +8,17 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Sequence
-from torch.distributed._tensor import DTensor, Shard, Replicate, Placement
-from torch.distributed.tensor._utils import compute_local_shape_and_global_offset
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
 import torch
 import torch.distributed as dist
 from torch import nn
 
 from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
-from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed._tensor import (
+    distribute_tensor,
+    DTensor,
+)
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
@@ -271,10 +272,6 @@ def load_from_full_model_state_dict(
                     ),
                     requires_grad=sharded_meta_param.requires_grad,
                 )
-
-            # elif not hasattr(sharded_meta_param, "device_mesh"):
-                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
-                # sharded_tensor = full_tensor
             elif isinstance(sharded_meta_param, DTensor):
                 sharded_tensor = distribute_tensor(
                     full_tensor,
@@ -282,6 +279,7 @@ def load_from_full_model_state_dict(
                     sharded_meta_param.placements,
                 )
             else:
+                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
                 sharded_tensor = full_tensor
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
