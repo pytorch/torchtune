@@ -6,9 +6,7 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from torchtune.data._messages import Message
-from torchtune.data._prompt_templates import PromptTemplate
-from torchtune.data._utils import truncate
+from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import GPT2BaseTokenizer
@@ -28,12 +26,13 @@ PHI4_SPECIAL_TOKENS = {
     "<|endofprompt|>": 100276,
 }
 
-# Adding other <|dummy_x|>
-
-for token_id in range(100266, 100351):
+# Add all <dummy_x>
+current_dummy_index = 4
+for token_id in range(100267, 100352):
     if token_id == 100276:
-        continue
-    PHI4_SPECIAL_TOKENS[f"<|dummy_{87 - (100350 - token_id)}|>"] = token_id + 1
+        continue  # Skip the token_id that's already assigned to <|endofprompt|>
+    PHI4_SPECIAL_TOKENS[f"<|dummy_{current_dummy_index}|>"] = token_id
+    current_dummy_index += 1
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
 
@@ -45,26 +44,11 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
     Args:
         merges_path (str): Path to merges.txt file.
         vocab_path (str): Path to vocab.json file.
-        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
+        special_tokens (Optional[Dict[str, int]]): Mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Phi4 special tokens.
-        max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
-            Default: None
-        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
-            to add structured text around the actual messages. The structured text is used in three scenarios:
-
-            - Task-specific templates to gear models for a particular task that it will expect after training
-            - Model-specific templates that are required whenever the model is prompted, such as the [INST]
-              tags in Llama2 and in Mistral
-            - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
-
-            The extra text will still get tokenized as normal text, not as special tokens. Default is None.
-
-    Examples:
-        >>> tokenizer = Phi4MiniTokenizer(vocab_path="vocab.json", merges_path="merges.txt")
-        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
-        >>> print(tokenized_text)
-        [1, 31587, 29644, 102, 2]
+        max_seq_len (Optional[int]): Max sequence length to truncate tokens to.
+        prompt_template (Optional[PromptTemplate]): Template used to format the messages based on their role.
     """
 
     def __init__(
@@ -75,20 +59,15 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
     ):
-        self.special_tokens = (
-            special_tokens if special_tokens is not None else PHI4_SPECIAL_TOKENS
-        )
+        self.special_tokens = special_tokens or PHI4_SPECIAL_TOKENS
 
-        # Use custom EOS, BOS and pad ids instead of TikToken's
+        # Use custom EOS, BOS, and pad ids instead of GPT2
         self.eos_id = self.special_tokens["<|im_end|>"]
         self.bos_id = self.special_tokens["<|endoftext|>"]
         self.pad_id = self.special_tokens["<|dummy_85|>"]
 
-        # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
-
         self.max_seq_len = max_seq_len
-
         self.prompt_template = prompt_template
 
         self.tokenizer_model = GPT2BaseTokenizer(
@@ -105,49 +84,23 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         return self.tokenizer_model.vocab_size
 
     def encode(
-        self,
-        text: str,
-        add_bos: bool = True,
-        add_eos: bool = True,
+        self, text: str, add_bos: bool = True, add_eos: bool = True
     ) -> List[int]:
-        return self.tokenizer_model.encode(
-            text=text,
-            add_bos=add_bos,
-            add_eos=add_eos,
-        )
+        return self.tokenizer_model.encode(text=text, add_bos=add_bos, add_eos=add_eos)
 
     def decode(self, ids: List[int], skip_special_tokens: bool = True) -> str:
-        """Decode token IDs to strings.
-
-        Args:
-            ids (List[int]): The input token IDs to be decoded.
-            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
-                Default is True.
-
-        Returns:
-            str: The decoded text.
-        """
-        ids_for_decode = []
-        for token_id in ids:
-            # Filter out special tokens and the placeholder tokens added
-            # by the Phi4 team
-            if skip_special_tokens and (token_id >= 100_256 and token_id <= 100_351):
-                continue
-            else:
-                ids_for_decode.append(token_id)
+        """Decode token IDs to strings."""
+        ids_for_decode = [
+            token_id
+            for token_id in ids
+            if not (skip_special_tokens and 100_256 <= token_id <= 100_351)
+        ]
         return self.tokenizer_model.decode(ids_for_decode)
 
     def _tokenize_header(self, role: str) -> list:
-        tokenized_messages = []
-        tokenized_messages.append(self.special_tokens["<|im_start|>"])
-        encoded = self.encode(
-            role,
-            add_bos=False,
-            add_eos=False,
-        )
-
-        tokenized_messages.extend(encoded)
-        tokenized_messages.append(self.special_tokens["<|im_end|>"])
+        tokenized_messages = [self.special_tokens["<|im_start|>"]]
+        tokenized_messages.extend(self.encode(role, add_bos=False, add_eos=False))
+        tokenized_messages.append(self.special_tokens["<|im_sep|>"])
         return tokenized_messages
 
     def tokenize_messages(
@@ -157,110 +110,45 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         add_eos: bool = False,
         ignore_system_prompt: bool = False,
     ) -> Tuple[List[int], List[bool]]:
-        r"""Tokenize a list of messages one at a time then concatenate them,
-        returning a list of tokens and a list of masks.
-
-        Example:
-            >>> tokenizer = Phi4MiniTokenizer(tokenizer_path, max_seq_len)
-            >>> messages = [
-                Message(role="system", content="system message\n", masked=True),
-                Message(role="user", content="user prompt\n", masked=True),
-                Message(role="assistant", content="assistant response\n"),
-            ]
-
-            >>> # tokenize_messages encodes messages separately and concats
-            >>> tokenizer.tokenize_messages(messages)[0]
-            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
-
-            >>> # Same result as encoding the full string in one go
-            >>> tokenizer.encode(''.join([message.content for message in messages]))
-            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
-
-
-        Args:
-            messages (List[Message]): A list of messages, each containing role, content,
-                and masked attributes.
-            add_eos (bool): Whether to append EOS after assistant message, default to False
-            ignore_system_prompt (bool): Whether to ignore system prompt, defaults to False.
-
-        Raises:
-            RuntimeError: If the message type is unsupported.
-
-        Returns:
-            Tuple[List[int], List[bool]]: The tokenized messages
-        """
         templated_messages = (
-            self.prompt_template(messages)
-            if self.prompt_template is not None
-            else messages
+            self.prompt_template(messages) if self.prompt_template else messages
         )
 
-        start_of_turn = True
-        end_of_turn = False
         tokenized_messages = []
         mask = []
 
-        # The chat template in HF adds a bunch of newlines
-        new_line_token_id = self.encode("\n", add_bos=False, add_eos=False)
-
         for message in templated_messages:
-            # Skip system prompt
             if ignore_system_prompt and message.role == "system":
                 continue
 
-            # Prepend BOS on start of new turns
-            if start_of_turn:
-                tokenized_messages.append(self.bos_id)
-                mask.append(message.masked)
-
-            if message.role == "assistant":
-                end_of_turn = True
-
-            # Add special tokens
             tokenized_header = self._tokenize_header(message.role)
-
             tokenized_messages.extend(tokenized_header)
+            mask.extend([message.masked] * len(tokenized_header))
 
-            # Minus 1, because the len(tokenized_header) is bigger then 1.
-            mask.extend([message.masked] * (len(tokenized_header) - 1))
-            mask.append(message.masked)
-
-            # Add new line token
-            tokenized_messages.extend(new_line_token_id)
-            mask.extend([message.masked] * len(new_line_token_id))
-
-            # Tokenize current message, append with masks
             tokens = []
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = tokens + self.encode(
-                        item["content"].rstrip(" "),
-                        add_bos=False,
-                        add_eos=False,
+                    tokens += self.encode(
+                        item["content"].rstrip(" "), add_bos=False, add_eos=False
                     )
                 else:
                     raise RuntimeError(
                         f"Unsupported message content type: {item['type']}"
                     )
 
-            tokens = tokens + [self.special_tokens["<|im_sep|>"]] + new_line_token_id
+            if add_eos:
+                tokens.append(self.special_tokens["<|im_end|>"])
+
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
-            # If assistant message, append EOS at end
-            if end_of_turn and add_eos:
-                tokenized_messages.append(self.eos_id)
+            if add_eos and message.role == "assistant":
                 mask.append(message.masked)
-                end_of_turn = False
-                start_of_turn = True
-            else:
-                start_of_turn = False
 
-            # Break out early if we reach max_seq_len
             if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
                 break
 
-        # Finally, truncate if necessary
+        # Finnaly, truncate if necessary.
         if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
             tokenized_messages = truncate(
                 tokenized_messages, self.max_seq_len, self.eos_id if add_eos else None
@@ -269,21 +157,9 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
         return tokenized_messages, mask
 
-    def __call__(
-        self, sample: Mapping[str, Any], inference: bool = False
-    ) -> Mapping[str, Any]:
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
-        Apply ``tokenize_messages`` to the "messages" field in the sample.
-
-        Args:
-            sample (Mapping[str, Any]): A sample with a "messages" field containing
-                a List[Message] to tokenize
-            inference (bool): Whether the template is being used for inference or not.
-
-        Returns:
-            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
-                and the "messages" field removed.
-            inference (bool): Whether the template is being used for inference or not.
+        Apply `tokenize_messages` to the "messages" field in the sample.
         """
         messages = sample.pop("messages")
         tokens, mask = self.tokenize_messages(messages)

@@ -98,7 +98,8 @@ class GPT2BaseTokenizer(BaseTokenizer):
         # Should have added re.IGNORECASE so BPE merges can happen for capitalized versions of contractions
         # We do not use external regex library, so this is slightly modified version of the original line
         self.pat = re.compile(
-            r"""'s|'t|'re|'ve|'m|'ll|'d| ?[^\W\d_]+| ?\d+| ?[^\s\W\d_]+|\s+(?!\S)|\s+"""
+            r"""'s|'t|'re|'ve|'m|'ll|'d| ?[\w]+| ?\d+| ?[^\s\w\d]+|\s+(?!\S)|\s+""",
+            re.UNICODE,
         )
 
         self.unk_id = unk_id

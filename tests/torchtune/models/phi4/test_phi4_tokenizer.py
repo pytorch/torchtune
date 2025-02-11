@@ -16,8 +16,7 @@ from torchtune.models.phi4 import phi4_14b_tokenizer
 class TestPhi4MiniTokenizer:
     @pytest.fixture
     def tokenizer(self):
-        # Pretrained tiktoken model generated via the script in
-        # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
+        # GPT2BaseTokenizer
         return phi4_14b_tokenizer(
             vocab_path=(ASSETS / "vocab.json"),
             merges_path=(ASSETS / "merges.txt"),
@@ -26,7 +25,7 @@ class TestPhi4MiniTokenizer:
     @pytest.fixture
     def expected_tokens(self):
         # fmt: off
-        tokens = [100257, 100264, 9125, 100265, 198, 2675, 527, 264, 11190, 18328, 100266, 198, 100264, 882, 100265, 198, 14149, 28514, 374, 279, 1888, 6875, 100266, 198, 100264, 78191, 100265, 198, 9642, 433, 374, 100266, 198, 100265]
+        tokens = [100264, 9125, 100266, 2675, 527, 264, 11190, 18328, 100265, 100264, 882, 100266, 14149, 28514, 374, 279, 1888, 6875, 0, 100265, 100264, 78191, 100266, 9642, 11, 433, 374, 0, 100265]
         # fmt: on
         return tokens
 
@@ -45,12 +44,13 @@ class TestPhi4MiniTokenizer:
         ]
         tokens, mask = tokenizer.tokenize_messages(messages, add_eos=True)
 
-        expected_mask = [True] * 24 + [False] * 10
+        expected_mask = [True] * 20 + [False] * 10
         assert expected_tokens == tokens
         assert expected_mask == mask
 
     def test_tokenize_messages_no_system_prompt(self, tokenizer):
         messages = [
+            Message(role="system", content="You are a helpful assistant", masked=True),
             Message(
                 role="user",
                 content="Pytorch is the best library!",
@@ -66,10 +66,10 @@ class TestPhi4MiniTokenizer:
         )
 
         # fmt: off
-        expected_tokens = [100257, 100264, 882, 100265, 198, 14149, 28514, 374, 279, 1888, 6875, 100266, 198, 100264, 78191, 100265, 198, 9642, 433, 374, 100266, 198, 100265]
+        expected_tokens = [100264, 882, 100266, 14149, 28514, 374, 279, 1888, 6875, 0, 100265, 100264, 78191, 100266, 9642, 11, 433, 374, 0, 100265]
         # fmt: on
 
-        expected_mask = [True] * 13 + [False] * 10
+        expected_mask = [True] * 11 + [False] * 10
         assert expected_tokens == tokens
         assert expected_mask == mask
 
@@ -94,10 +94,10 @@ class TestPhi4MiniTokenizer:
         tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
 
         # fmt: off
-        expected_tokens = [100257, 100264, 9125, 100265, 198, 2675, 527, 264, 11190, 18328, 100266, 198, 100264, 882, 100265, 198, 14149, 28514, 374, 279, 1888, 6875, 100266, 198, 100264, 78191, 100265, 198, 9642, 433, 374, 100266, 198, 100265]
+        expected_tokens = [100264, 9125, 100266, 2675, 527, 264, 11190, 18328, 100264, 882, 100266, 14149, 28514, 374, 279, 1888, 6875, 0, 100264, 78191, 100266, 9642, 11, 433, 374, 0]
         # fmt: on
 
-        expected_mask = [True] * 24 + [False] * 9
+        expected_mask = [True] * 18 + [False] * 8
         # Drop eos token.
-        assert expected_tokens[:-1] == tokens
+        assert expected_tokens == tokens
         assert expected_mask == mask
