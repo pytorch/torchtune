@@ -48,12 +48,30 @@ def save_config(config: DictConfig) -> Path:
         log.warning(f"Error saving config.\nError: \n{e}.")
 
 
-def flatten_dict(d, parent_key="", sep="."):
+def flatten_dict(d: Dict[str, Any], sep: str = ".", parent_key: str = ""):
+    """Recursively flattens a nested dictionary into one level of key-value pairs.
+
+    Args:
+        d (Dict[str, Any]): Any dictionary to flatten
+        sep (str): Desired separator for flattening nested keys
+        parent_key (str): Key prefix for children (nested keys), containing parent key
+            names
+
+    Example:
+        >>> flatten_dict({"foo": {"bar": "baz"}, "qux"; "quux"}, parent_key="--")
+        {"foo--bar": "baz", "qux", "quux"}
+
+    Returns:
+        Flattened dictionary
+
+    Note:
+        Does not unnest dictionaries within list values (i.e. {"foo": [{"bar": "baz}]}})
+    """
     items = []
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
         if isinstance(v, dict):
-            items.extend(flatten_dict(v, new_key, sep=sep).items())
+            items.extend(flatten_dict(v, sep=sep, parent_key=new_key).items())
         else:
             items.append((new_key, v))
     return dict(items)
