@@ -36,10 +36,11 @@ def phi4_14b() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi4_14b_tokenizer(vocab_path: str = None, merges_path: str = None, path: str = None, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
+def phi4_14b_tokenizer(vocab_path: str = None, merges_path: str = None, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
     """Phi4 (14B) tokenizer.
     Args:
-        path (str): Path to the tiktoken tokenizer model.
+        vocab_path (str): Path to vocab.json.
+        merges_path (str): Path to merges.txt.
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file 
             structured similarly. Default is None to use the canonical Phi4 special tokens.
