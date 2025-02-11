@@ -20,9 +20,9 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
-from torchtune.rlhf import batch_shaped_correctness_reward
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.rlhf import batch_shaped_correctness_reward
 from torchtune.rlhf._types import GRPOStats, GRPOTrajectory
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
@@ -161,8 +161,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         Extract the reference checkpoint state from file and validate.
         """
         self._ref_checkpointer = config.instantiate(
-            cfg_ref_checkpointer,
-            resume_from_checkpoint=False
+            cfg_ref_checkpointer, resume_from_checkpoint=False
         )
 
         ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
@@ -216,7 +215,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        ref_checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.ref_checkpointer)
+        ref_checkpoint_dict = self.load_checkpoint(
+            cfg_checkpointer=cfg.ref_checkpointer
+        )
 
         self._compile = cfg.get("compile", False)
         self._model, self._ref_model = self._setup_model(
@@ -226,7 +227,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            ref_model_state_dict=checkpoint_dict[training.MODEL_KEY],
+            ref_model_state_dict=ref_checkpoint_dict[training.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
         )
@@ -470,11 +471,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 ac_option,
             )
 
-            apply_selective_activation_checkpointing(
-                ref_model,
-                ac_mode,
-                ac_option
-            )
+            apply_selective_activation_checkpointing(ref_model, ac_mode, ac_option)
 
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
@@ -786,7 +783,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             query_responses, input_pos=position_ids, mask=masks
         )
         ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
-        ref_logprobs = rlhf.batched_logits_to_logprobs(ref_logits, responses, self._temperature)
+        ref_logprobs = rlhf.batched_logits_to_logprobs(
+            ref_logits, responses, self._temperature
+        )
 
         del ref_logits
         torch.cuda.empty_cache()

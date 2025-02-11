@@ -25,9 +25,7 @@ def extract_tags(text: str) -> dict[str, list[str]]:
     }
 
 
-def shaped_correctness_reward(
-    answer: str, completion: str
-) -> tuple[float, float]:
+def shaped_correctness_reward(answer: str, completion: str) -> tuple[float, float]:
     """
     Reward function for verifiable rewards with some mild shaping.
 
@@ -42,9 +40,7 @@ def shaped_correctness_reward(
     success = 0.0
 
     try:
-        tags = extract_tags(
-            "<think>" + completion.replace("<<", "").replace(">>", "")
-        )
+        tags = extract_tags("<think>" + completion.replace("<<", "").replace(">>", ""))
     except ET.ParseError:
         tags = {"think": [], "answer": []}
 
