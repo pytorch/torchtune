@@ -6,14 +6,18 @@
 
 from typing import Dict
 
-from torch.distributed._tensor import Replicate, Shard
-from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel, parallelize_module
-from torch.distributed.tensor.parallel.style import ParallelStyle
-from torchtune.modules.model_fusion import FusionLayer
-from torchtune.modules import TransformerSelfAttentionLayer
-from torch.distributed.device_mesh import DeviceMesh
-
 import torch
+
+from torch.distributed._tensor import Replicate, Shard
+from torch.distributed.device_mesh import DeviceMesh
+from torch.distributed.tensor.parallel import (
+    ColwiseParallel,
+    parallelize_module,
+    RowwiseParallel,
+)
+from torch.distributed.tensor.parallel.style import ParallelStyle
+from torchtune.modules import TransformerSelfAttentionLayer
+from torchtune.modules.model_fusion import FusionLayer
 
 
 # Define the Tensor Parallel plan for Llama3.2 vision model

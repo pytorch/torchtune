@@ -15,11 +15,12 @@ from torch.distributed.tensor.parallel import parallelize_module
 
 from torchtune import config, training, utils
 from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
-from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.generation import sample
+from torchtune.models.llama3_2_vision import parallelize_llama3_2_vision
+from torchtune.modules.model_fusion import DeepFusionModel
 
 from torchtune.modules.transforms import Transform
-from torchtune.models.llama3_2_vision import parallelize_llama3_2_vision
+
 
 class SingleTurnYAMLToMessages(Transform):
     """
@@ -106,7 +107,7 @@ class InferenceRecipe:
 
         # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
         model = training.prepare_mha_for_tp(model, tp_device_mesh)
-        
+
         # Special handling for 3.2 vision model, we need to parallelize the model differently as wildcard is not
         # working for now. Need to change back to wildcard once the issue is fixed.
         if isinstance(model, DeepFusionModel):
