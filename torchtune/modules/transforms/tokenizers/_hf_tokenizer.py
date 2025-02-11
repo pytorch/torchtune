@@ -13,8 +13,8 @@ from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
 
 class HuggingFaceTokenizer(BaseTokenizer):
     """
-    A wrapper around Hugging Face tokenizers. This class can be used to load from a
-    Hugging Face tokenizer.json file into a torchtune BaseTokenizer.
+    A wrapper around Hugging Face tokenizers. See https://github.com/huggingface/tokenizers
+    This can be used to load from a Hugging Face tokenizer.json file into a torchtune BaseTokenizer.
 
     This class will load the tokenizer.json file from tokenizer_json_path. It will
     attempt to infer BOS and EOS token IDs from config.json if possible, and if not
