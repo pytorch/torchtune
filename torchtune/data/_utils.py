@@ -46,7 +46,7 @@ def truncate(
     return tokens_truncated
 
 
-def load_image(image_loc: Union[Path, str]) -> "torch.Tensor":
+def load_image(image_loc: Union[Path, str]) -> torch.Tensor:
     """
     Convenience method to load an image in torch.Tensor format from a local file path or remote source.
 
@@ -81,14 +81,14 @@ def load_image(image_loc: Union[Path, str]) -> "torch.Tensor":
                 torch.frombuffer(image_loc, dtype=torch.uint8)
             )
         except Exception as e:
-            raise ValueError("Failed to load image as torch.Tensor") from e
+            raise ValueError("Failed to load remote image as torch.Tensor") from e
 
     # Open the local image as a Tensor image
     else:
         try:
             image = torchvision.io.decode_image(image_loc)
         except Exception as e:
-            raise ValueError("Failed to open image as torch.Tensor") from e
+            raise ValueError("Failed to load local image as torch.Tensor") from e
     return image
 
 
