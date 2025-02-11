@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+import re
 
 import runpy
 
@@ -12,7 +13,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 import torch
 from tests.common import TUNE_PATH
 
@@ -216,6 +216,131 @@ class TestFullFinetuneSingleDeviceRecipe:
 
         expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
 
+        loss_values = get_loss_values_from_metric_logger(log_file)
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
+        )
+
+    @pytest.mark.integration_test
+    @pytest.mark.parametrize("keep_last_n_checkpoints", [1, 2])
+    @pytest.mark.parametrize("save_every_n_steps", [1, 2])
+    def test_checkpointing_with_steps(
+        self, tmpdir, monkeypatch, keep_last_n_checkpoints, save_every_n_steps
+    ):
+        ckpt = "llama2_hf"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+        write_hf_ckpt_config(tmpdir)
+
+        # Train for two epochs (anywhere from 2 -> 4 ckpts)
+        cmd_1 = f"""
+        tune run full_finetune_single_device \
+            --config llama2/7B_full_low_memory \
+            batch_size=8 \
+            output_dir={tmpdir} \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            checkpointer.keep_last_n_checkpoints={keep_last_n_checkpoints} \
+            save_every_n_steps={save_every_n_steps} \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+        """.split()
+        model_config = MODEL_TEST_CONFIGS["llama2"]
+        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_1)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        regex_to_match = re.compile("step_([0-9]+)")
+        # Iterate over the directory contents, find all directories that match
+        # `regex_to_match`. Assert that the number of directories found is equal
+        # to the `keep_last_n_checkpoints` value. Also assert that each checkpoint
+        # number is a multiple of `save_every_n_steps`.
+        ckpt_dirs = [
+            d
+            for d in os.listdir(tmpdir)
+            if os.path.isdir(os.path.join(tmpdir, d)) and regex_to_match.match(d)
+        ]
+        assert len(ckpt_dirs) == keep_last_n_checkpoints
+        for ckpt_dir in ckpt_dirs:
+            step = int(regex_to_match.match(ckpt_dir).group(1))
+            assert step % save_every_n_steps == 0
+
+        # Also make sure that the last checkpoint has the correct number of steps
+        most_recent_checkpoint = get_largest_iter_folder(tmpdir, pattern=r"^step_(\d+)")
+        step = int(regex_to_match.match(most_recent_checkpoint).group(1))
+        assert step == 4  # 2 epochs * 2 steps per epoch
+
+    @pytest.mark.integration_test
+    def test_checkpointing_with_steps_and_resume(self, tmpdir, monkeypatch):
+        """We want to be sure that now we use steps, we can resume correctly from a checkpoint.
+        Once we fully transition to steps, we can remove the test above."""
+        # 0. Set up variables
+        ckpt = "llama2_hf"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+        write_hf_ckpt_config(ckpt_dir)
+        write_hf_ckpt_config(tmpdir)
+
+        # 1. Train for two epochs, keep 2 checkpoints
+        cmd_1 = f"""
+        tune run full_finetune_single_device \
+            --config llama2/7B_full_low_memory \
+            batch_size=8 \
+            output_dir={tmpdir} \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            checkpointer.keep_last_n_checkpoints=2 \
+            save_every_n_steps=2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+        """.split()
+        model_config = MODEL_TEST_CONFIGS["llama2"]
+        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_1)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # 2. Find the checkpoint at the end of the first epoch
+        step_folder = get_largest_iter_folder(tmpdir, pattern=r"^step_(\d+)")
+        step_folder_at_epoch_boundary = f"step_{int(step_folder.split('_')[-1]) - 2}"
+        suffix = ".safetensors"
+        model_ckpt_fname = (
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
+        )
+
+        # 3. Resume training w/ the checkpoint from epoch boundary
+        cmd_2 = f"""
+        tune run full_finetune_single_device \
+            --config llama2/7B_full_low_memory \
+            batch_size=8 \
+            output_dir={tmpdir} \
+            checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{os.path.join(step_folder_at_epoch_boundary, model_ckpt_fname)}]\
+            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            resume_from_checkpoint=True \
+            metric_logger.filename={log_file} \
+        """.split()
+        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_2)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # 4. Make sure loss values match the expected values
+        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4

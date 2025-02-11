@@ -60,6 +60,7 @@ MAX_STEPS_KEY = "max_steps_per_epoch"
 MODEL_KEY = "model"
 OPT_KEY = "optimizer"
 SEED_KEY = "seed"
+CURR_STEP_KEY = "steps_run"
 
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
@@ -310,7 +311,7 @@ def get_largest_iter_folder(
     dir: Union[str, Path], pattern: str = r"^epoch_(\d+)"
 ) -> Union[None, str]:
 
-    latest_epoch_folder = None
+    largest_iter_folder = None
     iter_folders = []
     regex = re.compile(pattern)
 
@@ -324,9 +325,9 @@ def get_largest_iter_folder(
 
     # Find the folder with the largest iter number
     if iter_folders:
-        latest_epoch_folder = max(iter_folders, key=lambda x: x[1])[0]
+        largest_iter_folder = max(iter_folders, key=lambda x: x[1])[0]
 
-    return latest_epoch_folder
+    return largest_iter_folder
 
 
 # TODO: instead of copying, make it a symlink when we start using HF cache
@@ -441,7 +442,7 @@ def get_adapter_checkpoint_path(
     output_dir: Path,
     adapter_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
-    pattern: str = r"^epoch_(\d+)",
+    pattern: str = r"^step_(\d+)",
 ) -> Optional[Path]:
     r"""
     If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.
@@ -467,6 +468,8 @@ def get_adapter_checkpoint_path(
     else:
         # Look for the latest adapter checkpoint in the output directory
         largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
+        if largest_iter_folder is None:
+            return None
 
         tentative_adapter_checkpoint_path = os.path.join(
             output_dir, largest_iter_folder, "adapter_model.pt"
@@ -633,7 +636,7 @@ def get_all_checkpoints_in_dir(
 
 
 def prune_surplus_checkpoints(
-    self, checkpoints: List[Path], keep_last_n_checkpoints: int = 1
+    checkpoints: List[Path], keep_last_n_checkpoints: int = 1
 ) -> None:
     """
     Prunes the surplus checkpoints in the given list of checkpoints.
@@ -652,6 +655,9 @@ def prune_surplus_checkpoints(
         >>> prune_surplus_checkpoints(checkpoints, keep_last_n_checkpoints=1)
         >>> os.listdir('/path/to/checkpoints')
         ['epoch_2']
+
+    Raises:
+        ValueError: If `keep_last_n_checkpoints` is less than 1.
     """
     if keep_last_n_checkpoints < 1:
         raise ValueError("keep_last_n_checkpoints must be greater than or equal to 1.")

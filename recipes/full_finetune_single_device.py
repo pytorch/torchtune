@@ -23,6 +23,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.checkpointing.constants import CURR_STEP_KEY
 from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
@@ -139,6 +140,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self.save_every_n_steps = cfg.get("save_every_n_steps")
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.optimizer_in_bwd
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
@@ -325,6 +327,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
+        # For now, default to saving at epoch boundaries
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
 
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -598,19 +604,22 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, *, epoch: int, step: int) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
         ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
-        # if training is in-progress, checkpoint the optimizer state as well
-        if epoch + 1 < self.total_epochs:
+
+        # If training is in-progress, checkpoint the optimizer state as well
+        is_intermediate = step < self._steps_per_epoch * self.total_epochs
+        if is_intermediate:
             ckpt_dict.update(
                 {
                     training.SEED_KEY: self.seed,
-                    training.EPOCHS_KEY: self.epochs_run,
+                    training.EPOCHS_KEY: epoch,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    CURR_STEP_KEY: step,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
@@ -618,10 +627,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
             else:
                 ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
+
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
-            intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+            intermediate_checkpoint=is_intermediate,
+            step=step,
         )
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
@@ -755,6 +766,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             step=self.global_step,
                         )
 
+                    # Save checkpoint if specified by user
+                    if (
+                        self.global_step > 0
+                        and self.global_step % self.save_every_n_steps == 0
+                    ):
+                        self.save_checkpoint(epoch=curr_epoch, step=self.global_step)
+
                     # Reset running stats for the next step
                     running_loss = 0
                     num_tokens = 0
@@ -778,8 +796,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._profiler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
 
+        self.save_checkpoint(epoch=curr_epoch, step=self.global_step)
         self._profiler.stop()
 
     def cleanup(self) -> None:
