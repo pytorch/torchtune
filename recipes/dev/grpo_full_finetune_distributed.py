@@ -58,18 +58,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
             precision are currently not supported.
 
-        - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
-            controlled using the ``gradient_accumulation_steps`` flag.
-
-                Total Batch Size = batch_size * number of GPUs * gradient accumulation steps.
-
-            For example: with batch_size=1, nproc_per_node=2 and gradient_accumulation_steps=32 we get a
-            total batch size of 64.
-
-            Gradient accumulation is especially useful when you are memory constrained. In this case,
-            accumulating gradients might give you better training speed than enabling activation
-            checkpointing.
-
         - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
             training. Optimizer state and recipe state (seed, total_epochs, number of epochs run etc) are
             only saved at the end of a given epoch and used in case of resuming training.
@@ -136,7 +124,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
         # activation checkpointing
@@ -148,7 +135,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
         self.total_epochs = cfg.epochs
-        self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
         self._steps_run = 0
         self._total_steps = 0
@@ -200,14 +186,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     )
                 )
                 self.seed = ckpt_dict[training.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
-                warn(
-                    message=(
-                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
-                    )
-                )
-                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
             if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
@@ -285,17 +263,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # other components have been initialized and updated.
         #
         # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader, the max_steps_per_epoch param set by the user and the
-        # gradient_accumulation_steps param. This value is used for logging and tracking
+        # by the dataloader.
+        # This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
-            self._steps_per_epoch = self.max_steps_per_epoch
+        self._steps_per_epoch = len(self._dataloader)
         self.global_step = self._epochs_run * self._steps_per_epoch
 
         # Setup lr scheduler
@@ -318,15 +289,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._forward_batch_size = cfg.forward_batch_size
 
         self._ppo_epochs = cfg.ppo_epochs
-        self._ppo_batch_size = cfg.ppo_batch_size
-        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._ppo_backward_batch_size = (
-            cfg.ppo_batch_size // self._gradient_accumulation_steps
-        )
 
         self._save_every_n_epochs = cfg.save_every_n_epochs
 
-        self._total_steps = cfg.num_steps // self.batch_size
+        self._total_steps = cfg.num_steps
 
         if cfg.get("stop_token_ids", False):
             stop_token_ids = cfg.stop_token_ids
@@ -724,7 +690,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                         training.SEED_KEY: self.seed,
                         training.EPOCHS_KEY: self._epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                         training.RNG_KEY: self._rng.get_state(),
                     }
                 )
@@ -955,7 +920,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         torch.cuda.empty_cache()
-        loss /= self._gradient_accumulation_steps
         loss.backward()
 
         with torch.no_grad():
@@ -965,11 +929,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         return GRPOStats(
             loss,
-            policy_loss / self._gradient_accumulation_steps,
-            kl_loss / self._gradient_accumulation_steps,
-            ratios / self._gradient_accumulation_steps,
-            clipfrac / self._gradient_accumulation_steps,
-            approx_policy_kls / self._gradient_accumulation_steps,
+            policy_loss,
+            kl_loss,
+            ratios,
+            clipfrac,
+            approx_policy_kls,
         )
 
     def train(self) -> None:
@@ -983,7 +947,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
-        t0 = time.perf_counter()
         grad_norm = None
 
         training_completed = False
@@ -996,12 +959,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -1021,54 +978,27 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 trajectory = self.generate_trajectory_batched(tokens, answers)
                 torch.distributed.barrier()
 
-                effective_batch_size = self.batch_size * self.grpo_samples  # = B x G
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
-                    # batch_idxs = torch.randperm(effective_batch_size, device=self._device)
-                    batch_idxs = torch.arange(effective_batch_size, device=self._device)
-                    for i in range(0, effective_batch_size, self._ppo_batch_size):
-                        mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
-                        batch_grpo_stats: list[GRPOStats] = []
 
-                        for j in range(
-                            0, self._ppo_batch_size, self._ppo_backward_batch_size
-                        ):
-                            backward_batch_idxs = mini_batch_idxs[
-                                j : j + self._ppo_backward_batch_size
-                            ]
+                    step_stats = self.grpo_step(trajectory, context_length)
 
-                            batch_trajectory = GRPOTrajectory(
-                                *map(
-                                    partial(
-                                        torch.index_select,
-                                        dim=0,
-                                        index=backward_batch_idxs,
-                                    ),
-                                    trajectory,
-                                )
-                            )
-                            batch_grpo_stats.append(
-                                self.grpo_step(  # .backward() happens here
-                                    batch_trajectory, context_length
-                                )
-                            )
-                            del batch_trajectory
+                    grpo_stats.append(step_stats)
 
-                        grpo_stats.append(GRPOStats(*map(sum, zip(*batch_grpo_stats))))
+                    if self._clip_grad_norm is not None:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=float(self._clip_grad_norm),
+                        )
+                    torch.distributed.barrier()
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    torch.distributed.barrier()
 
-                        if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
-                            )
-                        torch.distributed.barrier()
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
+                    self.global_step += 1
 
-                        self.global_step += 1
-
-                        if self._lr_scheduler is not None:
-                            self._lr_scheduler.step()
+                    if self._lr_scheduler is not None:
+                        self._lr_scheduler.step()
 
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
