@@ -6,12 +6,12 @@
 #   tune download microsoft/phi-4 --output-dir /tmp/phi-4 --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config phi4/mini_lora_single_device
+#   tune run lora_finetune_single_device --config phi4/lora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config phi4/mini_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_single_device --config phi4/lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
