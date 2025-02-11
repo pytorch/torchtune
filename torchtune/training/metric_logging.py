@@ -483,7 +483,7 @@ class CometLogger(MetricLoggerInterface):
 
 
 class MLFlowLogger(MetricLoggerInterface):
-    """Logger for use w/ MLFlow.
+    """Logger for use w/ MLFlow (https://mlflow.org/).
 
     Args:
         experiment_name (Optional[str]): MLFlow experiment name. If not specified, will
@@ -497,7 +497,7 @@ class MLFlowLogger(MetricLoggerInterface):
             to MLFLOW_RUN_ID environment variable if set, or a new run will be created.
 
     Example:
-        >>> logger = MLFlowLogger(experiment_name="my_experiment", run_name="run1", log_dir="./mlruns")
+        >>> logger = MLFlowLogger(experiment_name="my_experiment", run_name="run1")
         >>> logger.log("accuracy", 0.95, step=1)
         >>> logger.log_dict({"loss": 0.1, "accuracy": 0.95}, step=1)
         >>> logger.log_config(config)
