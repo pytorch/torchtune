@@ -42,14 +42,15 @@ in the text, ``"<image>"`` for where to place the image tokens. This will get re
 
 .. code-block:: python
 
-    from torchtune.models.llama3_2_vision import llama3_2_vision_transform
+    from torchtune.models.llama3_2_vision import Llama3VisionTransform
     from torchtune.datasets.multimodal import multimodal_chat_dataset
 
     model_transform = Llama3VisionTransform(
         path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model",
         prompt_template="torchtune.data.QuestionAnswerTemplate",
         max_seq_len=8192,
-        image_size=560,
+        tile_size=244,
+        patch_size=14,
     )
     ds = multimodal_chat_dataset(
         model_transform=model_transform,
