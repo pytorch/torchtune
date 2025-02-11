@@ -1089,7 +1089,7 @@ def recipe_main(cfg: DictConfig) -> None:
     """
 
     recipe = FullGRPOFinetuneRecipeDistributed(cfg=cfg)
-    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
+    config.log_config(recipe_name="FullGRPOFinetuneRecipeDistributed", cfg=cfg)
 
     utils.log_rank_zero(log, "Instantiated the recipe")
     recipe.setup(cfg=cfg)
