@@ -19,13 +19,13 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: PHI4_MINI
+  model_type: PHI3_MINI
 resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
-  path: /tmp/phi-4/tokenizer.model
+  path: /tmp/phi-3/tokenizer.model
   max_seq_len: null
 
 # Environment
