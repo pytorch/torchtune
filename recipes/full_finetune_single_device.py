@@ -324,6 +324,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         if self.save_every_n_steps is None:
             self.save_every_n_steps = self._steps_per_epoch
 
+        # For now, default to saving at epoch boundaries
+        if self.save_every_n_steps is None:
+            self.save_every_n_steps = self._steps_per_epoch
+
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
@@ -592,7 +596,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             list(dataloader)
         return dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, *, epoch: int, step: int) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
