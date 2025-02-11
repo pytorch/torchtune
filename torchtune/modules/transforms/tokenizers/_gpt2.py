@@ -192,20 +192,6 @@ class GPT2BaseTokenizer(BaseTokenizer):
     def _convert_id_to_token(self, index: int) -> str:
         return self.decoder.get(index)
 
-    def decode(self, tokens: list) -> List[str]:
-        """
-        Decode sequence of the given tokens into string.
-
-        Args:
-            tokens (list): List of the integers, which represent encoded tokens.
-
-        Returns:
-            Decoced text.
-        """
-
-        decoded_tokens = list(map(self._convert_id_to_token, tokens))
-        return decoded_tokens
-
     def encode(
         self,
         text: str,
@@ -230,3 +216,17 @@ class GPT2BaseTokenizer(BaseTokenizer):
         if add_eos:
             bpe_tokens = bpe_tokens + [self.eos_id]
         return bpe_tokens
+
+    def decode(self, tokens: list) -> List[str]:
+        """
+        Decode sequence of the given tokens into string.
+
+        Args:
+            tokens (list): List of the integers, which represent encoded tokens.
+
+        Returns:
+            Decoded text.
+        """
+
+        decoded_tokens = list(map(self._convert_id_to_token, tokens))
+        return decoded_tokens
