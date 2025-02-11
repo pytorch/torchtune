@@ -138,7 +138,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = training.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
 
         self._is_rank_zero = rank == 0
 

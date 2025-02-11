@@ -359,6 +359,8 @@ For Llama models, you can run generation directly in torchao on the quantized mo
 discussed in `this readme <https://github.com/pytorch/ao/tree/main/torchao/_models/llama>`_. This way you can compare your own results
 to those in the previously-linked table.
 
+.. _use_model_in_wild:
+
 Use your model in the wild
 --------------------------
 
