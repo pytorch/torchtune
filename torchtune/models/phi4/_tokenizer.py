@@ -94,7 +94,6 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         self.tokenizer_model = GPT2BaseTokenizer(
             vocab_path,
             merges_path,
-            "replace",
             self.eos_id,
             self.bos_id,
             self.eos_id,
@@ -103,7 +102,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
 
     @property
     def vocab_size(self):
-        return self.tt_model.vocab_size
+        return self.tokenizer_model.vocab_size
 
     def encode(
         self,
@@ -136,7 +135,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
                 continue
             else:
                 ids_for_decode.append(token_id)
-        return self.tt_model.decode(ids_for_decode)
+        return self.tokenizer_model.decode(ids_for_decode)
 
     def _tokenize_header(self, role: str) -> list:
         tokenized_messages = []

@@ -62,7 +62,6 @@ class GPT2BaseTokenizer(BaseTokenizer):
     Args:
         vocab_path (str): Path to vocab.json file.
         merges_path (str): Path to merges.txt file.
-        errors (str): Paradigm to follow when decoding.
         unk_id (int): unkown token id.
         bos_id (int): beginning-of-sequence token id.
         eos_id (int): end-of-sequence token id.
@@ -80,7 +79,6 @@ class GPT2BaseTokenizer(BaseTokenizer):
         self,
         vocab_path: str,
         merges_path: str,
-        errors: str,
         unk_id: int = None,
         bos_id: int = None,
         eos_id: int = None,
@@ -89,7 +87,6 @@ class GPT2BaseTokenizer(BaseTokenizer):
         with open(vocab_path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)
         self.decoder = {v: k for k, v in self.encoder.items()}
-        self.errors = errors  # how to handle errors in decoding
         self.byte_encoder = bytes_to_unicode()
         self.byte_decoder = {v: k for k, v in self.byte_encoder.items()}
         with open(merges_path, encoding="utf-8") as merges_handle:
