@@ -77,7 +77,7 @@ class OptimizerWrapper:
         else:
             return get_lr(self._optimizer)
         
-    def set_lr(self, lr_scheduler):
+    def set_learning_rate_scheduler
         if self._optimizer_in_bwd:
             self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
