@@ -9,7 +9,6 @@ class MultiConversationMessages(Transform):
     def __init__(self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None):
         self.train_on_input = train_on_input
         self._column_map = column_map or {
-            "prompt": "prompt",
             "chosen": "chosen",
             "rejected": "rejected",
         }
@@ -108,8 +107,8 @@ def CE_multi_conversation_dataset(
     **load_dataset_kwargs: Dict[str, Any],
 ) -> PreferenceDataset:
     column_map = column_map or {
-        "prompt": "prompt",
         "chosen": "chosen",
+        "rejected": "rejected",
     }
 
     message_transform = CE_MultiConversationMessages(
@@ -138,7 +137,6 @@ def multi_conversation_dataset(
     **load_dataset_kwargs: Dict[str, Any],
 ) -> PreferenceDataset:
     column_map = column_map or {
-        "prompt": "prompt",
         "chosen": "chosen",
         "rejected": "rejected",
     }
