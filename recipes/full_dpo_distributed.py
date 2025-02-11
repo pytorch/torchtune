@@ -20,7 +20,7 @@ from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
@@ -496,12 +496,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
         # between ref policy and current policy
-        for module in model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
+        disable_dropout(model)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -583,12 +578,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
         # between ref policy and current policy
-        for module in model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
+        disable_dropout(model)
 
         for p in model.parameters():
             p.requires_grad = False
