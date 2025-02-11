@@ -79,9 +79,7 @@ dtype: bf16
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
-  project: gsm8k_sft
   log_dir: ${output_dir}/logs
-  name: ${name}
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
