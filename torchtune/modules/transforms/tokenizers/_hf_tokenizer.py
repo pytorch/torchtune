@@ -16,6 +16,10 @@ class HFTokenizer(BaseTokenizer):
     A wrapper around Hugging Face tokenizers. This class can be used to load from a
     Hugging Face tokenizer.json file into a torchtune BaseTokenizer.
 
+    This class will load the tokenizer.json file from tokenizer_json_path. It will
+    attempt to infer BOS and EOS token IDs from config.json if possible, and if not
+    will fallback to inferring them from generation_config.json.
+
     Args:
         tokenizer_json_path (str): Path to tokenizer.json file
         config_path (Optional[str]): Path to tokenizer_config.json file. Default: None
@@ -68,8 +72,8 @@ class HFTokenizer(BaseTokenizer):
         """
         Infer BOS and EOS token IDs from config and/or generation_config.
 
-        Will first try to infer ID directly from generation_config.
-        If that's not available, will infer token from config then map to ID.
+        Will first try to infer token from config then map to ID.
+        If that's not available, will infer ID directly from generation_config.
         Otherwise, raise a ValueError.
         """
         self.bos_id = None
