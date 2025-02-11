@@ -16,7 +16,6 @@ class TestGPT2BaseTokenizer:
         tokenizer = GPT2BaseTokenizer(
             ASSETS / "vocab.json",
             ASSETS / "merges.txt",
-            "replace",
             1,
             1,
             1,
@@ -29,37 +28,43 @@ class TestGPT2BaseTokenizer:
             tokenizer.bos_id,
             9906,
             1917,
+            0,
             tokenizer.eos_id,
         ]
         assert tokenizer.encode("Hello world!", add_eos=False) == [
             tokenizer.bos_id,
             9906,
             1917,
+            0,
         ]
         assert tokenizer.encode("Hello world!", add_bos=False) == [
             9906,
             1917,
+            0,
             tokenizer.eos_id,
         ]
         assert tokenizer.encode("Hello world!", add_eos=False, add_bos=False) == [
             9906,
             1917,
+            0,
         ]
 
     def test_decode(self, tokenizer):
         tokens = [
             9906,
             1917,
+            0,
         ]
 
-        assert tokenizer.decode(tokens) == ["Hello", "Ġworld"]
+        assert tokenizer.decode(tokens) == ["Hello", "Ġworld", "!"]
         assert tokenizer.decode(
             tokenizer.encode("Hello world!", add_eos=False, add_bos=False)
-        ) == ["Hello", "Ġworld"]
+        ) == ["Hello", "Ġworld", "!"]
         assert tokenizer.decode(tokenizer.encode("Hello world!")) == [
             '"',
             "Hello",
             "Ġworld",
+            "!",
             '"',
         ]
 
