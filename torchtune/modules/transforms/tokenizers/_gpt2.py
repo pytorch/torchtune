@@ -106,6 +106,8 @@ class GPT2BaseTokenizer(BaseTokenizer):
         self.eos_id = eos_id
         self.pad_id = pad_id
 
+        self.unk_token = self.encoder.get(self.unk_id)
+
     @property
     def vocab_size(self) -> int:
         return len(self.encoder)
@@ -184,7 +186,7 @@ class GPT2BaseTokenizer(BaseTokenizer):
         return bpe_tokens
 
     def _convert_token_to_id(self, token: str) -> int:
-        return self.encoder.get(token, self.encoder.get(self.unk_id))
+        return self.encoder.get(token, self.unk_token)
 
     def _convert_id_to_token(self, index: int) -> str:
         return self.decoder.get(index)
