@@ -554,11 +554,11 @@ class MLFlowLogger(MetricLoggerInterface):
 
         if self.rank == 0:
             if not self._mlflow.is_tracking_uri_set():
-                if self._tracking_uri:
+                if self._tracking_uri is not None:
                     self._mlflow.set_tracking_uri(self._tracking_uri)
 
             if self._mlflow.active_run() is None or self._nested_run or self._run_id:
-                if self._experiment_name:
+                if self._experiment_name is not None:
                     # Use of set_experiment() ensure that Experiment is created if not exists
                     self._mlflow.set_experiment(self._experiment_name)
                 run = self._mlflow.start_run(run_name=run_name)
