@@ -215,8 +215,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        ref_checkpoint_dict = self.load_checkpoint(
-            cfg_checkpointer=cfg.ref_checkpointer
+        ref_checkpoint_dict = self.load_ref_checkpoint(
+            cfg_ref_checkpointer=cfg.ref_checkpointer
         )
 
         self._compile = cfg.get("compile", False)
