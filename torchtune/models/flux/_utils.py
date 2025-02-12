@@ -13,6 +13,7 @@ from torch import Tensor
 from torchtune.models.flux._autoencoder import FluxDecoder
 from torchtune.models.flux._flow_model import FluxFlowModel
 
+# constant for all current Flux models
 PATCH_HEIGHT, PATCH_WIDTH = 2, 2
 POSITION_DIM = 3
 LATENT_CHANNELS = 16

@@ -719,7 +719,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=self._config.get("head_dim", None),
                 )
             elif self._model_type == ModelType.FLUX:
-                pass  # the torchtune Flux model state dict is identical to the huggingface one
+                # the torchtune Flux model state dict is currently identical to the huggingface one
+                # TODO(cpelletier): make this no-op the default instead of llama2 conversion
+                pass
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
                     state_dict[training.MODEL_KEY],

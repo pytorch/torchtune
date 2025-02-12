@@ -5,9 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 import math
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
 from torch import nn, Tensor
+
+# Copied from https://github.com/black-forest-labs/flux with minimal changes to unblock Flux finetuning.
+# TODO(cpelletier): replace with @pbontrager's torchtune-style implementation
 
 
 class FluxFlowModel(nn.Module):
@@ -102,7 +106,7 @@ class FluxFlowModel(nn.Module):
         txt_ids: Tensor,
         timesteps: Tensor,
         y: Tensor,
-        guidance: Tensor | None = None,
+        guidance: Optional[Tensor] = None,
     ) -> Tensor:
         if img.ndim != 3 or txt.ndim != 3:
             raise ValueError("Input img and txt tensors must have 3 dimensions.")

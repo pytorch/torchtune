@@ -71,7 +71,6 @@ class FluxSampler:
         # keep the AE decoder for decoding generated images
         self._decoder = preprocessor.autoencoder.decoder
 
-    @torch.no_grad
     def save_samples(
         self,
         model: FluxFlowModel,

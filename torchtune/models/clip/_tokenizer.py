@@ -50,7 +50,7 @@ class CLIPTokenizer(BaseTokenizer):
 
         self.sot_token = self.encoder["<|startoftext|>"]
         self.eot_token = self.encoder["<|endoftext|>"]
-        self.pad_token = self.eot_token
+        self.pad_id = self.eot_token
 
         self.cache = {
             "<|startoftext|>": "<|startoftext|>",
