@@ -24,7 +24,7 @@ from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import batch_shaped_correctness_reward
 from torchtune.rlhf._types import GRPOStats, GRPOTrajectory
-from torchtune.training import DummyProfiler, PROFILER_KEY, disable_dropout
+from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from tqdm import tqdm
 
@@ -458,7 +458,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-
         # For FSDP sharding
         fsdp_shard_conditions = [
             partial(
@@ -477,7 +476,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             model=ref_model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=True
+            reshard_after_forward=True,
         )
 
         with training.set_default_dtype(self._dtype), self._device:
