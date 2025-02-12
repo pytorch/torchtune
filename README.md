@@ -101,7 +101,7 @@ For the above recipes, torchtune supports many state-of-the-art models available
 | [Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) | 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B [[models](torchtune/models/qwen2_5/), [configs](recipes/configs/qwen2_5/)]
 | [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 0.5B, 1.5B, 7B [[models](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
 
-For a full list of supported models, please see our [model docs](https://pytorch.org/torchtune/stable/api_ref_models.html) or [model configs on Github](https://github.com/pytorch/torchtune/tree/main/recipes/configs). And if there's one you would like us to add, please feel free to open a PR with the chances *or* submit a Github Issue.
+For a full list of supported models, please see our [model docs](https://pytorch.org/torchtune/stable/api_ref_models.html) or [model configs on Github](https://github.com/pytorch/torchtune/tree/main/recipes/configs). And if there's one you would like us to add, please feel free to open a PR with the changes *or* submit a Github Issue.
 
 &nbsp;
 
