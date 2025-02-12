@@ -482,7 +482,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             model=ref_model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=reshard_after_forward,
+            reshard_after_forward=True
         )
 
         with training.set_default_dtype(self._dtype), self._device:
