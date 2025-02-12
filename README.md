@@ -43,7 +43,7 @@ torchtune supports [the entire post-training lifecycle](https://pytorch.org/torc
 | Full                  |    ✅    |     ✅    |   ✅    |
 | [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |    ❌    |
 
-Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device``
+Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device`` <br />
 You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of available configs.
 
 **[Knowledge Distillation (KD)](https://pytorch.org/torchtune/0.4/tutorials/llama_kd_tutorial.html)**
@@ -53,7 +53,7 @@ You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of
 | Full                  |    ❌    |     ❌    |    ❌    |
 | LoRA/QLoRA            |    ✅    |     ✅    |    ❌    |
 
-Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed``
+Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed`` <br />
 You can also run e.g. ``tune ls knowledge_distillation_distributed`` for a full list of available configs.
 
 **Reinforcement Learning + Reinforcement Learning from Human Feedback (RLHF)**
@@ -67,7 +67,7 @@ You can also run e.g. ``tune ls knowledge_distillation_distributed`` for a full 
 | GRPO                         | Full                  |    🚧    |     🚧    |   🚧    |
 |                           | LoRA/QLoRA            |    ❌    |     ❌    |    ❌    |
 
-Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device``
+Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device`` <br />
 You can also run e.g. ``tune ls full_dpo_distributed`` for a full list of available configs.
 
 **[Quantization-Aware Training (QAT)](https://pytorch.org/torchtune/main/tutorials/qat_finetune.html)**
@@ -77,7 +77,7 @@ You can also run e.g. ``tune ls full_dpo_distributed`` for a full list of availa
 | [Full](https://pytorch.org/torchtune/stable/recipes/qat_distributed.html)                  |    ❌    |     ✅    |    ❌    |
 | LoRA/QLoRA            |    ❌    |     ✅    |    ❌    |
 
-Example: ``tune run qat_distributed --config llama3_1/8B_qat_lora``
+Example: ``tune run qat_distributed --config llama3_1/8B_qat_lora`` <br />
 You can also run e.g. ``tune ls qat_distributed`` for a full list of available configs.
 
 The above configs are just examples to get you started. The full list of recipes can be found [here](recipes/). If you'd like to work on one of the gaps you see, please submit a PR! If there's a entirely new post-training method you'd like to see implemented in torchtune, feel free to open an Issue.
@@ -125,7 +125,7 @@ If you are interested in running on different hardware or with different models,
 | Llama 3.1 70B | LoRA | 8x A100 | 27.6 GiB  | 3497  |
 | Llama 3.1 405B | QLoRA | 8x A100 | 44.8 GB  | 653  |
 
-*= Measured over one full training epoch
+*= Measured over one full training epoch <br />
 **= Uses CPU offload with fused optimizer
 
 &nbsp;
