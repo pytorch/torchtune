@@ -44,6 +44,7 @@ torchtune supports [the entire post-training lifecycle](https://pytorch.org/torc
 | [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |    ❌    |
 
 Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device``
+You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of available configs.
 
 **[Knowledge Distillation (KD)](https://pytorch.org/torchtune/0.4/tutorials/llama_kd_tutorial.html)**
 
@@ -53,6 +54,7 @@ Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single
 | LoRA/QLoRA            |    ✅    |     ✅    |    ❌    |
 
 Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed``
+You can also run e.g. ``tune ls knowledge_distillation_distributed`` for a full list of available configs.
 
 **Reinforcement Learning + Reinforcement Learning from Human Feedback (RLHF)**
 
@@ -65,8 +67,8 @@ Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.
 | GRPO                         | Full                  |    🚧    |     🚧    |   🚧    |
 |                           | LoRA/QLoRA            |    ❌    |     ❌    |    ❌    |
 
-
 Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device``
+You can also run e.g. ``tune ls full_dpo_distributed`` for a full list of available configs.
 
 **[Quantization-Aware Training (QAT)](https://pytorch.org/torchtune/main/tutorials/qat_finetune.html)**
 
@@ -76,6 +78,7 @@ Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_devic
 | LoRA/QLoRA            |    ❌    |     ✅    |    ❌    |
 
 Example: ``tune run qat_distributed --config llama3_1/8B_qat_lora``
+You can also run e.g. ``tune ls qat_distributed`` for a full list of available configs.
 
 The above configs are just examples to get you started. The full list of recipes can be found [here](recipes/). If you'd like to work on one of the gaps you see, please submit a PR! If there's a entirely new post-training method you'd like to see implemented in torchtune, feel free to open an Issue.
 
