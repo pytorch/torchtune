@@ -277,14 +277,17 @@ class FireSelfAttention(nn.Module):
     only modification from the paper is that this implementation uses the GELU activation function instead
     of ReLU in order to avoid possible problems with "dying" neurons.
 
+    This module is fundamentally a positional encoding scheme; however, due to the nature of FIRE relative
+    positional encodings, it takes the form of an attention layer.
+
     Args:
         dim_model (int): The embedding dimension of the input vectors.
         num_heads (int): The number of self-attention heads, set to 1 by default. The dimension of each individual head
             is usually computed as ``dim_model // num_heads``.
         hidden_size (int): The dimension of the MLP layers in each attention head used to compute the bias matrix.
 
-    Note: This module is fundamentally a positional encoding scheme; however, due to the nature of FIRE relative
-        positional encodings, it takes the form of an attention layer.
+    Raises:
+        ValueError: If num_heads does not divide dim_model
     """
 
     def __init__(
@@ -293,9 +296,8 @@ class FireSelfAttention(nn.Module):
         super().__init__()
 
         # make sure num_heads divides dim_model:
-        assert (
-            dim_model % num_heads == 0
-        ), "Number of heads must divide dimension of model"
+        if dim_model % num_heads != 0:
+            raise ValueError("Number of heads must divide dimension of model")
 
         # compute kdim = vdim
         kdim = dim_model // num_heads
@@ -406,6 +408,22 @@ class FireSelfAttention(nn.Module):
         Returns:
             torch.Tensor: Output tensor of shape ``[batch_size, seq_length, dim_model]`` with multi-head attention
             and FIRE relative positional encoding applied.
+
+        Example:
+
+            >>> import torch
+            >>> from torchtune.modules import FireSelfAttention
+            >>>
+            >>> # instantiate module
+            >>> test_layer = FireSelfAttention(dim_model=512, num_heads=8, hidden_size=32)
+            >>>
+            >>> # input tensor; FireSelfAttention expects a format of (batch_size, seq_len, dim_model)
+            >>> x = torch.randn(64, 20, 512)
+            >>>
+            >>> # get output of attention layer with FIRE positional encoding
+            >>> y = test_layer(x)
+            >>> print(y.shape)
+            torch.Size([64, 20, 512])
         """
         # src should have shape (batch_size, seq_length, dim_model)
         # Pass src through the attention heads
