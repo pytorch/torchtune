@@ -463,9 +463,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-            training.set_activation_checkpointing(
-                ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
-            )
 
         # For FSDP sharding
         fsdp_shard_conditions = [
