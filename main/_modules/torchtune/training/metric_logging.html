@@ -497,6 +497,34 @@
         <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving config.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">flatten_dict</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">parent_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Recursively flattens a nested dictionary into one level of key-value pairs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        d (Dict[str, Any]): Any dictionary to flatten.</span>
+<span class="sd">        sep (str, optional): Desired separator for flattening nested keys. Defaults to &quot;.&quot;.</span>
+<span class="sd">        parent_key (str, optional): Key prefix for children (nested keys), containing parent key names. Defaults to &quot;&quot;.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; flatten_dict({&quot;foo&quot;: {&quot;bar&quot;: &quot;baz&quot;}, &quot;qux&quot;: &quot;quux&quot;}, sep=&quot;--&quot;)</span>
+<span class="sd">        {&quot;foo--bar&quot;: &quot;baz&quot;, &quot;qux&quot;: &quot;quux&quot;}</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, Any]: Flattened dictionary.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Does not unnest dictionaries within list values (i.e., {&quot;foo&quot;: [{&quot;bar&quot;: &quot;baz&quot;}]}).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">new_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">parent_key</span><span class="si">}{</span><span class="n">sep</span><span class="si">}{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">parent_key</span> <span class="k">else</span> <span class="n">k</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">flatten_dict</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">parent_key</span><span class="o">=</span><span class="n">new_key</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">new_key</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+
+
 <span class="k">class</span><span class="w"> </span><span class="nc">MetricLoggerInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract metric logger.&quot;&quot;&quot;</span>
 
@@ -918,6 +946,117 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="MLFlowLogger"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">MLFlowLogger</span><span class="p">(</span><span class="n">MetricLoggerInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Logger for use w/ MLFlow (https://mlflow.org/).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        experiment_name (Optional[str]): MLFlow experiment name. If not specified, will</span>
+<span class="sd">            default to MLFLOW_EXPERIMENT_NAME environment variable if set, or default.</span>
+<span class="sd">        tracking_uri (Optional[str]): MLFlow tracking uri. If not specified, will default</span>
+<span class="sd">            to MLFLOW_TRACKING_URI environment variable if set, or default.</span>
+<span class="sd">        run_id (Optional[str]): MLFlow run name. If not specified, will default</span>
+<span class="sd">            to mlflow-generated HRID. Unused if run_id is specified or MLFLOW_RUN_ID</span>
+<span class="sd">            environment variable is found.</span>
+<span class="sd">        run_name (Optional[str]): MLFlow run ID. If not specified, will default</span>
+<span class="sd">            to MLFLOW_RUN_ID environment variable if set, or a new run will be created.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; logger = MLFlowLogger(experiment_name=&quot;my_experiment&quot;, run_name=&quot;run1&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; logger.log(&quot;accuracy&quot;, 0.95, step=1)</span>
+<span class="sd">        &gt;&gt;&gt; logger.log_dict({&quot;loss&quot;: 0.1, &quot;accuracy&quot;: 0.95}, step=1)</span>
+<span class="sd">        &gt;&gt;&gt; logger.log_config(config)</span>
+<span class="sd">        &gt;&gt;&gt; logger.close()</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ImportError: If ``mlflow`` package is not installed.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This logger requires the mlflow package to be installed.</span>
+<span class="sd">        You can install it with `pip install mlflow`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tracking_uri</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">mlflow</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;``mlflow`` package not found. Please install mlflow using `pip install mlflow` to use MLFlowLogger.&quot;</span>
+                <span class="s2">&quot;Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type=&#39;stdout&#39;.&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span> <span class="o">=</span> <span class="n">mlflow</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tracking_uri</span> <span class="o">=</span> <span class="n">tracking_uri</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;MLFLOW_TRACKING_URI&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_experiment_name</span> <span class="o">=</span> <span class="n">experiment_name</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;MLFLOW_EXPERIMENT_NAME&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_id</span> <span class="o">=</span> <span class="n">run_id</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;MLFLOW_RUN_ID&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">is_tracking_uri_set</span><span class="p">():</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracking_uri</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">set_tracking_uri</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tracking_uri</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">active_run</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nested_run</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_id</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_experiment_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Use of set_experiment() ensure that Experiment is created if not exists</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">set_experiment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_experiment_name</span><span class="p">)</span>
+                <span class="n">run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">start_run</span><span class="p">(</span><span class="n">run_name</span><span class="o">=</span><span class="n">run_name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_run_id</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">run_id</span>
+
+<div class="viewcode-block" id="MLFlowLogger.log_config"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.log_config">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Saves the config locally and also logs the config to mlflow. The config is</span>
+<span class="sd">        stored in the same directory as the checkpoint.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            config (DictConfig): config to log</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">active_run</span><span class="p">():</span>
+            <span class="n">resolved</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_container</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># mlflow&#39;s params must be flat key-value pairs</span>
+            <span class="n">config_as_params</span> <span class="o">=</span> <span class="n">flatten_dict</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">log_params</span><span class="p">(</span><span class="n">config_as_params</span><span class="p">,</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_id</span><span class="p">)</span>
+
+            <span class="n">output_config_fname</span> <span class="o">=</span> <span class="n">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+            <span class="c1"># this avoids break if config&#39;s output_dir is an absolute path</span>
+            <span class="n">artifact_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">output_config_fname</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">log_artifact</span><span class="p">(</span>
+                <span class="n">output_config_fname</span><span class="p">,</span>
+                <span class="n">artifact_path</span><span class="o">=</span><span class="n">artifact_path</span><span class="p">,</span>
+                <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_id</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MLFlowLogger.log"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.log">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">active_run</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">log_metric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MLFlowLogger.log_dict"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.log_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">log_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">active_run</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">log_metrics</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MLFlowLogger.close"><a class="viewcode-back" href="../../../generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.close">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ends the MLflow run.</span>
+<span class="sd">        After calling close, no further logging should be performed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">active_run</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">end_run</span><span class="p">()</span></div>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Ensure the MLflow run is closed when the logger is deleted.</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_mlflow&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">active_run</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mlflow</span><span class="o">.</span><span class="n">end_run</span><span class="p">()</span></div>
 </pre></div>
 
              </article>
