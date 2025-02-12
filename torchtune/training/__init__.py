@@ -26,6 +26,7 @@ from torchtune.training._distributed import (
     validate_no_params_on_meta_device,
 )
 from torchtune.training._grad_scaler import scale_grads
+from torchtune.training._model_util import disable_dropout
 from torchtune.training._profiler import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
@@ -138,4 +139,5 @@ __all__ = [
     "scale_grads",
     "get_distributed_backend",
     "recursive_reshard",
+    "disable_dropout",
 ]

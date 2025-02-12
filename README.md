@@ -52,6 +52,7 @@ torchtune currently supports the following models.
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[models](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
 | [Gemma2](https://huggingface.co/docs/transformers/main/en/model_doc/gemma2)   | 2B, 9B, 27B [[models](torchtune/models/gemma2/_model_builders.py), [configs](recipes/configs/gemma2/)] |
 | [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[models](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
+| [Microsoft Phi4](https://huggingface.co/collections/microsoft/phi-4-677e9380e514feb5577a40e4) | 14B [[models](torchtune/models/phi4/), [configs](recipes/configs/phi4/)]
 | [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 0.5B, 1.5B, 7B [[models](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
 | [Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) | 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B [[models](torchtune/models/qwen2_5/), [configs](recipes/configs/qwen2_5/)]
 
@@ -72,7 +73,8 @@ torchtune provides the following finetuning recipes for training on one or more 
 | DoRA/QDoRA Finetuning | ✅ | ✅ | ❌ | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py)| [Llama3 8B QDoRA single-device](recipes/configs/llama3/8B_qdora_single_device.yaml) <br> [Llama3 8B DoRA distributed](recipes/configs/llama3/8B_dora.yaml)
 | Quantization-Aware Training | ❌ | ✅ | ❌ | [qat_distributed](recipes/qat_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_full.yaml)
 | Quantization-Aware Training and LoRA Finetuning | ❌ | ✅ | ❌ | [qat_lora_finetune_distributed](recipes/qat_lora_finetune_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_lora.yaml)
-| Direct Preference Optimization | ✅ | ✅ | ❌ | [lora_dpo_single_device](recipes/lora_dpo_single_device.py) <br> [lora_dpo_distributed](recipes/lora_dpo_distributed.py) | [Llama2 7B single-device](recipes/configs/llama2/7B_lora_dpo_single_device.yaml) <br> [Llama2 7B distributed](recipes/configs/llama2/7B_lora_dpo.yaml)
+| Direct Preference Optimization: Full Finetuning | ❌ | ✅ | ❌ | [full_dpo_distributed](recipes/full_dpo_distributed.py) | [Llama3.1 8B DPO](recipes/configs/llama3_1/8B_full_dpo.yaml)
+| LoRA Direct Preference Optimization | ✅ | ✅ | ❌ | [lora_dpo_single_device](recipes/lora_dpo_single_device.py) <br> [lora_dpo_distributed](recipes/lora_dpo_distributed.py) | [Llama3.1 8B single-device](recipes/configs/llama3_1/8B_lora_dpo_single_device.yaml) <br> [Llama3.1 8B distributed](recipes/configs/llama3_1/8B_lora_dpo.yaml)
 | Proximal Policy Optimization | ✅ | ❌ | ❌ |  [ppo_full_finetune_single_device](recipes/ppo_full_finetune_single_device.py) | [Mistral 7B](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)
 | LoRA Knowledge Distillation | ✅ | ✅ | ❌ | [knowledge_distillation_single_device](recipes/knowledge_distillation_single_device.py) <br> [knowledge_distillation_distributed](recipes/knowledge_distillation_distributed.py) | [Qwen2 1.5B -> 0.5B single-device](recipes/configs/qwen2/1.5B_to_0.5B_KD_lora_single_device.yaml) <br> [Qwen2 1.5B -> 0.5B distributed](recipes/configs/qwen2/1.5B_to_0.5B_KD_lora_distributed.yaml)
 

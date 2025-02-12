@@ -31,8 +31,7 @@ from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
-from torchtune.modules.model_fusion import DeepFusionModel
-
+from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
@@ -523,6 +522,7 @@ def shard_model(
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
+    dp_mesh: Optional[DeviceMesh] = None,
 ) -> None:
     """
     Utility to shard a model with FSDP using the PyTorch Distributed fully_shard API.
@@ -541,11 +541,13 @@ def shard_model(
         reshard_after_forward (bool): Whether to reshard parameters and buffers after
             the forward pass. Setting this to True corresponds to the FULL_SHARD sharding strategy
             from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.
+        dp_mesh (Optional[DeviceMesh]): Device mesh to use for FSDP sharding under mutliple parallelism.
+            Default to None.
 
     Raises:
         ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.
     """
-    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
+    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward, "mesh": dp_mesh}
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
 
@@ -610,11 +612,11 @@ def prepare_mha_for_tp(
         >>> # num_kv_heads = 16 (32/2)
         >>> # embed_dim = 2048 (4096/2)
     """
-    # Consider the case of Deep Fusion models
-    if isinstance(model, DeepFusionModel):
-        model = model.decoder
+    # Handle fusion models by extracting decoder
+    is_fusion_model = isinstance(model, (DeepFusionModel, EarlyFusionModel))
+    decoder = model.decoder if is_fusion_model else model
     tp_size = tp_mesh.size()
-    for m in list(model.modules()):
+    for m in list(decoder.modules()):
         if isinstance(m, MultiHeadAttention):
             # Adjust attention module to use the local number of heads
             if m.num_heads % tp_size != 0:
@@ -635,4 +637,7 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
+
+    if is_fusion_model:
+        model.decoder = decoder
     return model
