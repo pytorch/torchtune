@@ -23,7 +23,7 @@
 ## Overview 📚
 
 
-torchtune is a PyTorch library for easily authoring, post-training and experimenting with LLMs. It provides:
+torchtune is a PyTorch library for easily authoring, post-training, and experimenting with LLMs. It provides:
 
 - Hackable training recipes for SFT, knowledge distillation, RL and RLHF, and quantization-aware training
 - Simple PyTorch implementations of popular LLMs like Llama, Gemma, Mistral, Phi, Qwen, and more
