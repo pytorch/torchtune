@@ -732,8 +732,8 @@ These files are lightweight, mostly configuration files, and make it easier for 
 │<span class="w">   </span>├──<span class="w"> </span>adapter_model.pt
 │<span class="w">   </span>├──<span class="w"> </span>adapter_model.safetensors
 │<span class="w">   </span>├──<span class="w"> </span>config.json
-│<span class="w">   </span>├──<span class="w"> </span>ft-model-00001-of-00002.safetensors
-│<span class="w">   </span>├──<span class="w"> </span>ft-model-00002-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>model-00001-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>model-00002-of-00002.safetensors
 │<span class="w">   </span>├──<span class="w"> </span>generation_config.json
 │<span class="w">   </span>├──<span class="w"> </span>LICENSE.txt
 │<span class="w">   </span>├──<span class="w"> </span>model.safetensors.index.json
@@ -752,8 +752,8 @@ These files are lightweight, mostly configuration files, and make it easier for 
 │<span class="w">   </span>├──<span class="w"> </span>adapter_model.pt
 │<span class="w">   </span>├──<span class="w"> </span>adapter_model.safetensors
 │<span class="w">   </span>├──<span class="w"> </span>config.json
-│<span class="w">   </span>├──<span class="w"> </span>ft-model-00001-of-00002.safetensors
-│<span class="w">   </span>├──<span class="w"> </span>ft-model-00002-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>model-00001-of-00002.safetensors
+│<span class="w">   </span>├──<span class="w"> </span>model-00002-of-00002.safetensors
 │<span class="w">   </span>├──<span class="w"> </span>generation_config.json
 │<span class="w">   </span>├──<span class="w"> </span>LICENSE.txt
 │<span class="w">   </span>├──<span class="w"> </span>model.safetensors.index.json
@@ -826,15 +826,15 @@ overwritten at the end of each epoch.</p>
 <p>Sometimes our training is interrupted for some reason. To restart training from a previous checkpoint file,
 you’ll need to <strong>update</strong> the following fields in your configs:</p>
 <p><strong>resume_from_checkpoint</strong>: Set it to True;</p>
-<p><strong>checkpoint_files</strong>: change the path to <code class="docutils literal notranslate"><span class="pre">epoch_{YOUR_EPOCH}/ft-model={}-of-{}.safetensors</span></code>;</p>
+<p><strong>checkpoint_files</strong>: change the path to <code class="docutils literal notranslate"><span class="pre">epoch_{YOUR_EPOCH}/model-{}-of-{}.safetensors</span></code>;</p>
 <p>Notice that we do <strong>not</strong> change our checkpoint_dir or output_dir. Since we are resuming from checkpoint, we know
 to look for it in the output_dir.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 <span class="w">    </span><span class="c1"># checkpoint files. Note that you will need to update this</span>
 <span class="w">    </span><span class="c1"># section of the config with the intermediate checkpoint files</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">epoch_</span><span class="p p-Indicator">{</span><span class="nv">YOUR_EPOCH</span><span class="p p-Indicator">}</span><span class="nv">/ft-model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
-<span class="w">        </span><span class="nv">epoch_</span><span class="p p-Indicator">{</span><span class="nv">YOUR_EPOCH</span><span class="p p-Indicator">}</span><span class="nv">/ft-model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">epoch_</span><span class="p p-Indicator">{</span><span class="nv">YOUR_EPOCH</span><span class="p p-Indicator">}</span><span class="nv">/model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">epoch_</span><span class="p p-Indicator">{</span><span class="nv">YOUR_EPOCH</span><span class="p p-Indicator">}</span><span class="nv">/model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
 <span class="w">    </span><span class="p p-Indicator">]</span>
 
 <span class="c1"># set to True if restarting training</span>

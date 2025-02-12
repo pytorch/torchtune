@@ -592,8 +592,8 @@ There are 3 types of folders:</p>
 │   ├── adapter_model.pt
 │   ├── adapter_model.safetensors
 │   ├── config.json
-│   ├── ft-model-00001-of-00002.safetensors
-│   ├── ft-model-00002-of-00002.safetensors
+│   ├── model-00001-of-00002.safetensors
+│   ├── model-00002-of-00002.safetensors
 │   ├── generation_config.json
 │   ├── LICENSE.txt
 │   ├── model.safetensors.index.json
@@ -619,7 +619,7 @@ There are 3 types of folders:</p>
 <p>Let’s understand the files:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">adapter_model.safetensors</span></code> and <code class="docutils literal notranslate"><span class="pre">adapter_model.pt</span></code> are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ft-model-{}-of-{}.safetensors</span></code> are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set <code class="docutils literal notranslate"><span class="pre">save_adapter_weights_only=False</span></code>. In that case, we merge the merged base model with trained adapters, making inference easier.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model-{}-of-{}.safetensors</span></code> are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set <code class="docutils literal notranslate"><span class="pre">save_adapter_weights_only=False</span></code>. In that case, we merge the merged base model with trained adapters, making inference easier.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">adapter_config.json</span></code> is used by Huggingface PEFT when loading an adapter (more on that later);</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">model.safetensors.index.json</span></code> is used by Hugging Face <code class="docutils literal notranslate"><span class="pre">from_pretrained()</span></code> when loading the model weights (more on that later)</p></li>
 <li><p>All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending on .safetensors, .pth, .pt, .bin are ignored, making it lightweight.</p></li>
@@ -663,8 +663,8 @@ Copied<span class="w"> </span>file<span class="w"> </span>to<span class="w"> </s
 <span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 <span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${output_dir}</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">ft-model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
-<span class="w">        </span><span class="nv">ft-model-00002-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">model-00002-of-00002.safetensors</span><span class="p p-Indicator">,</span>
 <span class="w">    </span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${output_dir}</span>
 <span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3_2</span>
@@ -732,8 +732,8 @@ $ mkdir /tmp/torchtune/llama3_2_3B/lora_single_device/out
 <span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelHFCheckpointer</span>
 <span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${checkpoint_dir}</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">ft-model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
-<span class="w">        </span><span class="nv">ft-model-00002-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">model-00001-of-00002.safetensors</span><span class="p p-Indicator">,</span>
+<span class="w">        </span><span class="nv">model-00002-of-00002.safetensors</span><span class="p p-Indicator">,</span>
 <span class="w">    </span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${output_dir}</span>
 <span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3_2</span>
