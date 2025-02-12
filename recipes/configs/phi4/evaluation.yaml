@@ -1,18 +1,18 @@
 # Config for EleutherEvalRecipe in eleuther_eval.py
 #
 # To launch, run the following command:
-#    tune run eleuther_eval --config phi3/evaluation
+#    tune run eleuther_eval --config phi4/evaluation
 
 output_dir: ./ # Not needed
 
 # Model Arguments
 model:
-  _component_: torchtune.models.phi3.phi3_mini
+  _component_: torchtune.models.phi4.phi4_14b
 
 # Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/phi-3
+  checkpoint_dir: /tmp/phi-4
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors
@@ -24,8 +24,9 @@ resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.phi3.phi3_mini_tokenizer
-  path: /tmp/phi-3/tokenizer.model
+  _component_: torchtune.models.phi4.phi4_14b_tokenizer
+  vocab_path: /tmp/phi-4/vocab.json
+  merges_path: /tmp/phi-4/merges.txt
   max_seq_len: null
 
 # Environment
