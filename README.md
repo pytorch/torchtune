@@ -153,7 +153,8 @@ The final row in the table vs baseline + Packed Dataset uses **81.9%** less memo
 
 <details>
 <summary>Command to reproduce final row.</summary>
-```
+
+```bash
 tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
 dataset.packed=True \
 compile=True \
@@ -167,6 +168,7 @@ gradient_accumulation_steps=1 \
 epochs=1 \
 batch_size=2
 ```
+
 </details>
 
 &nbsp;
