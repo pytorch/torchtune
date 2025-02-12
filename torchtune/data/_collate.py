@@ -220,9 +220,9 @@ def padded_collate_rl(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
-) -> Dict[str, torch.Tensor | list[str]]:
+) -> Dict[str, Union[torch.Tensor, List[str]]]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
-    convert integer lists to tensors.
+    convert integer lists to tensors. Answers are simply concatenated into a list.
 
     Args:
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing tokens.
@@ -230,7 +230,7 @@ def padded_collate_rl(
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
     Returns:
-        Dict[str, torch.Tensor]: Collated input and label tensors.
+        Dict[str, Union[torch.Tensor, List[str]]]: Collated input tensors and string answers.
 
     Example:
         >>> token_pairs = [
