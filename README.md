@@ -36,7 +36,7 @@ torchtune is a PyTorch library for easily authoring, post-training, and experime
 
 torchtune supports [the entire post-training lifecycle](https://pytorch.org/torchtune/main/recipes/recipes_overview.html). A successful post-trained model will likely utilize several of the below methods.
 
-**Supervised Finetuning (SFT)**
+#### Supervised Finetuning (SFT)
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
@@ -46,7 +46,7 @@ torchtune supports [the entire post-training lifecycle](https://pytorch.org/torc
 Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device`` <br />
 You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of available configs.
 
-**[Knowledge Distillation (KD)](https://pytorch.org/torchtune/0.4/tutorials/llama_kd_tutorial.html)**
+#### [Knowledge Distillation (KD)](https://pytorch.org/torchtune/0.4/tutorials/llama_kd_tutorial.html)
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
@@ -56,7 +56,7 @@ You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of
 Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed`` <br />
 You can also run e.g. ``tune ls knowledge_distillation_distributed`` for a full list of available configs.
 
-**Reinforcement Learning + Reinforcement Learning from Human Feedback (RLHF)**
+#### Reinforcement Learning + Reinforcement Learning from Human Feedback (RLHF)
 
 | Method | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |------------------------------|-----------------------|:--------:|:---------:|:-------:|
@@ -70,7 +70,7 @@ You can also run e.g. ``tune ls knowledge_distillation_distributed`` for a full 
 Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device`` <br />
 You can also run e.g. ``tune ls full_dpo_distributed`` for a full list of available configs.
 
-**[Quantization-Aware Training (QAT)](https://pytorch.org/torchtune/main/tutorials/qat_finetune.html)**
+#### [Quantization-Aware Training (QAT)](https://pytorch.org/torchtune/main/tutorials/qat_finetune.html)
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
