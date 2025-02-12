@@ -210,44 +210,38 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         return checkpoint_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
-        """
-        Updates the recipe state from checkpoint.
-        """
-        try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+        """Updates the recipe state from checkpoint."""
+        self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+        self.global_step = ckpt_dict[CURR_STEP_KEY]
 
-            # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[training.SEED_KEY]:
-                warn(
-                    message=(
-                        "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
-                    )
+        # Warn the user and prevent the override
+        if self.seed != ckpt_dict[training.SEED_KEY]:
+            warn(
+                message=(
+                    "Config value for seed does not match the checkpoint value, "
+                    f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
                 )
-                self.seed = ckpt_dict[training.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
-                warn(
-                    message=(
-                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
-                    )
-                )
-                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
+            )
+            self.seed = ckpt_dict[training.SEED_KEY]
 
-            # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
-                warn(
-                    message=(
-                        "Config value for total_epochs does not match the checkpoint value, "
-                        f"using the config value: {self.total_epochs}"
-                    )
+        # Warn the user and prevent the override
+        if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
+            warn(
+                message=(
+                    "Config value for max_steps_per_epoch does not match the checkpoint value, "
+                    f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
                 )
+            )
+            self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
-        except KeyError as e:
-            raise KeyError(
-                "Checkpoint does not contain the required keys needed for updating recipe state. "
-                "Are you sure you passed in the right recipe checkpoint?"
-            ) from e
+        # warn the user but *allow* the override
+        if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
+            warn(
+                message=(
+                    "Config value for total_epochs does not match the checkpoint value, "
+                    f"using the config value: {self.total_epochs}"
+                )
+            )
 
     def setup(self, cfg: DictConfig) -> None:
         """

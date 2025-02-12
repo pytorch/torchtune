@@ -158,7 +158,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
+        *,
+        keep_last_n_checkpoints: Optional[int] = None,
     ) -> None:
+        self._keep_last_n_checkpoints = keep_last_n_checkpoints
 
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
@@ -189,7 +192,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             output_dir=self._output_dir,
             adapter_checkpoint=adapter_checkpoint,
             should_load_recipe_state=self._should_load_recipe_state,
-            pattern=r"^epoch_(\d+)",
+            pattern=r"^step_(\d+)",
         )
 
         # resume recipe_state ckpt
@@ -262,7 +265,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
-        **kwargs,
+        *,
+        step: Optional[int] = None,
     ) -> None:
         """
         Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
