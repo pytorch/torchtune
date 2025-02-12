@@ -24,8 +24,7 @@ from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import batch_shaped_correctness_reward
 from torchtune.rlhf._types import GRPOStats, GRPOTrajectory
-from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.training.activations import apply_selective_activation_checkpointing
+from torchtune.training import DummyProfiler, PROFILER_KEY, disable_dropout
 from torchtune.training.lr_schedulers import get_lr
 from tqdm import tqdm
 
@@ -228,8 +227,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ref_model_state_dict=ref_checkpoint_dict[training.MODEL_KEY],
-            ac_mode=cfg.get("ac_mode", None),
-            ac_option=cfg.get("ac_option", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -429,8 +426,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         model_state_dict: Dict[str, Any],
         ref_model_state_dict: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
-        ac_mode: Optional[str] = None,
-        ac_option: Optional[int] = None,
     ) -> tuple[nn.Module, nn.Module]:
         """
         Model initialization has some important considerations:
@@ -524,6 +519,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
+
+        disable_dropout(model)
+        disable_dropout(ref_model)
 
         # synchronize before training begins
         torch.distributed.barrier()
