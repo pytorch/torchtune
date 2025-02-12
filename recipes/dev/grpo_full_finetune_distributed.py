@@ -39,8 +39,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
     Features:
         - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
             is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
-            done by default (corresponding to FULL_SHARD sharding strategy), but can be disabled by setting the config
-            ``fsdp_reshard_after_forward`` to False (this corresponds to SHARD_GRAD_OP sharding strategy).
+            disabled for faster generation (corresponding to FULL_SHARD sharding strategy).
             DDP is currently not supported. Training on CPU is not supported.
 
         - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
@@ -224,7 +223,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
-            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ref_model_state_dict=ref_checkpoint_dict[training.MODEL_KEY],
         )
@@ -422,7 +420,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         fsdp_cpu_offload: bool,
-        reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
         ref_model_state_dict: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
@@ -465,11 +462,16 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 names_to_match=custom_sharded_layers,
             )
         ]
+
+        # Policy doesn't reshard after forward for faster generation.
+        # Reference net reshards after forward because it never calls .backward()
+        # See: https://github.com/pytorch/torchtune/pull/2326/#issuecomment-2654684159
+
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=reshard_after_forward,
+            reshard_after_forward=False,
         )
 
         training.shard_model(
