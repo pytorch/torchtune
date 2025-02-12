@@ -142,8 +142,8 @@ There are 3 types of folders:
     │   ├── adapter_model.pt
     │   ├── adapter_model.safetensors
     │   ├── config.json
-    │   ├── ft-model-00001-of-00002.safetensors
-    │   ├── ft-model-00002-of-00002.safetensors
+    │   ├── model-00001-of-00002.safetensors
+    │   ├── model-00002-of-00002.safetensors
     │   ├── generation_config.json
     │   ├── LICENSE.txt
     │   ├── model.safetensors.index.json
@@ -168,7 +168,7 @@ There are 3 types of folders:
 Let's understand the files:
 
 - ``adapter_model.safetensors`` and ``adapter_model.pt`` are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.
-- ``ft-model-{}-of-{}.safetensors`` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the merged base model with trained adapters, making inference easier.
+- ``model-{}-of-{}.safetensors`` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the merged base model with trained adapters, making inference easier.
 - ``adapter_config.json`` is used by Huggingface PEFT when loading an adapter (more on that later);
 - ``model.safetensors.index.json`` is used by Hugging Face ``from_pretrained()`` when loading the model weights (more on that later)
 - All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending on .safetensors, .pth, .pt, .bin are ignored, making it lightweight.
@@ -223,8 +223,8 @@ Notice that we are using the merged weights, and not the LoRA adapters.
         _component_: torchtune.training.FullModelHFCheckpointer
         checkpoint_dir: ${output_dir}
         checkpoint_files: [
-            ft-model-00001-of-00002.safetensors,
-            ft-model-00002-of-00002.safetensors,
+            model-00001-of-00002.safetensors,
+            model-00002-of-00002.safetensors,
         ]
         output_dir: ${output_dir}
         model_type: LLAMA3_2
@@ -299,8 +299,8 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
         _component_: torchtune.training.FullModelHFCheckpointer
         checkpoint_dir: ${checkpoint_dir}
         checkpoint_files: [
-            ft-model-00001-of-00002.safetensors,
-            ft-model-00002-of-00002.safetensors,
+            model-00001-of-00002.safetensors,
+            model-00002-of-00002.safetensors,
         ]
         output_dir: ${output_dir}
         model_type: LLAMA3_2
