@@ -56,7 +56,7 @@ You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of
 Example: ``tune run knowledge_distillation_distributed --config qwen2/1.5B_to_0.5B_KD_lora_distributed`` <br />
 You can also run e.g. ``tune ls knowledge_distillation_distributed`` for a full list of available configs.
 
-#### Reinforcement Learning + Reinforcement Learning from Human Feedback (RLHF)
+#### Reinforcement Learning / Reinforcement Learning from Human Feedback (RLHF)
 
 | Method | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |------------------------------|-----------------------|:--------:|:---------:|:-------:|
