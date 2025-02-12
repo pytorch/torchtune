@@ -8,7 +8,6 @@ from xml.etree import ElementTree as ET
 
 import torch
 
-from torchtune import utils
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 

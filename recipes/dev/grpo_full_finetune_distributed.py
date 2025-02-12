@@ -724,15 +724,12 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 top_k=self._top_k,
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
-                return_logits=False,
                 stop_tokens=self._tokenizer.stop_tokens,
             )
 
         torch.distributed.barrier()
         training.recursive_reshard(self._model)
         torch.cuda.empty_cache()
-
-        del logits
 
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
@@ -746,8 +743,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         del query_response_padding_masks
-
-        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
 
         # step 2. estimate logprobs of the responses using the current policy
         logits = logits[:, context_length - 1 :]
