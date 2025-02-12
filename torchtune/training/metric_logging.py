@@ -243,7 +243,7 @@ class WandBLogger(MetricLoggerInterface):
         self.log_dir = kwargs.pop("dir", log_dir)
 
         # create log_dir if missing
-        if not os.path.exists(self.log_dir):
+        if self.log_dir is not None and not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 
         _, self.rank = get_world_size_and_rank()
