@@ -235,11 +235,14 @@ either ``tokenizer_config.json`` or ``generation_config.json``, which will allow
 Continuing with the Mistral example:
 
 .. code-block:: python
+
     hf_tokenizer = HuggingFaceBaseTokenizer(
         tokenizer_json_path="/tmp/Mistral-7B-v0.1/tokenizer.json",
         tokenizer_config_json_path="/tmp/Mistral-7B-v0.1/tokenizer_config.json",
     )
+
     text = "hello world"
+
     print(hf_tokenizer.encode(text))
     # [1, 6312, 28709, 1526, 2]
 
