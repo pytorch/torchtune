@@ -320,6 +320,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
 
+        # may have been already loaded if run is resumed
+        self.global_step = self.global_step or self.epochs_run * self._steps_per_epoch
+
         # For now, default to saving at epoch boundaries
         if self.save_every_n_steps is None:
             self.save_every_n_steps = self._steps_per_epoch
