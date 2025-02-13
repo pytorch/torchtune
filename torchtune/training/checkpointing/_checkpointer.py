@@ -462,13 +462,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 data = json.load(json_file)
                 self.repo_id = data.get("repo_id")
 
-        #  resume from adapter_model ckpt
-        self._adapter_checkpoint = get_adapter_checkpoint_path(
-            output_dir=self._output_dir,
-            adapter_checkpoint=adapter_checkpoint,
-            should_load_recipe_state=self._should_load_recipe_state,
-            pattern=r"^step_(\d+)",
-        )
+        self._adapter_checkpoint = None
+        if self._should_load_recipe_state:
+            self._recipe_checkpoint = self._checkpoint_dir / recipe_checkpoint
+            if not self._recipe_checkpoint.exists():
+                raise ValueError(
+                    f"Could not find recipe state at {self._recipe_checkpoint}"
+                )
+
+            #  resume from adapter_model ckpt
+            self._adapter_checkpoint = get_adapter_checkpoint_path(
+                output_dir=self._output_dir,
+                adapter_checkpoint=adapter_checkpoint,
+                should_load_recipe_state=True,
+                pattern=r"^step_(\d+)",
+            )
 
         # get ckpt paths
         self._checkpoint_paths = get_model_checkpoint_path(
@@ -478,20 +486,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             should_load_recipe_state=self._should_load_recipe_state,
             has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
-
-        if self._should_load_recipe_state:
-            self._recipe_checkpoint = self._checkpoint_dir / recipe_checkpoint
-            if not self._recipe_checkpoint.exists():
-                raise ValueError(
-                    f"Could not find recipe state at {self._recipe_checkpoint}"
-                )
-
-            logger.info(
-                "Loading the recipe state using: "
-                f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
-                f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
-                f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
-            )
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
@@ -638,6 +632,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             converted_state_dict[training.ADAPTER_KEY] = adapter_state_dict
 
         if self._should_load_recipe_state:
+            logger.info(
+                "Loading the recipe state using: "
+                f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
+                f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
+                f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
+            )
             recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
             converted_state_dict.update(recipe_state)
 
