@@ -69,7 +69,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             most cases this should halve the memory footprint of full precision (fp32) training, without
             loss in model quality (will depend on the model, training data and other settings). For
             GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-            precision are currently not supported.g
+            precision are currently not supported.
 
         - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
             controlled using the ``gradient_accumulation_steps`` flag.
@@ -121,7 +121,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
+        RuntimeError: If  ``optimizer_in_bwd`` is `True` and ``gradient_accumulation_steps > 1``.
+        RuntimeError: If ``optimizer_in_bwd`` is `True` and ``clip_grad_norm`` is not `None`.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
