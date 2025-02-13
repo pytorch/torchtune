@@ -198,7 +198,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
-            self._enable_activation_offloading = True
+        
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
