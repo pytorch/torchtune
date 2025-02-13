@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Tokenizers &mdash; torchtune main documentation</title>
+  <title>HuggingFaceBaseTokenizer &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Prompt Templates" href="prompt_templates.html" />
-    <link rel="prev" title="Message Transforms" href="message_transforms.html" />
+    <link rel="next" title="ModelTokenizer" href="torchtune.modules.transforms.tokenizers.ModelTokenizer.html" />
+    <link rel="prev" title="TikTokenBaseTokenizer" href="torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -329,20 +329,20 @@
 <li class="toctree-l1"><a class="reference internal" href="../recipes/dpo.html">Direct Preference Optimization</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="datasets_overview.html">Datasets Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chat_datasets.html">Chat Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="instruct_datasets.html">Instruct Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="multimodal_datasets.html">Multimodal Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="preference_datasets.html">Preference Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="text_completion_datasets.html">Text-completion Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model_transforms.html">Multimodal Transforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="messages.html">Messages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="message_transforms.html">Message Transforms</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Tokenizers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="prompt_templates.html">Prompt Templates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="packing.html">Sample packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="custom_components.html">Custom Components and Recipes</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/packing.html">Sample packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/custom_components.html">Custom Components and Recipes</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -365,13 +365,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
@@ -415,13 +415,15 @@
       </li>
 
         
-      <li>Tokenizers</li>
+          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+        
+      <li>HuggingFaceBaseTokenizer</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/basics/tokenizers.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -451,270 +453,71 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="tokenizers">
-<span id="tokenizers-usage-label"></span><h1>Tokenizers<a class="headerlink" href="#tokenizers" title="Permalink to this heading">¶</a></h1>
-<p>Tokenizers are a key component of any LLM. They convert raw text into token IDs, which index into embedding vectors that are
-understood by the model.</p>
-<p>In torchtune, tokenizers play the role of converting <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> objects into token IDs and any necessary model-specific special tokens.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3</span><span class="w"> </span><span class="kn">import</span> <span class="n">phi3_mini_tokenizer</span>
+  <section id="huggingfacebasetokenizer">
+<h1>HuggingFaceBaseTokenizer<a class="headerlink" href="#huggingfacebasetokenizer" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.tokenizers.</span></span><span class="sig-name descname"><span class="pre">HuggingFaceBaseTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer_json_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer_config_json_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generation_config_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transforms/tokenizers/_hf_tokenizer.html#HuggingFaceBaseTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A wrapper around Hugging Face tokenizers. See <a class="reference external" href="https://github.com/huggingface/tokenizers">https://github.com/huggingface/tokenizers</a>
+This can be used to load from a Hugging Face tokenizer.json file into a torchtune BaseTokenizer.</p>
+<p>This class will load the tokenizer.json file from tokenizer_json_path. It will
+attempt to infer BOS and EOS token IDs from config.json if possible, and if not
+will fallback to inferring them from generation_config.json.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tokenizer_json_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to tokenizer.json file</p></li>
+<li><p><strong>tokenizer_config_json_path</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – Path to tokenizer_config.json file. Default: None</p></li>
+<li><p><strong>generation_config_path</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – Path to generation_config.json file.
+Default: None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If neither tokenizer_config_json_path or generation_config_path are specified.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.decode">
+<span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/tokenizers/_hf_tokenizer.html#HuggingFaceBaseTokenizer.decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decode a list of token ids into a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>token_ids</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – The list of token ids.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The decoded string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
 
-<span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;user prompt&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;model response&quot;</span><span class="p">,</span>
-<span class="p">}</span>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.encode">
+<span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_bos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_eos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/tokenizers/_hf_tokenizer.html#HuggingFaceBaseTokenizer.encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encodes a string into a list of token ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The text to encode.</p></li>
+<li><p><strong>add_bos</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to add the tokenizer’s bos_id to the encoded string.
+Default True.</p></li>
+<li><p><strong>add_eos</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to add the tokenizer’s eos_id to the encoded string.
+Default True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of token ids.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>]</p>
+</dd>
+</dl>
+</dd></dl>
 
-<span class="n">msgs</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]),</span>
-    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span>
-<span class="p">]</span>
+</dd></dl>
 
-<span class="n">p_tokenizer</span> <span class="o">=</span> <span class="n">phi3_mini_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Phi-3-mini-4k-instruct/tokenizer.model&quot;</span><span class="p">)</span>
-<span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">p_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-<span class="c1"># [1, 32010, 29871, 13, 1792, 9508, 32007, 29871, 13, 32001, 29871, 13, 4299, 2933, 32007, 29871, 13]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">p_tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
-<span class="c1"># &#39;\nuser prompt \n \nmodel response \n&#39;</span>
-</pre></div>
-</div>
-<p>Model tokenizers are usually based on an underlying byte-pair encoding algorithm, such as SentencePiece or TikToken, which are both
-supported in torchtune.</p>
-<section id="downloading-tokenizers-from-hugging-face">
-<h2>Downloading tokenizers from Hugging Face<a class="headerlink" href="#downloading-tokenizers-from-hugging-face" title="Permalink to this heading">¶</a></h2>
-<p>Models hosted on Hugging Face are also distributed with the tokenizers they were trained with. These are automatically downloaded alongside
-model weights when using <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">download</span></code>. For example, this command downloads the Mistral-7B model weights and tokenizer:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>mistralai/Mistral-7B-v0.1<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/Mistral-7B-v0.1<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
-<span class="nb">cd</span><span class="w"> </span>/tmp/Mistral-7B-v0.1/
-ls<span class="w"> </span>tokenizer.model
-<span class="c1"># tokenizer.model</span>
-</pre></div>
-</div>
-</section>
-<section id="loading-tokenizers-from-file">
-<h2>Loading tokenizers from file<a class="headerlink" href="#loading-tokenizers-from-file" title="Permalink to this heading">¶</a></h2>
-<p>Once you’ve downloaded the tokenizer file, you can load it into the corresponding tokenizer class by pointing
-to the file path of the tokenizer model in your config or in the constructor. You can also pass in a custom file path if you’ve already
-downloaded it to a different location.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-
-<span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
-<span class="nb">type</span><span class="p">(</span><span class="n">m_tokenizer</span><span class="p">)</span>
-<span class="c1"># &lt;class &#39;torchtune.models.mistral._tokenizer.MistralTokenizer&#39;&gt;</span>
-</pre></div>
-</div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In config</span>
-<span class="nt">tokenizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.mistral.mistral_tokenizer</span>
-<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/Mistral-7B-v0.1/tokenizer.model</span>
-</pre></div>
-</div>
-</section>
-<section id="setting-max-sequence-length">
-<h2>Setting max sequence length<a class="headerlink" href="#setting-max-sequence-length" title="Permalink to this heading">¶</a></h2>
-<p>Setting max sequence length can give you control over memory usage and adhere to model specifications.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-
-<span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">)</span>
-
-<span class="c1"># Set an arbitrarily small seq len for demonstration</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
-
-<span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
-<span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;hello world&quot;</span><span class="p">)</span>
-<span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">m_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">([</span><span class="n">msg</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
-<span class="c1"># 7</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-<span class="c1"># [1, 733, 16289, 28793, 6312, 28709, 2]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">m_tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
-<span class="c1"># &#39;[INST] hello&#39;</span>
-</pre></div>
-</div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In config</span>
-<span class="nt">tokenizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.mistral.mistral_tokenizer</span>
-<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/Mistral-7B-v0.1/tokenizer.model</span>
-<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8192</span>
-</pre></div>
-</div>
-</section>
-<section id="prompt-templates">
-<h2>Prompt templates<a class="headerlink" href="#prompt-templates" title="Permalink to this heading">¶</a></h2>
-<p>Prompt templates are enabled by passing it into any model tokenizer. See <a class="reference internal" href="prompt_templates.html#prompt-templates-usage-label"><span class="std std-ref">Prompt Templates</span></a> for more details.</p>
-</section>
-<section id="special-tokens">
-<h2>Special tokens<a class="headerlink" href="#special-tokens" title="Permalink to this heading">¶</a></h2>
-<p>Special tokens are model-specific tags that are required to prompt the model. They are different from prompt templates
-because they are assigned their own unique token IDs. For an extended discussion on the difference between special tokens
-and prompt templates, see <a class="reference internal" href="prompt_templates.html#prompt-templates-usage-label"><span class="std std-ref">Prompt Templates</span></a>.</p>
-<p>Special tokens are automatically added to your data by the model tokenizer and do not require any additional configuration
-from you. You also have the ability to customize the special tokens for experimentation by passing in a file path to
-the new special tokens mapping in a JSON file. This will NOT modify the underlying <code class="docutils literal notranslate"><span class="pre">tokenizer.model</span></code> to support the new
-special token ids - it is your responsibility to ensure that the tokenizer file encodes it correctly. Note also that
-some models require the presence of certain special tokens for proper usage, such as the <code class="docutils literal notranslate"><span class="pre">&quot;&lt;|eot_id|&gt;&quot;</span></code> in Llama3 Instruct.</p>
-<p>For example, here we change the <code class="docutils literal notranslate"><span class="pre">&quot;&lt;|begin_of_text|&gt;&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;&lt;|end_of_text|&gt;&quot;</span></code> token IDs in Llama3 Instruct:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># tokenizer/special_tokens.json</span>
-<span class="p">{</span>
-    <span class="s2">&quot;added_tokens&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="p">{</span>
-            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="mi">128257</span><span class="p">,</span>
-            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;|begin_of_text|&gt;&quot;</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="p">{</span>
-            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="mi">128258</span><span class="p">,</span>
-            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;|end_of_text|&gt;&quot;</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="c1"># Remaining required special tokens</span>
-        <span class="o">...</span>
-    <span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In code</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
-
-<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span>
-    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">,</span>
-    <span class="n">special_tokens_path</span><span class="o">=</span><span class="s2">&quot;tokenizer/special_tokens.json&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">special_tokens</span><span class="p">)</span>
-<span class="c1"># {&#39;&lt;|begin_of_text|&gt;&#39;: 128257, &#39;&lt;|end_of_text|&gt;&#39;: 128258, ...}</span>
-</pre></div>
-</div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In config</span>
-<span class="nt">tokenizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_tokenizer</span>
-<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model</span>
-<span class="w">  </span><span class="nt">special_tokens_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tokenizer/special_tokens.json</span>
-</pre></div>
-</div>
-</section>
-<section id="base-tokenizers">
-<span id="id1"></span><h2>Base tokenizers<a class="headerlink" href="#base-tokenizers" title="Permalink to this heading">¶</a></h2>
-<p><a class="reference internal" href="../generated/torchtune.modules.transforms.tokenizers.BaseTokenizer.html#torchtune.modules.transforms.tokenizers.BaseTokenizer" title="torchtune.modules.transforms.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a> are the underlying byte-pair encoding modules that perform the actual raw string to token ID conversion and back.
-In torchtune, they are required to implement <code class="docutils literal notranslate"><span class="pre">encode</span></code> and <code class="docutils literal notranslate"><span class="pre">decode</span></code> methods, which are called by the <a class="reference internal" href="#model-tokenizers"><span class="std std-ref">Model tokenizers</span></a> to convert
-between raw text and token IDs.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Given a string, return the encoded list of token ids.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            text (str): The text to encode.</span>
-<span class="sd">            **kwargs (Dict[str, Any]): kwargs.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            List[int]: The encoded list of token ids.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Given a list of token ids, return the decoded text, optionally including special tokens.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            token_ids (List[int]): The list of token ids to decode.</span>
-<span class="sd">            **kwargs (Dict[str, Any]): kwargs.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            str: The decoded text.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
-</pre></div>
-</div>
-<p>If you load any <a class="reference internal" href="#model-tokenizers"><span class="std std-ref">Model tokenizers</span></a>, you can see that it calls its underlying <a class="reference internal" href="../generated/torchtune.modules.transforms.tokenizers.BaseTokenizer.html#torchtune.modules.transforms.tokenizers.BaseTokenizer" title="torchtune.modules.transforms.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a>
-to do the actual encoding and decoding.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentencePieceBaseTokenizer</span>
-
-<span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
-<span class="c1"># Mistral uses SentencePiece for its underlying BPE</span>
-<span class="n">sp_tokenizer</span> <span class="o">=</span> <span class="n">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
-
-<span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;hello world&quot;</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">m_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-<span class="c1"># [1, 6312, 28709, 1526, 2]</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">sp_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-<span class="c1"># [1, 6312, 28709, 1526, 2]</span>
-</pre></div>
-</div>
-</section>
-<section id="using-hugging-face-tokenizers">
-<span id="hf-tokenizers"></span><h2>Using Hugging Face tokenizers<a class="headerlink" href="#using-hugging-face-tokenizers" title="Permalink to this heading">¶</a></h2>
-<p>Sometimes tokenizers hosted on Hugging Face do not contain files compatible with one of torchtune’s
-existing tokenizer classes. In this case, we provide <a class="reference internal" href="../generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer" title="torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">HuggingFaceBaseTokenizer</span></code></a>
-to parse the Hugging Face <code class="docutils literal notranslate"><span class="pre">tokenizer.json</span></code> file and define the correct <code class="docutils literal notranslate"><span class="pre">encode</span></code> and <code class="docutils literal notranslate"><span class="pre">decode</span></code> methods to
-match torchtune’s other <a class="reference internal" href="../generated/torchtune.modules.transforms.tokenizers.BaseTokenizer.html#torchtune.modules.transforms.tokenizers.BaseTokenizer" title="torchtune.modules.transforms.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a> classes. You should also pass the path to
-either <code class="docutils literal notranslate"><span class="pre">tokenizer_config.json</span></code> or <code class="docutils literal notranslate"><span class="pre">generation_config.json</span></code>, which will allow torchtune to infer BOS and EOS tokens.
-Continuing with the Mistral example:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hf_tokenizer</span> <span class="o">=</span> <span class="n">HuggingFaceBaseTokenizer</span><span class="p">(</span>
-    <span class="n">tokenizer_json_path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.json&quot;</span><span class="p">,</span>
-    <span class="n">tokenizer_config_json_path</span><span class="o">=</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer_config.json&quot;</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;hello world&quot;</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">hf_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-<span class="c1"># [1, 6312, 28709, 1526, 2]</span>
-</pre></div>
-</div>
-</section>
-<section id="model-tokenizers">
-<span id="id2"></span><h2>Model tokenizers<a class="headerlink" href="#model-tokenizers" title="Permalink to this heading">¶</a></h2>
-<p><a class="reference internal" href="../generated/torchtune.modules.transforms.tokenizers.ModelTokenizer.html#torchtune.modules.transforms.tokenizers.ModelTokenizer" title="torchtune.modules.transforms.tokenizers.ModelTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelTokenizer</span></code></a> are specific to a particular model. They are required to implement the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method,
-which converts a list of Messages into a list of token IDs.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ModelTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-
-    <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
-    <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Given a list of messages, return a list of tokens and list of masks for</span>
-<span class="sd">        the concatenated and formatted messages.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            messages (List[Message]): The list of messages to tokenize.</span>
-<span class="sd">            **kwargs (Dict[str, Any]): kwargs.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">pass</span>
-</pre></div>
-</div>
-<p>The reason they are model specific and different from <a class="reference internal" href="#base-tokenizers"><span class="std std-ref">Base tokenizers</span></a>
-is because they add all the necessary special tokens or prompt templates required to prompt the model.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.mistral</span><span class="w"> </span><span class="kn">import</span> <span class="n">mistral_tokenizer</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentencePieceBaseTokenizer</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
-
-<span class="n">m_tokenizer</span> <span class="o">=</span> <span class="n">mistral_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
-<span class="c1"># Mistral uses SentencePiece for its underlying BPE</span>
-<span class="n">sp_tokenizer</span> <span class="o">=</span> <span class="n">SentencePieceBaseTokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Mistral-7B-v0.1/tokenizer.model&quot;</span><span class="p">)</span>
-
-<span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;hello world&quot;</span>
-<span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
-
-<span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">m_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">([</span><span class="n">msg</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-<span class="c1"># [1, 733, 16289, 28793, 6312, 28709, 1526, 28705, 733, 28748, 16289, 28793]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">sp_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-<span class="c1"># [1, 6312, 28709, 1526, 2]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">m_tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
-<span class="c1"># [INST] hello world  [/INST]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">sp_tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">sp_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
-<span class="c1"># hello world</span>
-</pre></div>
-</div>
-</section>
 </section>
 
 
@@ -725,10 +528,10 @@ is because they add all the necessary special tokens or prompt templates require
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="prompt_templates.html" class="btn btn-neutral float-right" title="Prompt Templates" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.transforms.tokenizers.ModelTokenizer.html" class="btn btn-neutral float-right" title="ModelTokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="message_transforms.html" class="btn btn-neutral" title="Message Transforms" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html" class="btn btn-neutral" title="TikTokenBaseTokenizer" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -760,17 +563,7 @@ is because they add all the necessary special tokens or prompt templates require
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Tokenizers</a><ul>
-<li><a class="reference internal" href="#downloading-tokenizers-from-hugging-face">Downloading tokenizers from Hugging Face</a></li>
-<li><a class="reference internal" href="#loading-tokenizers-from-file">Loading tokenizers from file</a></li>
-<li><a class="reference internal" href="#setting-max-sequence-length">Setting max sequence length</a></li>
-<li><a class="reference internal" href="#prompt-templates">Prompt templates</a></li>
-<li><a class="reference internal" href="#special-tokens">Special tokens</a></li>
-<li><a class="reference internal" href="#base-tokenizers">Base tokenizers</a></li>
-<li><a class="reference internal" href="#using-hugging-face-tokenizers">Using Hugging Face tokenizers</a></li>
-<li><a class="reference internal" href="#model-tokenizers">Model tokenizers</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#">HuggingFaceBaseTokenizer</a></li>
 </ul>
 
             </div>
