@@ -139,7 +139,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._log_peak_memory_stats = False
 
         # Training cfg
-        self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._resume_from_checkpoint = cfg.resume_from_checkpoint or cfg.get(
+            "should_load_recipe_state", False
+        )
         self.save_every_n_steps = cfg.get("save_every_n_steps")
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.optimizer_in_bwd

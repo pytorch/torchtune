@@ -34,7 +34,6 @@ from torchtune.training.checkpointing._utils import (
     get_adapter_checkpoint_path,
     get_all_checkpoints_in_dir,
     get_model_checkpoint_path,
-    get_recipe_checkpoint_path,
     ModelType,
     prune_surplus_checkpoints,
     RECIPE_STATE_DIRNAME,
@@ -471,13 +470,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             pattern=r"^step_(\d+)",
         )
 
-        # resume recipe_state ckpt
-        self._recipe_checkpoint = get_recipe_checkpoint_path(
-            output_dir=self._output_dir,
-            recipe_checkpoint=recipe_checkpoint,
-            should_load_recipe_state=self._should_load_recipe_state,
-        )
-
         # get ckpt paths
         self._checkpoint_paths = get_model_checkpoint_path(
             checkpoint_files=checkpoint_files,
@@ -488,6 +480,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         )
 
         if self._should_load_recipe_state:
+            self._recipe_checkpoint = self._checkpoint_dir / recipe_checkpoint
+            if not self._recipe_checkpoint.exists():
+                raise ValueError(
+                    f"Could not find recipe state at {self._recipe_checkpoint}"
+                )
+
             logger.info(
                 "Loading the recipe state using: "
                 f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
@@ -783,6 +781,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     self._output_dir, ckpt_save_dirname, shard_name
                 )
                 output_path.parent.mkdir(parents=True, exist_ok=True)
+                start_save = time.time()
                 if not self._safe_serialization:
                     output_path = output_path.with_suffix(".bin")
                     torch.save(model_state_dict, output_path)
@@ -793,7 +792,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 logger.info(
                     "Model checkpoint of size "
                     f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
-                    f"saved to {output_path}"
+                    f"saved to {output_path} in {time.time() - start_save:.2f} seconds"
                 )
 
             # Save the appropriate index file based on serialization format
@@ -924,7 +923,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(
-                self._output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
+                self._output_dir, ckpt_save_dirname, "recipe_state.pt"
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict, output_path)
@@ -943,7 +942,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
             else:
                 logger.info(
-                    "The full model checkpoint, including all weights and configurations, has been saved successfully."
+                    "The full model checkpoint, including all weights and configurations, has been saved successfully. "
                     "You can now use this checkpoint for further training or inference."
                 )
 

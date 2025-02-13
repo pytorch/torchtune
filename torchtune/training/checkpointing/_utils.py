@@ -400,44 +400,6 @@ def copy_files(
     return
 
 
-def get_recipe_checkpoint_path(
-    output_dir: Path,
-    recipe_checkpoint: Optional[str] = None,
-    should_load_recipe_state: bool = False,
-) -> Optional[Path]:
-    """
-    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
-    This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
-
-    Args:
-        output_dir (Path): Directory containing the recipe checkpoint.
-        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
-        should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.
-    Returns:
-        Optional[Path]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.
-    Raises:
-        ValueError: If should_load_recipe_state is True and the recipe checkpoint file is missing.
-    """
-    if not should_load_recipe_state:
-        return None
-
-    recipe_checkpoint_path = None
-    if recipe_checkpoint:
-        recipe_checkpoint_path = os.path.join(output_dir, recipe_checkpoint)
-    else:
-        recipe_checkpoint_path = os.path.join(
-            output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
-        )
-
-    # TODO: improve this msg
-    if not recipe_checkpoint_path or not os.path.exists(recipe_checkpoint_path):
-        raise ValueError(
-            "If should_load_recipe_state is True, recipe_checkpoint file must be provided."
-        )
-
-    return Path(recipe_checkpoint_path)
-
-
 def get_adapter_checkpoint_path(
     output_dir: Path,
     adapter_checkpoint: Optional[str] = None,
@@ -555,26 +517,18 @@ def get_model_checkpoint_path(
         checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
 
     # Case 1: not loading the recipe state
-    if not should_load_recipe_state:
-        input_dir = checkpoint_dir
-
-    # Case 2: Loading the recipe state, but its full finetuning (no adapter)
-    elif not has_adapter_checkpoint:
-        input_dir = output_dir
-
-    # Case 3: Loading the recipe state and has an adapter.
-    else:
-        # FIXME
-        # TODO: if the model has lora + trained weights, e.g. embeddings,
-        # we will silently not load the trained model, because we load from checkpoint_dir.
-        # We cannot load from output_dir because we always merge the adapter weights into the model
-        input_dir = checkpoint_dir
-
-    checkpoint_paths = validate_checkpoint_files(
-        checkpoint_files,
-        input_dir=input_dir,
-        missing_ok=False,
-    )
+    try:
+        checkpoint_paths = validate_checkpoint_files(
+            checkpoint_files,
+            input_dir=checkpoint_dir,
+            missing_ok=False,
+        )
+    except ValueError:
+        checkpoint_paths = validate_checkpoint_files(
+            checkpoint_files,
+            input_dir=output_dir,
+            missing_ok=False,
+        )
 
     return checkpoint_paths
 
