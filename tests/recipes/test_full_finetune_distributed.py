@@ -194,8 +194,6 @@ class TestFullFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values_multi_rank(model_type)
-        print("loss_values:", loss_values)
-        print("expected_loss_values:", expected_loss_values)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
@@ -268,7 +266,7 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
-            ("llama3/8B_full", "llama3", "tune", 4, 1, True),
+            ("llama3/8B_full", "llama3", "tune", 1, 4, False),
         ],
     )
     @gpu_test(gpu_count=2)
@@ -308,7 +306,7 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            optimizer_in_bwd={optim_in_bwd} \
+            clip_grad_norm=100 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type]
@@ -340,7 +338,7 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
-            optimizer_in_bwd={optim_in_bwd} \
+            clip_grad_norm=100 \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
