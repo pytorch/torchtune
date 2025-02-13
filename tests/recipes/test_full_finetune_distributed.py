@@ -156,7 +156,7 @@ class TestFullFinetuneDistributedRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
-        parallelize_plan = "torchtune.models.llama3.base_llama_tp_plan"
+        tp_plan = "torchtune.models.llama3.base_llama_tp_plan"
 
         # Config file needed for model conversion.
         write_hf_ckpt_config(ckpt_dir)
@@ -175,7 +175,7 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             tensor_parallel_dim={tensor_parallel_dim} \
-            parallelize_plan._component_={parallelize_plan} \
+            tensor_parallel_plan._component_={tp_plan} \
             metric_logger.filename={log_file} \
         """.split()
         model_config = MODEL_TEST_CONFIGS[model_type]
