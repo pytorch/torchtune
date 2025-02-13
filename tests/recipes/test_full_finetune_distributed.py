@@ -352,10 +352,10 @@ class TestFullFinetuneDistributedRecipe:
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
 
         if not optim_in_bwd:
-            cmd_1.append("clip_grad_norm=100")
-            cmd_1.append("optimizer_in_bwd=False")
+            cmd_2.append("clip_grad_norm=100")
+            cmd_2.append("optimizer_in_bwd=False")
         else:
-            cmd_1.append("optimizer_in_bwd=True")
+            cmd_2.append("optimizer_in_bwd=True")
 
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")
