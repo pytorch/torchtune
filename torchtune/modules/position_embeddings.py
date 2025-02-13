@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import torch
 from torch import nn
@@ -349,7 +349,7 @@ class FireSelfAttention(nn.Module):
             )
 
         # concave function to amplify differences among local positions
-        def phi(self, c: nn.Parameter, x: int | torch.Tensor) -> torch.Tensor:
+        def phi(self, c: nn.Parameter, x: Union[int, torch.Tensor]) -> torch.Tensor:
             return torch.log1p(c * x)
 
         def forward(self, src: torch.Tensor) -> torch.Tensor:
