@@ -39,7 +39,7 @@ class RLDataset(Dataset):
         problem_transform: Transform,
         tokenizer: ModelTokenizer,
         filter_fn: Optional[Callable] = None,
-        filter_kwargs: dict[str, Any] | None = None,
+        filter_kwargs: Optional[dict[str, Any]] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._problem_transform = problem_transform
