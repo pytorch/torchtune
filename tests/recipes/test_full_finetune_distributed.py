@@ -268,6 +268,9 @@ class TestFullFinetuneDistributedRecipe:
         [
             ("llama3/8B_full", "llama3", "tune", 1, 4, False),
         ],
+        [
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True),
+        ],
     )
     @gpu_test(gpu_count=2)
     def test_training_state_on_resume(
@@ -306,7 +309,8 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            clip_grad_norm=100 \
+            clip_grad_norm=f"{'100' if not optim_in_bwd else 'null'}" \
+            optimizer_in_bwd={optim_in_bwd} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS[model_type]
@@ -338,7 +342,8 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
-            clip_grad_norm=100 \
+            clip_grad_norm=f"{'100' if not optim_in_bwd else 'null'}" \
+            optimizer_in_bwd={optim_in_bwd} \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
