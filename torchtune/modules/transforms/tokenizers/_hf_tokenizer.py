@@ -11,7 +11,7 @@ from tokenizers import Tokenizer
 from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
 
 
-class HuggingFaceTokenizer(BaseTokenizer):
+class HuggingFaceBaseTokenizer(BaseTokenizer):
     """
     A wrapper around Hugging Face tokenizers. See https://github.com/huggingface/tokenizers
     This can be used to load from a Hugging Face tokenizer.json file into a torchtune BaseTokenizer.
@@ -32,8 +32,8 @@ class HuggingFaceTokenizer(BaseTokenizer):
 
     def __init__(
         self,
-        *,
         tokenizer_json_path: str,
+        *,
         tokenizer_config_json_path: Optional[str] = None,
         generation_config_path: Optional[str] = None,
     ):
@@ -53,6 +53,7 @@ class HuggingFaceTokenizer(BaseTokenizer):
         else:
             self.generation_config = None
         self._infer_bos_eos_tokens()
+        self._infer_should_add_bos_eos()
 
     def _get_token_from_config(self, config: Dict[str, Any], key: str) -> str:
         """
@@ -97,6 +98,20 @@ class HuggingFaceTokenizer(BaseTokenizer):
         if self.bos_id is None or self.eos_id is None:
             raise ValueError("Could not infer BOS and EOS token IDs from config")
 
+    def _infer_should_add_bos_eos(self):
+        """
+        Hugging Face tokenizers sometimes add BOS by default. We should infer this to determine
+        whether to add it ourselves in encode. Otherwise we will get duplicate BOS tokens.
+        """
+
+        self.hf_adds_bos, self.hf_adds_eos = False, False
+        encoded_empty_str = self.tokenizer.encode("").ids
+
+        if self.bos_id in encoded_empty_str:
+            self.hf_adds_bos = True
+        if self.eos_id in encoded_empty_str:
+            self.hf_adds_eos = True
+
     def encode(
         self, text: str, add_bos: bool = True, add_eos: bool = True
     ) -> List[int]:
@@ -114,9 +129,9 @@ class HuggingFaceTokenizer(BaseTokenizer):
             List[int]: The list of token ids.
         """
         token_ids = self.tokenizer.encode(text).ids
-        if add_bos:
+        if add_bos and not self.hf_adds_bos:
             token_ids.insert(0, self.bos_id)
-        if add_eos:
+        if add_eos and not self.hf_adds_eos:
             token_ids.append(self.eos_id)
         return token_ids
 

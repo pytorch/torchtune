@@ -4,21 +4,22 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+
 import pytest
 from tests.common import ASSETS
 from tokenizers import Tokenizer
+from tokenizers.processors import TemplateProcessing
 from torchtune.models.llama3._tokenizer import CL100K_PATTERN
 from torchtune.modules.transforms.tokenizers import (
-    HuggingFaceTokenizer,
+    HuggingFaceBaseTokenizer,
     TikTokenBaseTokenizer,
 )
-
 
 TOKENIZER_CONFIG_PATH = ASSETS / "tokenizer_config.json"
 GENERATION_CONFIG_PATH = ASSETS / "generation_config.json"
 
 
-class TestHuggingFaceTokenizer:
+class TestHuggingFaceBaseTokenizer:
     @pytest.fixture
     def tt_tokenizer(self):
         # Pretrained tiktoken model generated via the script in
@@ -74,16 +75,16 @@ class TestHuggingFaceTokenizer:
 
     def test_invalid_hf_tokenizer(self):
         with pytest.raises(ValueError, match="At least one of"):
-            _ = HuggingFaceTokenizer(
+            _ = HuggingFaceBaseTokenizer(
                 tokenizer_json_path=str(ASSETS / "tokenizer.json"),
             )
 
     @pytest.mark.parametrize(
-        "config_path, generation_config_path",
+        "config_path, generation_config_path, hf_tokenizer_adds_bos",
         [
-            (TOKENIZER_CONFIG_PATH, GENERATION_CONFIG_PATH),
-            (TOKENIZER_CONFIG_PATH, None),
-            (None, GENERATION_CONFIG_PATH),
+            (TOKENIZER_CONFIG_PATH, GENERATION_CONFIG_PATH, True),
+            (TOKENIZER_CONFIG_PATH, None, False),
+            (None, GENERATION_CONFIG_PATH, True),
         ],
     )
     def test_tokenizer_encode_and_decode_parity(
@@ -93,6 +94,7 @@ class TestHuggingFaceTokenizer:
         token_ids,
         config_path,
         generation_config_path,
+        hf_tokenizer_adds_bos,
         mocker,
     ):
 
@@ -111,11 +113,23 @@ class TestHuggingFaceTokenizer:
         )
         # Tokenizer artifacts for this test were created from tiktoken_small.model
         # using the script in https://gist.github.com/ebsmothers/55b2f177f5ed15a3b81508f8f8b91159
-        hf_tokenizer = HuggingFaceTokenizer(
+        hf_tokenizer = HuggingFaceBaseTokenizer(
             tokenizer_json_path=str(ASSETS / "tokenizer.json"),
             tokenizer_config_json_path=config_path,
             generation_config_path=generation_config_path,
         )
+
+        if hf_tokenizer_adds_bos:
+            # This is a hacky way to patch the post-processor to prepend BOS
+            # (Patching with mocker doesn't work)
+            post_processor = TemplateProcessing(
+                single="<BOS> $0", pair="<BOS> $A $B", special_tokens=[("<BOS>", 0)]
+            )
+            hf_tokenizer.tokenizer.post_processor = post_processor
+            # Validate that the patch worked
+            assert hf_tokenizer.tokenizer.encode("").ids == [0]
+            # Re-call the method with the new post-processor
+            hf_tokenizer._infer_should_add_bos_eos()
 
         tt_tokens = tt_tokenizer.encode(texts[0], add_bos=True, add_eos=True)
         hf_tokens = hf_tokenizer.encode(texts[0], add_bos=True, add_eos=True)
