@@ -46,7 +46,7 @@ class Float8Handler:
     def __init__(self, enable_fp8_training: bool, dp_shard: int):
         self.enabled = enable_fp8_training
 
-        if not float8_config.enable_float8_linear:
+        if not self.enabled:
             return
         try:
             from torchao.float8 import Float8LinearConfig
