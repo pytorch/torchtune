@@ -56,7 +56,7 @@ def gsm8k_dataset(
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     name: str = "main",
-    partition: str | None = None,
+    partition: Optional[str] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> RLDataset:
     """
@@ -101,7 +101,7 @@ def gsm8k_sft(
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     name: str = "main",
-    partition: str | None = None,
+    partition: Optional[str] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> SFTDataset:
     """
