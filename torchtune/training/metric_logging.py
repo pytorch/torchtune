@@ -469,13 +469,28 @@ class CometLogger(MetricLoggerInterface):
                 ),
             )
 
-    def log(self, name: str, data: Scalar, step: int) -> None:
+    def log(
+        self,
+        name: str,
+        data: Scalar,
+        step: int = None,
+        epoch: int = None,
+        prefix: str = None,
+    ) -> None:
         if self.experiment is not None:
-            self.experiment.log_metric(name, data, step=step)
+            self.experiment.log_metric(
+                name, data, step=step, epoch=epoch, prefix=prefix
+            )
 
-    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+    def log_dict(
+        self,
+        payload: Mapping[str, Scalar],
+        step: int = None,
+        epoch: int = None,
+        prefix: str = None,
+    ) -> None:
         if self.experiment is not None:
-            self.experiment.log_metrics(payload, step=step)
+            self.experiment.log_metrics(payload, step=step, epoch=epoch, prefix=prefix)
 
     def log_config(self, config: DictConfig) -> None:
         if self.experiment is not None:
