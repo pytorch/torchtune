@@ -323,6 +323,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
 
+        # may have been already loaded if run is resumed
+        self.global_step = self.global_step or self.epochs_run * self._steps_per_epoch
+
         # For now, default to saving at epoch boundaries
         if self.save_every_n_steps is None:
             self.save_every_n_steps = self._steps_per_epoch
@@ -679,8 +682,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch)
-            pbar.update(self.global_step % self._steps_per_epoch)
+            pbar = tqdm(
+                range(self.global_step % self._steps_per_epoch, self._steps_per_epoch),
+                initial=self.global_step % self._steps_per_epoch,
+            )
             pbar.set_description(f"{curr_epoch + 1}|{self.global_step}|Loss: ?")
             for idx, batch in enumerate(self._dataloader):
                 if (
