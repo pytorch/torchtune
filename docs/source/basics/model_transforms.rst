@@ -32,8 +32,8 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
             Message(
                 role="user",
                 content=[
-                    {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
-                    {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
+                    {"type": "image", "content": Image.new(mode="RGB", size=(560, 560))},
+                    {"type": "image", "content": Image.new(mode="RGB", size=(560, 560))},
                     {"type": "text", "content": "What is common in these two images?"},
                 ],
             ),
@@ -52,7 +52,7 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
     print(transform.decode(tokenized_dict["tokens"], skip_special_tokens=False))
     # '<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n<|image|><|image|>What is common in these two images?<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\nA robot is in both images.<|eot_id|>'
     print(tokenized_dict["encoder_input"]["images"][0].shape)  # (num_tiles, num_channels, tile_height, tile_width)
-    # torch.Size([1, 3, 224, 224])
+    # torch.Size([4, 3, 224, 224])
 
 
 Using model transforms
