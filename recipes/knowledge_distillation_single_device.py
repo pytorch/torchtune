@@ -51,7 +51,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             helpful for larger batch sizes when you're memory constrained. But these savings in memory
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
-        
+
         - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
             flag. Activation offloading is a technique similar to activations checkpointing that helps
             reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
@@ -81,13 +81,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             Gradient accumulation is especially useful when you are memory constrained. In this case,
             accumulating gradients might give you better training speed than enabling activation
             checkpointing.
-            
+
         - Optimizer in Backward. Fusing the optimizer step into the backward pass helps reduce the memory
             footprint associated with gradients. This can be especially helpful when you are memory
             constrained. Note that users can only use ONE of gradient accumulation or optimizer in backward.
             These features currently do not work together. For more details on optimizer in backward, please
             see this tutorial: https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html
-            
+
         - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
             library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
             8-bit AdamW and Paged AdamW.
@@ -164,9 +164,13 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._kd_ratio = cfg.get("kd_ratio", 0.5)
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
-        self._enable_activation_checkpointing = cfg.get("enable_activation_checkpointing", False)
-        self._enable_activation_offloading = cfg.get("enable_activation_offloading", False)
-        
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
             if self._gradient_accumulation_steps > 1:
@@ -178,8 +182,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 raise RuntimeError(
                     "Gradient clipping is not supported with optimizer in backward."
                     "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
-                )   
-        
+                )
+
         if self._enable_activation_offloading:
             if self._device.type != "cuda":
                 raise RuntimeError(
@@ -198,7 +202,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
-        
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -523,7 +526,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         training.validate_expected_param_dtype(
             self.adapter_params.items(), dtype=self._dtype
         )
-  
+
         log.info(f"Student model is initialized with precision {self._dtype}.")
 
         if self._device.type != "cpu":
@@ -604,7 +607,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optimizer:
-        
+
         if self._optimizer_in_bwd:
             optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
         else:
@@ -786,7 +789,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
-            
+
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
 
@@ -840,7 +843,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                                 )
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
-                            
+
                         self._lr_scheduler.step()
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
