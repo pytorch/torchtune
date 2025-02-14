@@ -931,13 +931,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
-        _ = state_dict.pop(training.MODEL_KEY, None)
-        _ = state_dict.pop(training.ADAPTER_KEY, None)
-        _ = state_dict.pop(training.ADAPTER_CONFIG, None)
+        for key in [training.MODEL_KEY, training.ADAPTER_KEY, training.ADAPTER_CONFIG]:
+            state_dict.pop(key)
         output_path = Path.joinpath(
             self._output_dir, ckpt_save_dirname, "recipe_state.pt"
         )
-        output_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(state_dict, output_path)
         logger.info(
             "Recipe checkpoint of size "

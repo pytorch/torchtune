@@ -280,20 +280,17 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-
         if self._compile:
             training.compile_loss(self._loss_fn)
-
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-
         log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -544,11 +541,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-    ) -> Tuple[None, StatefulDataLoader]:
+    ) -> StatefulDataLoader:
         """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
+        All data related setup happens here. Currently, we only support map-style datasets.
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -582,10 +577,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 else padded_collate_packed
             ),
         )
-
-        log.info("Dataset and Sampler are initialized.")
-
-        return None, dataloader
+        log.info("Dataset / dataloader is initialized.")
+        return dataloader
 
     def save_checkpoint(self, *, epoch: int, step: int) -> None:
         """
