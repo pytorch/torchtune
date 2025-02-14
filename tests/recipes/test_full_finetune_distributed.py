@@ -156,7 +156,7 @@ class TestFullFinetuneDistributedRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
-        parallelize_plan = "torchtune.models.llama3.base_llama_tp_plan"
+        tp_plan = "torchtune.models.llama3.base_llama_tp_plan"
 
         # Config file needed for model conversion.
         write_hf_ckpt_config(ckpt_dir)
@@ -175,7 +175,7 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             tensor_parallel_dim={tensor_parallel_dim} \
-            parallelize_plan._component_={parallelize_plan} \
+            tensor_parallel_plan._component_={tp_plan} \
             metric_logger.filename={log_file} \
         """.split()
         model_config = MODEL_TEST_CONFIGS[model_type]
@@ -267,6 +267,7 @@ class TestFullFinetuneDistributedRecipe:
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
             ("llama3/8B_full", "llama3", "tune", 1, 4, False),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
     )
     @gpu_test(gpu_count=2)
@@ -306,8 +307,16 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            clip_grad_norm=100 \
         """.split()
+
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same.
+        if not optim_in_bwd:
+            cmd_1.append("clip_grad_norm=100")
+            cmd_1.append("optimizer_in_bwd=False")
+        else:
+            cmd_1.append("optimizer_in_bwd=True")
 
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
@@ -337,11 +346,16 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
-            metric_logger.filename={log_file} \
-            clip_grad_norm=100 \
+            metric_logger.filename={log_file}
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
+
+        if not optim_in_bwd:
+            cmd_2.append("clip_grad_norm=100")
+            cmd_2.append("optimizer_in_bwd=False")
+        else:
+            cmd_2.append("optimizer_in_bwd=True")
 
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")
