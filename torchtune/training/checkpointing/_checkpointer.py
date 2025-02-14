@@ -49,6 +49,14 @@ from torchtune.utils import get_logger, get_world_size_and_rank, log_rank_zero
 logger = get_logger("DEBUG")
 
 
+class RecipeStateCheckpointPeriod(Enum):
+    """Enum to specify the frequency of saving the recipe state."""
+
+    NEVER = "never"
+    INTERMEDIATE = "intermediate"
+    ALWAYS = "always"
+
+
 class _CheckpointerInterface(Protocol):
     """
     Interface implemented by Checkpointers in torchtune.
