@@ -312,17 +312,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
-        import pdb
-
-        pdb.set_trace()
         if (
             self.max_steps_per_epoch is not None
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-
-        # may have been already loaded if run is resumed
-        self.global_step = self.global_step or self.epochs_run * self._steps_per_epoch
 
         # For now, default to saving at epoch boundaries
         if self.save_every_n_steps is None:
@@ -598,31 +592,24 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
-
-        # If training is in-progress, checkpoint the optimizer state as well
-        is_intermediate = step < self._steps_per_epoch * self.total_epochs
-        if is_intermediate:
-            ckpt_dict.update(
-                {
-                    training.SEED_KEY: self.seed,
-                    training.EPOCHS_KEY: epoch,
-                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    CURR_STEP_KEY: step,
-                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    DATALOADER_STATE_KEY: self._dataloader.state_dict(),
-                    SAMPLER_STATE_KEY: None,
-                }
-            )
-            if not self._optimizer_in_bwd:
-                ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
-            else:
-                ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
+        ckpt_dict = {
+            training.MODEL_KEY: self._model.state_dict(),
+            training.SEED_KEY: self.seed,
+            training.EPOCHS_KEY: epoch,
+            training.TOTAL_EPOCHS_KEY: self.total_epochs,
+            CURR_STEP_KEY: step,
+            training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+            DATALOADER_STATE_KEY: self._dataloader.state_dict(),
+        }
+        if not self._optimizer_in_bwd:
+            ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
+        else:
+            ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
 
         self.checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
-            intermediate_checkpoint=is_intermediate,
+            intermediate_checkpoint=True,
             step=step,
         )
 
@@ -675,12 +662,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # # in case shuffle is True
             # self._sampler.set_epoch(curr_epoch)
 
+            initial_step = self.global_step % self._steps_per_epoch
             pbar = tqdm(
-                range(self.global_step % self._steps_per_epoch, self._steps_per_epoch),
-                initial=self.global_step % self._steps_per_epoch,
+                total=self._steps_per_epoch,
+                initial=initial_step,
             )
             pbar.set_description(f"{curr_epoch + 1}|{self.global_step}|Loss: ?")
             for idx, batch in enumerate(self._dataloader):
+                idx = idx + initial_step
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -767,9 +756,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         and self.global_step % self.save_every_n_steps == 0
                     ):
                         self.save_checkpoint(epoch=curr_epoch, step=self.global_step)
-                        import pdb
-
-                        pdb.set_trace()
 
                     # Reset running stats for the next step
                     running_loss = 0
@@ -795,7 +781,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
             self.epochs_run += 1
 
-        self.save_checkpoint(epoch=curr_epoch, step=self.global_step)
+        # Save final checkpoint if not already saved during training
+        if self.global_step % self.save_every_n_steps != 0:
+            self.save_checkpoint(epoch=curr_epoch, step=self.global_step)
         self._profiler.stop()
 
     def cleanup(self) -> None:

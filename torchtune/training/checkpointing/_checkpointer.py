@@ -837,6 +837,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
                 f"saved to {output_path}"
             )
+            logger.info(
+                "Please note that you have set adapter_only=True, so only adapter weights will be saved."
+                "You need to merge the adapter weights into your base model for further use. "
+                f"See {self.__class__.__name__}.save_checkpoint for more details."
+            )
 
             if self._model_type == ModelType.PHI3_MINI:
                 logger.warning(
@@ -918,33 +923,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
-        if intermediate_checkpoint:
-            _ = state_dict.pop(training.MODEL_KEY, None)
-            _ = state_dict.pop(training.ADAPTER_KEY, None)
-            _ = state_dict.pop(training.ADAPTER_CONFIG, None)
-            output_path = Path.joinpath(
-                self._output_dir, ckpt_save_dirname, "recipe_state.pt"
-            )
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            torch.save(state_dict, output_path)
-            logger.info(
-                "Recipe checkpoint of size "
-                f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
-                f"saved to {output_path}"
-            )
-        else:
-            logger.info("Saving final checkpoint.")
-            if adapter_only:
-                logger.info(
-                    "Please note that you have set adapter_only=True, so only adapter weights will be saved."
-                    "You need to merge the adapter weights into your base model for further use. "
-                    f"See {self.__class__.__name__}.save_checkpoint for more details."
-                )
-            else:
-                logger.info(
-                    "The full model checkpoint, including all weights and configurations, has been saved successfully. "
-                    "You can now use this checkpoint for further training or inference."
-                )
+        _ = state_dict.pop(training.MODEL_KEY, None)
+        _ = state_dict.pop(training.ADAPTER_KEY, None)
+        _ = state_dict.pop(training.ADAPTER_CONFIG, None)
+        output_path = Path.joinpath(
+            self._output_dir, ckpt_save_dirname, "recipe_state.pt"
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(state_dict, output_path)
+        logger.info(
+            "Recipe checkpoint of size "
+            f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+            f"saved to {output_path}"
+        )
 
         # If specified, prune the checkpoints in the output directory
         if self._keep_last_n_checkpoints is not None:
