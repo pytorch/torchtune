@@ -23,6 +23,7 @@ dependencies = [
     "sentencepiece",
     "tiktoken",
     "blobfile>=2",
+    "tokenizers",
 
     # Miscellaneous
     "numpy",
