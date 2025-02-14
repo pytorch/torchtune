@@ -78,7 +78,8 @@ def load_image(image_loc: Union[Path, str]) -> torch.Tensor:
         try:
             image_loc = request.urlopen(image_loc).read()
             image = torchvision.io.decode_image(
-                torch.frombuffer(image_loc, dtype=torch.uint8)
+                torch.frombuffer(image_loc, dtype=torch.uint8),
+                mode="RGB",
             )
         except Exception as e:
             raise ValueError("Failed to load remote image as torch.Tensor") from e
@@ -86,7 +87,7 @@ def load_image(image_loc: Union[Path, str]) -> torch.Tensor:
     # Open the local image as a Tensor image
     else:
         try:
-            image = torchvision.io.decode_image(image_loc)
+            image = torchvision.io.decode_image(image_loc, mode="RGB")
         except Exception as e:
             raise ValueError("Failed to load local image as torch.Tensor") from e
     return image
