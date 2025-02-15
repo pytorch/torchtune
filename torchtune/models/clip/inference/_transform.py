@@ -257,7 +257,7 @@ class CLIPImageTransform:
     ) -> Mapping[str, Any]:
 
         assert isinstance(
-            image, Union[Image.Image, torch.Tensor]
+            image, (Image.Image, torch.Tensor)
         ), "Input image must be a PIL image or torch.Tensor."
 
         # Make image torch.tensor((3, H, W), dtype='float32'), 0<=values<=1.
