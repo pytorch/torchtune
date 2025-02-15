@@ -442,3 +442,45 @@ def delete_kv_caches(model: nn.Module):
         if hasattr(module, "kv_cache") and callable(module.kv_cache):
             module.cache_enabled = False
             module.kv_cache = None
+
+
+class ScalableSoftmax(nn.Module):
+    """
+    This module implements scalable softmax from the paper : https://arxiv.org/html/2501.19399v1
+    This version of the traditional softmax function has shown significant improvements in length
+    generalization when applied pre-and-post training.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.s = nn.Parameter(torch.tensor(1.0))
+
+    # helper function
+    def compute_softmax(self, z: torch.Tensor) -> torch.Tensor:
+        # z is a 1-dimensional tensor
+        n = z.size(0)
+        coefficient = self.s * torch.log(torch.tensor(n))
+        y = torch.exp(coefficient * z)
+        return y / torch.sum(y)
+
+    def forward(self, src: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            src (torch.Tensor): Input tensor for the Scalable Softmax function
+
+        Returns:
+            torch.Tensor: output with the scalable softmax applied over the last dimension.
+
+        Example:
+            >>> from torchtune.modules import ScalableSoftmax
+            >>> import torch
+            >>>
+            >>> ss_max = ScalableSoftmax()
+            >>> X = torch.randn(5, 5)
+            >>> Y = ss_max(X)
+            >>> print(Y.shape)
+            torch.Size([5, 5])
+        """
+        # first vectorize the function; we are computing softmax over the last dimension
+        ss_max = torch.vmap(self.compute_softmax, 0, 0)
+        return ss_max(src)
