@@ -116,9 +116,9 @@ class KDRecipeDistributed(FTRecipeInterface):
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
 
-        _, rank = utils.get_world_size_and_rank()
+        self.world_size, self.rank = utils.get_world_size_and_rank()
 
-        self._is_rank_zero = rank == 0
+        self._is_rank_zero = self.rank == 0
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -646,7 +646,6 @@ class KDRecipeDistributed(FTRecipeInterface):
         Map-style Datasets which fit into memory and an option for random shuffling.
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -661,8 +660,8 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         sampler = DistributedSampler(
             ds,
-            num_replicas=world_size,
-            rank=rank,
+            num_replicas=self.world_size,
+            rank=self.rank,
             shuffle=shuffle,
             seed=0,
         )
@@ -815,8 +814,6 @@ class KDRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -833,7 +830,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -878,7 +875,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_kd_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    training.scale_grads(self._model, world_size / num_tokens)
+                    training.scale_grads(self._model, self.world_size / num_tokens)
                     class_loss_to_log = running_class_loss.item() / num_tokens
                     kd_loss_to_log = running_kd_loss.item() / num_tokens
                     self._optimizer.step()
@@ -909,7 +906,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                             "kd_loss": kd_loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            / (time_per_step * self.world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
