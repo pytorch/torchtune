@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, List, Mapping, Optional, Tuple, Union
+from typing import Any, List, Mapping, Optional, Tuple
 
 import torch
 import torchvision
@@ -157,7 +157,7 @@ class CLIPImageTransform:
         """
         image = sample["image"]
         assert isinstance(
-            image, Union[Image.Image, torch.Tensor]
+            image, (Image.Image, torch.Tensor)
         ), "Input image must be a PIL image or a torch.Tensor."
 
         # Make image torch.tensor((3, H, W), dtype=dtype), 0<=values<=1
