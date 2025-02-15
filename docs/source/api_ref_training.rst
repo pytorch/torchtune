@@ -102,6 +102,7 @@ Various logging utilities.
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
+    metric_logging.MLFlowLogger
 
 .. _perf_profiling_label:
 
