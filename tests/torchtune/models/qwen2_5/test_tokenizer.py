@@ -53,8 +53,8 @@ class TestQwen2_5Tokenizer:  # noqa: N801
         messages = [
             Message(role="system", content="a"),
             Message(role="user", content="b"),
-            Message(role="assistant", content="test call", ipython=True),
-            Message(role="ipython", content="test response"),
+            Message(role="assistant", content="test call", tool=True),
+            Message(role="tool", content="test response"),
             Message(role="assistant", content=""),
         ]
         # fmt: off
