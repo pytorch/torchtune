@@ -459,6 +459,9 @@ def get_adapter_checkpoint_path(
     if not should_load_recipe_state:
         return None
 
+    if adapter_checkpoint is None:
+        return None
+
     adapter_checkpoint_path = None
 
     if adapter_checkpoint:
