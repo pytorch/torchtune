@@ -20,7 +20,7 @@ output_dir: /tmp/torchtune/llama3_3_70B/full # /tmp may be deleted by your syste
 
 # Parallelism
 tensor_parallel_dim: 1
-parallelize_plan:
+tensor_parallel_plan:
   _component_: torchtune.models.llama3.base_llama_tp_plan
 
 # Tokenizer

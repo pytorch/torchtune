@@ -132,9 +132,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        _, rank = utils.get_world_size_and_rank()
+        self.world_size, self.rank = utils.get_world_size_and_rank()
 
-        self._is_rank_zero = rank == 0
+        self._is_rank_zero = self.rank == 0
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -494,7 +494,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -506,7 +505,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
 
         dataloader = DataLoader(
@@ -653,8 +652,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -681,7 +678,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -788,7 +785,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            / (time_per_step * self.world_size),
                             "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
                             "rewards/rejected": running_metrics[
                                 "rewards/rejected"
