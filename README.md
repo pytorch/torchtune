@@ -7,7 +7,7 @@
 ![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
 [![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
-[**Overview**](#overview) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**Citing torchtune**](#citing-torchtune) | [**License**](#license)
+[**Overview**](#overview-📚) | [**Installation**](#installation-🛠️) | [**Get Started**](#get-started-🚀) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community-🌍) | [**Citing torchtune**](#citing-torchtune-📝) | [**License**](#license)
 
 ### 📣 Recent updates 📣
 * *February 2025*: Multi-node training is officially [open for business in torchtune](https://pytorch.org/torchtune/main/tutorials/multinode.html)! Full finetune on multiple nodes to take advantage of larger batch sizes and models.
