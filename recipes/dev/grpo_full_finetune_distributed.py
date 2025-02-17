@@ -718,7 +718,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             dtype=self._dtype,
             decoder_max_seq_len=context_length + self._max_generated_tokens,
         ):
-            query_responses, logits = generation.generate(  # [B x G, L], [B x G, L, V]
+            query_responses, _ = generation.generate(  # [B x G, L], [B x G, L, V]
                 model=self._model,
                 prompt=batch_input_ids,
                 max_generated_tokens=self._max_generated_tokens,
@@ -727,6 +727,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
                 stop_tokens=self._tokenizer.stop_tokens,
+                return_logits=False
             )
 
         torch.distributed.barrier()
@@ -745,6 +746,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         del query_response_padding_masks
+
+        # step 2. estimate logprobs of the responses using the current policy
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
 
         # step 2. estimate logprobs of the responses using the current policy
         logits = logits[:, context_length - 1 :]

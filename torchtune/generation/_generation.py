@@ -204,7 +204,8 @@ def generate(
     stop_tokens: Optional[List[int]] = None,
     rng: Optional[torch.Generator] = None,
     custom_generate_next_token: Optional[Callable] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    return_logits: bool = True,
+) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
 
@@ -225,6 +226,8 @@ def generate(
             you want to specify a ``torch.compile`` version of the generate next token for
             performance reasons. If None, we use the default :func:`generate_next_token`.
             Default is None.
+        return_logits (bool): whether to return logits associated with the generated tokens, default True.
+
     Note:
         This function has only been tested with decoder-only models.
 
@@ -343,7 +346,7 @@ def generate(
             tokens, stop_tokens, stop_token_reached
         )
         if stop_token_reached.all().item():
-            return generated_tokens, generated_logits
+            return generated_tokens, generated_logits if return_logits else None
 
     world_size, rank = utils.get_world_size_and_rank()
     for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank > 0)):
@@ -380,7 +383,8 @@ def generate(
             q=q,
         )
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
-        generated_logits = torch.cat([generated_logits, logits], dim=1)
+        if return_logits:
+            generated_logits = torch.cat([generated_logits, logits], dim=1)
         curr_pos += 1
 
         if stop_tokens is not None:
@@ -401,6 +405,7 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens *= stop_token_mask
-        generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
+        if return_logits:
+            generated_logits *= stop_token_mask[:, -generated_logits.shape[1] :, None]
 
     return generated_tokens, generated_logits
