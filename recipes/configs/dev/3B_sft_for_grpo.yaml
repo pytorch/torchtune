@@ -28,7 +28,7 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.gsm8k_sft
+  _component_: torchtune.dev.grpo.data.gsm8k_sft
   partition: 0-0/10
 seed: null
 shuffle: True

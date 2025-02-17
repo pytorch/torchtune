@@ -20,10 +20,10 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
+from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
+from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.rlhf import batch_shaped_correctness_reward
-from torchtune.rlhf._types import GRPOStats, GRPOTrajectory
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from tqdm import tqdm
@@ -247,7 +247,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
-        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_rl")
+        collate_name = cfg.get(
+            "collate_fn", "torchtune.dev.grpo.data.padded_collate_rl"
+        )
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,

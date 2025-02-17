@@ -4,11 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional, TypedDict
+from typing import Any, Callable, Dict, List, Mapping, Optional, TypedDict, Union
 
+import torch
 from datasets import load_dataset
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
@@ -70,3 +73,45 @@ class RLDataset(Dataset):
         answer = transformed_sample["answer"]
 
         return {"tokens": q_tokens, "mask": mask, "answer": answer}
+
+
+def padded_collate_rl(
+    batch: List[Dict[str, List[int]]],
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+) -> Dict[str, Union[torch.Tensor, List[str]]]:
+    """Pad a batch of sequences to the longest sequence length in the batch, and
+    convert integer lists to tensors. Answers are simply concatenated into a list.
+
+    Args:
+        batch (List[Dict[str, List[int]]]): A list of dictionaries containing tokens.
+        padding_idx (int): Padding index for input ids. Defaults to 0.
+        ignore_idx (int): Padding index for labels. Defaults to -100.
+
+    Returns:
+        Dict[str, Union[torch.Tensor, List[str]]]: Collated input tensors and string answers.
+
+    Example:
+        >>> token_pairs = [
+        >>>    {"tokens": [1, 2, 3], "answer": "15"},
+        >>>    {"tokens": [7,], "answer": "bromance"},
+        >>> ]
+        >>> collated = padded_collate_rl(
+        >>>    batch=token_pairs,
+        >>>    padding_idx=padding_idx,
+        >>>    ignore_idx=ignore_idx,
+        >>> )
+        >>> collated["tokens"]
+        >>> tensor([[1, 2, 3], [7, 0, 0]])
+        >>> collated["answers"]
+        >>> ["15", "bromance"]
+    """
+    input_ids = pad_sequence(
+        [torch.tensor(x["tokens"]) for x in batch],
+        batch_first=True,
+        padding_value=padding_idx,
+    )
+
+    answers = [x["answer"] for x in batch]
+
+    return {"tokens": input_ids.long(), "answers": answers}

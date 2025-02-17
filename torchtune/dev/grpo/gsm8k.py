@@ -6,12 +6,12 @@
 import re
 from typing import Any, Callable, Dict, Optional
 
-from torchtune.datasets._rl import ReasoningProblem, RLDataset
-from torchtune.datasets._sft import SFTDataset
+from torchtune.datasets import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
 
+from .data import ReasoningProblem, RLDataset
+
 # TODO: dedup this between here and _rl
-# SFT_PROMPT =  Assistant: <think>{cot}</think> <answer>{answer}</answer>
 PREAMBLE_PROMPT = (
     "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. "
     "The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. "

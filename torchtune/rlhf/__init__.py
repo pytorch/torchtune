@@ -7,7 +7,6 @@
 
 from ._types import PPOStats, Trajectory
 
-from .grpo_rewards import batch_shaped_correctness_reward
 from .rewards import (
     estimate_advantages,
     get_reward_penalty_mask,
@@ -29,7 +28,6 @@ __all__ = [
     "truncate_sequence_at_first_stop_token",
     "logits_to_logprobs",
     "batched_logits_to_logprobs",
-    "batch_shaped_correctness_reward",
     "truncate_sequence_for_logprobs",
     "get_reward_penalty_mask",
     "estimate_advantages",

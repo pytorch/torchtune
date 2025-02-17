@@ -10,7 +10,6 @@ from torchtune.datasets._chat import chat_dataset
 from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
-from torchtune.datasets._gsm8k import gsm8k_dataset, gsm8k_sft
 from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._packed import PackedDataset
@@ -45,6 +44,4 @@ __all__ = [
     "SFTDataset",
     "hh_rlhf_helpful_dataset",
     "multimodal",
-    "gsm8k_dataset",
-    "gsm8k_sft",
 ]
