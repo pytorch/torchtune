@@ -730,7 +730,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
                 stop_tokens=self._tokenizer.stop_tokens,
-                return_logits=False
+                return_logits=False,
             )
 
         torch.distributed.barrier()

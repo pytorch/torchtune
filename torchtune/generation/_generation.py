@@ -8,9 +8,7 @@ from typing import Callable, List, Optional, Tuple
 
 import torch
 
-from torchtune import utils
 from torchtune.modules.transformer import TransformerDecoder
-from tqdm.auto import trange
 
 
 def multinomial_sample_one(probs: torch.Tensor, q: torch.Tensor) -> torch.Tensor:

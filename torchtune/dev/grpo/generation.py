@@ -1,13 +1,22 @@
-from typing import Optional, List, Callable, Tuple
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
-from tqdm.auto import trange
+from typing import Callable, List, Optional, Tuple
 
 import torch
 
 from torchtune import utils
 from torchtune.generation import generate_next_token, get_causal_mask_from_padding_mask
-from torchtune.generation._generation import update_stop_tokens_tracker, get_position_ids_from_padding_mask
+from torchtune.generation._generation import (
+    get_position_ids_from_padding_mask,
+    update_stop_tokens_tracker,
+)
 from torchtune.modules import TransformerDecoder
+
+from tqdm.auto import trange
 
 
 @torch.no_grad()
