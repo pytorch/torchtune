@@ -225,6 +225,7 @@ def generate(
             you want to specify a ``torch.compile`` version of the generate next token for
             performance reasons. If None, we use the default :func:`generate_next_token`.
             Default is None.
+
     Note:
         This function has only been tested with decoder-only models.
 
@@ -345,8 +346,7 @@ def generate(
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits
 
-    world_size, rank = utils.get_world_size_and_rank()
-    for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank > 0)):
+    for _ in range(max_generated_tokens - 1):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
         # reshaped to be bsz first
@@ -387,16 +387,8 @@ def generate(
             stop_token_reached = update_stop_tokens_tracker(
                 tokens, stop_tokens, stop_token_reached
             )
-            if world_size == 1:
-                # Single device
-                if stop_token_reached.all():
-                    break
-            else:
-                all_done = stop_token_reached.all().int()
-                torch.distributed.all_reduce(all_done)
-                if all_done == world_size:
-                    # Multiple devices
-                    break
+            if stop_token_reached.all():
+                break
 
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
