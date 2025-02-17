@@ -60,6 +60,7 @@ from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup, ge
 from torchtune.training.memory import (
     cleanup_before_training,
     create_optim_in_bwd_wrapper,
+    Float8Handler,
     get_memory_stats,
     log_memory_stats,
     OptimizerInBackwardWrapper,
@@ -105,6 +106,7 @@ __all__ = [
     "get_lr",
     "cleanup_before_training",
     "create_optim_in_bwd_wrapper",
+    "Float8Handler",
     "get_memory_stats",
     "log_memory_stats",
     "OptimizerInBackwardWrapper",

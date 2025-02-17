@@ -42,71 +42,6 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class Float8Handler:
-    def __init__(self, enable_fp8_training: bool, dp_shard: int):
-        self.enabled = enable_fp8_training
-
-        if not self.enabled:
-            return
-        try:
-            from torchao.float8 import Float8LinearConfig
-            from torchao.float8.config import CastConfig, ScalingType
-        except ImportError as e:
-            raise ImportError(
-                "torchao is not installed. Please install it to use float8 linear layers."
-            ) from e
-
-        dp_shard_enabled = dp_shard > 1
-        # Mutates the model inplace replacing instances of torch.nn.Linear with Float8Linear
-
-        # in torchtitan they also check if this is explicitly set
-        # i am being opinionated and setting both if dp_shard_enabled
-        enable_fsdp_float8_all_gather = dp_shard_enabled
-        self.precompute_scale = enable_fsdp_float8_all_gather
-
-        self.config = Float8LinearConfig(
-            enable_fsdp_float8_all_gather=enable_fsdp_float8_all_gather,
-            force_recompute_fp8_weight_in_bwd=True,
-            cast_config_input=CastConfig(scaling_type=ScalingType.DYNAMIC),
-            cast_config_weight=CastConfig(scaling_type=ScalingType.DYNAMIC),
-            cast_config_grad_output=CastConfig(scaling_type=ScalingType.DYNAMIC),
-        )
-        self.enabled = True
-
-    def convert_to_float8_training(self, model: nn.Module):
-        """
-        This function converts the linear layers of `model` to `Float8Linear`.
-        Note that today, only dynamic tensor scaling (the default) is supported.
-        This will mutate the model inplace.
-        """
-        if not self.enabled:
-            return
-
-        from torchao.float8 import convert_to_float8_training
-
-        # Mutates the model inplace replacing instances of nn.Linear with Float8Linear
-        convert_to_float8_training(
-            model,
-            config=self.config,
-            module_filter_fn=lambda mod, fqn: fqn != "output",
-        )
-
-    def precompute_float8_dynamic_scale_for_fsdp(
-        self, model: Union[nn.Module, List[nn.Module]]
-    ):
-        if not self.enabled:
-            return
-
-        if not self.precompute_scale:
-            return
-
-        from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
-
-        models = [model] if isinstance(model, nn.Module) else model
-        for m in models:
-            precompute_float8_dynamic_scale_for_fsdp(m)
-
-
 class FullFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
@@ -608,7 +543,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.dp_size = device_mesh["dp"].size()
         self.dp_rank = device_mesh["dp"].get_local_rank()
 
-        self.fp8_handler = Float8Handler(
+        self.fp8_handler = training.Float8Handler(
             self._enable_fp8_training, dp_shard=self.dp_size
         )
         self.fp8_handler.convert_to_float8_training(model)
