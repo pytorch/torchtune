@@ -9,7 +9,6 @@ from torchtune.data._collate import (
     padded_collate,
     padded_collate_dpo,
     padded_collate_packed,
-    padded_collate_rl,
     padded_collate_sft,
     padded_collate_tiled_images_and_mask,
 )
@@ -54,7 +53,6 @@ __all__ = [
     "ChatMLTemplate",
     "padded_collate_sft",
     "padded_collate_dpo",
-    "padded_collate_rl",
     "left_pad_sequence",
     "padded_collate",
     "padded_collate_tiled_images_and_mask",
