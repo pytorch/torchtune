@@ -1,7 +1,12 @@
 from typing import Optional, List, Callable, Tuple
 
+from tqdm.auto import trange
+
 import torch
 
+from torchtune import utils
+from torchtune.generation import generate_next_token, get_causal_mask_from_padding_mask
+from torchtune.generation._generation import update_stop_tokens_tracker, get_position_ids_from_padding_mask
 from torchtune.modules import TransformerDecoder
 
 
