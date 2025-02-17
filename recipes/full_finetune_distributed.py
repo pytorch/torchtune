@@ -600,6 +600,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
+        self.fp8_handler = Float8Handler(
+            self._enable_fp8_training, dp_shard=self.dp_size
+        )
+        self.fp8_handler.convert_to_float8_training(model)
+
         device_mesh = init_device_mesh(
             self._device.type,
             mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
@@ -686,9 +691,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
-        self.fp8_handler = Float8Handler(
-            self._enable_fp8_training, dp_shard=self.dp_size
-        )
         # synchronize before training begins
         torch.distributed.barrier()
 
