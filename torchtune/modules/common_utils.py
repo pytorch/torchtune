@@ -482,5 +482,5 @@ class ScalableSoftmax(nn.Module):
             torch.Size([5, 5])
         """
         # first vectorize the function; we are computing softmax over the last dimension
-        ss_max = torch.vmap(self.compute_softmax, 0, 0)
+        ss_max = torch.vmap(self.compute_softmax, -2, -2)
         return ss_max(src)
