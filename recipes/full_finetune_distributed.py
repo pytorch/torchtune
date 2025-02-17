@@ -600,11 +600,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        self.fp8_handler = Float8Handler(
-            self._enable_fp8_training, dp_shard=self.dp_size
-        )
-        self.fp8_handler.convert_to_float8_training(model)
-
         device_mesh = init_device_mesh(
             self._device.type,
             mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
@@ -612,6 +607,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         self.dp_size = device_mesh["dp"].size()
         self.dp_rank = device_mesh["dp"].get_local_rank()
+
+        self.fp8_handler = Float8Handler(
+            self._enable_fp8_training, dp_shard=self.dp_size
+        )
+        self.fp8_handler.convert_to_float8_training(model)
 
         # Apply tensor parallelism to the model
         if self.tensor_parallel_dim > 1:
