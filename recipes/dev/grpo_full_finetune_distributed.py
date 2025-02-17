@@ -732,7 +732,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         torch.distributed.barrier()
-        training.recursive_reshard(self._model)
+        training._distributed.recursive_reshard(self._model)
         torch.cuda.empty_cache()
 
         responses = query_responses[:, context_length:].clone()
