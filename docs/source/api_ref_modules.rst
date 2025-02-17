@@ -50,6 +50,7 @@ model specific tokenizers.
 
     transforms.tokenizers.SentencePieceBaseTokenizer
     transforms.tokenizers.TikTokenBaseTokenizer
+    transforms.tokenizers.HuggingFaceBaseTokenizer
     transforms.tokenizers.ModelTokenizer
     transforms.tokenizers.BaseTokenizer
 

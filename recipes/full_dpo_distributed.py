@@ -133,8 +133,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
+        self.world_size, self.rank = get_world_size_and_rank()
+        self._is_rank_zero = self.rank == 0
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -619,7 +619,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     try:
                         training.load_from_full_optimizer_state_dict(
                             self._model,
-                            self._optim_ckpt_wrapper.state_dict()[param],
+                            self._optim_ckpt_wrapper.optim_map[param],
                             opt_state_dict[param],
                             self._device,
                         )
@@ -670,7 +670,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -682,7 +681,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
 
         dataloader = DataLoader(
@@ -847,8 +846,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = get_world_size_and_rank()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -876,7 +873,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -1000,7 +997,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                                 ),
                             ),
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            / (time_per_step * self.world_size),
                             "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
                             "rewards/rejected": running_metrics[
                                 "rewards/rejected"
