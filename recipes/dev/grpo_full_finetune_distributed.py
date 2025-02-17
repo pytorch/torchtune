@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
+from torchtune.dev.grpo.generation import generate
 from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
@@ -720,7 +721,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             dtype=self._dtype,
             decoder_max_seq_len=context_length + self._max_generated_tokens,
         ):
-            query_responses, logits = generation.generate(  # [B x G, L], [B x G, L, V]
+            query_responses, _ = generate(  # [B x G, L], [B x G, L, V]
                 model=self._model,
                 prompt=batch_input_ids,
                 max_generated_tokens=self._max_generated_tokens,
@@ -729,6 +730,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
                 stop_tokens=self._tokenizer.stop_tokens,
+                return_logits=False
             )
 
         torch.distributed.barrier()
@@ -747,6 +749,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         del query_response_padding_masks
+
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
 
         # step 2. estimate logprobs of the responses using the current policy
         logits = logits[:, context_length - 1 :]

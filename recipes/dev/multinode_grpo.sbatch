@@ -10,7 +10,7 @@
 #SBATCH --job-name=torchtune-multi-node
 #SBATCH --constraint=volta32gb
 #SBATCH --ntasks-per-node=1
-#SBATCH --nodes=16
+#SBATCH --nodes=2
 #SBATCH --exclusive
 #SBATCH --gpus-per-task=8
 #SBATCH --cpus-per-task=80
@@ -44,5 +44,5 @@ export LOGLEVEL=INFO
 source ../../.venv/bin/activate
 
 # Adjust sbatch --ntasks and sbatch --nodes above and --nnodes below to your specific node count
-srun --export=ALL,OMP_NUM_THREADS=8 tune run --nnodes 16 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
+srun --export=ALL,OMP_NUM_THREADS=8 tune run --nnodes 2 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" \
     dev/grpo_full_finetune_distributed --config dev/3B_full_grpo "$@"
