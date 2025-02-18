@@ -243,7 +243,23 @@ def register_optim_in_bwd_hooks(
 
 
 def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
-    """Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will also reset CUDA's peak memory tracking."""
+    """
+    Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
+    also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
+    memory (e.g. peak memory during model init, during forward, etc) and optimize memory for
+    individual sections of training.
+
+    Args:
+        device (torch.device): Device to get memory summary for. Supports CUDA and MPS devices.
+        reset_stats (bool): Whether to reset CUDA's peak memory tracking.
+
+    Returns:
+        Dict[str, float]: A dictionary containing the peak memory active, peak memory allocated,
+        and peak memory reserved. This dict is useful for logging memory stats.
+
+    Raises:
+        ValueError: If the passed-in device is CPU.
+    """
     if device.type == "cpu":
         raise ValueError("Logging memory stats is not supported on CPU devices")
     
