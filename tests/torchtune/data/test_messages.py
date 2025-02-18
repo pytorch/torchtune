@@ -492,6 +492,15 @@ def test_validate_messages():
     # Test valid conversation without system
     validate_messages(messages[1:])
 
+    # Test valid conversation with tool
+    messages = [
+        Message(role="user", content="Please execute function"),
+        Message(role="assistant", content="executing..."),
+        Message(role="tool", content="result=1"),
+        Message(role="assistant", content="Result is 1"),
+    ]
+    validate_messages(messages)
+
     # Test system not first
     messages = [
         Message(role="user", content="hello"),
@@ -539,6 +548,6 @@ def test_validate_messages():
     ]
     with pytest.raises(
         ValueError,
-        match="Assistant message before expected user message at index 0 in messages",
+        match="Assistant message before expected user or tool message at index 0 in messages",
     ):
         validate_messages(messages)
