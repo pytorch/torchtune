@@ -266,7 +266,7 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     if device.type == "mps":
         peak_memory_active = torch.mps.current_allocated_memory() / (1024**3)
         peak_memory_alloc = torch.mps.driver_allocated_memory() / (1024**3)
-        peak_memory_reserved = peak_mem_alloc
+        peak_memory_reserved = peak_memory_alloc
     else:
         torch_device = get_torch_device_namespace()
         peak_memory_active = torch_device.memory_stats().get("active_bytes.all.peak", 0) / (1024**3)
