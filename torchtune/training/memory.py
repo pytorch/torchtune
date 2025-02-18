@@ -250,7 +250,7 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     individual sections of training.
 
     Args:
-        device (torch.device): Device to get memory summary for. Only CUDA devices are supported.
+        device (torch.device): Device to get memory summary for. Supports CUDA and MPS devices.
         reset_stats (bool): Whether to reset CUDA's peak memory tracking.
 
     Returns:
@@ -258,19 +258,23 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
         and peak memory reserved. This dict is useful for logging memory stats.
 
     Raises:
-        ValueError: If the passed-in device is not CUDA.
+        ValueError: If the passed-in device is CPU.
     """
     if device.type == "cpu":
         raise ValueError("Logging memory stats is not supported on CPU devices")
-
-    torch_device = get_torch_device_namespace()
-    peak_memory_active = torch_device.memory_stats().get("active_bytes.all.peak", 0) / (
-        1024**3
-    )
-    peak_mem_alloc = torch_device.max_memory_allocated(device) / (1024**3)
-    peak_mem_reserved = torch_device.max_memory_reserved(device) / (1024**3)
-    if reset_stats:
-        torch_device.reset_peak_memory_stats(device)
+    
+    if device.type == "mps":
+        peak_memory_active = torch.mps.current_allocated_memory() / (1024**3)
+        peak_mem_alloc = torch.mps.driver_allocated_memory() / (1024**3)
+        peak_mem_reserved = peak_memory_active
+    else:
+        torch_device = get_torch_device_namespace()
+        peak_memory_active = torch_device.memory_stats().get("active_bytes.all.peak", 0) / (1024**3)
+        peak_mem_alloc = torch_device.max_memory_allocated(device) / (1024**3)
+        peak_mem_reserved = torch_device.max_memory_reserved(device) / (1024**3)
+        
+        if reset_stats:
+            torch_device.reset_peak_memory_stats(device)
 
     memory_stats = {
         "peak_memory_active": peak_memory_active,
