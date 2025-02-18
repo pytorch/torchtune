@@ -16,6 +16,7 @@ Role = Literal[
     "user",  # Origin is user
     "assistant",  # Origin is the model output
     "ipython",  # Origin is return from a tool call
+    "tool",  # Origin is return from a tool call
 ]
 
 
@@ -625,6 +626,7 @@ class OpenAIToMessages(Transform):
                     role=message["role"],
                     content=content,
                     masked=masked,
+                    eot=False if message["role"] in ["tool", "ipython"] else True,
                 ),
             )
 
@@ -658,9 +660,9 @@ def validate_messages(
 
     last_turn = "assistant"
     for i, message in enumerate(messages):
-        if message.role == "assistant" and last_turn != "user":
+        if message.role == "assistant" and last_turn not in ["user", "tool"]:
             raise ValueError(
-                f"Assistant message before expected user message at index {i} in messages"
+                f"Assistant message before expected user or tool message at index {i} in messages"
             )
         if message.role == "user" and last_turn == "user":
             raise ValueError(
