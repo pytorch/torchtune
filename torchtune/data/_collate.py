@@ -622,6 +622,11 @@ def padded_collate_traj_dpo(
     return concatenated_input_ids, concatenated_labels, [len(chosen_input_ids), len(rejected_input_ids)]
 
 
+
+
+
+
+
 def padded_collate_traj_CE(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
@@ -663,6 +668,7 @@ def padded_collate_traj_CE(
     """
     chosen_input_ids = [torch.tensor(e) for ex in batch for e in ex["chosen_input_ids"]]
     chosen_labels = [torch.tensor(e) for ex in batch for e in ex["chosen_labels"]]
+    ce_label=[torch.tensor(ex["ce_label"]) for ex in batch]
     
 
     to_pad_input_ids = chosen_input_ids 
@@ -675,4 +681,5 @@ def padded_collate_traj_CE(
         to_pad_labels, batch_first=True, padding_value=ignore_idx
     )
 
-    return concatenated_input_ids, concatenated_labels
+    return concatenated_input_ids, concatenated_labels , ce_label
+

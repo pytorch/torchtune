@@ -99,7 +99,7 @@ class CE_MultiConversationMessages(Transform):
 def CE_multi_conversation_dataset(
     tokenizer: ModelTokenizer,
     *,
-    source: str = "/home/toolkit/scratch/Agents/Checkpoints/data/positive_test.json",
+    source: str,  #"/home/toolkit/scratch/Agents/Checkpoints/data/positive_test.json",
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
     filter_fn: Optional[Callable] = None,
@@ -108,7 +108,6 @@ def CE_multi_conversation_dataset(
 ) -> PreferenceDataset:
     column_map = column_map or {
         "chosen": "chosen",
-        "rejected": "rejected",
     }
 
     message_transform = CE_MultiConversationMessages(
@@ -121,7 +120,6 @@ def CE_multi_conversation_dataset(
         tokenizer=tokenizer,
         filter_fn=filter_fn,
         split=split,
-        data_dir="data/rl",
         **load_dataset_kwargs,
     )
 
