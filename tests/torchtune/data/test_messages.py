@@ -482,11 +482,17 @@ class TestOpenAIToMessages:
     def test_call_tool_messages(self):
         tool_samples = {
             "messages": [
-                {"role": "system", "content": "Available functions: weather(city: str), search(query: str)"},
+                {
+                    "role": "system",
+                    "content": "Available functions: weather(city: str), search(query: str)",
+                },
                 {"role": "user", "content": "What's the weather in Istanbul?"},
-                {"role": "assistant", "content": "Let me check the weather."},
+                {"role": "assistant", "content": "weather(city='Istanbul')"},
                 {"role": "tool", "content": "{'temperature': 25}"},
-                {"role": "assistant", "content": "The temperature in Istanbul is 25°C."},
+                {
+                    "role": "assistant",
+                    "content": "The temperature in Istanbul is 25°C.",
+                },
             ]
         }
         transform = OpenAIToMessages()
@@ -494,13 +500,21 @@ class TestOpenAIToMessages:
         assert_dialogue_equal(
             converted_messages["messages"],
             [
-                Message(role="system", content="Available functions: weather(city: str), search(query: str)"),
+                Message(
+                    role="system",
+                    content="Available functions: weather(city: str), search(query: str)",
+                ),
                 Message(role="user", content="What's the weather in Istanbul?"),
-                Message(role="assistant", content="Let me check the weather."),
-                Message(role="tool", content="{'temperature': 25}", eot=False, masked=True),
-                Message(role="assistant", content="The temperature in Istanbul is 25°C."),
+                Message(role="assistant", content="weather(city='Istanbul')"),
+                Message(
+                    role="tool", content="{'temperature': 25}", eot=False, masked=True
+                ),
+                Message(
+                    role="assistant", content="The temperature in Istanbul is 25°C."
+                ),
             ],
         )
+
 
 def test_validate_messages():
     messages = [
@@ -517,7 +531,10 @@ def test_validate_messages():
 
     # Test valid conversation with tool
     messages = [
-        Message(role="system", content="Available functions: weather(city: str), search(query: str)"),
+        Message(
+            role="system",
+            content="Available functions: weather(city: str), search(query: str)",
+        ),
         Message(role="user", content="What is the weather in Istanbul?"),
         Message(role="assistant", content="weather(city='Istanbul')"),
         Message(role="tool", content="{'temperature': 25}"),
