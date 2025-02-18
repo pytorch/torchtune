@@ -472,12 +472,35 @@ class TestOpenAIToMessages:
                         {"type": "text", "content": CHAT_SAMPLE["user"]},
                         {"type": "image", "content": test_img},
                     ],
+                    masked=True,
                 ),
                 MESSAGE_SAMPLE[2],
             ],
         )
         mock_load_image.assert_called_once_with("https://example.com")
 
+    def test_call_tool_messages(self):
+        tool_samples = {
+            "messages": [
+                {"role": "system", "content": "Available functions: weather(city: str), search(query: str)"},
+                {"role": "user", "content": "What's the weather in Istanbul?"},
+                {"role": "assistant", "content": "Let me check the weather."},
+                {"role": "tool", "content": "{'temperature': 25}"},
+                {"role": "assistant", "content": "The temperature in Istanbul is 25°C."},
+            ]
+        }
+        transform = OpenAIToMessages()
+        converted_messages = transform(tool_samples)
+        assert_dialogue_equal(
+            converted_messages["messages"],
+            [
+                Message(role="system", content="Available functions: weather(city: str), search(query: str)"),
+                Message(role="user", content="What's the weather in Istanbul?"),
+                Message(role="assistant", content="Let me check the weather."),
+                Message(role="tool", content="{'temperature': 25}", eot=False, masked=True),
+                Message(role="assistant", content="The temperature in Istanbul is 25°C."),
+            ],
+        )
 
 def test_validate_messages():
     messages = [
