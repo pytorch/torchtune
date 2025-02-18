@@ -494,10 +494,11 @@ def test_validate_messages():
 
     # Test valid conversation with tool
     messages = [
-        Message(role="user", content="Please execute function"),
-        Message(role="assistant", content="executing..."),
-        Message(role="tool", content="result=1"),
-        Message(role="assistant", content="Result is 1"),
+        Message(role="system", content="Available functions: weather(city: str), search(query: str)"),
+        Message(role="user", content="What is the weather in Istanbul?"),
+        Message(role="assistant", content="weather(city='Istanbul')"),
+        Message(role="tool", content="{'temperature': 25}"),
+        Message(role="assistant", content="The weather in Istanbul is 25C"),
     ]
     validate_messages(messages)
 
