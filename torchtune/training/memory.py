@@ -243,30 +243,17 @@ def register_optim_in_bwd_hooks(
 
 
 def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
-    """
-    Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
-    also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
-    memory (e.g. peak memory during model init, during forward, etc) and optimize memory for
-    individual sections of training.
-
-    Args:
-        device (torch.device): Device to get memory summary for. Supports CUDA and MPS devices.
-        reset_stats (bool): Whether to reset CUDA's peak memory tracking.
-
-    Returns:
-        Dict[str, float]: A dictionary containing the peak memory active, peak memory allocated,
-        and peak memory reserved. This dict is useful for logging memory stats.
-
-    Raises:
-        ValueError: If the passed-in device is CPU.
-    """
+    """Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will also reset CUDA's peak memory tracking."""
     if device.type == "cpu":
         raise ValueError("Logging memory stats is not supported on CPU devices")
     
     if device.type == "mps":
         peak_memory_active = torch.mps.current_allocated_memory() / (1024**3)
         peak_mem_alloc = torch.mps.driver_allocated_memory() / (1024**3)
-        peak_mem_reserved = peak_memory_active
+        memory_stats = {
+            "peak_memory_active": peak_memory_active,
+            "peak_memory_alloc": peak_mem_alloc,
+        }
     else:
         torch_device = get_torch_device_namespace()
         peak_memory_active = torch_device.memory_stats().get("active_bytes.all.peak", 0) / (1024**3)
@@ -276,11 +263,11 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
         if reset_stats:
             torch_device.reset_peak_memory_stats(device)
 
-    memory_stats = {
-        "peak_memory_active": peak_memory_active,
-        "peak_memory_alloc": peak_mem_alloc,
-        "peak_memory_reserved": peak_mem_reserved,
-    }
+        memory_stats = {
+            "peak_memory_active": peak_memory_active,
+            "peak_memory_alloc": peak_mem_alloc,
+            "peak_memory_reserved": peak_mem_reserved,
+        }
     return memory_stats
 
 
