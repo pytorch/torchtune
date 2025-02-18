@@ -33,6 +33,7 @@ def mistral_24b() -> TransformerDecoder:
         attn_dropout=0.0,
         norm_eps=1e-5,
         rope_base=100_000_000,
+        head_dim=128,
     )
 
 
@@ -86,6 +87,7 @@ def lora_mistral_24b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        head_dim=128,
     )
 
 
@@ -151,6 +153,7 @@ def lora_mistral_24b_reward(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        head_dim=128,
     )
 
 
