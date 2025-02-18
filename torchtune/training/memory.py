@@ -261,7 +261,7 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
         ValueError: If the passed-in device is CPU.
     """
     if device.type == "cpu":
-         raise ValueError("Logging memory stats is not supported on CPU devices")
+        raise ValueError("Logging memory stats is not supported on CPU devices")
 
     if device.type == "mps":
         peak_memory_active = torch.mps.current_allocated_memory() / (1024**3)
