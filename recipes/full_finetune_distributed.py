@@ -145,8 +145,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Initialize distributed variables
         self.world_size, self.rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
+
+        self._enable_fp8_training = cfg.get("enable_fp8_training", False)
         self.tensor_parallel_plan = config.instantiate(
-            cfg.get("tensor_parallel_plan", None)
+            cfg.get("tensor_parallel_plan", None), self._enable_fp8_training
         )
         self.tensor_parallel_dim = cfg.get("tensor_parallel_dim", 1)
         if self.tensor_parallel_dim > 1 and self.tensor_parallel_plan is None:
@@ -170,7 +172,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._log_peak_memory_stats = False
 
         # Training cfg
-        self._enable_fp8_training = cfg.get("enable_fp8_training", False)
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)

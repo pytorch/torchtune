@@ -10,26 +10,43 @@ from torch.distributed._tensor import Replicate
 from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
 from torch.distributed.tensor.parallel.style import ParallelStyle
 
-
-# Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
-BASE_LLAMA_TP_PLAN = {
-    "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
-    "output": ColwiseParallel(output_layouts=Replicate()),
-    "layers.*.attn.q_proj": ColwiseParallel(),
-    "layers.*.attn.k_proj": ColwiseParallel(),
-    "layers.*.attn.v_proj": ColwiseParallel(),
-    "layers.*.attn.output_proj": RowwiseParallel(),
-    "layers.*.mlp.w1": ColwiseParallel(),
-    "layers.*.mlp.w2": RowwiseParallel(),
-    "layers.*.mlp.w3": ColwiseParallel(),
-}
+from torchao.float8.float8_tensor_parallel import (
+    Float8ColwiseParallel,
+    Float8RowwiseParallel,
+)
 
 
-def base_llama_tp_plan() -> Dict[str, ParallelStyle]:
+def base_llama_tp_plan(enable_float8: bool) -> Dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
+
+    Args:
+        enable_float8 (bool): Whether float8 training is enabled and TP classes should use fp8 alternatives
 
     Returns:
         Dict[str, Any]: The tensor parallel plan for Llama3 model.
     """
-    return BASE_LLAMA_TP_PLAN
+    if enable_float8:
+        rowwise_parallel, colwise_parallel = (
+            Float8RowwiseParallel,
+            Float8ColwiseParallel,
+        )
+    else:
+        rowwise_parallel, colwise_parallel = (
+            RowwiseParallel,
+            ColwiseParallel,
+        )
+
+    # Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
+    base_llama_tp_plan = {
+        "tok_embeddings": rowwise_parallel(input_layouts=Replicate()),
+        "output": colwise_parallel(output_layouts=Replicate()),
+        "layers.*.attn.q_proj": colwise_parallel(),
+        "layers.*.attn.k_proj": colwise_parallel(),
+        "layers.*.attn.v_proj": colwise_parallel(),
+        "layers.*.attn.output_proj": rowwise_parallel(),
+        "layers.*.mlp.w1": colwise_parallel(),
+        "layers.*.mlp.w2": rowwise_parallel(),
+        "layers.*.mlp.w3": colwise_parallel(),
+    }
+    return base_llama_tp_plan
