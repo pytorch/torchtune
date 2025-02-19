@@ -24,19 +24,10 @@ class Recipe:
 
 _ALL_RECIPES = [
     Recipe(
-        name="dev/grpo_eval",
-        file_path="dev/grpo_eval.py",
-        configs=[
-            Config(name="kwiat/3B_grpo_eval", file_path="kwiat/3B_grpo_eval.yaml")
-        ],
-        supports_distributed=True,
-    ),
-    Recipe(
         name="dev/grpo_full_finetune_distributed",
         file_path="dev/grpo_full_finetune_distributed.py",
         configs=[
             Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
-            Config(name="kwiat/3B_full_grpo", file_path="kwiat/3B_full_grpo.yaml"),
         ],
         supports_distributed=True,
     ),
