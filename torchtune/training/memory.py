@@ -263,26 +263,30 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     if device.type == "cpu":
         raise ValueError("Logging memory stats is not supported on CPU devices")
 
+    BYTES_TO_GB = 1024**3
+
     if device.type == "mps":
-        peak_memory_active = torch.mps.current_allocated_memory() / (1024**3)
-        peak_memory_alloc = torch.mps.driver_allocated_memory() / (1024**3)
-        peak_memory_reserved = peak_memory_alloc
+        peak_memory_active = torch.mps.current_allocated_memory() / BYTES_TO_GB
+        peak_memory_alloc = torch.mps.driver_allocated_memory() / BYTES_TO_GB
+        memory_stats = {
+            "peak_memory_active": peak_memory_active,
+            "peak_memory_alloc": peak_memory_alloc,
+        }
     else:
         torch_device = get_torch_device_namespace()
-        peak_memory_active = torch_device.memory_stats().get(
-            "active_bytes.all.peak", 0
-        ) / (1024**3)
-        peak_memory_alloc = torch_device.max_memory_allocated(device) / (1024**3)
-        peak_memory_reserved = torch_device.max_memory_reserved(device) / (1024**3)
-
+        peak_memory_active = (
+            torch_device.memory_stats().get("active_bytes.all.peak", 0) / BYTES_TO_GB
+        )
+        peak_memory_alloc = torch_device.max_memory_allocated(device) / BYTES_TO_GB
+        peak_memory_reserved = torch_device.max_memory_reserved(device) / BYTES_TO_GB
+        memory_stats = {
+            "peak_memory_active": peak_memory_active,
+            "peak_memory_alloc": peak_memory_alloc,
+            "peak_memory_reserved": peak_memory_reserved,
+        }
         if reset_stats:
             torch_device.reset_peak_memory_stats(device)
 
-    memory_stats = {
-        "peak_memory_active": peak_memory_active,
-        "peak_memory_alloc": peak_memory_alloc,
-        "peak_memory_reserved": peak_memory_reserved,
-    }
     return memory_stats
 
 
@@ -294,12 +298,12 @@ def log_memory_stats(
 ) -> None:
     """
     Logs a dict containing memory stats to the logger. ``stats`` should contain the fields
-    ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` as
+    ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` (optional) as
     returned by :func:`torchtune.training.get_memory_stats`.
 
     Args:
         stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory
-            allocated, and peak memory reserved stats.
+            allocated, and peak memory reserved (optional) stats.
         message (str): An optional message to prepend to the log output.
             Defaults to "Memory stats after model init:"
     """
@@ -307,6 +311,6 @@ def log_memory_stats(
     _log.info(
         f"{message}"
         f"\n\t{device_support.device_name} peak memory allocation: {stats['peak_memory_alloc']:.2f} GiB"
-        f"\n\t{device_support.device_name} peak memory reserved: {stats['peak_memory_reserved']:.2f} GiB"
+        f"\n\t{device_support.device_name} peak memory reserved: {stats.get('peak_memory_reserved', 0):.2f} GiB"
         f"\n\t{device_support.device_name} peak memory active: {stats['peak_memory_active']:.2f} GiB"
     )
