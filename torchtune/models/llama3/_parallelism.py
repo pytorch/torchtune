@@ -39,8 +39,8 @@ def base_llama_tp_plan(enable_float8: bool) -> Dict[str, ParallelStyle]:
 
     # Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
     base_tp_plan = {
-        "tok_embeddings": rowwise_parallel(input_layouts=Replicate()),
-        "output": colwise_parallel(output_layouts=Replicate()),
+        "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
+        "output": ColwiseParallel(output_layouts=Replicate()),
         "layers.*.attn.q_proj": colwise_parallel(),
         "layers.*.attn.k_proj": colwise_parallel(),
         "layers.*.attn.v_proj": colwise_parallel(),
