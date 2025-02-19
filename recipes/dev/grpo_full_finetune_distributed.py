@@ -753,6 +753,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         logits = self._model(query_responses, input_pos=position_ids, mask=masks)
 
         # step 2. estimate logprobs of the responses using the current policy
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
+
+        # step 2. estimate logprobs of the responses using the current policy
         logits = logits[:, context_length - 1 :]
         logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
 
