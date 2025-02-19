@@ -239,14 +239,14 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "`tokenizer.max_seq_len` is required when `enable_kv_cache` is `True`. "
                 "Please set `max_seq_len` in tokenizer config."
             )
-        self.cache_ctx_manager = lambda enable_kv_cache: (
+        self.cache_ctx_manager = lambda enable_kv_cache, *args, **kwargs: (
             local_kv_cache(
                 self._policy_model,
                 batch_size=self._forward_batch_size,
                 dtype=self._dtype,
-                decoder_max_seq_len=self._tokenizer.max_seq_len
-                + self._max_generated_tokens,
                 device=self._device,
+                *args,
+                **kwargs,
             )
             if enable_kv_cache
             else contextlib.nullcontext()
@@ -775,9 +775,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
                 the current trajectory.
         """
-
+        _, context_length = input_ids.shape
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-        with self.cache_ctx_manager(self.enable_kv_cache):
+        with self.cache_ctx_manager(
+            self.enable_kv_cache,
+            decoder_max_seq_len=context_length + self._max_generated_tokens,
+        ):
             query_responses, logits = generation.generate(
                 model=self._policy_model,
                 prompt=input_ids,
@@ -787,7 +790,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
             )
-        _, context_length = input_ids.shape
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
