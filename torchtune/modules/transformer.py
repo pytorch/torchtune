@@ -557,6 +557,7 @@ class TransformerDecoder(nn.Module):
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
+        input_embeds: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
@@ -625,7 +626,7 @@ class TransformerDecoder(nn.Module):
         )
 
         # shape: [b, s, d]
-        h = self.tok_embeddings(tokens)
+        h = self.tok_embeddings(tokens) if input_embeds is None else input_embeds
 
         hidden = []
         for i, layer in enumerate(self.layers):
