@@ -234,11 +234,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # setup a context manager for enabling KV-cacheing during
         # trajectory generation if enabled in the config
-        if self.enable_kv_cache and self._tokenizer.max_seq_len is None:
-            raise ValueError(
-                "`tokenizer.max_seq_len` is required when `enable_kv_cache` is `True`. "
-                "Please set `max_seq_len` in tokenizer config."
-            )
         self.cache_ctx_manager = lambda enable_kv_cache, *args, **kwargs: (
             local_kv_cache(
                 self._policy_model,
