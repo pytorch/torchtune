@@ -626,7 +626,7 @@ class OpenAIToMessages(Transform):
                     role=message["role"],
                     content=content,
                     masked=masked,
-                    eot=False if message["role"] in ["tool", "ipython"] else True,
+                    eot=False if message["role"] in ["tool"] else True,
                 ),
             )
 
