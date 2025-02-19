@@ -551,7 +551,7 @@ class TransformerDecoder(nn.Module):
 
     def forward(
         self,
-        tokens: torch.Tensor,
+        tokens: Optional[torch.Tensor],
         *,
         mask: Optional[_MaskType] = None,
         encoder_input: Optional[torch.Tensor] = None,

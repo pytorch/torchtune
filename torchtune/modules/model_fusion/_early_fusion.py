@@ -161,7 +161,7 @@ class EarlyFusionModel(nn.Module):
         is_text = ~torch.isin(tokens, encoder_token_ids)
         text_tokens = torch.masked_select(tokens, is_text)
         # [num_text, embed_dim]
-        text_embeds = self.tok_embeddings(text_tokens)
+        text_embeds = self.decoder.tok_embeddings(text_tokens)
         return is_text, text_embeds
 
     def forward(
@@ -245,5 +245,5 @@ class EarlyFusionModel(nn.Module):
             # At locations where encoder token is found, replace with encoder embedding
             fused_embeds = fused_embeds.masked_scatter(encoder_mask, encoder_embeds)
 
-        output = self.decoder(fused_embeds, mask=mask, input_pos=input_pos)
+        output = self.decoder(mask=mask, input_pos=input_pos, input_embeds=fused_embeds)
         return output
