@@ -242,7 +242,7 @@ def register_optim_in_bwd_hooks(
             p.register_post_accumulate_grad_hook(optim_step)
 
 
-BYTE_TO_GIB = 1024**3
+_BYTES_IN_GIB = 1024**3
 
 
 def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
@@ -267,8 +267,8 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
         raise ValueError("Logging memory stats is not supported on CPU devices")
 
     if device.type == "mps":
-        peak_memory_active = torch.mps.current_allocated_memory() / BYTE_TO_GIB
-        peak_memory_alloc = torch.mps.driver_allocated_memory() / BYTE_TO_GIB
+        peak_memory_active = torch.mps.current_allocated_memory() / _BYTES_IN_GIB
+        peak_memory_alloc = torch.mps.driver_allocated_memory() / _BYTES_IN_GIB
         memory_stats = {
             "peak_memory_active": peak_memory_active,
             "peak_memory_alloc": peak_memory_alloc,
@@ -276,10 +276,10 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     else:
         torch_device = get_torch_device_namespace()
         peak_memory_active = (
-            torch_device.memory_stats().get("active_bytes.all.peak", 0) / BYTE_TO_GIB
+            torch_device.memory_stats().get("active_bytes.all.peak", 0) / _BYTES_IN_GIB
         )
-        peak_memory_alloc = torch_device.max_memory_allocated(device) / BYTE_TO_GIB
-        peak_memory_reserved = torch_device.max_memory_reserved(device) / BYTE_TO_GIB
+        peak_memory_alloc = torch_device.max_memory_allocated(device) / _BYTES_IN_GIB
+        peak_memory_reserved = torch_device.max_memory_reserved(device) / _BYTES_IN_GIB
         memory_stats = {
             "peak_memory_active": peak_memory_active,
             "peak_memory_alloc": peak_memory_alloc,
