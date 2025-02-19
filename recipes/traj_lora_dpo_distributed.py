@@ -148,8 +148,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-        self.ce_loss=CEWithChunkedOutputLoss(num_output_chunks=6)
-        self.reg_lambda=cfg.reg_lambda
+        self.max_tokens=cfg.max_tokens
+        if self.max_tokens==None:
+            self.max_tokens=5000
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
@@ -698,7 +699,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             if len(inp)>max_inp:
                 max_inp=len(inp)
         
-        if max_inp>5000:
+        if max_inp>self.max_tokens:
             return True
         else:
             return False
@@ -767,7 +768,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     local_len_tensor = torch.tensor([local_len], device=self._device, dtype=torch.int64)
                     world_size = dist.get_world_size()
                     all_lens = [torch.zeros(1, device=self._device, dtype=torch.int64) for _ in range(world_size)]
-                    dist.barrier() 
                     dist.all_gather(all_lens, local_len_tensor)
                     max_len = max(t.item() for t in all_lens)
 
@@ -779,8 +779,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     reference_chosen_sum.zero_()
                     reference_rejected_sum.zero_()
 
-                    reg_index=random.randint(0,len(input_ids)-1)
-                    dist.barrier() 
 
                     for index in range(max_len):
                         if index<local_len:
@@ -792,9 +790,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         log_policy_probs, policy_logits = self.concatenated_forward(
                                 self._model, inp, gnd
                             )
-                        if index==reg_index:
-                            sft_policy_logits=policy_logits
-                            sft_policy_labels=labels[index]
                         del policy_logits
 
                         with torch.no_grad(), disable_adapter(self._model):
@@ -829,11 +824,11 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     labels_=torch.hstack((sft_policy_labels[1:], torch.tensor([-100], device=sft_policy_labels.device)))
                     labels_=labels_.unsqueeze(0).to(self._device)
 
-                    ce_loss = self.ce_loss(logits_chunks, labels_)
+
  
                     del sft_policy_labels, sft_policy_logits, logits_chunks, labels_
                     torch.cuda.empty_cache()
-                    ce_loss=ce_loss.mean()
+
                     loss = loss.mean()
                     reward_accuracy = (
                         (chosen_rewards > rejected_rewards).float().mean()
@@ -926,8 +921,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
 
                 # batch is input_ids, labels
-                reg_index=random.randint(0,len(input_ids)-1)
-                dist.barrier()
+
+
 
                 for index in range(max_len):
                     if index<local_len:
@@ -939,9 +934,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     log_policy_probs, policy_logits = self.concatenated_forward(
                                 self._model, inp, gnd
                         )
-                    if index==reg_index:
-                        sft_policy_logits=policy_logits
-                        sft_policy_labels=labels[index]
+
                     del policy_logits
 
                     with torch.no_grad(), disable_adapter(self._model):
@@ -960,7 +953,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
                     
                         
-                    dist.barrier() 
 
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
                     policy_chosen_sum,
@@ -969,21 +961,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     reference_rejected_sum,
                 )
 
-                logits_chunks = sft_policy_logits.chunk(6, dim=1)
-                labels_=torch.hstack((sft_policy_labels[1:], torch.tensor([-100], device=sft_policy_labels.device)))
-                labels_=labels_.unsqueeze(0).to(self._device)
 
-                ce_loss = self.ce_loss(logits_chunks, labels_)
- 
-                del sft_policy_labels, sft_policy_logits, logits_chunks, labels_
-                torch.cuda.empty_cache()
 
                 loss = loss.mean()
-                ce_loss=ce_loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
                 loss = loss / self._gradient_accumulation_steps
-                ce_loss=ce_loss / self._gradient_accumulation_steps
                 running_loss += loss
                 dist.barrier() 
                 loss.backward()
@@ -1026,8 +1009,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             "rewards/rejected": rejected_rewards.mean().cpu(),
                             "rewards/accuracies": reward_accuracies.mean().cpu(),
                             "rewards/margins": (chosen_rewards - rejected_rewards).mean().cpu(),
-                            # "log_probs/rejected": policy_rejected_sum.detach().mean().cpu(),
-                            # "log_probs/chosen": policy_chosen_sum.detach().mean().cpu(),
                         }
 
                         if self._log_peak_memory_stats:

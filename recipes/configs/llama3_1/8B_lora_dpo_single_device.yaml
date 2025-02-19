@@ -68,11 +68,12 @@ lr_scheduler:
 
 loss:
   _component_: torchtune.rlhf.loss.DPOLoss
-reg_lambda : 0.1
+  beta: 0.1
+  label_smoothing: 0
 
 # Training
 epochs: 1
-max_steps_per_epoch: null
+max_steps_per_epoch: 1000
 gradient_accumulation_steps: 8  # Use to increase effective batch size
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
