@@ -310,8 +310,9 @@ def log_memory_stats(
     """
     device_support = get_device_support()
     _log.info(
-        f"{message}"
-        f"\n\t{device_support.device_name} peak memory allocation: {stats['peak_memory_alloc']:.2f} GiB"
-        f"\n\t{device_support.device_name} peak memory reserved: {stats.get('peak_memory_reserved', 0):.2f} GiB"
-        f"\n\t{device_support.device_name} peak memory active: {stats['peak_memory_active']:.2f} GiB"
+        f"{message}\n"
+        + "\n".join(
+            f"\t{device_support.device_name} {key.replace('_', ' ')}: {value:.2f} GiB"
+            for key, value in stats.items()
+        )
     )
