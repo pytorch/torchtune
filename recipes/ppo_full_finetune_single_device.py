@@ -234,14 +234,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # setup a context manager for enabling KV-cacheing during
         # trajectory generation if enabled in the config
-        self.cache_ctx_manager = lambda enable_kv_cache, *args, **kwargs: (
+        self.cache_ctx_manager = lambda enable_kv_cache, decoder_max_seq_len: (
             local_kv_cache(
                 self._policy_model,
                 batch_size=self._forward_batch_size,
                 dtype=self._dtype,
                 device=self._device,
-                *args,
-                **kwargs,
+                decoder_max_seq_len=decoder_max_seq_len,
             )
             if enable_kv_cache
             else contextlib.nullcontext()
