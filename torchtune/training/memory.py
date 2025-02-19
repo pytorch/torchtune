@@ -242,6 +242,9 @@ def register_optim_in_bwd_hooks(
             p.register_post_accumulate_grad_hook(optim_step)
 
 
+BYTE_TO_GIB = 1024**3
+
+
 def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     """
     Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
@@ -262,8 +265,6 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     """
     if device.type == "cpu":
         raise ValueError("Logging memory stats is not supported on CPU devices")
-
-    BYTE_TO_GIB = 1024**3
 
     if device.type == "mps":
         peak_memory_active = torch.mps.current_allocated_memory() / BYTE_TO_GIB
