@@ -102,13 +102,15 @@ class QuantizationRecipe:
 
     def save_checkpoint(self, cfg: DictConfig):
         ckpt_dict = self._model.state_dict()
-        file_name = cfg.checkpointer.checkpoint_files[0].split(".")[0]
+        split = cfg.checkpointer.checkpoint_files[0].split(".")
+        file_name = split[0]
+        suffix = split[-1]
 
         output_dir = Path(cfg.checkpointer.output_dir)
         output_dir.mkdir(exist_ok=True)
         checkpoint_file = Path.joinpath(
             output_dir, f"{file_name}-{self._quantization_mode}".rstrip("-qat")
-        ).with_suffix(".pt")
+        ).with_suffix(suffix)
 
         torch.save(ckpt_dict, checkpoint_file)
         logger.info(
