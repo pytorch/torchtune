@@ -15,7 +15,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
-from torchdata import StatefulDataLoader
+from torchdata.stateful_dataloader import StatefulDataLoader
 
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
@@ -580,6 +580,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             shuffle=shuffle,
+            num_workers=8,  # Set to a reasonable default
             collate_fn=(
                 partial(
                     collate_fn,

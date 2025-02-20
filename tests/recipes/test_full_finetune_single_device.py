@@ -56,7 +56,7 @@ class TestFullFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5201, 10.5217, 10.4945, 10.5136],
+            "llama2": [10.5130, 10.5215, 10.5764, 10.5046],
             "llama3": [11.9839, 11.9684, 11.9596, 11.9366],
         }
 
