@@ -580,7 +580,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             shuffle=shuffle,
-            num_workers=8,  # Set to a reasonable default
             collate_fn=(
                 partial(
                     collate_fn,
