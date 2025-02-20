@@ -15,11 +15,7 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
-from torch.distributed import (
-    destroy_process_group,
-    init_device_mesh,
-    init_process_group,
-)
+from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
@@ -158,7 +154,26 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
             )
-        self.data_parallel_dim = self.world_size // self.tensor_parallel_dim
+
+        data_shard = cfg.get("dp", self.world_size // self.tensor_parallel_dim)
+        data_replicate = cfg.get("dp_replicate", 1)
+
+        self.parallel_dims = training.ParallelDims(
+            dp_replicate=data_replicate,
+            dp_shard=data_shard,
+            tp=self.tensor_parallel_dim,
+            world_size=self.world_size,
+        )
+        self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
+
+        if self.parallel_dims.dp_enabled:
+            dp_mesh = self.world_mesh["dp"]
+            self.dp_degree, self.dp_rank = (
+                dp_mesh.size(),
+                dp_mesh.get_local_rank(),
+            )
+        else:
+            self.dp_degree, self.dp_rank = 1, 0
 
         # Logging attributes
         self._output_dir = cfg.output_dir
@@ -537,21 +552,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        device_mesh = init_device_mesh(
-            self._device.type,
-            mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
-            mesh_dim_names=("dp", "tp"),
-        )
-        self.dp_size = device_mesh["dp"].size()
-        self.dp_rank = device_mesh["dp"].get_local_rank()
-
         # Apply tensor parallelism to the model
         if self.tensor_parallel_dim > 1:
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
-            model = training.prepare_mha_for_tp(model, device_mesh["tp"])
+            model = training.prepare_mha_for_tp(model, self.world_mesh["tp"])
             parallelize_module(
                 model,
-                device_mesh["tp"],
+                self.world_mesh["tp"],
                 parallelize_plan=self.tensor_parallel_plan,
             )
 
@@ -575,19 +582,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         # Apply Fully Sharded Data Parallelism to the model
-        if self.data_parallel_dim > 1:
+        if self.parallel_dims.dp_enabled:
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,
                     names_to_match=custom_sharded_layers,
                 )
             ]
+
+            if self.parallel_dims.dp_replicate_enabled:
+                dp_mesh_dim_names = ("dp_replicate", "dp_shard_cp")
+            else:
+                dp_mesh_dim_names = ("dp_shard_cp",)
+
             training.shard_model(
                 model=model,
                 shard_conditions=fsdp_shard_conditions,
                 cpu_offload=fsdp_cpu_offload,
                 reshard_after_forward=reshard_after_forward,
-                dp_mesh=device_mesh["dp"],
+                dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -711,7 +724,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = StatefulDistributedSampler(
-            ds, num_replicas=self.dp_size, rank=self.dp_rank, shuffle=shuffle
+            ds, num_replicas=self.dp_degree, rank=self.dp_rank, shuffle=shuffle, seed=0
         )
         dataloader = StatefulDataLoader(
             dataset=ds,
