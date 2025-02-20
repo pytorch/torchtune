@@ -519,27 +519,42 @@ Between these two steps, training can proceed exactly as before.</p>
 </section>
 <section id="applying-qat-to-llama3-models">
 <span id="apply-qat-label"></span><h2>Applying QAT to Llama3 models<a class="headerlink" href="#applying-qat-to-llama3-models" title="Permalink to this heading">¶</a></h2>
-<p>We can easily apply the above QAT transformations to Llama3 in torchtune for fine-tuning:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.training.quantization</span><span class="w"> </span><span class="kn">import</span> <span class="n">Int8DynActInt4WeightQATQuantizer</span>
+<p>We can easily apply the above QAT transformations to Llama3 for fine-tuning,
+leveraging the APIs in torchao as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization</span><span class="w"> </span><span class="kn">import</span> <span class="n">quantize_</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FakeQuantizeConfig</span><span class="p">,</span>
+    <span class="n">IntXQuantizationAwareTrainingConfig</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_8b</span>
 
 <span class="n">model</span> <span class="o">=</span> <span class="n">llama3_8b</span><span class="p">()</span>
+<span class="n">original_model</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 
-<span class="c1"># Quantizer for int8 dynamic per token activations +</span>
-<span class="c1"># int4 grouped per channel weights, only for linear layers</span>
-<span class="n">quantizer</span> <span class="o">=</span> <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">()</span>
+<span class="c1"># Config for int8 dynamic asymmetric per token activations +</span>
+<span class="c1"># int4 symmetric per group weights, only for linear layers</span>
+<span class="n">activation_config</span> <span class="o">=</span> <span class="n">FakeQuantizeConfig</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span> <span class="s2">&quot;per_token&quot;</span><span class="p">,</span> <span class="n">is_symmetric</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">weight_config</span> <span class="o">=</span> <span class="n">FakeQuantizeConfig</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int4</span><span class="p">,</span> <span class="n">group_size</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+<span class="n">qat_config</span> <span class="o">=</span> <span class="n">IntXQuantizationAwareTrainingConfig</span><span class="p">(</span><span class="n">activation_config</span><span class="p">,</span> <span class="n">weight_config</span><span class="p">)</span>
 
-<span class="c1"># Insert &quot;fake quantize&quot; operations into linear layers.</span>
-<span class="c1"># These operations simulate quantization numerics during</span>
-<span class="c1"># fine-tuning without performing any dtype casting</span>
-<span class="n">prepared_model</span> <span class="o">=</span> <span class="n">quantizer</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="c1"># Prepare the model for quantization-aware fine-tuning.</span>
+<span class="c1">#</span>
+<span class="c1"># This step inserts &quot;fake quantize&quot; ops that simulate</span>
+<span class="c1"># quantization numerics during fine-tuning without</span>
+<span class="c1"># actually casting the activations/weights to lower-bit</span>
+<span class="c1"># dtypes like in &quot;real&quot; quantization.</span>
+<span class="n">quantize_</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">qat_config</span><span class="p">)</span>
+
+<span class="n">prepared_model</span> <span class="o">=</span> <span class="n">model</span>
 </pre></div>
 </div>
-<p>If we print the model we’ll see that all linear layers have been swapped with
-<code class="code docutils literal notranslate"><span class="pre">Int8DynActInt4WeightQATLinear</span></code>, which simulates the numerics of int8
-dynamic per token activations + int4 grouped per channel weights. Now the model
-is ready for fine-tuning.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
+<p>The model is now ready for QAT fine-tuning! If we print the model we’ll see that
+all linear layers have been swapped with <code class="code docutils literal notranslate"><span class="pre">FakeQuantizedLinear</span></code>, which simulates
+the numerics of int8 dynamic asymmetric per token activations + int4 symmetric
+per group weights:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>original_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn
 MultiHeadAttention<span class="o">(</span>
 <span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
@@ -547,35 +562,67 @@ MultiHeadAttention<span class="o">(</span>
 <span class="w">  </span><span class="o">(</span>output_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>pos_embeddings<span class="o">)</span>:<span class="w"> </span>RotaryPositionalEmbeddings<span class="o">()</span>
 <span class="o">)</span>
-
-&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>prepared_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>prepared_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn
 MultiHeadAttention<span class="o">(</span>
-<span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightQATLinear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
-<span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightQATLinear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
-<span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightQATLinear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
-<span class="w">  </span><span class="o">(</span>output_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightQATLinear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>FakeQuantizedLinear<span class="o">(</span>
+<span class="w">    </span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False
+<span class="w">    </span><span class="o">(</span>activation_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerToken<span class="o">()</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.ASYMMETRIC:<span class="w"> </span><span class="m">3</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">    </span><span class="o">(</span>weight_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int4,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerGroup<span class="o">(</span><span class="nv">group_size</span><span class="o">=</span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.SYMMETRIC:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">  </span><span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>FakeQuantizedLinear<span class="o">(</span>
+<span class="w">    </span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False
+<span class="w">    </span><span class="o">(</span>activation_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerToken<span class="o">()</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.ASYMMETRIC:<span class="w"> </span><span class="m">3</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">    </span><span class="o">(</span>weight_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int4,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerGroup<span class="o">(</span><span class="nv">group_size</span><span class="o">=</span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.SYMMETRIC:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">  </span><span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>FakeQuantizedLinear<span class="o">(</span>
+<span class="w">    </span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False
+<span class="w">    </span><span class="o">(</span>activation_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerToken<span class="o">()</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.ASYMMETRIC:<span class="w"> </span><span class="m">3</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">    </span><span class="o">(</span>weight_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int4,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerGroup<span class="o">(</span><span class="nv">group_size</span><span class="o">=</span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.SYMMETRIC:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">  </span><span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>output_proj<span class="o">)</span>:<span class="w"> </span>FakeQuantizedLinear<span class="o">(</span>
+<span class="w">    </span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False
+<span class="w">    </span><span class="o">(</span>activation_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerToken<span class="o">()</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.ASYMMETRIC:<span class="w"> </span><span class="m">3</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">    </span><span class="o">(</span>weight_fake_quantizer<span class="o">)</span>:<span class="w"> </span>FakeQuantizer<span class="o">(</span>FakeQuantizeConfig<span class="o">(</span><span class="nv">dtype</span><span class="o">=</span>torch.int4,<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>PerGroup<span class="o">(</span><span class="nv">group_size</span><span class="o">=</span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">mapping_type</span><span class="o">=</span>&lt;MappingType.SYMMETRIC:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">scale_precision</span><span class="o">=</span>torch.float32,<span class="w"> </span><span class="nv">zero_point_precision</span><span class="o">=</span>torch.int32,<span class="w"> </span><span class="nv">zero_point_domain</span><span class="o">=</span>&lt;ZeroPointDomain.INT:<span class="w"> </span><span class="m">1</span>&gt;,<span class="w"> </span><span class="nv">is_dynamic</span><span class="o">=</span>True,<span class="w"> </span><span class="nv">range_learning</span><span class="o">=</span>False<span class="o">))</span>
+<span class="w">  </span><span class="o">)</span>
 <span class="w">  </span><span class="o">(</span>pos_embeddings<span class="o">)</span>:<span class="w"> </span>RotaryPositionalEmbeddings<span class="o">()</span>
 <span class="o">)</span>
 </pre></div>
 </div>
-<p>After fine-tuning, we can convert the model to get an actual quantized model.
-If we print the converted model, we’ll see that the QAT linears have been
-swapped with <a class="reference external" href="https://github.com/pytorch/ao/blob/428084356ace4ea94c22a3a9b3d74cff8ee41db3/torchao/quantization/prototype/qat.py#L38">Int8DynActInt4WeightLinear</a>, which are the quantized versions
-of the linear layers. This quantized model can then be saved to checkpoint and
-used for inference or generation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fine-tune as before</span>
+<p>After fine-tuning, we can convert the model to get an actual quantized model:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FromIntXQuantizationAwareTrainingConfig</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Int8DynamicActivationInt4WeightConfig</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Fine-tune as before</span>
 <span class="n">train_loop</span><span class="p">(</span><span class="n">prepared_model</span><span class="p">)</span>
 
-<span class="c1"># Convert fake quantize to actual quantize operations</span>
-<span class="n">converted_model</span> <span class="o">=</span> <span class="n">quantizer</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">prepared_model</span><span class="p">)</span>
+<span class="c1"># Convert the fake quantized model into an actual quantized model</span>
+<span class="c1">#</span>
+<span class="c1"># First, we swap `FakeQuantizedLinear` back to `torch.nn.Linear`</span>
+<span class="c1"># while keeping the QAT fine-tuned weights. Then, we perform standard</span>
+<span class="c1"># post-training quantization (PTQ), which inserts quantized activation</span>
+<span class="c1"># and weight tensor subclasses</span>
+<span class="n">quantize_</span><span class="p">(</span><span class="n">prepared_model</span><span class="p">,</span> <span class="n">FromIntXQuantizationAwareTrainingConfig</span><span class="p">())</span>
+<span class="n">quantize_</span><span class="p">(</span><span class="n">prepared_model</span><span class="p">,</span> <span class="n">Int8DynamicActivationInt4WeightConfig</span><span class="p">(</span><span class="n">group_size</span><span class="o">=</span><span class="mi">32</span><span class="p">))</span>
+
+<span class="n">converted_model</span> <span class="o">=</span> <span class="n">prepared_model</span>
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>converted_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
+<p>The model is now fully quantized to int8 and int4 and ready for inference
+or generation. If we print the model now, we will see the linear layers
+are now swapped back to <code class="code docutils literal notranslate"><span class="pre">torch.nn.Linear</span></code>, but with quantized tensor
+activations and weights:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt;<span class="w"> </span>converted_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn
 MultiHeadAttention<span class="o">(</span>
-<span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightLinear<span class="o">()</span>
-<span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightLinear<span class="o">()</span>
-<span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightLinear<span class="o">()</span>
-<span class="w">  </span><span class="o">(</span>output_proj<span class="o">)</span>:<span class="w"> </span>Int8DynActInt4WeightLinear<span class="o">()</span>
+<span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>LinearActivationQuantizedTensor<span class="o">(</span><span class="nv">activation</span><span class="o">=</span>&lt;<span class="k">function</span><span class="w"> </span>_int8_asymm_per_token_quant<span class="w"> </span>at<span class="w"> </span>0x7f801ce08790&gt;,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>AffineQuantizedTensor<span class="o">(</span><span class="nv">shape</span><span class="o">=</span>torch.Size<span class="o">([</span><span class="m">4096</span>,<span class="w"> </span><span class="m">4096</span><span class="o">])</span>,<span class="w"> </span><span class="nv">block_size</span><span class="o">=(</span><span class="m">1</span>,<span class="w"> </span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">device</span><span class="o">=</span>cpu,<span class="w"> </span><span class="nv">_layout</span><span class="o">=</span>PlainLayout<span class="o">()</span>,<span class="w"> </span><span class="nv">tensor_impl_dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">quant_min</span><span class="o">=</span>-8,<span class="w"> </span><span class="nv">quant_max</span><span class="o">=</span><span class="m">7</span><span class="o">)))</span>
+<span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>LinearActivationQuantizedTensor<span class="o">(</span><span class="nv">activation</span><span class="o">=</span>&lt;<span class="k">function</span><span class="w"> </span>_int8_asymm_per_token_quant<span class="w"> </span>at<span class="w"> </span>0x7f801ce08790&gt;,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>AffineQuantizedTensor<span class="o">(</span><span class="nv">shape</span><span class="o">=</span>torch.Size<span class="o">([</span><span class="m">1024</span>,<span class="w"> </span><span class="m">4096</span><span class="o">])</span>,<span class="w"> </span><span class="nv">block_size</span><span class="o">=(</span><span class="m">1</span>,<span class="w"> </span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">device</span><span class="o">=</span>cpu,<span class="w"> </span><span class="nv">_layout</span><span class="o">=</span>PlainLayout<span class="o">()</span>,<span class="w"> </span><span class="nv">tensor_impl_dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">quant_min</span><span class="o">=</span>-8,<span class="w"> </span><span class="nv">quant_max</span><span class="o">=</span><span class="m">7</span><span class="o">)))</span>
+<span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">1024</span>,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>LinearActivationQuantizedTensor<span class="o">(</span><span class="nv">activation</span><span class="o">=</span>&lt;<span class="k">function</span><span class="w"> </span>_int8_asymm_per_token_quant<span class="w"> </span>at<span class="w"> </span>0x7f801ce08790&gt;,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>AffineQuantizedTensor<span class="o">(</span><span class="nv">shape</span><span class="o">=</span>torch.Size<span class="o">([</span><span class="m">1024</span>,<span class="w"> </span><span class="m">4096</span><span class="o">])</span>,<span class="w"> </span><span class="nv">block_size</span><span class="o">=(</span><span class="m">1</span>,<span class="w"> </span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">device</span><span class="o">=</span>cpu,<span class="w"> </span><span class="nv">_layout</span><span class="o">=</span>PlainLayout<span class="o">()</span>,<span class="w"> </span><span class="nv">tensor_impl_dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">quant_min</span><span class="o">=</span>-8,<span class="w"> </span><span class="nv">quant_max</span><span class="o">=</span><span class="m">7</span><span class="o">)))</span>
+<span class="w">  </span><span class="o">(</span>output_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>LinearActivationQuantizedTensor<span class="o">(</span><span class="nv">activation</span><span class="o">=</span>&lt;<span class="k">function</span><span class="w"> </span>_int8_asymm_per_token_quant<span class="w"> </span>at<span class="w"> </span>0x7f801ce08790&gt;,<span class="w"> </span><span class="nv">weight</span><span class="o">=</span>AffineQuantizedTensor<span class="o">(</span><span class="nv">shape</span><span class="o">=</span>torch.Size<span class="o">([</span><span class="m">4096</span>,<span class="w"> </span><span class="m">4096</span><span class="o">])</span>,<span class="w"> </span><span class="nv">block_size</span><span class="o">=(</span><span class="m">1</span>,<span class="w"> </span><span class="m">32</span><span class="o">)</span>,<span class="w"> </span><span class="nv">device</span><span class="o">=</span>cpu,<span class="w"> </span><span class="nv">_layout</span><span class="o">=</span>PlainLayout<span class="o">()</span>,<span class="w"> </span><span class="nv">tensor_impl_dtype</span><span class="o">=</span>torch.int8,<span class="w"> </span><span class="nv">quant_min</span><span class="o">=</span>-8,<span class="w"> </span><span class="nv">quant_max</span><span class="o">=</span><span class="m">7</span><span class="o">)))</span>
 <span class="w">  </span><span class="o">(</span>pos_embeddings<span class="o">)</span>:<span class="w"> </span>RotaryPositionalEmbeddings<span class="o">()</span>
 <span class="o">)</span>
 </pre></div>
@@ -593,25 +640,22 @@ modifications accordingly:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>llama3/8B_qat_full<span class="w"> </span>custom_8B_qat_full.yaml
 </pre></div>
 </div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Dataset</span>
-<span class="nt">dataset</span><span class="p">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.text_completion_dataset</span>
 <span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">allenai/c4</span>
-<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8192</span>
 <span class="w">  </span><span class="nt">column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en</span>
 <span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
-<span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-<span class="nt">shuffle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 
 <span class="nn">...</span>
 
 <span class="nt">epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 <span class="nt">max_steps_per_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2000</span>
 <span class="nt">fake_quant_after_n_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
-<span class="nt">memory_efficient_fsdp_wrap</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </pre></div>
 </div>
+<p>By default, this uses the <code class="code docutils literal notranslate"><span class="pre">torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer</span></code>,
+which uses the same fake quantization configurations as the example above.</p>
 <p>Empirically, we observed that disabling fake quantization for the first N steps
 led to better results, presumably because doing so allows the weights to stabilize
 before we start introducing quantization noise to the fine-tuning process.
@@ -649,15 +693,13 @@ copy and make the following modifications to the quantization config:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>quantization<span class="w"> </span>custom_quantization.yaml
 </pre></div>
 </div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Model arguments</span>
-<span class="nt">model</span><span class="p">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_8b</span>
 
 <span class="nt">checkpointer</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelMetaCheckpointer</span>
 <span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your QAT checkpoint dir&gt;</span>
-<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">meta_model_0.pt</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ft-model-00001-of-00001.bin</span><span class="p p-Indicator">]</span>
 <span class="w">  </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your QAT checkpoint dir&gt;</span>
 <span class="w">  </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
 
@@ -688,25 +730,19 @@ integrated in torchtune. First, copy the evaluation config and make the followin
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>custom_eleuther_evaluation.yaml
 </pre></div>
 </div>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Model arguments</span>
-<span class="nt">model</span><span class="p">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_8b</span>
 
 <span class="nt">checkpointer</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.FullModelTorchTuneCheckpointer</span>
 <span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your quantized model checkpoint dir&gt;</span>
-<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">meta_model_0-8da4w.pt</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ft-model-00001-of-00001-8da4w.bin</span><span class="p p-Indicator">]</span>
 <span class="w">  </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your quantized model checkpoint dir&gt;</span>
 <span class="w">  </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
 
 <span class="nn">...</span>
 
-<span class="c1"># EleutherAI specific eval args</span>
 <span class="nt">tasks</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;hellaswag&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;wikitext&quot;</span><span class="p p-Indicator">]</span>
-<span class="nt">limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-<span class="nt">max_seq_length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8192</span>
-<span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
 
 <span class="nt">quantizer</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.training.quantization.Int8DynActInt4WeightQuantizer</span>
