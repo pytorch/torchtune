@@ -465,7 +465,7 @@ individual sections of training.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>device</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.6)"><em>torch.device</em></a>) – Device to get memory summary for. Only CUDA devices are supported.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.6)"><em>torch.device</em></a>) – Device to get memory summary for. Supports CUDA and MPS devices.</p></li>
 <li><p><strong>reset_stats</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to reset CUDA’s peak memory tracking.</p></li>
 </ul>
 </dd>
@@ -477,7 +477,7 @@ and peak memory reserved. This dict is useful for logging memory stats.</p>
 <dd class="field-odd"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a>]</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the passed-in device is not CUDA.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the passed-in device is CPU.</p>
 </dd>
 </dl>
 </dd></dl>

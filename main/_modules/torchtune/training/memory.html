@@ -691,6 +691,9 @@
             <span class="n">p</span><span class="o">.</span><span class="n">register_post_accumulate_grad_hook</span><span class="p">(</span><span class="n">optim_step</span><span class="p">)</span></div>
 
 
+<span class="n">_BYTES_IN_GIB</span> <span class="o">=</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
+
+
 <div class="viewcode-block" id="get_memory_stats"><a class="viewcode-back" href="../../../generated/torchtune.training.get_memory_stats.html#torchtune.training.get_memory_stats">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will</span>
@@ -699,7 +702,7 @@
 <span class="sd">    individual sections of training.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        device (torch.device): Device to get memory summary for. Only CUDA devices are supported.</span>
+<span class="sd">        device (torch.device): Device to get memory summary for. Supports CUDA and MPS devices.</span>
 <span class="sd">        reset_stats (bool): Whether to reset CUDA&#39;s peak memory tracking.</span>
 
 <span class="sd">    Returns:</span>
@@ -707,25 +710,33 @@
 <span class="sd">        and peak memory reserved. This dict is useful for logging memory stats.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If the passed-in device is not CUDA.</span>
+<span class="sd">        ValueError: If the passed-in device is CPU.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Logging memory stats is not supported on CPU devices&quot;</span><span class="p">)</span>
 
-    <span class="n">torch_device</span> <span class="o">=</span> <span class="n">get_torch_device_namespace</span><span class="p">()</span>
-    <span class="n">peak_memory_active</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">memory_stats</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active_bytes.all.peak&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
-        <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
-    <span class="p">)</span>
-    <span class="n">peak_mem_alloc</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">max_memory_allocated</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
-    <span class="n">peak_mem_reserved</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">max_memory_reserved</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">reset_stats</span><span class="p">:</span>
-        <span class="n">torch_device</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;mps&quot;</span><span class="p">:</span>
+        <span class="n">peak_memory_active</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">current_allocated_memory</span><span class="p">()</span> <span class="o">/</span> <span class="n">_BYTES_IN_GIB</span>
+        <span class="n">peak_memory_alloc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">driver_allocated_memory</span><span class="p">()</span> <span class="o">/</span> <span class="n">_BYTES_IN_GIB</span>
+        <span class="n">memory_stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;peak_memory_active&quot;</span><span class="p">:</span> <span class="n">peak_memory_active</span><span class="p">,</span>
+            <span class="s2">&quot;peak_memory_alloc&quot;</span><span class="p">:</span> <span class="n">peak_memory_alloc</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">torch_device</span> <span class="o">=</span> <span class="n">get_torch_device_namespace</span><span class="p">()</span>
+        <span class="n">peak_memory_active</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch_device</span><span class="o">.</span><span class="n">memory_stats</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active_bytes.all.peak&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">_BYTES_IN_GIB</span>
+        <span class="p">)</span>
+        <span class="n">peak_memory_alloc</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">max_memory_allocated</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="n">_BYTES_IN_GIB</span>
+        <span class="n">peak_memory_reserved</span> <span class="o">=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">max_memory_reserved</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="n">_BYTES_IN_GIB</span>
+        <span class="n">memory_stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;peak_memory_active&quot;</span><span class="p">:</span> <span class="n">peak_memory_active</span><span class="p">,</span>
+            <span class="s2">&quot;peak_memory_alloc&quot;</span><span class="p">:</span> <span class="n">peak_memory_alloc</span><span class="p">,</span>
+            <span class="s2">&quot;peak_memory_reserved&quot;</span><span class="p">:</span> <span class="n">peak_memory_reserved</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">reset_stats</span><span class="p">:</span>
+            <span class="n">torch_device</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
-    <span class="n">memory_stats</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;peak_memory_active&quot;</span><span class="p">:</span> <span class="n">peak_memory_active</span><span class="p">,</span>
-        <span class="s2">&quot;peak_memory_alloc&quot;</span><span class="p">:</span> <span class="n">peak_mem_alloc</span><span class="p">,</span>
-        <span class="s2">&quot;peak_memory_reserved&quot;</span><span class="p">:</span> <span class="n">peak_mem_reserved</span><span class="p">,</span>
-    <span class="p">}</span>
     <span class="k">return</span> <span class="n">memory_stats</span></div>
 
 
@@ -737,21 +748,22 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Logs a dict containing memory stats to the logger. ``stats`` should contain the fields</span>
-<span class="sd">    ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` as</span>
+<span class="sd">    ``peak_memory_active``, ``peak_memory_alloc``, and ``peak_memory_reserved`` (optional) as</span>
 <span class="sd">    returned by :func:`torchtune.training.get_memory_stats`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory</span>
-<span class="sd">            allocated, and peak memory reserved stats.</span>
+<span class="sd">            allocated, and peak memory reserved (optional) stats.</span>
 <span class="sd">        message (str): An optional message to prepend to the log output.</span>
 <span class="sd">            Defaults to &quot;Memory stats after model init:&quot;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">device_support</span> <span class="o">=</span> <span class="n">get_device_support</span><span class="p">()</span>
     <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory allocation: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_alloc&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory reserved: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_reserved&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> peak memory active: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_active&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">device_support</span><span class="o">.</span><span class="n">device_name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB&quot;</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span>
     <span class="p">)</span></div>
 </pre></div>
 
