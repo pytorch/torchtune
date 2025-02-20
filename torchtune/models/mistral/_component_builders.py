@@ -94,7 +94,7 @@ def mistral(
             q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=None,
             max_seq_len=max_seq_len,
@@ -391,7 +391,7 @@ def lora_mistral_self_attention(
     )
     output_proj = (
         adapter_cls(
-            embed_dim,
+            num_heads * head_dim,
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
@@ -400,9 +400,9 @@ def lora_mistral_self_attention(
         )
         if "output_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, embed_dim, bias=False)
+            nn.Linear(num_heads * head_dim, embed_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+            else FrozenNF4Linear(num_heads * head_dim, embed_dim, bias=False)
         )
     )
     rope = RotaryPositionalEmbeddings(
@@ -523,7 +523,7 @@ def mistral_classifier(
             q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=None,
             max_seq_len=max_seq_len,
