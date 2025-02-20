@@ -155,14 +155,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
             )
 
-        data_shard = cfg.get("dp", self.world_size // self.tensor_parallel_dim)
+        data_shard = cfg.get("dp_shard", self.world_size // self.tensor_parallel_dim)
         data_replicate = cfg.get("dp_replicate", 1)
 
         self.parallel_dims = training.ParallelDims(
             dp_replicate=data_replicate,
             dp_shard=data_shard,
+            cp=1,
             tp=self.tensor_parallel_dim,
+            pp=1,
             world_size=self.world_size,
+            enable_loss_parallel=False,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
 
