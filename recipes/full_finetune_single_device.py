@@ -670,13 +670,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             pbar = tqdm(total=self._steps_per_epoch)
             for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0
@@ -771,6 +764,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Note we are stepping each batch, which might not include optimizer step in the trace
                 # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
+
+                # Check if we should stop training for this epoch
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx + 1 // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                ):
+                    break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
