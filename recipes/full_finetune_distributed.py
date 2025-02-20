@@ -157,6 +157,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             dp_shard=data_shard,
             tp=self.tp_degree,
             world_size=self.world_size,
+            enable_loss_parallel=False,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
         if self.parallel_dims.dp_enabled:
