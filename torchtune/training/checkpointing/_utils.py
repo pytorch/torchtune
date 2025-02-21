@@ -71,6 +71,9 @@ STEPS_KEY = "steps_run"
 # rng state for ensuring correct training resuming in PPO
 RNG_KEY = "rng_state"
 
+# key used for dataloader state
+DATALOADER_KEY = "dataloader"
+
 
 class ModelType(Enum):
     """ModelType is used by the checkpointer to distinguish between different model architectures.
