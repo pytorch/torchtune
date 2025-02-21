@@ -64,7 +64,7 @@ class TuneParticipant(_ParticipantInterface):
 
         result = result.json()
 
-        participants = result["participant_count"]
+        participant_count = result["participant_count"]
         step = result["step"]
         h = result["h"]
         logger.info(
