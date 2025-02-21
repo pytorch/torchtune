@@ -755,7 +755,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     if self._max_validation_steps is not None and idx == self._max_validation_steps:
                         break
 
-                    input_ids, labels, ce_label = batch
+                    input_ids, labels, reward = batch
                     if self._skip_max_seq_len_samples(input_ids):
                         max_len_samples += 1
                         continue
@@ -775,7 +775,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     policy_chosen_sum.zero_()
                     reference_chosen_sum.zero_()
 
-                    reg_index=random.randint(0,len(input_ids)-1)
                     dist.barrier() 
 
                     for index in range(max_len):
@@ -788,9 +787,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         log_policy_probs, policy_logits = self.concatenated_forward(
                                 self._model, inp, gnd
                             )
-                        if index==reg_index:
-                            sft_policy_logits=policy_logits
-                            sft_policy_labels=labels[index]
                         del policy_logits
 
                         with torch.no_grad(), disable_adapter(self._model):
@@ -808,7 +804,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     loss= self._loss_fn(
                     policy_chosen_sum,
                     reference_chosen_sum,
-                    labels=ce_label[0].unsqueeze(0).to(self._device)
+                    reward=reward[0].unsqueeze(0).to(self._device)
                     )
 
                     
@@ -866,7 +862,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                input_ids, labels, ce_label = batch
+                input_ids, labels, reward = batch
 
                 if self._skip_max_seq_len_samples(input_ids):
                     max_len_samples += 1
@@ -888,7 +884,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
 
                 # batch is input_ids, labels
-                reg_index=random.randint(0,len(input_ids)-1)
                 dist.barrier()
 
                 for index in range(max_len):
@@ -901,9 +896,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     log_policy_probs, policy_logits = self.concatenated_forward(
                                 self._model, inp, gnd
                         )
-                    if index==reg_index:
-                        sft_policy_logits=policy_logits
-                        sft_policy_labels=labels[index]
+
                     del policy_logits
 
                     with torch.no_grad(), disable_adapter(self._model):
@@ -922,7 +915,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 loss = self._loss_fn(
                     policy_chosen_sum,
                     reference_chosen_sum,
-                    labels=ce_label[0].unsqueeze(0).to(self._device)
+                    reward=reward[0].unsqueeze(0).to(self._device)
                 )
 
 
@@ -930,7 +923,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
 
                 loss = loss / self._gradient_accumulation_steps
-                # ce_loss=ce_loss / self._gradient_accumulation_steps
                 running_loss += loss
                 dist.barrier() 
                 loss.backward()

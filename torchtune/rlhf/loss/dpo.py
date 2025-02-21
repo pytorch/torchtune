@@ -112,7 +112,7 @@ class CELoss(nn.Module):
         self,
         policy_chosen_logps: torch.Tensor,
         reference_chosen_logps: torch.Tensor,
-        labels: torch.Tensor,
+        reward: torch.Tensor,
     ) -> torch.Tensor:
         """
         Compute the CE loss for a batch of policy and reference model log probabilities.
@@ -134,7 +134,7 @@ class CELoss(nn.Module):
         rewards = (self.beta * logratio).sigmoid()  # Use sigmoid to convert to [0, 1] range
 
         # Compute per-sample binary cross-entropy loss
-        losses = self.celoss(rewards, labels.float())
+        losses = self.celoss(rewards, reward.float())
 
         # Compute mean loss
         loss = losses.mean()
