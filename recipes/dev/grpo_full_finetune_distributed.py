@@ -870,9 +870,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         torch.cuda.empty_cache()
 
         pi_logits = self._model(
-            trajectory.query_responses.clone(),
-            input_pos=trajectory.position_ids.clone(),
-            mask=trajectory.masks.clone(),
+            trajectory.query_responses,
+            input_pos=trajectory.position_ids,
+            mask=trajectory.masks,
         )
 
         pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
