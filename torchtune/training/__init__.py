@@ -136,5 +136,6 @@ __all__ = [
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
+    "get_distributed_backend",
     "disable_dropout",
 ]
