@@ -64,32 +64,47 @@ Between these two steps, training can proceed exactly as before.
 Applying QAT to Llama3 models
 -----------------------------
 
-We can easily apply the above QAT transformations to Llama3 in torchtune for fine-tuning:
+We can easily apply the above QAT transformations to Llama3 for fine-tuning,
+leveraging the APIs in torchao as follows:
 
 .. code-block:: python
 
-  from torchtune.training.quantization import Int8DynActInt4WeightQATQuantizer
+  import copy
+  import torch
+  from torchao.quantization import quantize_
+  from torchao.quantization.qat import (
+      FakeQuantizeConfig,
+      IntXQuantizationAwareTrainingConfig,
+  )
   from torchtune.models.llama3 import llama3_8b
 
   model = llama3_8b()
+  original_model = copy.deepcopy(model)
 
-  # Quantizer for int8 dynamic per token activations +
-  # int4 grouped per channel weights, only for linear layers
-  quantizer = Int8DynActInt4WeightQATQuantizer()
+  # Config for int8 dynamic asymmetric per token activations +
+  # int4 symmetric per group weights, only for linear layers
+  activation_config = FakeQuantizeConfig(torch.int8, "per_token", is_symmetric=False)
+  weight_config = FakeQuantizeConfig(torch.int4, group_size=32)
+  qat_config = IntXQuantizationAwareTrainingConfig(activation_config, weight_config)
 
-  # Insert "fake quantize" operations into linear layers.
-  # These operations simulate quantization numerics during
-  # fine-tuning without performing any dtype casting
-  prepared_model = quantizer.prepare(model)
+  # Prepare the model for quantization-aware fine-tuning.
+  #
+  # This step inserts "fake quantize" ops that simulate
+  # quantization numerics during fine-tuning without
+  # actually casting the activations/weights to lower-bit
+  # dtypes like in "real" quantization.
+  quantize_(model, qat_config)
 
-If we print the model we’ll see that all linear layers have been swapped with
-:code:`Int8DynActInt4WeightQATLinear`, which simulates the numerics of int8
-dynamic per token activations + int4 grouped per channel weights. Now the model
-is ready for fine-tuning.
+  prepared_model = model
+
+The model is now ready for QAT fine-tuning! If we print the model we’ll see that
+all linear layers have been swapped with :code:`FakeQuantizedLinear`, which simulates
+the numerics of int8 dynamic asymmetric per token activations + int4 symmetric
+per group weights:
 
 .. code-block:: bash
 
-  >>> print(model.layers[0].attn)
+  >>> original_model.layers[0].attn
   MultiHeadAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
@@ -98,37 +113,71 @@ is ready for fine-tuning.
     (pos_embeddings): RotaryPositionalEmbeddings()
   )
 
-  >>> print(prepared_model.layers[0].attn)
+.. code-block:: bash
+
+  >>> prepared_model.layers[0].attn
   MultiHeadAttention(
-    (q_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=4096, bias=False)
-    (k_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
-    (v_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=1024, bias=False)
-    (output_proj): Int8DynActInt4WeightQATLinear(in_features=4096, out_features=4096, bias=False)
+    (q_proj): FakeQuantizedLinear(
+      in_features=4096, out_features=4096, bias=False
+      (activation_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int8, granularity=PerToken(), mapping_type=<MappingType.ASYMMETRIC: 3>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+      (weight_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int4, granularity=PerGroup(group_size=32), mapping_type=<MappingType.SYMMETRIC: 1>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+    )
+    (k_proj): FakeQuantizedLinear(
+      in_features=4096, out_features=1024, bias=False
+      (activation_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int8, granularity=PerToken(), mapping_type=<MappingType.ASYMMETRIC: 3>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+      (weight_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int4, granularity=PerGroup(group_size=32), mapping_type=<MappingType.SYMMETRIC: 1>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+    )
+    (v_proj): FakeQuantizedLinear(
+      in_features=4096, out_features=1024, bias=False
+      (activation_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int8, granularity=PerToken(), mapping_type=<MappingType.ASYMMETRIC: 3>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+      (weight_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int4, granularity=PerGroup(group_size=32), mapping_type=<MappingType.SYMMETRIC: 1>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+    )
+    (output_proj): FakeQuantizedLinear(
+      in_features=4096, out_features=4096, bias=False
+      (activation_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int8, granularity=PerToken(), mapping_type=<MappingType.ASYMMETRIC: 3>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+      (weight_fake_quantizer): FakeQuantizer(FakeQuantizeConfig(dtype=torch.int4, granularity=PerGroup(group_size=32), mapping_type=<MappingType.SYMMETRIC: 1>, scale_precision=torch.float32, zero_point_precision=torch.int32, zero_point_domain=<ZeroPointDomain.INT: 1>, is_dynamic=True, range_learning=False))
+    )
     (pos_embeddings): RotaryPositionalEmbeddings()
   )
 
-After fine-tuning, we can convert the model to get an actual quantized model.
-If we print the converted model, we’ll see that the QAT linears have been
-swapped with `Int8DynActInt4WeightLinear <https://github.com/pytorch/ao/blob/428084356ace4ea94c22a3a9b3d74cff8ee41db3/torchao/quantization/prototype/qat.py#L38>`_, which are the quantized versions
-of the linear layers. This quantized model can then be saved to checkpoint and
-used for inference or generation.
+After fine-tuning, we can convert the model to get an actual quantized model:
 
 .. code-block:: python
+
+  from torchao.quantization.qat import (
+      FromIntXQuantizationAwareTrainingConfig,
+  )
+  from torchao.quantization import (
+      Int8DynamicActivationInt4WeightConfig,
+  )
 
   # Fine-tune as before
   train_loop(prepared_model)
 
-  # Convert fake quantize to actual quantize operations
-  converted_model = quantizer.convert(prepared_model)
+  # Convert the fake quantized model into an actual quantized model
+  #
+  # First, we swap `FakeQuantizedLinear` back to `torch.nn.Linear`
+  # while keeping the QAT fine-tuned weights. Then, we perform standard
+  # post-training quantization (PTQ), which inserts quantized activation
+  # and weight tensor subclasses
+  quantize_(prepared_model, FromIntXQuantizationAwareTrainingConfig())
+  quantize_(prepared_model, Int8DynamicActivationInt4WeightConfig(group_size=32))
+
+  converted_model = prepared_model
+
+The model is now fully quantized to int8 and int4 and ready for inference
+or generation. If we print the model now, we will see the linear layers
+are now swapped back to :code:`torch.nn.Linear`, but with quantized tensor
+activations and weights:
 
 .. code-block:: bash
 
-  >>> print(converted_model.layers[0].attn)
+  >>> converted_model.layers[0].attn
   MultiHeadAttention(
-    (q_proj): Int8DynActInt4WeightLinear()
-    (k_proj): Int8DynActInt4WeightLinear()
-    (v_proj): Int8DynActInt4WeightLinear()
-    (output_proj): Int8DynActInt4WeightLinear()
+    (q_proj): Linear(in_features=4096, out_features=4096, weight=LinearActivationQuantizedTensor(activation=<function _int8_asymm_per_token_quant at 0x7f801ce08790>, weight=AffineQuantizedTensor(shape=torch.Size([4096, 4096]), block_size=(1, 32), device=cpu, _layout=PlainLayout(), tensor_impl_dtype=torch.int8, quant_min=-8, quant_max=7)))
+    (k_proj): Linear(in_features=4096, out_features=1024, weight=LinearActivationQuantizedTensor(activation=<function _int8_asymm_per_token_quant at 0x7f801ce08790>, weight=AffineQuantizedTensor(shape=torch.Size([1024, 4096]), block_size=(1, 32), device=cpu, _layout=PlainLayout(), tensor_impl_dtype=torch.int8, quant_min=-8, quant_max=7)))
+    (v_proj): Linear(in_features=4096, out_features=1024, weight=LinearActivationQuantizedTensor(activation=<function _int8_asymm_per_token_quant at 0x7f801ce08790>, weight=AffineQuantizedTensor(shape=torch.Size([1024, 4096]), block_size=(1, 32), device=cpu, _layout=PlainLayout(), tensor_impl_dtype=torch.int8, quant_min=-8, quant_max=7)))
+    (output_proj): Linear(in_features=4096, out_features=4096, weight=LinearActivationQuantizedTensor(activation=<function _int8_asymm_per_token_quant at 0x7f801ce08790>, weight=AffineQuantizedTensor(shape=torch.Size([4096, 4096]), block_size=(1, 32), device=cpu, _layout=PlainLayout(), tensor_impl_dtype=torch.int8, quant_min=-8, quant_max=7)))
     (pos_embeddings): RotaryPositionalEmbeddings()
   )
 
@@ -150,23 +199,21 @@ modifications accordingly:
 
 .. code-block:: yaml
 
-  # Dataset
   dataset:
     _component_: torchtune.datasets.text_completion_dataset
     source: allenai/c4
-    max_seq_len: 8192
     column: text
     name: en
     split: train
-  seed: null
-  shuffle: True
 
   ...
 
   epochs: 1
   max_steps_per_epoch: 2000
   fake_quant_after_n_steps: 1000
-  memory_efficient_fsdp_wrap: False
+
+By default, this uses the :code:`torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer`,
+which uses the same fake quantization configurations as the example above.
 
 Empirically, we observed that disabling fake quantization for the first N steps
 led to better results, presumably because doing so allows the weights to stabilize
@@ -213,15 +260,13 @@ copy and make the following modifications to the quantization config:
 
 .. code-block:: yaml
 
-  # Model arguments
   model:
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
     _component_: torchtune.training.FullModelMetaCheckpointer
     checkpoint_dir: <your QAT checkpoint dir>
-    checkpoint_files: [meta_model_0.pt]
-    recipe_checkpoint: null
+    checkpoint_files: [ft-model-00001-of-00001.bin]
     output_dir: <your QAT checkpoint dir>
     model_type: LLAMA3
 
@@ -259,25 +304,19 @@ integrated in torchtune. First, copy the evaluation config and make the followin
 
 .. code-block:: yaml
 
-  # Model arguments
   model:
     _component_: torchtune.models.llama3.llama3_8b
 
   checkpointer:
     _component_: torchtune.training.FullModelTorchTuneCheckpointer
     checkpoint_dir: <your quantized model checkpoint dir>
-    checkpoint_files: [meta_model_0-8da4w.pt]
-    recipe_checkpoint: null
+    checkpoint_files: [ft-model-00001-of-00001-8da4w.bin]
     output_dir: <your quantized model checkpoint dir>
     model_type: LLAMA3
 
   ...
 
-  # EleutherAI specific eval args
   tasks: ["hellaswag", "wikitext"]
-  limit: null
-  max_seq_length: 8192
-  batch_size: 8
 
   quantizer:
     _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
