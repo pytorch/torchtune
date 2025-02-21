@@ -18,4 +18,4 @@ Particpants = Union[
     TuneParticipant,
 ]
 
-__all__ = ["TestFederator", "TuneParticipant"]
+__all__ = ["DiLiCoFederator", "TuneParticipant"]
