@@ -16,6 +16,9 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.lr_scheduler import LRScheduler
+
+from torchao.float8 import Float8LinearConfig
+from torchao.float8.config import CastConfig, ScalingType
 from torchtune.utils import get_device_support, get_logger, get_torch_device_namespace
 
 _log: logging.Logger = get_logger()
@@ -312,24 +315,16 @@ class Float8Handler:
 
         if not self.enabled:
             return
-        try:
-            from torchao.float8 import Float8LinearConfig
-            from torchao.float8.config import CastConfig, ScalingType
-        except ImportError as e:
-            raise ImportError(
-                "torchao is not installed. Please install it to use float8 linear layers."
-            ) from e
 
         dp_shard_enabled = dp_shard > 1
         # Mutates the model inplace replacing instances of torch.nn.Linear with Float8Linear
 
         # in torchtitan they also check if this is explicitly set - this implementation is
         # more opinionated if fsdp
-        enable_fsdp_float8_all_gather = dp_shard_enabled
-        self.precompute_scale = enable_fsdp_float8_all_gather
+        self.precompute_scale = dp_shard_enabled
 
         self.config = Float8LinearConfig(
-            enable_fsdp_float8_all_gather=enable_fsdp_float8_all_gather,
+            enable_fsdp_float8_all_gather=dp_shard_enabled,
             force_recompute_fp8_weight_in_bwd=True,
             cast_config_input=CastConfig(scaling_type=ScalingType.DYNAMIC),
             cast_config_weight=CastConfig(scaling_type=ScalingType.DYNAMIC),
