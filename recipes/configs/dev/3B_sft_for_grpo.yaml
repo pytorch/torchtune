@@ -6,7 +6,7 @@
 #   tune download meta-llama/Meta-Llama-3.2-3B --output-dir /tmp/Meta-Llama-3.2-3B-Instruct --ignore-patterns "original/consolidated.00.pth"
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 full_finetune_distributed --config dev/grpo/3B_sft
+#   tune run --nproc_per_node 4 full_finetune_distributed --config dev/3B_grpo_sft
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
