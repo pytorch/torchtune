@@ -109,8 +109,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
 
         self.distributed_backend = training.get_distributed_backend(
-            device_type,
-            offload_ops_to_cpu=self.fsdp_cpu_offload
+            device_type, offload_ops_to_cpu=self.fsdp_cpu_offload
         )
         init_process_group(self.distributed_backend)
 

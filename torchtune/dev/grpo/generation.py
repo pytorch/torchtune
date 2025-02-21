@@ -19,7 +19,6 @@ from torchtune.modules import TransformerDecoder
 from tqdm.auto import trange
 
 
-
 # NOTE: This is almost the same as torchtune.generation.generate, with a few changes necessary for GRPO.
 # Namely:
 #   1. The `return_logits` argument - we can optionally omit keeping track of logits during generation, which
