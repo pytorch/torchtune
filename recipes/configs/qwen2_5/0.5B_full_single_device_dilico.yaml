@@ -42,7 +42,7 @@ resume_from_checkpoint: False
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
-  packed: True  # True increases speed
+  packed: False  # True increases speed
 
 seed: null
 shuffle: True
@@ -81,6 +81,11 @@ metric_logger:
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
+# Federation
+federation:
+  _component_: torchtune.training.federation.TuneParticipant
+  endpoint: http://127.0.0.1:8000
+  token: uioGMzl7zqtkydxP66mJh9dZCaNnSWOb
 
 # Profiler (disabled)
 profiler:

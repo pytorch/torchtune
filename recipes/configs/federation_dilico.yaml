@@ -1,7 +1,7 @@
 # Config for FederationRecipe in federation.py
 #
 # To launch, run the following command from root torchtune directory:
-#    tune run quantize --config quantization
+#    tune run federation --config federation_dilico.yaml
 
 output_dir: /tmp/torchtune/qwen2_5_0_5B/federated # /tmp may be deleted by your system. Change it to your preference.
 
@@ -19,12 +19,19 @@ checkpointer:
   model_type: QWEN2
 resume_from_checkpoint: False
 
-device: cuda
+device: mps
 dtype: bf16
 seed: 1234
 
-federation:
-  _component_: torchtune.training.federation.FullModelHFFederator
+federator:
+  _component_: torchtune.training.federation.DiLiCoFederator
+  h: 1
+  optimizer:
+    _component_: torch.optim.SGD
+    lr: 1
+    nesterov: True
+    momentum: 0.9
+
   participants:
     - uioGMzl7zqtkydxP66mJh9dZCaNnSWOb
-    - etbefHUtU0XViIPrqo8nN2TlpvIUTdi7
+  #  - etbefHUtU0XViIPrqo8nN2TlpvIUTdi7
