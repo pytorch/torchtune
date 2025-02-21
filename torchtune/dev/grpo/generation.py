@@ -19,6 +19,13 @@ from torchtune.modules import TransformerDecoder
 from tqdm.auto import trange
 
 
+
+# NOTE: This is almost the same as torchtune.generation.generate, with a few changes necessary for GRPO.
+# Namely:
+#   1. The `return_logits` argument - we can optionally omit keeping track of logits during generation, which
+#        drastically improves generation speed.
+#   2. Stop token-based breaking now communicates across multiple devices in a distributed setting.
+# TODO: Figure out the right abstractions to be used in the main repository, and remove this function.
 @torch.no_grad()
 def generate(
     model: TransformerDecoder,
