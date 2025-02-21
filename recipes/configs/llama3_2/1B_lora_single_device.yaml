@@ -52,6 +52,13 @@ seed: null
 shuffle: True
 batch_size: 4
 
+validation:
+  dataset:
+    _component_: torchtune.datasets.alpaca_cleaned_dataset
+    packed: False
+  run_every_n_epochs: .5
+  max_batches: 5
+
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
