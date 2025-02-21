@@ -59,6 +59,112 @@ To use any of these, simply use the ``loss`` config entry or flag through the :r
     loss=torchtune.modules.loss.RSOLoss \
     gamma=0.5
 
+We also support custom contrastive losses! But due to our philosophy related to the simplicity of the recipes, we do not support any of them directly in torchtune.
+Instead, we provide a mechanism to make it possible to use a recipe with a custom loss without touching internals.
+
+Here's how:
+
+1. Introduce your loss in the following format: 
+
+.. code-block:: python
+  
+  class SimPOLoss(nn.Module):
+    """
+    SimPO: Simple Preference Optimization with a Reference-Free Reward: https://arxiv.org/abs/2405.14734.
+    Intuition from the paper:
+        The effectiveness of SimPO is attributed to a key design: using the average log probability of a sequence as
+        the implicit reward. Additionally, we introduce a target reward margin to the Bradley-Terry objective to
+        encourage a larger margin between the winning and losing responses, further enhancing the algorithm's performance.
+    Based on the TRL implementation:
+    https://github.com/huggingface/trl/blob/98ad01ddfd1e1b67ec018014b83cba40e0caea66/trl/trainer/cpo_trainer.py#L603
+    SimPO is pretty much identitcal to DPO but uses average logprobs to eliminate the need for a reference model to regularize
+    the policy during training. It also uses a target reward margin to guide the policy towards better responses.
+    This is kind of the same intuition as in :class:`~torchtune.rlhf.loss.IPOLoss`, but instead of optimizing against
+    a margin between the reference policy and policy models, we're optimizing against a margin between the chosen and
+    rejected responses.
+    Args:
+        beta (float): Equivalent temperature scaling parameter to DPO loss, typically in the range of 2.0 to 2.5. Default is 2.0.
+        gamma (float): Target reward margin hyperparameter, typically we have ``gamma in (0, 1.5]``.
+            Default is 0.5.
+        label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
+    """
+    def __init__(
+        self,
+        beta: float = 2.0,
+        gamma: float = 0.5,
+        label_smoothing: float = 0.0,
+    ):
+        super().__init__()
+        self.beta = beta
+        self.gamma = gamma
+        self.label_smoothing = label_smoothing
+
+    def forward(
+        self,
+        policy_chosen_logps: torch.Tensor,
+        policy_rejected_logps: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Compute the SimPO loss for a batch chosen and rejected average log probabilities.
+        Args:
+            policy_chosen_logps (torch.Tensor): Average log probabilities of the policy model
+                for the chosen responses with shape [b,].
+            policy_rejected_logps (torch.Tensor): Average log probabilities of the policy model
+                for the rejected responses with shape [b,].
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]; A tuple of three tensors with shape [b,]:
+                - losses: The SimPO loss for each example in the batch.
+                - chosen_rewards: Rewards for the chosen responses.
+                - rejected_rewards: Rewards for the rejected responses.
+        """
+        pi_logratios = policy_chosen_logps - policy_rejected_logps
+        gamma_logratios = self.gamma / self.beta
+        logits = pi_logratios - gamma_logratios
+        losses = (
+            -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
+            - F.logsigmoid(-self.beta * logits) * self.label_smoothing
+        )
+        chosen_rewards = self.beta * (policy_chosen_logps).detach()
+        rejected_rewards = self.beta * (policy_rejected_logps).detach()
+        return losses, chosen_rewards, rejected_rewards
+    
+    def concatenated_forward(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor], _device, activations_handling_ctx
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Run forward pass of the model with chosen and rejected samples concatenated.
+        Args:
+            model (nn.Module): The model to be used for the forward pass.
+            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+        Returns:
+            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
+        """
+        concatenated_input_ids, concatenated_labels = batch
+        concatenated_input_ids = concatenated_input_ids.to(_device)
+        concatenated_labels = concatenated_labels.to(_device)
+        # formed by concatenating an equal number of "chosen" and "rejected".
+        len_chosen = concatenated_input_ids.shape[0] // 2
+        with activations_handling_ctx:
+            all_logits = model(concatenated_input_ids)
+        all_log_probs = rlhf.get_batch_log_probs(all_logits, concatenated_labels)
+        chosen_log_probs = all_log_probs[:len_chosen]
+        rejected_log_probs = all_log_probs[len_chosen:]
+        chosen_logits = all_logits[:len_chosen]
+        rejected_logits = all_logits[len_chosen:]
+        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+2. Notice, that you need to provide both loss forward and concatenated_forward.
+3. Create some module in your config directory with this loss, for instance `my_loss.py`
+4. Finally, pass your custom loss through the config.
+
+.. code-block:: yaml
+  loss:
+    _component_: my_loss.SimPOLoss
+
+5. In the most cases you don't need reference logprobs, so you can disable calculation of them, through:
+
+.. code-block:: yaml
+  reference_model: false
+
 For a deeper understanding of the different levers you can pull when using this recipe,
 see our documentation for the different PEFT training paradigms we support:
 

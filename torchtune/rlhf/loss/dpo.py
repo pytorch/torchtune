@@ -92,6 +92,52 @@ class DPOLoss(nn.Module):
         )
 
         return losses, chosen_rewards, rejected_rewards
+    
+    def concatenated_forward(
+        self,
+        model: nn.Module,
+        batch: Tuple[torch.Tensor, torch.Tensor],
+        activations_handling: Optional[bool] = True,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Run forward pass of the model with chosen and rejected samples concatenated.
+
+        Args:
+            model (nn.Module): The model to be used for the forward pass.
+            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+
+        Returns:
+            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
+        """
+        concatenated_input_ids, concatenated_labels = batch
+        concatenated_input_ids = concatenated_input_ids.to(self._device)
+        concatenated_labels = concatenated_labels.to(self._device)
+
+        # formed by concatenating an equal number of "chosen" and "rejected".
+        len_chosen = concatenated_input_ids.shape[0] // 2
+
+        if activations_handling:
+            with self.activations_handling_ctx:
+                all_logits = model(concatenated_input_ids)
+        else:
+            all_logits = model(concatenated_input_ids)
+
+        chosen_log_probs = rlhf.get_batch_log_probs(
+            all_logits[:len_chosen],
+            concatenated_labels[:len_chosen],
+            return_average_logprobs=False,
+        )
+
+        rejected_log_probs = rlhf.get_batch_log_probs(
+            all_logits[len_chosen:],
+            concatenated_labels[len_chosen:],
+            return_average_logprobs=False,
+        )
+
+        chosen_logits = all_logits[:len_chosen]
+        rejected_logits = all_logits[len_chosen:]
+
+        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
 
 
 class RSOLoss(nn.Module):
@@ -158,3 +204,50 @@ class RSOLoss(nn.Module):
         )
 
         return losses, chosen_rewards, rejected_rewards
+    
+    def concatenated_forward(
+        self,
+        model: nn.Module,
+        batch: Tuple[torch.Tensor, torch.Tensor],
+        activations_handling: Optional[bool] = True,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Run forward pass of the model with chosen and rejected samples concatenated.
+
+        Args:
+            model (nn.Module): The model to be used for the forward pass.
+            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+
+        Returns:
+            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
+        """
+        concatenated_input_ids, concatenated_labels = batch
+        concatenated_input_ids = concatenated_input_ids.to(self._device)
+        concatenated_labels = concatenated_labels.to(self._device)
+
+        # formed by concatenating an equal number of "chosen" and "rejected".
+        len_chosen = concatenated_input_ids.shape[0] // 2
+
+        if activations_handling:
+            with self.activations_handling_ctx:
+                all_logits = model(concatenated_input_ids)
+        else:
+            all_logits = model(concatenated_input_ids)
+
+        chosen_log_probs = rlhf.get_batch_log_probs(
+            all_logits[:len_chosen],
+            concatenated_labels[:len_chosen],
+            return_average_logprobs=False,
+        )
+
+        rejected_log_probs = rlhf.get_batch_log_probs(
+            all_logits[len_chosen:],
+            concatenated_labels[len_chosen:],
+            return_average_logprobs=False,
+        )
+
+        chosen_logits = all_logits[:len_chosen]
+        rejected_logits = all_logits[len_chosen:]
+
+        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+    
