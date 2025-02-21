@@ -107,12 +107,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self._log_peak_memory_stats = False
 
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
-        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
 
         self.distributed_backend = training.get_distributed_backend(
             device_type,
             offload_ops_to_cpu=self.fsdp_cpu_offload
-            or self._enable_async_checkpointing,
         )
         init_process_group(self.distributed_backend)
 
