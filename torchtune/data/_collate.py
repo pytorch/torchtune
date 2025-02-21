@@ -683,3 +683,36 @@ def padded_collate_traj_CE(
 
     return concatenated_input_ids, concatenated_labels , ce_label
 
+
+def padded_collate_sft(
+    batch: List[Dict[str, List[int]]],
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+) -> Dict[str, torch.Tensor]:
+    input_ids = pad_sequence(
+        [torch.tensor(x["tokens"]) for x in batch],
+        batch_first=True,
+        padding_value=padding_idx,
+    )
+    labels = pad_sequence(
+        [torch.tensor(x["labels"]) for x in batch],
+        batch_first=True,
+        padding_value=ignore_idx,
+    )
+
+    input_ids_seq_len = input_ids.shape[-1]
+    labels_seq_len = labels.shape[-1]
+
+    # Hack to pad correctly and not use max_seq_len, which is costly
+    if input_ids_seq_len > labels_seq_len:
+        labels = F.pad(
+            labels, (0, input_ids_seq_len - labels_seq_len), value=ignore_idx
+        )
+    elif labels_seq_len > input_ids_seq_len:
+        input_ids = F.pad(
+            input_ids,
+            (0, labels_seq_len - input_ids_seq_len),
+            value=padding_idx,
+        )
+    return {"tokens": input_ids.long(), "labels": labels.long(), "reward": batch.pop("reward")}
+

@@ -15,6 +15,7 @@ from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset, Trajectory_DPO_Dataset, Trajectory_CE_Dataset
 from torchtune.datasets._multi_trajectory import multi_conversation_dataset, CE_multi_conversation_dataset
+from torchtune.datasets._reinforce import reinforce_dataset
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.datasets._slimorca import slimorca_dataset
@@ -48,5 +49,6 @@ __all__ = [
     "Trajectory_DPO_Dataset",
     "multi_conversation_dataset",
     "CE_multi_conversation_dataset", 
-    "Trajectory_CE_Dataset"
+    "Trajectory_CE_Dataset",
+    "reinforce_dataset"
 ]

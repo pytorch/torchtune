@@ -4,14 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from copy import deepcopy
 import sys
 import time
 
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
+import torch.distributed as dist
 
+import bitsandbytes.optim
 import torch
 from omegaconf import DictConfig, ListConfig
 
@@ -20,11 +21,14 @@ from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import config, modules, training, utils
+from torchtune import config, modules, training, utils, generation, rlhf
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.datasets._rl import correctness_reward, shaped_correctness_reward, batch_shaped_correctness_reward
+from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.rlhf._types import R1Trajectory, GRPOStats
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
@@ -34,7 +38,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetuneRecipeDistributed(FTRecipeInterface):
+class FullRLFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
     distributed training and can be run on a single node (1 to 8 GPUs).
@@ -117,24 +121,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
+        device_type = cfg.device
 
-        if self._dtype == torch.float16:
-            raise ValueError(
-                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
-            )
-
-        if (
-            cfg.get("fsdp_cpu_offload", False)
-            and cfg.optimizer.get("fused", False)
-            and not utils.torch_version_ge("2.4.0")
-        ):
-            raise RuntimeError(
-                "Using fused optimizer on CPU is only supported in PyTorch nightly."
-            )
+        # if self._dtype == torch.float16:
+        #     raise ValueError(
+        #         "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+        #     )
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self.method=cfg.method
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
@@ -144,7 +139,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        world_size, rank = training.get_world_size_and_rank()
+
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+
+        self.distributed_backend = training.get_distributed_backend(
+            device_type,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
+                               or self._enable_async_checkpointing,
+        )
+        init_process_group(self.distributed_backend)
+
+        world_size, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -183,8 +189,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
                 )
         elif (
-            self._enable_activation_checkpointing
-            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+                self._enable_activation_checkpointing
+                and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
                 log,
@@ -195,29 +201,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
-        self.epochs_run = 0
         self.total_epochs = cfg.epochs
+        self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self._steps_run = 0
+        self._total_steps = 0
+        self._epochs_run = 0
+        self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
-        # NOTE: added by us
-        self.save_checkpoints_interval = cfg.get("save_checkpoints", 1)
-        self.max_seq_len = cfg.get("max_seq_len", None)
-        self._max_validation_steps = int(
-            cfg.get("samples_per_validation_steps") / (cfg.batch_size * world_size)
-        )
-        effective_batch_size = (
-            cfg.batch_size * cfg.gradient_accumulation_steps * world_size
-        )
-        self.max_steps_per_epoch = int(
-            cfg.get("samples_per_epoch") / effective_batch_size
-        )
-        if self._is_rank_zero:
-            log.info(
-                f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
-            )
-            log.info(
-                f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
-            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -239,7 +230,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self._epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self._rng.set_state(ckpt_dict[training.RNG_KEY])
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -279,6 +271,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         Setup the recipe. This includes training state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, lr scheduler, sampler, and dataloader.
         """
+        if self.fsdp_cpu_offload:
+            training.set_torch_num_threads()
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
 
@@ -288,12 +282,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._compile = cfg.get("compile", False)
-        self._model = self._setup_model(
+        self._model, self._ref_model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
-            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
@@ -317,33 +311,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+        #     # set num_output_chunks for model
+        #     self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
-        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        if self.method=="reinforce":
-            collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_reinforce")
-        cfg.dataset["split"] = "train"  # NOTE: added by us
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_rl")
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
-            collate_fn=collate_name,
-        )
-
-        # NOTE: added by us
-        # validation dataloader
-        cfg["validation_dataset"] = deepcopy(cfg.dataset)
-        cfg["validation_dataset"]["split"] = "validation"
-        self._sampler_validation, self._dataloader_validation = self._setup_data(
-            cfg_dataset=cfg["validation_dataset"],
-            shuffle=cfg.shuffle,
-            batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
             collate_fn=collate_name,
         )
 
@@ -355,21 +335,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
         self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
+                len(self._dataloader) // self._gradient_accumulation_steps
         )
         if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
+                self.max_steps_per_epoch is not None
+                and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
+        self.global_step = self._epochs_run * self._steps_per_epoch
 
         # Setup lr scheduler
-        self._lr_scheduler = self._setup_lr_scheduler(
+        self._lr_scheduler = (self.
+        _setup_lr_scheduler(
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
-        )
+        ))
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
@@ -380,11 +361,47 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
 
+        # RL params
+        self.grpo_samples = cfg.grpo_samples
+        self._temperature = cfg.temperature
+        self._top_k = cfg.top_k
+        self._max_generated_tokens = cfg.max_generated_tokens
+        self.batch_size = cfg.batch_size
+        self._forward_batch_size = cfg.forward_batch_size
+
+        self._ppo_epochs = cfg.ppo_epochs
+        self._ppo_batch_size = cfg.ppo_batch_size
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._ppo_backward_batch_size = (
+            cfg.ppo_batch_size // self._gradient_accumulation_steps
+        )
+
+        self._save_every_n_epochs = cfg.save_every_n_epochs
+
+        self._total_steps = cfg.num_steps // self.batch_size
+
+        if cfg.get("stop_token_ids", False):
+            stop_token_ids = cfg.stop_token_ids
+            if self._tokenizer.eos_id not in stop_token_ids:
+                warn(
+                    f"tokenizer eos_id ({self._tokenizer.eos_id}) is not in stop_token_ids ({stop_token_ids})."
+                    "This may lead to unexpected behaviour."
+                )
+        else:
+            if not hasattr(self._tokenizer, "stop_tokens"):
+                warn(
+                    "No stop tokens defined in tokenizer, and no stop_token_ids provided. This may lead to unexpected behaviour."
+                )
+                stop_token_ids = []
+            else:
+                stop_token_ids = self._tokenizer.stop_tokens
+        self._stop_token_ids = torch.tensor(stop_token_ids, device=self._device)
+
     def _setup_lr_scheduler(
-        self,
-        cfg_lr_scheduler: Optional[DictConfig],
-        num_training_steps: int,
-        last_epoch: int,
+            self,
+            cfg_lr_scheduler: Optional[DictConfig],
+            num_training_steps: int,
+            last_epoch: int,
     ) -> Optional[Optimizer]:
         """
         Set up the learning rate scheduler based on the provided configuration.
@@ -430,7 +447,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         return lr_scheduler
 
     def _setup_profiler(
-        self, cfg_profiler: Optional[DictConfig] = None
+            self, cfg_profiler: Optional[DictConfig] = None
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
@@ -479,8 +496,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
         else:
             assert (
-                cfg_profiler.get("_component_")
-                == "torchtune.training.setup_torch_profiler"
+                    cfg_profiler.get("_component_")
+                    == "torchtune.training.setup_torch_profiler"
             ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
@@ -498,17 +515,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         return profiler
 
     def _setup_model(
-        self,
-        cfg_model: DictConfig,
-        enable_activation_checkpointing: bool,
-        enable_activation_offloading: bool,
-        fsdp_cpu_offload: bool,
-        reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
-        ac_mode: Optional[str] = None,
-        ac_option: Optional[int] = None,
-    ) -> nn.Module:
+            self,
+            cfg_model: DictConfig,
+            enable_activation_checkpointing: bool,
+            enable_activation_offloading: bool,
+            fsdp_cpu_offload: bool,
+            reshard_after_forward: bool,
+            model_state_dict: Dict[str, Any],
+            custom_sharded_layers: Optional[List[str]] = None,
+            ac_mode: Optional[str] = None,
+            ac_option: Optional[int] = None,
+    ) -> tuple[nn.Module, nn.Module]:
         """
         Model initialization has some important considerations:
            a. To minimize GPU peak memory, we initialize the model on meta device with
@@ -525,9 +542,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
+            ref_model = config.instantiate(cfg_model)
+
+
+        ref_model.eval()
+        for p in ref_model.parameters():
+            p.requires_grad = False
+
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
+            training.compile_model(ref_model, verbose=self._is_rank_zero)
 
         # We currently have two versions of activation checkpointing in this recipe
         # for testing and BC purposes. ``enable_activation_checkpointing`` controls
@@ -542,10 +567,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ac_option,
             )
 
+            apply_selective_activation_checkpointing(
+                ref_model,
+                ac_mode,
+                ac_option
+            )
+
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
+
+            training.set_activation_checkpointing(
+                ref_model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
         # For FSDP sharding
@@ -562,9 +597,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             reshard_after_forward=reshard_after_forward,
         )
 
+        training.shard_model(
+            model=ref_model,
+            shard_conditions=fsdp_shard_conditions,
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=reshard_after_forward,
+        )
+
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+
+            for m in ref_model.modules():
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
@@ -574,18 +620,30 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model,
             model_state_dict,
             self._device,
-            self._is_rank_zero,
+            strict=True,
+            cpu_offload=fsdp_cpu_offload,
+        )
+
+        training.load_from_full_model_state_dict(
+            ref_model,
+            model_state_dict,
+            self._device,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
         )
 
         # activation offloading
-        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+        self.policy_activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
+        )
+
+        self.ref_activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            ref_model, enable_activation_offloading
         )
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
+        training.validate_no_params_on_meta_device(ref_model)
 
         utils.log_rank_zero(
             log,
@@ -598,13 +656,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # synchronize before training begins
         torch.distributed.barrier()
 
-        return model
+        return model, ref_model
 
     def _setup_optimizer(
-        self,
-        cfg_optimizer: DictConfig,
-        optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+            self,
+            cfg_optimizer: DictConfig,
+            optimizer_in_bwd: bool = False,
+            opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
@@ -652,18 +710,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             return optimizer
 
     def _setup_data(
-        self,
-        cfg_dataset: DictConfig,
-        shuffle: bool,
-        batch_size: int,
-        collate_fn: str,
+            self,
+            cfg_dataset: DictConfig,
+            shuffle: bool,
+            batch_size: int,
+            collate_fn: str,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -682,7 +740,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=self.seed
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -706,8 +764,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         return sampler, dataloader
 
     def save_checkpoint(
-        self,
-        epoch: int,
+            self,
+            epoch: int,
     ) -> None:
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
@@ -719,20 +777,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         different checkpoint files. To correctly resume training from an intermediate checkpoint,
         the model weights and recipe state must be provided.
         """
-        # NOTE: added by us
-        if self.save_checkpoints_interval:
-            if epoch + 1 == self.total_epochs:
-                pass
-            elif (
-                self.save_checkpoints_interval > 0
-                and epoch % self.save_checkpoints_interval == 0
-            ):
-                pass
-            else:
-                return
-        else:
-            return
-
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
@@ -747,7 +791,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         cpu_state_dict = training.gather_cpu_state_dict(
-            self._model.state_dict(),
+            self._model,
             self._is_rank_zero,
             device=self._device,
         )
@@ -762,6 +806,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             utils.log_rank_zero(log, "Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
+                    self._model,
                     self._optimizer,
                     self._is_rank_zero,
                     device=self._device,
@@ -770,7 +815,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 opt_state_dict = {}
                 for param, opt in self._optim_ckpt_wrapper.optim_map.items():
                     opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        opt, self._is_rank_zero, device=self._device
+                        self._model, opt, self._is_rank_zero, device=self._device
                     )
             utils.log_rank_zero(
                 log,
@@ -793,9 +838,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     {
                         training.OPT_KEY: opt_state_dict,
                         training.SEED_KEY: self.seed,
-                        training.EPOCHS_KEY: self.epochs_run,
+                        training.EPOCHS_KEY: self._epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.RNG_KEY: self._rng.get_state(),
                     }
                 )
 
@@ -808,15 +854,235 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         torch.distributed.barrier()
 
-    # NOTE: added by us
-    def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
+    def generate_trajectory(self, input_ids: torch.Tensor, answers: list[str]) -> R1Trajectory:
         """
-        Skip samples that are too long. This is needed for the training loop to handle
-        samples that are too long to fit in the model.
+        Generates a trajectory given the current policy and value models, the reference policy model, the reward model,
+        and batch of inputs. This is done over the following steps:
+
+        1: Generate responses, and logits corresponding to the responses using the current policy,
+            generating (query, response) pairs.
+        2. Estimate logprobs of the generated responses using the current policy.
+        3. Estimate values from the generated responses using the current value function.
+        4. Replace any tokens in the response after the first stop token (usually EOS token) with padding,
+            producting truncated responses.
+        5. Run the reward model on the (query, truncated-response) pairs.
+        6. Mask out all the invalid values in the trajectory due to padding tokens.
+
+        Args:
+            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
+
+        Returns:
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
+                the current trajectory.
         """
-        if self.max_seq_len is None:
-            return False
-        return len(batch["tokens"][0]) > self.max_seq_len
+        batch_size, context_length = input_ids.shape
+        grpo_size = self.grpo_samples
+
+        batch_input_ids = input_ids[:, None, :].expand(-1, grpo_size, -1)  # [B, G, L]
+        batch_input_ids = batch_input_ids.reshape(batch_size * grpo_size, -1)
+
+        # print(f"{batch_input_ids.shape=}")
+
+        # step 1: generate responses, and logits corresponding to the responses using the current policy
+        with local_kv_cache(
+                model=self._model,
+                batch_size=batch_size * grpo_size,
+                device=self._device,
+                dtype=self._dtype,
+                decoder_max_seq_len=context_length + self._max_generated_tokens):
+            query_responses, logits = generation.generate(   # [B x G, L], [B x G, L, V]
+                model=self._model,
+                prompt=batch_input_ids,
+                max_generated_tokens=self._max_generated_tokens,
+                temperature=self._temperature,
+                top_k=self._top_k,
+                pad_id=self._tokenizer.pad_id,
+                rng=self._rng,
+                return_logits=False
+            )
+
+        # _, rank = training.get_world_size_and_rank()
+        # if rank == 0:
+        #     for i, res in enumerate(query_responses):
+        #         text = self._tokenizer.decode(res.tolist())
+        #         print(f"{rank=} {i=} {text}")
+
+        del logits
+
+        responses = query_responses[:, context_length:].clone()
+        query_response_padding_masks = query_responses != self._tokenizer.pad_id
+
+        # step 1.1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
+        masks = generation.get_causal_mask_from_padding_mask(
+            query_response_padding_masks
+        )
+        position_ids = generation.get_position_ids_from_padding_mask(
+            query_response_padding_masks
+        )
+
+        del query_response_padding_masks
+
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
+
+        # step 2. estimate logprobs of the responses using the current policy
+        logits = logits[:, context_length - 1 :]
+        logprobs = rlhf.logits_to_logprobs(logits, responses, self._temperature)
+
+        del logits
+        torch.cuda.empty_cache()
+
+        # torch.distributed.breakpoint()
+        # step 2.1 estimate logprobs of the responses using the reference policy
+        ref_logits = self._ref_model(
+            query_responses, input_pos=position_ids, mask=masks
+        )
+        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
+        ref_logprobs = rlhf.logits_to_logprobs(ref_logits, responses, self._temperature)
+
+        del ref_logits
+        torch.cuda.empty_cache()
+
+
+        # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
+        # resulting in truncated responses
+        response_padding_masks, responses = rlhf.truncate_sequence_at_first_stop_token(  # [B x G, L]
+            responses, self._stop_token_ids, self._tokenizer.pad_id
+        )
+
+        # responses :: [B x G, L]
+        responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
+
+        rewards, successes = batch_shaped_correctness_reward(self._tokenizer, responses, answers)  # [B, G]
+        rewards = rewards.to(self._device)
+        successes = successes.to(self._device)
+
+        advantages = rewards - rewards.mean(1, keepdim=True) / (rewards.std(1, keepdim=True) + 1e-4)
+        advantages = advantages.reshape(batch_size * grpo_size)  # flatten
+
+        # print(f"In generation:\n{rewards=}\n{advantages=}")
+
+        del responses
+        torch.cuda.empty_cache()
+
+        seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
+
+        # step 6. mask out all the invalid values in the trajectory due to padding tokens
+        logprobs[response_padding_masks] = 1.0
+        ref_logprobs[response_padding_masks] = 1.0
+
+
+        return R1Trajectory(
+            query_responses=query_responses,
+            logprobs=logprobs,
+            ref_logprobs=ref_logprobs,
+            rewards=rewards.reshape(batch_size * grpo_size),
+            successes=successes.reshape(batch_size * grpo_size),
+            advantages=advantages,
+            masks=masks,
+            position_ids=position_ids,
+            response_padding_masks=response_padding_masks,
+            seq_lens=seq_lens
+        )
+
+    def _grpo_step(
+        self,
+        trajectory: R1Trajectory,
+        context_length: int,
+    ) -> GRPOStats:
+        """
+        Perform a single GRPO optimisation step over a batch of trajectories and corresponding advantages and returns.
+
+        Args:
+            trajectory (Trajectory): a batch of trajectories
+            context_length (int): input ids sequence length
+
+        Returns:
+            GRPOStats: An instance of :class:`~torchtune.rlhf.PPOStats`, a NamedTuple containing:
+               - loss (torch.Tensor): The total PPO loss.
+               - ratios (torch.Tensor): The ratio between the current and old policy probabilities.
+               - clipfrac (torch.Tensor): The fraction of ratios that were clipped.
+               - approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step.
+
+        """
+        # estimate logprobs from the policy at the current optimisation step
+
+        torch.cuda.empty_cache()
+
+        pi_logits = self._model(
+            trajectory.query_responses.clone(),
+            input_pos=trajectory.position_ids.clone(),
+            mask=trajectory.masks.clone(),
+        )
+
+        pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
+        pi_logprobs = rlhf.logits_to_logprobs(
+            pi_logits, trajectory.query_responses[:, context_length:], self._temperature
+        )
+
+        pi_logprobs[trajectory.response_padding_masks] = 1.0
+
+        del pi_logits
+        torch.cuda.empty_cache()
+
+
+
+        # calculate grpo loss
+        loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
+            trajectory.logprobs,
+            pi_logprobs,
+            trajectory.ref_logprobs,
+            trajectory.advantages,
+            padding_masks=~trajectory.response_padding_masks,
+        )
+
+        torch.cuda.empty_cache()
+        loss /= self._gradient_accumulation_steps
+        loss.backward()
+
+        with torch.no_grad():
+            approx_policy_kls = (
+                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
+            ).mean()
+
+        return GRPOStats(
+            loss,
+            policy_loss / self._gradient_accumulation_steps,
+            kl_loss / self._gradient_accumulation_steps,
+            ratios / self._gradient_accumulation_steps,
+            clipfrac / self._gradient_accumulation_steps,
+            approx_policy_kls / self._gradient_accumulation_steps,
+        )
+
+    def generate_trajectory_batched(self, input_ids: torch.Tensor, answers: list[str]) -> R1Trajectory:
+        """
+        Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
+        See ``generate_trajectory`` for more details.
+
+        Args:
+            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
+
+        Returns:
+            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
+                the current trajectory.
+        """
+        trajectories: List[R1Trajectory] = []
+        with torch.no_grad():
+            for batch_start in range(0, self.batch_size, self._forward_batch_size):
+                batch_input_ids = input_ids[
+                    batch_start : batch_start + self._forward_batch_size
+                ]
+                batch_answers = answers[batch_start : batch_start + self._forward_batch_size]
+                trajectories.append(self.generate_trajectory(batch_input_ids, batch_answers))
+        return R1Trajectory(*map(torch.cat, zip(*trajectories)))
+    
+
+    def sample_trajectories_via_api(self,):
+        with open("/home/toolkit/scratch/data/GRPO_test/train.json") as f:
+            data=json.load(f)
+        keys=list(data.keys())
+        sample_data=data[keys[0]]
+
+        return sample_data
 
     def train(self) -> None:
         """
@@ -825,7 +1091,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = training.get_world_size_and_rank()
+        world_size, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
@@ -836,280 +1102,215 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
-        running_loss = 0
-        num_tokens = 0
+        grad_norm = None
 
+        training_completed = False
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
-        for curr_epoch in range(self.epochs_run, self.total_epochs):
+        for curr_epoch in range(self._epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-            self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
 
-            # NOTE: added by us
-            # ------ Validation Step ------ #
-            self._model.eval()
+            if rank == 0:
+                trajectories = self.sample_trajectories_via_api() 
+            dist.barrier()
 
-            with torch.no_grad():
-                running_val_loss = 0
-                num_eval_steps = (
-                    min(self._max_validation_steps, len(self._dataloader_validation))
-                    if self._max_validation_steps is not None
-                    else len(self._dataloader_validation)
-                )
-                # NOTE: added by us
-                # start a counter for samples that are too long
-                max_len_samples = 0
+            self._sampler,self._dataloader= self._setup_data()
 
-                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
-                # NOTE: added by us - counter to account for samples that are too long
-                idx = 0
-                for _, batch in enumerate(self._dataloader_validation):
-                    if idx >= num_eval_steps:
-                        break
-
-                    # NOTE: added by us
-                    if self._skip_max_seq_len_samples(batch):
-                        max_len_samples += 1
-                        continue
-
-                    utils.batch_to_device(batch, self._device)
-
-                    # Calculate the number of unmasked tokens in the current batch
-                    # and increment the total number of tokens seen in the step
-                    # current_num_tokens = (
-                    #     batch["labels"] != self._loss_fn.ignore_index
-                    # ).sum()
-
-                    # Shape [b, s], needed for the loss not the model
-                    labels = batch.pop("labels")
-
-                    with self.activations_handling_ctx:
-                        logits = self._model(**batch)
-
-                    # Shift labels to compute loss
-                    # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                    # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                    labels = torch.hstack(
-                        (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-                    )
-                    if not isinstance(logits, list):
-                        labels = labels.reshape(-1)
-                        logits = logits.reshape(-1, logits.size(-1))
-
-                    # Compute loss
-                    # Loss is normalized by default so we multiply by the number of tokens
-                    # This way we can normalize by the total number of tokens if we're accumulating gradients
-                    # NOTE: we don't need to multiply by the number of tokens because we are not accumulating gradients
-                    current_loss = self._loss_fn(logits, labels)  # * current_num_tokens
-
-                    # free logits otherwise it peaks backward memory
-                    del logits
-
-                    running_val_loss += current_loss
-                    pbar_val.update(1)
-                    pbar_val.set_description(
-                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
-                    )
-                    idx += 1  # NOTE: added by us
-
-                mean_val_loss = running_val_loss / (idx + 1)
-                gathered_val_loss = [
-                    torch.zeros_like(mean_val_loss) for _ in range(world_size)
-                ]
-                torch.distributed.all_gather(gathered_val_loss, mean_val_loss)
-                mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
-                if self._is_rank_zero:
-                    self._metric_logger.log_dict(
-                        {"val_loss": mean_val_loss},
-                        step=self.global_step,
-                    )
-                utils.log_rank_zero(
-                    log, f"Number of samples that were too long: {max_len_samples}"
-                )
-                pbar_val.close()
-
-            # ------ Training Epoch ------ #
-            # Initialize tokens count and running loss (for grad accumulation)
-            t0 = time.perf_counter()
-            running_loss = 0
-            num_tokens = 0
-            real_num_tokens = 0
-            max_len_samples = 0
-            self._model.train()  # NOTE: added by us
-
-            pbar = tqdm(
-                total=self._steps_per_epoch, disable=not (rank == 0), desc="Training"
-            )
-
-            # NOTE: added by us - counter to account for samples that are too long
-            idx = 0
-            for _, batch in enumerate(self._dataloader):
-                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            for idx, batch in enumerate(self._dataloader):
+                if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                ):
                     break
-
-                # NOTE: added by us
-                if self._skip_max_seq_len_samples(batch):
-                    max_len_samples += 1
-                    # TODO: eventually remove this
-                    continue
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
-                    self._is_rank_zero
-                    and curr_epoch == 0
-                    and self.profiler_profile_memory
-                    and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                        self._is_rank_zero
+                        and curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                utils.batch_to_device(batch, self._device)
+                # print(f"{batch=}")
+                tokens = batch["tokens"]  # type: ignore
+                answers = batch["answers"]  # type: ignore
+                tokens = tokens.to(self._device)  # [B, P]
+
+                _, context_length = tokens.shape
+
+                # if self._is_rank_zero:
+                #     print(f"{tokens.shape=}")
+                #     import ipdb; ipdb.set_trace()
+                trajectory = self.generate_trajectory_batched(tokens, answers)
+
+                # print(f"{trajectory=}")
+                # log.info(f"{trajectory.query_responses.shape=}")
+                # log.info(f"{trajectory.logprobs.shape=}")
+                # log.info(f"{trajectory.ref_logprobs.shape=}")
+                # log.info(f"{trajectory.advantages.shape=}")
+                # log.info(f"{trajectory.masks.shape=}")
+                # log.info(f"{trajectory.position_ids.shape=}")
+                # log.info(f"{trajectory.response_padding_masks.shape=}")  # True means that it's masked out
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
-                current_num_tokens = (
-                    batch["labels"] != self._loss_fn.ignore_index
-                ).sum()
-                num_tokens += current_num_tokens
-                # NOTE: added by us
-                # let's monitor the total number of tokens
-                real_num_tokens = batch["labels"].numel()
-
-                # Shape [b, s], needed for the loss not the model
-                labels = batch.pop("labels")
-
-                with self.activations_handling_ctx:
-                    logits = self._model(**batch)
-
-                # Shift labels to compute loss
-                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                labels = torch.hstack(
-                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-                )
-                if not isinstance(logits, list):
-                    labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1))
-
-                # Compute loss
-                # Loss is normalized by default so we multiply by the number of tokens
-                # This way we can normalize by the total number of tokens if we're accumulating gradients
-                if self.method=="reinforce":
-                    reward=batch.pop["reward"]
-                else:
-                    reward=1
 
 
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens * reward
+                effective_batch_size = self.batch_size * self.grpo_samples  # = B x G
+                # torch.distributed.breakpoint()
+                grpo_stats: list[GRPOStats] = []
+                for _ in range(self._ppo_epochs):
+                    # batch_idxs = torch.randperm(effective_batch_size, device=self._device)
+                    batch_idxs = torch.arange(effective_batch_size, device=self._device)
+                    for i in range(0, effective_batch_size, self._ppo_batch_size):
+                        mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
+                        batch_grpo_stats: list[GRPOStats] = []
 
-                # free logits otherwise it peaks backward memory
-                del logits
+                        for j in range(0, self._ppo_batch_size, self._ppo_backward_batch_size):
+                            backward_batch_idxs = mini_batch_idxs[j : j + self._ppo_backward_batch_size]
 
-                running_loss += current_loss
-
-                # For optimizer in backward, we need to normalize before calling backward
-                # This case and gradient accumulation are mutually exclusive
-                if self._optimizer_in_bwd:
-                    torch.distributed.all_reduce(num_tokens)
-                    torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss / num_tokens
-
-                current_loss.backward()
-
-                # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    if not self._optimizer_in_bwd:
-                        # Get total number of tokens across all ranks to normalize gradients
-                        torch.distributed.all_reduce(num_tokens)
-                        # This will ensure that the logged loss matches what we're optimizing
-                        torch.distributed.all_reduce(running_loss)
-                        # Manually scale the gradients from unnormalized loss by total # of tokens
-                        training.scale_grads(self._model, 1 / num_tokens)
-                        if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
+                            # print(f"{backward_batch_idxs.shape=}")
+                            # print(f"{backward_batch_idxs=}")
+                            # for k, v in trajectory._asdict().items():
+                            #     print(f"{k=} {v.shape=}")
+                            batch_trajectory = R1Trajectory(
+                                *map(
+                                    partial(
+                                        torch.index_select,
+                                        dim=0,
+                                        index=backward_batch_idxs
+                                    ),
+                                    trajectory,
+                                )
                             )
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
+                            batch_grpo_stats.append(
+                                self._grpo_step(  # .backward() happens here
+                                    batch_trajectory,
+                                    context_length
+                                )
+                            )
+                            del batch_trajectory
 
-                    # Update the number of steps when the weights are updated
-                    self.global_step += 1
+                        grpo_stats.append(GRPOStats(*map(sum, zip(*batch_grpo_stats))))
 
-                    # Step the learning rate scheduler
-                    if self._lr_scheduler is not None:
-                        self._lr_scheduler.step()
+                        if not self._optimizer_in_bwd:
+                            if self._clip_grad_norm is not None:
+                                grad_norm = torch.nn.utils.clip_grad_norm_(
+                                    self._model.parameters(),
+                                    max_norm=float(self._clip_grad_norm),
+                                    # error_if_nonfinite=True
+                                )
+                            # print(f"PERFORMING A GRADIENT UPDATE")
+                            self._optimizer.step()
+                            self._optimizer.zero_grad(set_to_none=True)
 
-                    loss_to_log = running_loss.item() / num_tokens
-                    pbar.update(1)
-                    pbar.set_description(
-                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
-                    )
+                        self.global_step += 1
 
-                    # Log per-step metrics
-                    if (
-                        self.global_step % self._log_every_n_steps == 0
-                        and self._is_rank_zero
-                    ):
-                        time_per_step = time.perf_counter() - t0
-                        log_dict = {
-                            "loss": loss_to_log,
-                            "lr": get_lr(
+                        if self._lr_scheduler is not None:
+                            self._lr_scheduler.step()
+
+                self._steps_run += 1
+                if self._steps_run % self._log_every_n_steps == 0:
+                    extra_metrics = {}
+                    extra_metrics["lr"] = get_lr(
                                 (
                                     self._optimizer
                                     if not self._optimizer_in_bwd
                                     else self._optim_ckpt_wrapper
                                 ),
-                            ),
-                            "tokens_per_second_per_gpu": real_num_tokens  # NOTE: added by us
-                            / (time_per_step * world_size),
-                        }
-                        if self._log_peak_memory_stats:
-                            log_dict.update(
-                                training.get_memory_stats(device=self._device)
                             )
-                        if self._clip_grad_norm is not None:
-                            log_dict.update({"grad_norm": grad_norm})
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
-                        )
+                    if grad_norm is not None:
+                        extra_metrics["grad_norm"] = grad_norm
 
-                    # Reset running stats for the next step
-                    running_loss = 0
-                    num_tokens = 0
-                    real_num_tokens = 0  # NOTE: added by us
-                    t0 = time.perf_counter()
+                    self.log_metrics(
+                        trajectory,
+                        GRPOStats(*map(torch.stack, zip(*grpo_stats))),
+                        **extra_metrics
+                    )
 
-                    # Stop tracking CUDA memory now that active steps are complete
-                    if (
-                        self._is_rank_zero
-                        and curr_epoch == 0
-                        and self.profiler_profile_memory
-                        and idx
-                        == self.profiler_wait_steps
-                        + self.profiler_warmup_steps
-                        + self.profiler_active_steps
-                    ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                self.cleanup_after_step(trajectory, grpo_stats)
+                pbar.update(1)
 
-                    # Step profiler
-                    # Note that this is called within gradient accumulation block, hence
-                    # will include multiple forward / backward passes if gradient accumulation > 1
-                    self._profiler.step()
+                if self._steps_run == self._total_steps:
+                    training_completed = True
+                    break
 
-                idx += 1  # NOTE: added by us
+            self._epochs_run += 1
+            if self._epochs_run % self._save_every_n_epochs == 0:
+                self.save_checkpoint(curr_epoch)
+            if training_completed:
+                return
 
-            self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
+
+
+    def log_metrics(
+        self,
+        trajectory: R1Trajectory,
+        grpo_stats: GRPOStats,
+        **extras
+    ) -> None:
+        """
+        Log metrics and statistics for the current step to the metric logger.
+        """
+        rewards = trajectory.rewards.mean()
+        torch.distributed.reduce(rewards, dst=0, op=torch.distributed.ReduceOp.AVG)
+
+        successes = trajectory.successes.mean()
+        torch.distributed.reduce(successes, dst=0, op=torch.distributed.ReduceOp.AVG)
+
+        log_dict = {
+            "rewards": rewards,
+            "successes": successes,
+            "num_stop_tokens": trajectory.response_padding_masks.any(-1).sum(),
+            "loss": grpo_stats.loss.mean(),
+            "policy_loss": grpo_stats.policy_loss.mean(),
+            "kl_loss": grpo_stats.kl_loss.mean(),
+            "clipfrac": grpo_stats.clipfrac.mean(),
+            "ratios": grpo_stats.ratios.mean(),
+            "approx_policy_kl": grpo_stats.approx_policy_kls.mean(),
+            "response_lengths": trajectory.seq_lens.float().mean(),
+            **extras
+        }
+
+        # for key, value in log_dict.items():
+        #     if not isinstance(value, torch.Tensor):
+        #         value = torch.tensor(value, device=self._device)
+        #     elif value.device != self._device:
+        #         value = value.to(self._device)
+        #
+        #     torch.distributed.all_reduce(value, op=torch.distributed.ReduceOp.AVG)
+        #     log_dict[key] = value.item()
+
+        if self._device.type == "cuda" and self._log_peak_memory_stats:
+            log_dict.update(training.get_memory_stats(device=self._device))
+        if self._is_rank_zero:
+            self._metric_logger.log_dict(log_dict, step=self.global_step)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
         destroy_process_group()
+
+    def cleanup_after_step(
+        self,
+        trajectory: R1Trajectory,
+        l_grpo_stats: list[GRPOStats],
+    ) -> None:
+        for v in trajectory:
+            del v
+        del trajectory
+        for g in l_grpo_stats:
+            for v in g:
+                del v
+            del g
+        del l_grpo_stats
 
 
 @config.parse
@@ -1121,22 +1322,16 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    if not training.is_distributed():
-        raise RuntimeError(
-            "Distributed finetune recipe should be run via a distributed launcher."
-            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
-        )
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
-    if cfg.get("fsdp_cpu_offload", False):
-        # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
-        # speed up when benchmarking fused AdamW on CPU
-        training.set_torch_num_threads()
 
+
+    recipe = FullRLFinetuneRecipeDistributed(cfg=cfg)
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 
-    recipe = FullFinetuneRecipeDistributed(cfg=cfg)
+    utils.log_rank_zero(log, "Instantiated the recipe")
     recipe.setup(cfg=cfg)
+    utils.log_rank_zero(log, "Setup finished")
     recipe.train()
+    utils.log_rank_zero(log, "Somehow training finished???")
     recipe.cleanup()
 
 
