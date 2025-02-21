@@ -222,6 +222,30 @@ to do the actual encoding and decoding.
     print(sp_tokenizer.encode(text))
     # [1, 6312, 28709, 1526, 2]
 
+.. _hf_tokenizers:
+
+Using Hugging Face tokenizers
+-----------------------------
+
+Sometimes tokenizers hosted on Hugging Face do not contain files compatible with one of torchtune's
+existing tokenizer classes. In this case, we provide :class:`~torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer`
+to parse the Hugging Face ``tokenizer.json`` file and define the correct ``encode`` and ``decode`` methods to
+match torchtune's other :class:`~torchtune.modules.transforms.tokenizers.BaseTokenizer` classes. You should also pass the path to
+either ``tokenizer_config.json`` or ``generation_config.json``, which will allow torchtune to infer BOS and EOS tokens.
+Continuing with the Mistral example:
+
+.. code-block:: python
+
+    hf_tokenizer = HuggingFaceBaseTokenizer(
+        tokenizer_json_path="/tmp/Mistral-7B-v0.1/tokenizer.json",
+        tokenizer_config_json_path="/tmp/Mistral-7B-v0.1/tokenizer_config.json",
+    )
+
+    text = "hello world"
+
+    print(hf_tokenizer.encode(text))
+    # [1, 6312, 28709, 1526, 2]
+
 .. _model_tokenizers:
 
 Model tokenizers
