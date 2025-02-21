@@ -75,8 +75,8 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             large for long running processes (esp. for texts of language that do not use space between
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
-        truncation_type (str): Type of the truncation if the max_seq_lens is exceeded. Left is better for the datasets where more important information 
-            is presented further in context and vice verse.
+        truncation_type (str): type of truncation to apply, either "left" or "right". 
+            Default is "right".
 
     Example:
         >>> tokenizer = Qwen2Tokenizer(
@@ -115,7 +115,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             pad_token=pad_token,
             bpe_cache_size=bpe_cache_size,
         )
-
+ 
         self.tool_call_start_id = self.special_tokens["<tool_call>"]
         self.tool_call_end_id = self.special_tokens["</tool_call>"]
         self.truncation_type = truncation_type
