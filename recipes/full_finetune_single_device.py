@@ -192,6 +192,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
+    def load_federation(self, cfg_federation: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the checkpoint state from file and validate. If resume_from_checkpoint
+        is True, this also includes the recipe state.
+        """
+        self._federation = config.instantiate(cfg_federation)
+        return self._federation.handshake()
+
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
@@ -256,6 +264,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # log config with parameter override
         self._metric_logger.log_config(cfg)
+
+        if "federation" in cfg:
+            modified_config = self.load_federation(cfg.federation)
 
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
@@ -753,6 +764,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
+                        )
+
+                    if self._federation is not None:
+                        was_synced = self._federation.synchronize(
+                            self._model, self.global_step
                         )
 
                     # Reset running stats for the next step
