@@ -8,7 +8,7 @@
 # It can be beneficial to first train the base model with SFT using the 3B_sft recipe.
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/grpo/3B_full_rl
+# tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/3B_full_grpo
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
