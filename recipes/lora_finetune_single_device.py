@@ -629,6 +629,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=intermediate_checkpoint,
             adapter_only=self._save_adapter_weights_only,
         )
+    
+    def check_batch_requires_grad(self, batch: dict) -> bool:
+        labels = batch.get("labels")
+        if labels is None or not isinstance(labels, torch.Tensor):
+            return False  # No labels, no training
+    
+        return (labels != -100).any().item() 
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
@@ -678,6 +685,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 pbar = tqdm(total=self._steps_per_epoch)
                 for idx, batch in enumerate(self._dataloader):
+                    if not self.check_batch_requires_grad(batch):  
+                        continue
+                    
                     if (
                         self.max_steps_per_epoch is not None
                         and (idx // self._gradient_accumulation_steps)
