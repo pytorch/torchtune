@@ -550,6 +550,42 @@
     <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">batched_logits_to_logprobs</span><span class="p">(</span>
+    <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">sequences</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts to logits to logprobs in a batched manner, to minimize the memory spike.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        logits (torch.Tensor): The logits tensor of shape [b, response_length, vocab_size].</span>
+<span class="sd">        sequences (torch.Tensor): The corresponding tokens of shape [b, response_length].</span>
+<span class="sd">        temperature (float): The temperature to scale the logits. Default 1.0</span>
+<span class="sd">        chunk_size (int): The size of the chunks to process at a time. Default 4.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: The log probabilities corresponding to each token in ``sequences``. Shape [b, response_length].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">chunk_start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">):</span>
+        <span class="n">chunk_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">chunk_start</span> <span class="o">+</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+
+        <span class="c1"># Process log_softmax for this batch chunk</span>
+        <span class="n">chunk_log_probs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span>
+            <span class="n">logits</span><span class="p">[</span><span class="n">chunk_start</span><span class="p">:</span><span class="n">chunk_end</span><span class="p">]</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Gather for this chunk</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">chunk_start</span><span class="p">:</span><span class="n">chunk_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="n">chunk_log_probs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sequences</span><span class="p">[</span><span class="n">chunk_start</span><span class="p">:</span><span class="n">chunk_end</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">get_batch_log_probs</span><span class="p">(</span>
     <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">,</span>
     <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
