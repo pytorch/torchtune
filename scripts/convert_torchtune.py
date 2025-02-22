@@ -73,30 +73,30 @@ Rule Agent must follow:
 Conversation:
 {dialogue_subset}
 '''
-            # Construct ouput
-            try:
-                if subset == "hard" and split == "test":
-                    discussion = parse_string_list_problem(discussions[i])[j]
-                else:
-                    discussion = parse_string_list(discussions[i])[j] # Starts with "Turn x: "
-                discussion = clean_explanation(discussion)
-            except Exception as e:
-                print(f"BAD DISCUSSION: {discussions}")
-                raise e
-            
-            try:
-                if subset == "hard" and split == "test":
-                    explanation = parse_string_list_problem(explanations[i])[j]
-                else:
-                    explanation = parse_string_list(explanations[i])[j] # Starts with "Turn x: "
-                explanation = clean_explanation(explanation)
-            except Exception as e:
-                print(f"BAD EXPLANATION: {explanations}")
-                raise e
-            
-            label = parse_string_list(labels[i])[j]
-            example['output'] = f"{discussion} {explanation} Compliance output: {label}"
-            examples.append(example)
+                # Construct ouput
+                try:
+                    if subset == "hard" and split == "test":
+                        discussion = parse_string_list_problem(discussions[i])[j]
+                    else:
+                        discussion = parse_string_list(discussions[i])[j] # Starts with "Turn x: "
+                    discussion = clean_explanation(discussion)
+                except Exception as e:
+                    print(f"BAD DISCUSSION: {discussions}")
+                    raise e
+                
+                try:
+                    if subset == "hard" and split == "test":
+                        explanation = parse_string_list_problem(explanations[i])[j]
+                    else:
+                        explanation = parse_string_list(explanations[i])[j] # Starts with "Turn x: "
+                    explanation = clean_explanation(explanation)
+                except Exception as e:
+                    print(f"BAD EXPLANATION: {explanations}")
+                    raise e
+                
+                label = parse_string_list(labels[i])[j]
+                example['output'] = f"{discussion} {explanation} Compliance output: {label}"
+                examples.append(example)
 
 
     torchtune_dataset = datasets.Dataset.from_list(examples)
