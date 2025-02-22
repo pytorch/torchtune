@@ -714,6 +714,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 total_confidence = 0
                 total_gen_accuracy = 0
                 for idx, batch in enumerate(self._valid_dataloader):
+                    # for now, because inference is slow
+                    if num_samples >= 200:
+                        break
                     utils.batch_to_device(batch, self._device)
                     
                     self._model.set_num_output_chunks(0)

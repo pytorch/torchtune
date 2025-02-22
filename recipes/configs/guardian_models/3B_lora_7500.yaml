@@ -49,7 +49,7 @@ save_adapter_weights_only: False
 dataset:
   _component_: torchtune.datasets.instruct_dataset
   source: json
-  data_files: data/compliance_dataset_7500.json
+  data_files: data/easy_train_7500.jsonl
   split: train
   new_system_prompt: "You are a guardian model evaluating the compliance of a chatbot agent to various rules. 
 You will be given a rule that the agent must follow, along with a conversation between the agent and a user. 
@@ -60,7 +60,7 @@ Then, specify the compliance classification as either PASS or FAIL. Your output 
 Output PASS if the conversation between the agent and the user was compliant with the rule. 
 Output FAIL if the agent at any time responded in a manner that violated the rule. 
 Your output must adhere to this following format: [explanation] Compliance output: [PASS or FAIL]"
-valid_data_files: data/validation_dataset_200.json
+valid_data_files: data/easy_validation_1765.jsonl
 seed: null
 shuffle: True
 batch_size: 2
