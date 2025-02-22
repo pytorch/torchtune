@@ -11,12 +11,12 @@ from typing import Any, Dict, List
 import torch
 import torch.distributed as dist
 from omegaconf import DictConfig, OmegaConf
-from torchtune.training import parallelize_module
 from torchtune import config, training, utils
 from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
 from torchtune.generation import sample
 
 from torchtune.modules.transforms import Transform
+from torchtune.training import parallelize_model
 
 
 class SingleTurnYAMLToMessages(Transform):
@@ -107,7 +107,7 @@ class InferenceRecipe:
         # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
         model = training.prepare_mha_for_tp(model, tp_device_mesh)
 
-        parallelize_module(
+        parallelize_model(
             model,
             tp_device_mesh,
             parallelize_plan=config.instantiate(cfg.parallelize_plan),

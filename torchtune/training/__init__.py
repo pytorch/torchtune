@@ -19,11 +19,11 @@ from torchtune.training._distributed import (
     is_distributed,
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
+    parallelize_module,
     prepare_mha_for_tp,
     set_torch_num_threads,
     shard_model,
     validate_no_params_on_meta_device,
-    parallelize_module,
 )
 from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._model_util import disable_dropout

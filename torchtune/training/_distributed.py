@@ -24,15 +24,14 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
-from torchtune.models.llama3_2_vision import parallelize_llama3_2_vision
-from torchtune.modules.model_fusion import DeepFusionModel
-from torch.distributed.tensor.parallel import parallelize_module
 
 from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.tensor.parallel import parallelize_module
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
+from torchtune.models.llama3_2_vision import parallelize_llama3_2_vision
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
@@ -202,7 +201,7 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
             raise RuntimeError(f"Unexpected param or buffer {n} on meta device.")
 
 
-def parallelize_module(
+def parallelize_model(
     model: nn.Module,
     tp_device_mesh: DeviceMesh,
     parallelize_plan: Optional[Dict[str, Any]] = None,
