@@ -32,9 +32,10 @@ from torchtune.training.checkpointing._utils import (
     check_outdir_not_in_ckptdir,
     copy_files,
     get_adapter_checkpoint_path,
+    get_all_checkpoints_in_dir,
     get_model_checkpoint_path,
-    get_recipe_checkpoint_path,
     ModelType,
+    prune_surplus_checkpoints,
     RECIPE_STATE_DIRNAME,
     REPO_ID_FNAME,
     safe_torch_load,
@@ -46,6 +47,14 @@ from torchtune.training.checkpointing._utils import (
 from torchtune.utils import get_logger, get_world_size_and_rank, log_rank_zero
 
 logger = get_logger("DEBUG")
+
+
+class RecipeStateCheckpointPeriod(Enum):
+    """Enum to specify the frequency of saving the recipe state."""
+
+    NEVER = "never"
+    INTERMEDIATE = "intermediate"
+    ALWAYS = "always"
 
 
 class _CheckpointerInterface(Protocol):
@@ -156,7 +165,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
+        *,
+        keep_last_n_checkpoints: Optional[int] = None,
     ) -> None:
+        self._keep_last_n_checkpoints = keep_last_n_checkpoints
 
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
@@ -187,7 +199,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             output_dir=self._output_dir,
             adapter_checkpoint=adapter_checkpoint,
             should_load_recipe_state=self._should_load_recipe_state,
-            pattern=r"^epoch_(\d+)",
+            pattern=r"^step_(\d+)",
         )
 
         # resume recipe_state ckpt
@@ -260,6 +272,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
+        *,
+        step: Optional[int] = None,
     ) -> None:
         """
         Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -399,6 +413,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             Default is True.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the receipe state from a previous run. Default is False
+        keep_last_n_checkpoints (Optional[int]): How many checkpoints to keep. If None, all checkpoints are kept.
     """
 
     def __init__(
@@ -412,6 +427,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         resume_from_checkpoint: bool = False,
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
+        *,
+        keep_last_n_checkpoints: Optional[int] = None,
     ) -> None:
 
         self._should_load_recipe_state = should_load_recipe_state
@@ -420,6 +437,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             logger.warning(
                 "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
             )
+        self._keep_last_n_checkpoints = keep_last_n_checkpoints
 
         self._safe_serialization = safe_serialization
         self._checkpoint_dir = Path(checkpoint_dir)
@@ -452,20 +470,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 data = json.load(json_file)
                 self.repo_id = data.get("repo_id")
 
-        #  resume from adapter_model ckpt
-        self._adapter_checkpoint = get_adapter_checkpoint_path(
-            output_dir=self._output_dir,
-            adapter_checkpoint=adapter_checkpoint,
-            should_load_recipe_state=self._should_load_recipe_state,
-            pattern=r"^epoch_(\d+)",
-        )
+        self._adapter_checkpoint = None
+        if self._should_load_recipe_state:
+            self._recipe_checkpoint = self._checkpoint_dir / recipe_checkpoint
+            if not self._recipe_checkpoint.exists():
+                raise ValueError(
+                    f"Could not find recipe state at {self._recipe_checkpoint}"
+                )
 
-        # resume recipe_state ckpt
-        self._recipe_checkpoint = get_recipe_checkpoint_path(
-            output_dir=self._output_dir,
-            recipe_checkpoint=recipe_checkpoint,
-            should_load_recipe_state=self._should_load_recipe_state,
-        )
+            #  resume from adapter_model ckpt
+            self._adapter_checkpoint = get_adapter_checkpoint_path(
+                output_dir=self._output_dir,
+                adapter_checkpoint=adapter_checkpoint,
+                should_load_recipe_state=True,
+                pattern=r"^step_(\d+)",
+            )
 
         # get ckpt paths
         self._checkpoint_paths = get_model_checkpoint_path(
@@ -475,14 +494,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             should_load_recipe_state=self._should_load_recipe_state,
             has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
-
-        if self._should_load_recipe_state:
-            logger.info(
-                "Loading the recipe state using: "
-                f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
-                f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
-                f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
-            )
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
@@ -629,6 +640,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             converted_state_dict[training.ADAPTER_KEY] = adapter_state_dict
 
         if self._should_load_recipe_state:
+            logger.info(
+                "Loading the recipe state using: "
+                f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
+                f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
+                f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
+            )
             recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
             converted_state_dict.update(recipe_state)
 
@@ -640,6 +657,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
+        *,
+        step: Optional[int] = None,
     ) -> None:
         """
         Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -655,10 +674,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
+        # Prefer to use step, not epoch
+        if step is not None:
+            ckpt_save_dirname = f"step_{step}"
+            ckpt_pattern = r"^step_(\d+)"
+        else:
+            ckpt_save_dirname = f"epoch_{epoch}"
+            ckpt_pattern = r"^epoch_(\d+)"
+
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
             if self._model_type == ModelType.PHI3_MINI:
@@ -758,9 +786,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
                 map_original_name_to_new_name[cpt_idx] = shard_name
                 output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", shard_name
+                    self._output_dir, ckpt_save_dirname, shard_name
                 )
                 output_path.parent.mkdir(parents=True, exist_ok=True)
+                start_save = time.time()
                 if not self._safe_serialization:
                     output_path = output_path.with_suffix(".bin")
                     torch.save(model_state_dict, output_path)
@@ -771,7 +800,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 logger.info(
                     "Model checkpoint of size "
                     f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
-                    f"saved to {output_path}"
+                    f"saved to {output_path} in {time.time() - start_save:.2f} seconds"
                 )
 
             # Save the appropriate index file based on serialization format
@@ -790,7 +819,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 index_file_name = TORCH_INDEX_FNAME
 
             index_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", index_file_name
+                self._output_dir, ckpt_save_dirname, index_file_name
             )
 
             index_data = {
@@ -807,7 +836,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # convert_weights.peft_to_tune. The .pt format is not needed, but
             # it is an easy way to distinguish the adapters. Ideally we should save only one.
             output_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
+                self._output_dir, ckpt_save_dirname, ADAPTER_MODEL_FNAME
             ).with_suffix(".pt")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
@@ -815,6 +844,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 "Adapter checkpoint of size "
                 f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
                 f"saved to {output_path}"
+            )
+            logger.info(
+                "Please note that you have set adapter_only=True, so only adapter weights will be saved."
+                "You need to merge the adapter weights into your base model for further use. "
+                f"See {self.__class__.__name__}.save_checkpoint for more details."
             )
 
             if self._model_type == ModelType.PHI3_MINI:
@@ -836,7 +870,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=self._config.get("head_dim", None),
                 )
                 output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
+                    self._output_dir, ckpt_save_dirname, ADAPTER_MODEL_FNAME
                 )
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 if not self._safe_serialization:
@@ -877,7 +911,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
                 output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", ADAPTER_CONFIG_FNAME
+                    self._output_dir, ckpt_save_dirname, ADAPTER_CONFIG_FNAME
                 ).with_suffix(".json")
                 with open(output_path, "w") as f:
                     json.dump(state_dict[training.ADAPTER_CONFIG], f)
@@ -891,39 +925,33 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # So its easy to run inference with the model using this epoch's checkpoint
         copy_files(
             self._checkpoint_dir,
-            Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+            Path.joinpath(self._output_dir, ckpt_save_dirname),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
         )
 
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
-        if intermediate_checkpoint:
-            _ = state_dict.pop(training.MODEL_KEY, None)
-            _ = state_dict.pop(training.ADAPTER_KEY, None)
-            _ = state_dict.pop(training.ADAPTER_CONFIG, None)
-            output_path = Path.joinpath(
-                self._output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
+        for key in [training.MODEL_KEY, training.ADAPTER_KEY, training.ADAPTER_CONFIG]:
+            state_dict.pop(key)
+        output_path = Path.joinpath(
+            self._output_dir, ckpt_save_dirname, "recipe_state.pt"
+        )
+        torch.save(state_dict, output_path)
+        logger.info(
+            "Recipe checkpoint of size "
+            f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+            f"saved to {output_path}"
+        )
+
+        # If specified, prune the checkpoints in the output directory
+        if self._keep_last_n_checkpoints is not None:
+            all_current_checkpoints = get_all_checkpoints_in_dir(
+                self._output_dir, pattern=ckpt_pattern
             )
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            torch.save(state_dict, output_path)
-            logger.info(
-                "Recipe checkpoint of size "
-                f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
-                f"saved to {output_path}"
+            prune_surplus_checkpoints(
+                all_current_checkpoints,
+                keep_last_n_checkpoints=self._keep_last_n_checkpoints,
             )
-        else:
-            logger.info("Saving final epoch checkpoint.")
-            if adapter_only:
-                logger.info(
-                    "Please note that you have set adapter_only=True, so only adapter weights will be saved."
-                    "You need to merge the adapter weights into your base model for further use. "
-                    f"See {self.__class__.__name__}.save_checkpoint for more details."
-                )
-            else:
-                logger.info(
-                    "The full model checkpoint, including all weights and configurations, has been saved successfully."
-                    "You can now use this checkpoint for further training or inference."
-                )
 
 
 class FullModelMetaCheckpointer(_CheckpointerInterface):
@@ -1068,6 +1096,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
+        **kwargs,
     ) -> None:
         """
         Save Meta checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -1273,6 +1302,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         state_dict: Dict[str, Any],
         epoch: int,
         save_async: bool = False,
+        **kwargs,
     ) -> None:
         """
         Save a distributed checkpoint to storage.
