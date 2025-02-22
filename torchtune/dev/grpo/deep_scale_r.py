@@ -11,7 +11,6 @@ from torchtune.modules.tokenizers import ModelTokenizer
 
 from .data import ReasoningProblem, RLDataset
 
-
 # TODO: dedup this between here and _rl
 PREAMBLE_PROMPT = (
     "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. "
@@ -22,11 +21,16 @@ PREAMBLE_PROMPT = (
 
 TRAINABLE_PROMPT = "<think>{cot}</think> <answer>{answer}</answer>"
 
+
 def normalize_deep_scale_r(problem: dict[str, str]) -> ReasoningProblem:
     """
     Parses an item from the DeepScaleR dataset into a ReasoningProblem by transforming it into the question, cot, and answer.
     """
-    return {"question": problem["problem"], "cot": problem["solution"], "answer": problem["answer"]}
+    return {
+        "question": problem["problem"],
+        "cot": problem["solution"],
+        "answer": problem["answer"],
+    }
 
 
 def sft_deep_scale_r_transform(problem: dict[str, str]) -> dict[str, str]:
@@ -41,6 +45,7 @@ def sft_deep_scale_r_transform(problem: dict[str, str]) -> dict[str, str]:
     trainable = TRAINABLE_PROMPT.format(cot=cot, answer=answer)
 
     return {"preamble": preamble, "trainable": trainable}
+
 
 def deep_scale_r_dataset(
     tokenizer: ModelTokenizer,
@@ -85,6 +90,7 @@ def deep_scale_r_dataset(
     )
 
     return ds
+
 
 def deep_scale_r_sft(
     tokenizer: ModelTokenizer,
