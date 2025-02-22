@@ -95,6 +95,7 @@ For the above recipes, torchtune supports many state-of-the-art models available
 | [Llama3.2](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2)    | 1B, 3B [[models](torchtune/models/llama3_2/_model_builders.py), [configs](recipes/configs/llama3_2/)]        |
 | [Llama3.1](https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1)    | 8B, 70B, 405B [[models](torchtune/models/llama3_1/_model_builders.py), [configs](recipes/configs/llama3_1/)]        |
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[models](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
+| [Mistral Small](https://huggingface.co/mistralai/Mistral-Small-24B-Base-2501)   | 24B [[models](torchtune/models/mistral_small/_model_builders.py), [configs](recipes/configs/mistral_small/)] |
 | [Gemma2](https://huggingface.co/docs/transformers/main/en/model_doc/gemma2)   | 2B, 9B, 27B [[models](torchtune/models/gemma2/_model_builders.py), [configs](recipes/configs/gemma2/)] |
 | [Microsoft Phi4](https://huggingface.co/collections/microsoft/phi-4-677e9380e514feb5577a40e4) | 14B [[models](torchtune/models/phi4/), [configs](recipes/configs/phi4/)]
 | [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[models](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
