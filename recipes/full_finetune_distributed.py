@@ -145,8 +145,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Initialize distributed variables
         self.world_size, self.rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
+
+        self._enable_fp8_training = cfg.get("enable_fp8_training", False)
         self.tensor_parallel_plan = config.instantiate(
-            cfg.get("tensor_parallel_plan", None)
+            cfg.get("tensor_parallel_plan", None), self._enable_fp8_training
         )
         self.tensor_parallel_dim = cfg.get("tensor_parallel_dim", 1)
         if self.tensor_parallel_dim > 1 and self.tensor_parallel_plan is None:
@@ -544,6 +546,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.dp_size = device_mesh["dp"].size()
         self.dp_rank = device_mesh["dp"].get_local_rank()
 
+        self.fp8_handler = training.Float8Handler(
+            self._enable_fp8_training, dp_shard=self.dp_size
+        )
+        self.fp8_handler.convert_to_float8_training(model)
+
         # Apply tensor parallelism to the model
         if self.tensor_parallel_dim > 1:
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
@@ -849,6 +856,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Step the learning rate scheduler
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
+
+                    self.fp8_handler.precompute_float8_dynamic_scale_for_fsdp(
+                        self._model
+                    )
 
                     loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
