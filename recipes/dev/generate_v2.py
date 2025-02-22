@@ -93,6 +93,7 @@ class InferenceRecipe:
             model = config.instantiate(cfg.model)
         model.load_state_dict(_ckpt_dict[training.MODEL_KEY])
         self.model = model
+        self.model.eval()
         self._logger.info(f"Model was initialized with precision {self._dtype}.")
 
         # Instantiate transforms

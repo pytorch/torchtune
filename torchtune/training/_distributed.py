@@ -24,11 +24,14 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
+
 from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.tensor.parallel import parallelize_module
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
+from torchtune.models.llama3_2_vision import parallelize_llama3_2_vision
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
@@ -198,6 +201,31 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
             raise RuntimeError(f"Unexpected param or buffer {n} on meta device.")
 
 
+def parallelize_model(
+    model: nn.Module,
+    tp_device_mesh: DeviceMesh,
+    parallelize_plan: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    Helper function to parallelize a module using FSDP.
+
+    Args:
+        model (nn.Module): The model to be parallelized.
+        tp_device_mesh (DeviceMesh): The device mesh to be used for tensor parallelism.
+        parallelize_plan (Optional[Dict[str, Any]]): The parallel plan.
+    """
+    # Special handling for 3.2 vision model, we need to parallelize the model differently as wildcard is not
+    # working for now. Need to change back to wildcard once the issue is fixed.
+    if isinstance(model, DeepFusionModel):
+        parallelize_llama3_2_vision(model, tp_device_mesh)
+    else:
+        parallelize_module(
+            model,
+            tp_device_mesh,
+            parallelize_plan=parallelize_plan,
+        )
+
+
 def load_from_full_model_state_dict(
     model: "FSDPModule",  # noqa
     full_sd: Dict[str, Any],
@@ -298,16 +326,15 @@ def load_from_full_model_state_dict(
                     ),
                     requires_grad=sharded_meta_param.requires_grad,
                 )
-
-            elif not hasattr(sharded_meta_param, "device_mesh"):
-                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
-                sharded_tensor = full_tensor
-            else:
+            elif isinstance(sharded_meta_param, DTensor):
                 sharded_tensor = distribute_tensor(
                     full_tensor,
                     sharded_meta_param.device_mesh,
                     sharded_meta_param.placements,
                 )
+            else:
+                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
+                sharded_tensor = full_tensor
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
             sharded_sd[param_name] = nn.Parameter(sharded_tensor)
@@ -637,7 +664,6 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
-
     if is_fusion_model:
         model.decoder = decoder
     return model
