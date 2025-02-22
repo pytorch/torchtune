@@ -24,6 +24,10 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
+from torchtune.models.llama3_2_vision import parallelize_llama3_2_vision
+from torchtune.modules.model_fusion import DeepFusionModel
+from torch.distributed.tensor.parallel import parallelize_module
+
 from torch.distributed.device_mesh import DeviceMesh
 from torch.distributed.fsdp import ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
@@ -196,6 +200,31 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
     for n, p in chain(model.named_parameters(), model.named_buffers()):
         if p.is_meta:
             raise RuntimeError(f"Unexpected param or buffer {n} on meta device.")
+
+
+def parallelize_module(
+    model: nn.Module,
+    tp_device_mesh: DeviceMesh,
+    parallelize_plan: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    Helper function to parallelize a module using FSDP.
+
+    Args:
+        model (nn.Module): The model to be parallelized.
+        tp_device_mesh (DeviceMesh): The device mesh to be used for tensor parallelism.
+        parallelize_plan (Optional[Dict[str, Any]]): The parallel plan.
+    """
+    # Special handling for 3.2 vision model, we need to parallelize the model differently as wildcard is not
+    # working for now. Need to change back to wildcard once the issue is fixed.
+    if isinstance(model, DeepFusionModel):
+        parallelize_llama3_2_vision(model, tp_device_mesh)
+    else:
+        parallelize_module(
+            model,
+            tp_device_mesh,
+            parallelize_plan=parallelize_plan,
+        )
 
 
 def load_from_full_model_state_dict(
