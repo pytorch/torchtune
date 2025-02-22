@@ -6,15 +6,18 @@
 
 
 from ._types import PPOStats, Trajectory
+
 from .rewards import (
     estimate_advantages,
     get_reward_penalty_mask,
     get_rewards_ppo,
     masked_mean,
+    masked_sum,
     masked_var,
     whiten,
 )
 from .sequence_processing import (
+    batched_logits_to_logprobs,
     get_batch_log_probs,
     logits_to_logprobs,
     truncate_sequence_at_first_stop_token,
@@ -24,12 +27,14 @@ from .sequence_processing import (
 __all__ = [
     "truncate_sequence_at_first_stop_token",
     "logits_to_logprobs",
+    "batched_logits_to_logprobs",
     "truncate_sequence_for_logprobs",
     "get_reward_penalty_mask",
     "estimate_advantages",
     "get_rewards_ppo",
     "whiten",
     "masked_mean",
+    "masked_sum",
     "masked_var",
     "PPOStats",
     "get_batch_log_probs",
