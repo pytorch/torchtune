@@ -16,6 +16,7 @@ from ._model_builders import (  # noqa
     qlora_llama3_8b,
 )
 from ._tokenizer import Llama3Tokenizer
+from ._prompt_template import Llama3ChatTemplate
 
 __all__ = [
     "Llama3Tokenizer",

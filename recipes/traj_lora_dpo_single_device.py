@@ -11,6 +11,7 @@ import time
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
+import random
 
 import torch
 from omegaconf import DictConfig, ListConfig
@@ -19,7 +20,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo, padded_collate_traj_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     disable_adapter,
@@ -32,7 +33,9 @@ from torchtune.modules.peft import (
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from torchtune.rlhf.loss import SimPOLoss
+from torchtune.modules.loss import CEWithChunkedOutputLoss
 from tqdm import tqdm
+import torch.nn.functional as F
 
 log = utils.get_logger("DEBUG")
 
@@ -95,13 +98,35 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-
+        self.ce_loss=CEWithChunkedOutputLoss(num_output_chunks=6)
+        self.reg_lambda=cfg.reg_lambda
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
-
+            # activation checkpointing/offloading
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif self._enable_activation_checkpointing:
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = training.set_seed(seed=cfg.seed)
@@ -209,6 +234,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -283,6 +309,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
@@ -319,6 +346,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
             lora_unexpected=lora_unexpected,
+        )
+        # activation offloading
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
@@ -397,7 +428,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
             collate_fn=partial(
-                padded_collate_dpo,
+                padded_collate_traj_dpo,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
@@ -469,51 +500,45 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         )
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        self, 
+        model: nn.Module, 
+        input_ids, 
+        labels
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Run forward pass of the model with chosen and rejected samples concatenated.
+    Run forward pass of the model with chosen and rejected samples concatenated.
+    
+    Args:
+        model (nn.Module): The model to be used for the forward pass.
+        input_ids: Input token IDs
+        labels: Corresponding labels
+    
+    Returns:
+        Tuple of log probs and logits
+    """
+        concatenated_input_ids = input_ids.to(self._device).unsqueeze(0)
+        concatenated_labels = labels.to(self._device).unsqueeze(0)
+    
+        
+    
+        with self.activations_handling_ctx:
+            all_logits = model(concatenated_input_ids)
 
-        Args:
-            model (nn.Module): The model to be used for the forward pass.
-            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
-
-        Returns:
-            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
-        """
-        concatenated_input_ids, concatenated_labels = batch
-        concatenated_input_ids = concatenated_input_ids.to(self._device)
-        concatenated_labels = concatenated_labels.to(self._device)
-
-        # formed by concatenating an equal number of "chosen" and "rejected".
-        len_chosen = concatenated_input_ids.shape[0] // 2
-
-        all_logits = model(concatenated_input_ids)
-
-        all_log_probs = rlhf.get_batch_log_probs(
-            all_logits,
-            concatenated_labels,
-            # see :class:`~torchtune.rlhf.loss.dpo.SimPOLoss`
-            return_average_logprobs=isinstance(self._loss_fn, SimPOLoss),
-        )
-
-        chosen_log_probs = all_log_probs[:len_chosen]
-        rejected_log_probs = all_log_probs[len_chosen:]
-
-        chosen_logits = all_logits[:len_chosen]
-        rejected_logits = all_logits[len_chosen:]
-
-        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+        all_log_probs = rlhf.get_batch_log_probs(logits=all_logits, labels=concatenated_labels, return_average_logprobs=True)
+    
+        return (all_log_probs, all_logits)
 
     # NOTE: added by us
-    def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
-        """
-        Skip samples that are too long. This is needed for the training loop to handle
-        samples that are too long to fit in the model.
-        """
-        if self.max_seq_len is None:
+    def _skip_max_seq_len_samples(self, input_ids):
+        max_inp=0
+        for inp in input_ids:
+            if len(inp)>max_inp:
+                max_inp=len(inp)
+        
+        if max_inp>5000:
+            return True
+        else:
             return False
-        return any(len(item) > self.max_seq_len for item in batch[0])
 
     def train(self) -> None:
         """
@@ -526,7 +551,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
-        num_tokens = 0
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -542,6 +566,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             with torch.no_grad():
                 running_val_loss = 0
                 running_reward_accuracy = 0
+
                 num_eval_steps = (
                     min(self._max_validation_steps, len(self._dataloader_validation))
                     if self._max_validation_steps is not None
@@ -554,63 +579,74 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 pbar_val = tqdm(total=num_eval_steps, desc="Validation")
                 # NOTE: added by us - counter to account for samples that are too long
                 idx = 0
-                for _, batch in enumerate(self._dataloader_validation):
 
-                    if (
-                        self._max_validation_steps is not None
-                        and idx == self._max_validation_steps
-                    ):
+                policy_chosen_sum = torch.zeros(1, device=self._device)
+                policy_rejected_sum = torch.zeros(1, device=self._device)
+                reference_chosen_sum = torch.zeros(1, device=self._device)
+                reference_rejected_sum = torch.zeros(1, device=self._device)
+
+                for _, batch in enumerate(self._dataloader_validation):
+                    if self._max_validation_steps is not None and idx == self._max_validation_steps:
                         break
 
-                    # NOTE: added by us
-                    if self._skip_max_seq_len_samples(batch):
+                    input_ids, labels, ratio = batch
+                    if self._skip_max_seq_len_samples(input_ids):
                         max_len_samples += 1
                         continue
 
-                    # batch is input_ids, labels
-                    num_tokens += batch[0].numel()
-                    (
-                        policy_chosen_log_probs,
-                        policy_rejected_log_probs,
-                        policy_chosen_logits,
-                        policy_rejected_logits,
-                    ) = self.concatenated_forward(self._model, batch)
+                    policy_chosen_sum.zero_()
+                    policy_rejected_sum.zero_()
+                    reference_chosen_sum.zero_()
+                    reference_rejected_sum.zero_()
 
-                    policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
-                    policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+                    reg_index=random.randint(0,len(input_ids)-1)
 
-                    # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
-                    del policy_chosen_logits, policy_rejected_logits
-
-                    if isinstance(self._loss_fn, SimPOLoss):
-                        loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                            policy_chosen_log_probs, policy_rejected_log_probs
+                    for index in range(len(input_ids)):
+                        log_policy_probs, policy_logits = self.concatenated_forward(
+                            self._model, input_ids[index], labels[index]
                         )
-                    else:
-                        # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
-                        # the reference model's output - reference-free losses (such as SimPO) don't require this.
+                        if index==reg_index:
+                            sft_policy_logits=policy_logits
+                            sft_policy_labels=labels[index]
+                        del policy_logits
+
                         with torch.no_grad(), disable_adapter(self._model):
-                            (
-                                reference_chosen_log_probs,
-                                reference_rejected_log_probs,
-                                _,
-                                _,
-                            ) = self.concatenated_forward(self._model, batch)
-                        loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                            policy_chosen_log_probs,
-                            policy_rejected_log_probs,
-                            reference_chosen_log_probs,
-                            reference_rejected_log_probs,
-                        )
+                            reference_log_probs, reference_logits = self.concatenated_forward(
+                                self._model, input_ids[index], labels[index]
+                            )
 
-                    loss = loss.mean()
-                    reward_accuracy = (
-                        (chosen_rewards > rejected_rewards).float().mean().cpu()
+                            del reference_logits
+
+                        if index < ratio[0]:
+                            policy_chosen_sum += log_policy_probs
+                            reference_chosen_sum += reference_log_probs
+                        else:
+                            policy_rejected_sum += log_policy_probs
+                            reference_rejected_sum += reference_log_probs
+
+                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                            policy_chosen_sum,
+                            policy_rejected_sum,
+                            reference_chosen_sum,
+                            reference_rejected_sum,
                     )
+
+                    
+
+                    logits_chunks = sft_policy_logits.chunk(6, dim=1)
+                    labels_=torch.hstack((sft_policy_labels[1:], torch.tensor([-100], device=sft_policy_labels.device)))
+                    labels_=labels_.unsqueeze(0).to(self._device)
+
+                    ce_loss = self.ce_loss(logits_chunks, labels_)
+ 
+                    del sft_policy_labels, sft_policy_logits, logits_chunks, labels_
+                    ce_loss=ce_loss.mean()
+                    loss = loss.mean()
+                    reward_accuracy = (chosen_rewards > rejected_rewards).float().mean().cpu()
+ 
+                    running_val_loss += (loss + self.reg_lambda*ce_loss) 
                     running_reward_accuracy += reward_accuracy
 
-                    loss = loss
-                    running_val_loss += loss
                     pbar_val.update(1)
                     pbar_val.set_description(
                         f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
@@ -619,6 +655,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
                 mean_val_loss = running_val_loss / (idx + 1)
                 mean_reward_accuracy = running_reward_accuracy / (idx + 1)
+
                 self._metric_logger.log_dict(
                     {
                         "val_loss": mean_val_loss,
@@ -626,19 +663,24 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     },
                     step=self.global_step,
                 )
+
                 pbar_val.close()
-                print("Number of samples that were too long: ", max_len_samples)
+                print("Number of samples that were too long:", max_len_samples)
+
 
             # ------ Training Epoch ------ #
             # Initialize tokens count and running loss (for grad accumulation)
             t0 = time.perf_counter()
             running_loss = 0
-            num_tokens = 0
+            positive_num_tokens = 0
+            negative_num_tokens=0
             max_len_samples = 0
             self._model.train()  # NOTE: added by us
 
             pbar = tqdm(total=self._steps_per_epoch, desc="Training")
             # NOTE: added by us - counter to account for samples that are too long
+            positive_trajectory_length = 0
+            negative_trajectory_length = 0
             idx = 0
             for _, batch in enumerate(self._dataloader):
                 if (
@@ -648,46 +690,73 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 ):
                     break
 
+                input_ids, labels, ratio = batch
+
+                if self._skip_max_seq_len_samples(input_ids):
+                    max_len_samples += 1
+                    continue
+                policy_chosen_sum = torch.zeros(1, device=self._device)
+                policy_rejected_sum = torch.zeros(1, device=self._device)
+                reference_chosen_sum = torch.zeros(1, device=self._device)
+                reference_rejected_sum = torch.zeros(1, device=self._device)
+
+                
+                positive_trajectory_length += ratio[0]
+                negative_trajectory_length += ratio[1]
+
+
                 # batch is input_ids, labels
-                num_tokens += batch[0].numel()
-                (
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    policy_chosen_logits,
-                    policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                reg_index=random.randint(0,len(input_ids)-1)
 
-                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
-                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+                for index in range(len(input_ids)):
 
-                # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
-                del policy_chosen_logits, policy_rejected_logits
-
-                if isinstance(self._loss_fn, SimPOLoss):
-                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                        policy_chosen_log_probs, policy_rejected_log_probs
+                    log_policy_probs, policy_logits = self.concatenated_forward(
+                        self._model, input_ids[index], labels[index]
                     )
-                else:
-                    # reference based losses (e.g. DPO) explicitly regularize the objective fn based on
-                    # the reference model's output - reference-free losses (such as SimPO) don't require this.
+                    if index==reg_index:
+                        sft_policy_logits=policy_logits
+                        sft_policy_labels=labels[index]
+                    del policy_logits
+
                     with torch.no_grad(), disable_adapter(self._model):
-                        (
-                            reference_chosen_log_probs,
-                            reference_rejected_log_probs,
-                            _,
-                            _,
-                        ) = self.concatenated_forward(self._model, batch)
-                    loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                        policy_chosen_log_probs,
-                        policy_rejected_log_probs,
-                        reference_chosen_log_probs,
-                        reference_rejected_log_probs,
-                    )
+                        reference_log_probs, reference_logits = self.concatenated_forward(
+                            self._model, input_ids[index], labels[index]
+                        )
+                        del reference_logits
+
+                    if index < ratio[0]:
+                        positive_num_tokens += input_ids[index].numel()
+                        policy_chosen_sum += log_policy_probs
+                        reference_chosen_sum += reference_log_probs
+                    else:
+                        negative_num_tokens += input_ids[index].numel()
+                        policy_rejected_sum += log_policy_probs
+                        reference_rejected_sum += reference_log_probs
+
+                loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                    policy_chosen_sum,
+                    policy_rejected_sum,
+                    reference_chosen_sum,
+                    reference_rejected_sum,
+                )
+
+                logits_chunks = sft_policy_logits.chunk(6, dim=1)
+                labels_=torch.hstack((sft_policy_labels[1:], torch.tensor([-100], device=sft_policy_labels.device)))
+                labels_=labels_.unsqueeze(0).to(self._device)
+                torch.cuda.empty_cache()
+
+                ce_loss = self.ce_loss(logits_chunks, labels_)
+ 
+                del sft_policy_labels, sft_policy_logits, logits_chunks, labels_
+                torch.cuda.empty_cache()
 
                 loss = loss.mean()
+                ce_loss=ce_loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
                 loss = loss / self._gradient_accumulation_steps
+                ce_loss=ce_loss / self._gradient_accumulation_steps
+                loss=loss+self.reg_lambda*ce_loss
                 running_loss += loss
                 loss.backward()
 
@@ -707,27 +776,26 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
+                    avg_positive_length = positive_trajectory_length / self._gradient_accumulation_steps
+                    avg_negative_length = negative_trajectory_length / self._gradient_accumulation_steps
+
                     # Log per-step metrics
                     if self.global_step % self._log_every_n_steps == 0:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
+                            "idx": index,
+                            "positive_trajectory_length": avg_positive_length,
+                            "negative_trajectory_length": avg_negative_length,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "positive_tokens_per_second_per_gpu": positive_num_tokens / time_per_step,
+                            "negative_tokens_per_second_per_gpu": negative_num_tokens / time_per_step,
                             "rewards/chosen": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
                             "rewards/accuracies": reward_accuracies.mean().cpu(),
-                            "rewards/margins": (chosen_rewards - rejected_rewards)
-                            .mean()
-                            .cpu(),
-                            "log_probs/rejected": policy_rejected_log_probs.detach()
-                            .mean()
-                            .cpu(),
-                            "log_probs/chosen": policy_chosen_log_probs.detach()
-                            .mean()
-                            .cpu(),
-                            "logits/rejected": policy_rejected_logits_mean.cpu(),
-                            "logits/chosen": policy_chosen_logits_mean.cpu(),
+                            "rewards/margins": (chosen_rewards - rejected_rewards).mean().cpu(),
+                            # "log_probs/rejected": policy_rejected_sum.detach().mean().cpu(),
+                            # "log_probs/chosen": policy_chosen_sum.detach().mean().cpu(),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -740,7 +808,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
                     # Reset running stats for the next step
                     running_loss = 0
-                    num_tokens = 0
+                    positive_num_tokens = 0
+                    negative_num_tokens=0
                     t0 = time.perf_counter()
 
                 idx += 1  # NOTE: added by us

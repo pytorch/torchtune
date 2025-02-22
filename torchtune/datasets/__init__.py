@@ -14,6 +14,9 @@ from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset
+from torchtune.datasets._prime_trajectory import prime_dataset
+from torchtune.datasets._trajectory_dpo import trajectory_dataset
+from torchtune.datasets._reinforce import reinforce_dataset
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.datasets._slimorca import slimorca_dataset
@@ -44,4 +47,8 @@ __all__ = [
     "SFTDataset",
     "hh_rlhf_helpful_dataset",
     "multimodal",
+    "reinforce_dataset",
+    "trajectory_dataset",
+    "prime_dataset"
+
 ]
