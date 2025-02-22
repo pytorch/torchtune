@@ -88,7 +88,9 @@ class InferenceRecipe:
         dist.init_process_group(backend="nccl")
         _, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
-        training.set_seed(seed=cfg.seed)
+        training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
 
     def setup(self, cfg: DictConfig) -> None:
         """Setup the model and transforms."""
@@ -107,6 +109,7 @@ class InferenceRecipe:
 
         # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor paralell
         model = training.prepare_mha_for_tp(model, tp_device_mesh)
+<<<<<<< HEAD
 
         # Special handling for 3.2 vision model, we need to parallelize the model differently as wildcard is not
         # working for now. Need to change back to wildcard once the issue is fixed.
@@ -118,6 +121,13 @@ class InferenceRecipe:
                 tp_device_mesh,
                 parallelize_plan=config.instantiate(cfg.parallelize_plan),
             )
+=======
+        parallelize_module(
+            model,
+            tp_device_mesh,
+            parallelize_plan=config.instantiate(cfg.tensor_parallel_plan),
+        )
+>>>>>>> main
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():

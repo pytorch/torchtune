@@ -451,7 +451,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self.device = utils.get_device(device=cfg.device)
         self.dtype = training.get_dtype(dtype=cfg.dtype, device=self.device)
         self.logger = utils.get_logger(cfg.get("log_level", "info"))
-        training.set_seed(seed=cfg.seed)
+        training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
 
         # Eval specific variables
         self.limit = cfg.limit

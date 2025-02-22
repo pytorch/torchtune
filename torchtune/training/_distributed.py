@@ -521,6 +521,7 @@ def shard_model(
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
+    dp_mesh: Optional[DeviceMesh] = None,
 ) -> None:
     """
     Utility to shard a model with FSDP using the PyTorch Distributed fully_shard API.
@@ -539,11 +540,13 @@ def shard_model(
         reshard_after_forward (bool): Whether to reshard parameters and buffers after
             the forward pass. Setting this to True corresponds to the FULL_SHARD sharding strategy
             from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.
+        dp_mesh (Optional[DeviceMesh]): Device mesh to use for FSDP sharding under mutliple parallelism.
+            Default to None.
 
     Raises:
         ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.
     """
-    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
+    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward, "mesh": dp_mesh}
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
 
@@ -562,6 +565,17 @@ def shard_model(
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)
+
+
+def recursive_reshard(module: nn.Module):
+    """
+    Manually reshard all modules in the model.
+    This might be useful for memory management when a model isn't automatically resharded after forward.
+    """
+    for n, m in reversed(list(module.named_modules())):
+        module.reshard()
+
+    module.reshard()
 
 
 def prepare_mha_for_tp(

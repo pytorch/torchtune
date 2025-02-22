@@ -78,7 +78,9 @@ class InferenceRecipe:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._logger = utils.get_logger(cfg.log_level)
-        training.set_seed(seed=cfg.seed)
+        training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
 
     def setup(self, cfg: DictConfig) -> None:
         """Setup the model and transforms."""

@@ -1,0 +1,98 @@
+# Config for multi-device full DPO alignment in full_dpo_distributed.py
+# using a Llama3.1 8B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth"
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 4 full_dpo_distributed --config llama3_1/8B_full_dpo
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 4 full_dpo_distributed --config llama3_1/8B_full_dpo checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+
+output_dir: /tmp/torchtune/llama3_1_8B/full_dpo # /tmp may be deleted by your system. Change it to your preference.
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama3_1.llama3_1_8b
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
+  max_seq_len: 1024 # higher increases memory
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA3
+resume_from_checkpoint: False
+
+# The ref_checkpointer should always point to the original weights.
+ref_checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA3
+
+# Dataset and Sampler
+dataset:
+  _component_: torchtune.datasets.stack_exchange_paired_dataset
+seed: null
+shuffle: True
+batch_size: 4
+
+# Optimizer and Scheduler
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  weight_decay: 0.05
+  lr: 2e-5
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 20
+
+loss:
+  _component_: torchtune.rlhf.loss.DPOLoss
+  beta: 0.05
+  label_smoothing: 0
+
+# Training
+epochs: 1
+max_steps_per_epoch: 1000
+gradient_accumulation_steps: 8  # Use to increase effective batch size
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}/logs
+log_every_n_steps: 1
+log_peak_memory_stats: True
+
+# Environment
+device: cuda
+dtype: bf16
+
+# Memory management
+enable_activation_checkpointing: True  # True reduces memory
+enable_activation_offloading: False  # True reduces memory
