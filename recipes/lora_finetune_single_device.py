@@ -255,10 +255,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger.log_config(cfg)
 
         self._compile = cfg.compile
+        self._max_autotune = cfg.max_autotune
         if cfg.device == "npu" and cfg.compile:
             raise ValueError(
                 "NPU does not support model compilation. Please set `compile: False` in the config."
             )
+            
+        if not self._compile and self._max_autotune:
+            raise ValueError(
+                "`compile: False`, but `max-autotune: True`, this is a contradiction."
+            )
+            
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         # hack to toggle to the low cpu ram version of the reparametrize_as_dtype
@@ -271,6 +278,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
+            max_autotune=self._max_autotune,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
                 checkpoint_dict[training.ADAPTER_KEY]
@@ -294,7 +302,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
         if self._compile:
-            self._loss_fn = training.compile_loss(self._loss_fn)
+            self._loss_fn = training.compile_loss(self._loss_fn, max_autotune=self._max_autotune)
 
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
@@ -421,6 +429,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        max_autotune: bool = False,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -435,7 +444,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if compile_model:
-            training.compile_model(model)
+            training.compile_model(model, max_autotune=max_autotune)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
@@ -635,6 +644,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         labels = batch.pop("labels")
         # run model
         with self.activations_handling_ctx:
+            # torch.compiler.cudagraph_mark_step_begin()
             logits = self._model(**batch)
 
         # Shift labels to compute loss
