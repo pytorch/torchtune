@@ -684,11 +684,12 @@ def padded_collate_traj_CE(
     return concatenated_input_ids, concatenated_labels , ce_label
 
 
-def padded_collate_sft(
+def padded_collate_reinforce(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Dict[str, torch.Tensor]:
+    
     input_ids = pad_sequence(
         [torch.tensor(x["tokens"]) for x in batch],
         batch_first=True,
@@ -699,6 +700,7 @@ def padded_collate_sft(
         batch_first=True,
         padding_value=ignore_idx,
     )
+    reward=torch.tensor([torch.tensor(x["reward"]).unsqueeze(0) for x in batch]).unsqueeze(0)
 
     input_ids_seq_len = input_ids.shape[-1]
     labels_seq_len = labels.shape[-1]
@@ -714,5 +716,5 @@ def padded_collate_sft(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return {"tokens": input_ids.long(), "labels": labels.long(), "reward": batch.pop("reward")}
+    return {"tokens": input_ids.long(), "labels": labels.long(), "reward": reward}
 

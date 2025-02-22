@@ -885,6 +885,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Shape [b, s], needed for the loss not the model
                     labels = batch.pop("labels")
 
+
+                    if self.method=="reinforce":
+                        reward = batch.pop("reward")
+                    else:
+                        reward=1
+
                     with self.activations_handling_ctx:
                         logits = self._model(**batch)
 
@@ -907,7 +913,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # free logits otherwise it peaks backward memory
                     del logits
 
-                    running_val_loss += current_loss
+                    running_val_loss += current_loss * reward 
                     pbar_val.update(1)
                     pbar_val.set_description(
                         f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
@@ -978,6 +984,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
+                if self.method=="reinforce":
+                    reward = batch.pop("reward")
+                else:
+                    reward=1
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
@@ -995,12 +1005,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                if self.method=="reinforce":
-                    reward=batch.pop["reward"]
-                else:
-                    reward=1
 
-
+                reward=1
                 current_loss = self._loss_fn(logits, labels) * current_num_tokens * reward
 
                 # free logits otherwise it peaks backward memory

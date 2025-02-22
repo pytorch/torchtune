@@ -14,7 +14,7 @@ from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset
-from torchtune.torchtune.datasets._prime_trajectory import prime_dataset
+from torchtune.datasets._prime_trajectory import prime_dataset
 from torchtune.datasets._trajectory_dpo import trajectory_dataset
 from torchtune.datasets._reinforce import reinforce_dataset
 from torchtune.datasets._samsum import samsum_dataset
