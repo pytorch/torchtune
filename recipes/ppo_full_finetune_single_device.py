@@ -388,7 +388,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
-
     def _setup_training_hyperparameters(self, cfg) -> None:
         """
         Sets up the training hyperparameters for the recipe. This includes the GAE hyperparameters,
@@ -1060,7 +1059,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         if not self._optimizer_in_bwd:
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
-                        
+
                         # Need to fix `lr_scheduler.step()` before `optimizer.step()` warning
                         if self._lr_scheduler is not None:
                             self._lr_scheduler.step()
@@ -1213,7 +1212,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         kl_rewards: torch.Tensor,
         tokens_per_second_trajectory: torch.Tensor,
         tokens_per_second_loss: torch.Tensor,
-        lr: float
+        lr: float,
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.
