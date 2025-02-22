@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, TypeVar, Union
 from urllib import request
 
+import torch
+import torchvision
 from datasets import load_dataset
 from datasets.distributed import split_dataset_by_node
 from torch.utils.data import default_collate, DistributedSampler
@@ -44,9 +46,9 @@ def truncate(
     return tokens_truncated
 
 
-def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
+def load_image(image_loc: Union[Path, str]) -> torch.Tensor:
     """
-    Convenience method to load an image in PIL format from a local file path or remote source.
+    Convenience method to load an image in torch.Tensor format from a local file path or remote source.
 
     Args:
         image_loc (Union[Path, str]): Local file path or remote source pointing to the image
@@ -59,7 +61,7 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
     Raises:
         ValueError:
             If the image cannot be loaded from remote source, **or**
-            if the image cannot be opened as a :class:`~PIL.Image.Image`.
+            if the image cannot be opened as a :class:`~torch.Tensor`.
 
     Examples:
         >>> # Load from remote source
@@ -69,25 +71,25 @@ def load_image(image_loc: Union[Path, str]) -> "PIL.Image.Image":
         >>> image = load_image(Path("/home/user/bird.jpg"))
 
     Returns:
-        PIL.Image.Image: The loaded image.
+        torch.Tensor: The loaded image.
     """
-    # Hackily import PIL to avoid burdensome import in the main module
-    # TODO: Fix this
-    from PIL import Image
-
     # If pointing to remote source, try to load to local
     if isinstance(image_loc, str) and image_loc.startswith("http"):
         try:
-            image_loc = request.urlopen(image_loc)
+            image_loc = request.urlopen(image_loc).read()
+            image = torchvision.io.decode_image(
+                torch.frombuffer(image_loc, dtype=torch.uint8),
+                mode="RGB",
+            )
         except Exception as e:
-            raise ValueError(f"Failed to load image from {image_loc}") from e
+            raise ValueError("Failed to load remote image as torch.Tensor") from e
 
-    # Open the local image as a PIL image
-    try:
-        image = Image.open(image_loc)
-    except Exception as e:
-        raise ValueError(f"Failed to open image as PIL Image from {image_loc}") from e
-
+    # Open the local image as a Tensor image
+    else:
+        try:
+            image = torchvision.io.decode_image(image_loc, mode="RGB")
+        except Exception as e:
+            raise ValueError("Failed to load local image as torch.Tensor") from e
     return image
 
 
