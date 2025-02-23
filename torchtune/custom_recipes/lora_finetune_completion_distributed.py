@@ -5,9 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import gc
+import json
+import os
 import pprint
 import sys
 import time
+
+# import pandas as pd
 from collections import defaultdict
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -37,6 +41,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.checkpointing._utils import safe_torch_load
 from torchtune.training.metrics import compute_classification_metrics
 from tqdm import tqdm
 
@@ -275,33 +280,63 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.checkpoint_epoch = cfg.get("checkpoint_epoch", 0)
         print(f"checkpoint_epoch: {self.checkpoint_epoch}")
 
-        # REVIEW IF STILL NEEDED #
-        # Merge adapter weights with base model weights
-        # find faster way to do this
-        # if training.ADAPTER_KEY in checkpoint_dict:
-        #     if training.ADAPTER_CONFIG not in checkpoint_dict:
-        #         raise ValueError(
-        #             "Adapter weights found in checkpoint but adapter config not found."
-        #         )
-        #     tmp_state_dict = {
-        #         **checkpoint_dict[training.MODEL_KEY],
-        #         **checkpoint_dict[training.ADAPTER_KEY],
-        #     }
+        self._base_adapter_path = cfg.get("base_adapter_path", None)
 
-        #     # cast to float32 since bfloat16 has really slow calculations for torch.matmul
-        #     # model will cast back to bfloat16 later on
-        #     if self._dtype == torch.bfloat16:
-        #         tmp_state_dict = {
-        #             k: v.to(torch.float32) for k, v in tmp_state_dict.items()
-        #         }
+        # Merge base adapter weights with base model weights if provided
+        # This is lets us avoid merging sequential adapter weights with the base model
+        if self._base_adapter_path:
+            base_adapter_model_path = os.path.join(
+                self._base_adapter_path, "adapter_model.pt"
+            )
+            base_adapter_config_path = os.path.join(
+                self._base_adapter_path, "adapter_config.json"
+            )
 
-        #     merged_state_dict = get_merged_lora_ckpt(
-        #         tmp_state_dict,
-        #         rank=checkpoint_dict[training.ADAPTER_CONFIG]["r"],
-        #         alpha=checkpoint_dict[training.ADAPTER_CONFIG]["lora_alpha"],
-        #     )
+            if not os.path.exists(base_adapter_model_path):
+                raise ValueError(
+                    "base_adapter_model does not exist at the provided path"
+                )
+            if not os.path.exists(base_adapter_config_path):
+                raise ValueError(
+                    "base_adapter_config does not exist at the provided path"
+                )
 
-        #     checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+            # Load base adapter config
+            with open(base_adapter_config_path, "r") as f:
+                base_adapter_config = json.load(f)
+
+            base_adapter_state_dict = safe_torch_load(base_adapter_model_path)
+
+            tmp_state_dict = {
+                **checkpoint_dict[training.MODEL_KEY],
+                **base_adapter_state_dict,
+            }
+
+            # cast to float32 since bfloat16 has really slow calculations for torch.matmul
+            # model will cast back to bfloat16 later on
+            if self._dtype == torch.bfloat16:
+                tmp_state_dict = {
+                    k: v.to(torch.float32) for k, v in tmp_state_dict.items()
+                }
+
+            merged_state_dict = get_merged_lora_ckpt(
+                tmp_state_dict,
+                rank=base_adapter_config["r"],
+                alpha=base_adapter_config["lora_alpha"],
+            )
+
+            # cast dict back to bfloat16
+            if self._dtype == torch.bfloat16:
+                merged_state_dict = {
+                    k: v.to(torch.bfloat16) for k, v in merged_state_dict.items()
+                }
+
+            checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
+
+            # clean up extra state dicts
+            del tmp_state_dict
+            del base_adapter_state_dict
+            gc.collect()
 
         self._compile = cfg.get("compile", False)
 
@@ -915,7 +950,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 current_train_loss = self._loss_fn(logits, labels) * current_num_tokens
                 logits = logits.transpose(1, 2)
 
-                metrics_dict, running_metrics = compute_classification_metrics(
+                metrics_dict, running_metrics, _ = compute_classification_metrics(
                     split="train",
                     tokens=batch["tokens"],
                     labels=labels,
@@ -1079,7 +1114,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 current_val_loss = self._loss_fn(logits, labels) * current_num_tokens
                 logits = logits.transpose(1, 2)
 
-                metrics_dict, running_metrics = compute_classification_metrics(
+                metrics_dict, running_metrics, _ = compute_classification_metrics(
                     split="val",
                     tokens=batch["tokens"],
                     labels=labels,
@@ -1128,6 +1163,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         num_tokens = 0
         pbar = tqdm(total=self._steps_per_eval_epoch, disable=not (rank == 0))
 
+        # Debugging Output
+        # prompts = []
+        # completions = []
         first_batch = True
         for idx, batch in enumerate(self._eval_dataloader):
             with torch.no_grad():
@@ -1178,7 +1216,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 current_eval_loss = self._loss_fn(logits, labels) * current_num_tokens
                 logits = logits.transpose(1, 2)
 
-                metrics_dict, running_metrics = compute_classification_metrics(
+                (
+                    metrics_dict,
+                    running_metrics,
+                    predicted_labels,
+                ) = compute_classification_metrics(
                     split="",
                     tokens=batch["tokens"],
                     labels=labels,
@@ -1187,6 +1229,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     running_metrics=running_metrics,
                     sample_weights=sample_weights,
                 )
+
+                # Debugging Output
+                # prompts.extend([self._tokenizer.decode(seq) for seq in batch['tokens'].tolist()])
+                # completions.extend([self._tokenizer.decode(seq) for seq in predicted_labels.unsqueeze(1).tolist()])
 
                 # free logits otherwise it peaks backward memory
                 del logits
@@ -1200,6 +1246,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             # average the losses across all batches
             loss_to_log = running_eval_loss.item() / num_tokens
+
+        # Debugging Output
+        # Save results to CSV
+        # pd.DataFrame(zip(prompts, completions), columns=['prompt', 'completion']).to_csv('eval_results.csv', index=False)
 
         # Log validation metrics
         if rank == 0:
