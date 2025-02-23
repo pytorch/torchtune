@@ -55,22 +55,23 @@ class PromptCompletionDataset(Dataset):
         self.max_seq_len = max_seq_len
         self._text_column = text_column
         self._label_column = label_column
-        # Add label separator
-        # This is only ran once at initialization
-        try:
-            # llama2 tokenizer requires trim_leading_whitespace=True
-            self._label_separator = tokenizer.encode(
-                text=label_separator,
-                add_bos=False,
-                add_eos=False,
-                trim_leading_whitespace=True,
-            )
-        except TypeError:
-            # If parameter is not accepted, call without it
-            self._label_separator = tokenizer.encode(
-                text=label_separator, add_bos=False, add_eos=False
-            )
-        self._label_separator_len = len(self._label_separator)
+        # self._label_separator = label_separator
+        # # Add label separator
+        # # This is only ran once at initialization
+        # try:
+        #     # llama2 tokenizer requires trim_leading_whitespace=True
+        #     self._label_separator_encoded = tokenizer.encode(
+        #         text=self._label_separator,
+        #         add_bos=False,
+        #         add_eos=False,
+        #         trim_leading_whitespace=True,
+        #     )
+        # except TypeError:
+        #     # If parameter is not accepted, call without it
+        #     self._label_separator_encoded = tokenizer.encode(
+        #         text=self._label_separator, add_bos=False, add_eos=False
+        #     )
+        # self._label_separator_len = len(self._label_separator_encoded)
 
     def __len__(self):
         return len(self._data)
@@ -80,24 +81,28 @@ class PromptCompletionDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        tokens = self._tokenizer.encode(
-            text=sample[self._text_column], add_bos=True, add_eos=False
-        )
+        input_text = sample[self._text_column]
+        # if self._label_separator:
+        #     # Remove label separator from end of input_text if it exists
+        #     if input_text.endswith(self._label_separator):
+        #         input_text = input_text[:-len(self._label_separator)]
 
-        # Remove label separator from end of tokens if it exists
-        if self._label_separator_len > 0 and (
-            tokens[-(self._label_separator_len) :] == self._label_separator
-        ):
-            tokens = tokens[: -(self._label_separator_len)]
+        tokens = self._tokenizer.encode(text=input_text, add_bos=True, add_eos=False)
+
+        # # Remove label separator from end of tokens if it exists
+        # if self._label_separator_len > 0 and (
+        #     tokens[-(self._label_separator_len) :] == self._label_separator
+        # ):
+        #     tokens = tokens[: -(self._label_separator_len)]
 
         # Truncate if needed, but leave room for label separator.
         if self.max_seq_len is not None:
-            tokens = truncate(tokens, self.max_seq_len - self._label_separator_len)
-            # tokens = truncate(tokens, self.max_seq_len)
+            # tokens = truncate(tokens, self.max_seq_len - self._label_separator_len - 1)
+            tokens = truncate(tokens, self.max_seq_len)
 
         # Add label separator
-        if self._label_separator_len > 0:
-            tokens.extend(self._label_separator)
+        # if self._label_separator_len > 0:
+        #     tokens.extend(self._label_separator_encoded)
 
         # Directly state the label_column field
         labels = self._tokenizer.encode(
