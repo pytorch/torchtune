@@ -152,4 +152,4 @@ def compute_classification_metrics(
         ),
     }
 
-    return (metrics_dict, running_metrics)
+    return (metrics_dict, running_metrics, predicted)
