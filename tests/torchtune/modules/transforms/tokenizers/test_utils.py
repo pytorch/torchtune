@@ -14,7 +14,7 @@ from torchtune.data import Message
 from torchtune.modules.transforms.tokenizers import tokenize_messages_no_special_tokens
 
 from torchtune.modules.transforms.tokenizers import has_trainable_tokens
-
+from torchtune.utils._logging import get_logger
 
 class TestTokenizerUtils:
     @pytest.fixture
@@ -82,12 +82,12 @@ class TestHasTrainableTokens:
         result = has_trainable_tokens(labels, -100)
         assert result is False
 
-    @patch('torchtune.utils._logging.log_once')
+    @patch('torchtune.modules.transforms.tokenizers._utils.log_once')
     def test_logging(self, mock_log_once):
         ignore_index = -100
         labels = torch.tensor([ignore_index, ignore_index])
         _ = has_trainable_tokens(labels, ignore_index)
         mock_log_once.assert_called_once_with(
-            MagicMock(),
+            get_logger(),
             'Consider changing to tokenizer.truncation="left" or increase tokernizer.max_seq_len.'
         )
