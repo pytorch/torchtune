@@ -13,6 +13,7 @@ from ._utils import (
     ModelTokenizer,
     parse_hf_tokenizer_json,
     tokenize_messages_no_special_tokens,
+    check_has_trainable_tokens,
 )
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "BaseTokenizer",
     "tokenize_messages_no_special_tokens",
     "parse_hf_tokenizer_json",
+    "check_has_trainable_tokens",
     "HuggingFaceBaseTokenizer",
 ]

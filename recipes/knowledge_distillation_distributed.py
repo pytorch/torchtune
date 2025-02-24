@@ -808,22 +808,6 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         return loss, kd_loss
 
-    def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
-        """
-        Checks whether there are trainable tokens in batch.
-
-        Args:
-            labels (Optional[torch.tensor]): labels for the current batch.
-
-        Returns:
-            bool: True if there are trainable tokens in batch, otherwise False.
-        """
-        log_once(
-            log,
-            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
-        )
-        return any(labels != self._loss_fn.ignore_index)
-
     def train(self) -> None:
         """
         The core training loop.
@@ -849,7 +833,7 @@ class KDRecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
-                if not self.check_has_trainable_tokens(batch):
+                if not check_has_trainable_tokens(batch):
                     continue
 
                 if (

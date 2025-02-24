@@ -23,7 +23,7 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
-from torchtune.utils._logging import log_once
+from torchtune.modules.transforms.tokenizers import check_has_trainable_tokens
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -892,7 +892,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
-                if not self.check_has_trainable_tokens(batch):
+                if not check_has_trainable_tokens(batch.get("labels"), self._loss_fn.ignore_index, log):
                     continue
 
                 if (

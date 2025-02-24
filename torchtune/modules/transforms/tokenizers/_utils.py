@@ -5,10 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
+import logging
+import torch
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
+from torchtune.utils._logging import log_once
 
 
 class BaseTokenizer(Protocol):
@@ -195,3 +198,23 @@ def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
         tokenizer_json = json.load(f)
 
     return {token["content"]: token["id"] for token in tokenizer_json["added_tokens"]}
+
+
+def check_has_trainable_tokens(labels: Optional[torch.tensor], ignore_index: int, log: logging.Logger) -> bool:
+    """
+    Checks whether there are trainable tokens in batch.
+
+    Args:
+        labels (Optional[torch.tensor]): labels for the current batch.
+        ignore_index (int): representation of the ingore index.
+        log: (logging.Logger): logger.
+
+    Returns:
+        bool: True if there are trainable tokens in batch, otherwise False.
+    """
+    log_once(
+        log,
+        "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
+    )
+    return any(labels != ignore_index)
+    
