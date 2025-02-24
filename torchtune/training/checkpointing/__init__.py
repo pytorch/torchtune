@@ -14,6 +14,7 @@ from torchtune.training.checkpointing._checkpointer import (
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
+    DATALOADER_KEY,
     EPOCHS_KEY,
     FormattedCheckpointFiles,
     get_largest_iter_folder,
@@ -55,4 +56,5 @@ __all__ = [
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
     "FormattedCheckpointFiles",
+    "DATALOADER_KEY",
 ]

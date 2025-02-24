@@ -40,6 +40,7 @@ from torchtune.training.checkpointing import (
     ADAPTER_CONFIG,
     ADAPTER_KEY,
     Checkpointer,
+    DATALOADER_KEY,
     DistributedCheckpointer,
     EPOCHS_KEY,
     FormattedCheckpointFiles,
@@ -137,4 +138,5 @@ __all__ = [
     "FormattedCheckpointFiles",
     "scale_grads",
     "disable_dropout",
+    "DATALOADER_KEY",
 ]
