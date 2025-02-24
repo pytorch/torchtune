@@ -621,12 +621,13 @@ class OpenAIToMessages(Transform):
                 content = self._convert_from_openai_content(message["content"])
             elif isinstance(message["content"], str):
                 content = message["content"]
+            eot = False if message["role"] in ["tool", "ipython"] else True
             updated_messages.append(
                 Message(
                     role=message["role"],
                     content=content,
                     masked=masked,
-                    eot=False if message["role"] in ["tool"] else True,
+                    eot=eot,
                 ),
             )
 
@@ -658,13 +659,17 @@ def validate_messages(
             f"Messages must be at least length 2, but got {len(messages)} messages"
         )
 
-    last_turn = "assistant"
+    last_message = Message(role="assistant", content="")
     for i, message in enumerate(messages):
-        if message.role == "assistant" and last_turn not in ["user", "tool"]:
+        if message.role == "assistant" and last_message.role not in [
+            "user",
+            "tool",
+            "ipython",
+        ]:
             raise ValueError(
-                f"Assistant message before expected user or tool message at index {i} in messages"
+                f"Assistant message before expected user, tool or ipython message at index {i} in messages"
             )
-        if message.role == "user" and last_turn == "user":
+        if message.role == "user" and last_message.role == "user":
             raise ValueError(
                 f"Two consecutive user messages at index {i} and {i - 1} in messages"
             )
@@ -672,7 +677,11 @@ def validate_messages(
             raise ValueError(
                 f"System message at index {i} in messages, but system messages must come first"
             )
-        last_turn = message.role
+        if message.role in ["tool", "ipython"] and not last_message.ipython:
+            raise ValueError(
+                f"Tool or ipython message at index {i} must follow an ipython message"
+            )
+        last_message = message
 
 
 class AlpacaToMessages(Transform):

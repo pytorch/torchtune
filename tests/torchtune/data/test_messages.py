@@ -536,7 +536,7 @@ def test_validate_messages():
             content="Available functions: weather(city: str), search(query: str)",
         ),
         Message(role="user", content="What is the weather in Istanbul?"),
-        Message(role="assistant", content="weather(city='Istanbul')"),
+        Message(role="assistant", content="weather(city='Istanbul')", ipython=True),
         Message(role="tool", content="{'temperature': 25}"),
         Message(role="assistant", content="The weather in Istanbul is 25C"),
     ]
@@ -589,6 +589,18 @@ def test_validate_messages():
     ]
     with pytest.raises(
         ValueError,
-        match="Assistant message before expected user or tool message at index 0 in messages",
+        match="Assistant message before expected user, tool or ipython message at index 0 in messages",
+    ):
+        validate_messages(messages)
+
+    # # Test tool message before ipython message
+    messages = [
+        Message(role="user", content="get weather for istanbul"),
+        Message(role="assistant", content="get_weather(city='Istanbul')"),
+        Message(role="ipython", content="{'temperature': 25}"),
+    ]
+    with pytest.raises(
+        ValueError,
+        match="Tool or ipython message at index 2 must follow an ipython message",
     ):
         validate_messages(messages)
