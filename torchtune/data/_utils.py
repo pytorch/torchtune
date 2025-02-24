@@ -44,13 +44,13 @@ def truncate(
     Raises:
         ValueError: if truncation_type is not "left" or "right"
     """
-    if truncation_type not in ("left", "right"):
-        raise ValueError(f"truncation_type must be 'left' or 'right', got {truncation_type}")
-    
+
     if truncation_type == "right":
         tokens_truncated = tokens[-max_seq_len:]  # Take the last max_seq_len tokens
-    else:
+    elif truncation_type == "left":
         tokens_truncated = tokens[:max_seq_len]  # Take the first max_seq_len tokens
+    else:
+        raise ValueError(f"truncation_type must be 'left' or 'right', got {truncation_type}")
     
     # Replace the last token with eos_id if necessary
     if eos_id is not None and tokens_truncated and tokens_truncated[-1] != eos_id:

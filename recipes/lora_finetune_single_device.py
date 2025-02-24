@@ -631,11 +631,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
     
     def check_batch_requires_grad(self, batch: dict) -> bool:
-        labels = batch.get("labels")
-        if labels is None or not isinstance(labels, torch.Tensor):
-            return False  # No labels, no training
-    
-        return (labels != -100).any().item() 
+        requires_grad = any(batch["labels"] != self._loss_fn.ignore_index)
+        return requires_grad 
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
