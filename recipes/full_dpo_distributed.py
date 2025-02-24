@@ -839,22 +839,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
 
-    def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
-        """
-        Checks whether there are trainable tokens in batch.
-
-        Args:
-            labels (Optional[torch.tensor]): labels for the current batch.
-
-        Returns:
-            bool: True if there are trainable tokens in batch, otherwise False.
-        """
-        log_once(
-            log,
-            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
-        )
-        return any(labels != self._loss_fn.ignore_index)
-
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
