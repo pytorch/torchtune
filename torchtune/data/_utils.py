@@ -45,9 +45,9 @@ def truncate(
         ValueError: if truncation_type is not "left" or "right"
     """
 
-    if truncation_type == "right":
+    if truncation_type == "left":
         tokens_truncated = tokens[-max_seq_len:]  # Take the last max_seq_len tokens
-    elif truncation_type == "left":
+    elif truncation_type == "right":
         tokens_truncated = tokens[:max_seq_len]  # Take the first max_seq_len tokens
     else:
         raise ValueError(
