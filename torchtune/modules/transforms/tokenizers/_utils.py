@@ -13,6 +13,9 @@ import torch
 from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
 from torchtune.utils._logging import log_once
+from torchtune.utils import get_logger
+
+_log: logging.Logger = get_logger()
 
 
 class BaseTokenizer(Protocol):
@@ -201,8 +204,8 @@ def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
     return {token["content"]: token["id"] for token in tokenizer_json["added_tokens"]}
 
 
-def check_has_trainable_tokens(
-    labels: Optional[torch.tensor], ignore_index: int, log: Optional[logging.Logger]
+def has_trainable_tokens(
+    labels: Optional[torch.tensor], ignore_index: int,
 ) -> bool:
     """
     Checks whether there are trainable tokens in batch.
@@ -210,14 +213,12 @@ def check_has_trainable_tokens(
     Args:
         labels (Optional[torch.tensor]): labels for the current batch.
         ignore_index (int): representation of the ingore index.
-        log (Optional[logging.Logger]): logger.
 
     Returns:
         bool: True if there are trainable tokens in batch, otherwise False.
     """
-    if log:
-        log_once(
-            log,
-            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
-        )
+    log_once(
+        _log,
+        "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
+    )
     return any(labels != ignore_index)
