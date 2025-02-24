@@ -75,7 +75,7 @@ Here, `ChosenRejectedOutputs` is a dataclass obtained from `concatenated_forward
       chosen_logits: torch.Tensor
       rejected_logits: torch.Tensor
 
-If this is not sufficient and you need to compute additional values from the logits, you can modify `concatenated_forward directly`. To do this, use `tune cp`` to copy the desired recipe, and don’t forget to use your own dataclass!
+If this is not sufficient and you need to compute additional values from the logits, you can modify `concatenated_forward` directly. To do this, use `tune cp` to copy the desired recipe, and don’t forget to use your own dataclass!
 
 Refer to the TRL library for reference implementations of the desired losses. In particular, you may find useful loss calculations in trainers.
 
