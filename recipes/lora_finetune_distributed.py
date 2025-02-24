@@ -19,6 +19,7 @@ from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
+from torchtune.utils._logging import log_once
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -735,6 +736,19 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
 
         torch.distributed.barrier()
+        
+    def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
+        """
+        Checks whether there are trainable tokens in batch.
+        
+        Args:
+            labels (Optional[torch.tensor]): labels for the current batch.
+        
+        Returns:
+            bool: True if there are trainable tokens in batch, otherwise False.
+        """
+        log_once(log, "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!")
+        return any(labels != self._loss_fn.ignore_index)
 
     def train(self) -> None:
         """
@@ -761,6 +775,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
+                if not self.check_has_trainable_tokens(batch):  
+                    continue
+                
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
