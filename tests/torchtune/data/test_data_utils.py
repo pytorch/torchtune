@@ -20,14 +20,21 @@ def test_truncate():
     truncated_tokens = truncate(
         tokens=tokens,
         max_seq_len=5,
-        eos_id=-1,
+        eos_id=-1
     )
     assert truncated_tokens == tokens
 
     masks = [True, True, False, True, False]
     # Test truncated mask
     truncated_masks = truncate(tokens=masks, max_seq_len=4, eos_id=False)
+    
     assert truncated_masks == [True, True, False, False]
+    
+    # Test right truncation
+    truncated_masks = truncate(tokens=masks, max_seq_len=4, eos_id=False, truncation_type="right")
+    
+    assert truncated_masks == [True, False, True, False]
+    
 
 
 def test_format_content_with_images():
