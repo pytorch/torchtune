@@ -711,7 +711,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = StatefulDistributedSampler(
-            ds, num_replicas=self.dp_size, rank=self.dp_rank, shuffle=shuffle, seed=0
+            ds, num_replicas=self.dp_size, rank=self.dp_rank, shuffle=shuffle
         )
         dataloader = StatefulDataLoader(
             dataset=ds,

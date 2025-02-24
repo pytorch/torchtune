@@ -50,6 +50,7 @@ class TestFullFinetuneDistributedRecipe:
         ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values_multi_rank(self, model_type):
+        # These values should probably be the same?
         loss_values_map = {
             "llama2": [10.5209, 10.5217, 10.4945, 10.5136],
             "llama3": [11.9839, 11.9684, 11.9596, 11.93656],
