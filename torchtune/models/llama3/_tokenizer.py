@@ -34,7 +34,7 @@ SPECIAL_TOKENS = {
     "<|reserved_special_token_244|>": 128011,
 }
 
-NUM_RESERVED_SPECIAL_TOKENS = 256
+NUM_RESERVED_SPECIAL_TOKENS = 257
 
 RESERVED_TOKENS = {
     f"<|reserved_special_token_{2 + i}|>": 128013 + i
