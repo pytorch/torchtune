@@ -24,7 +24,7 @@ def truncate(
     tokens: List[Any],
     max_seq_len: int,
     eos_id: Optional[Any] = None,
-    truncation_type: str = "right",
+    truncation_type: str = "left",
 ) -> List[Any]:
     """
     Truncate a list of tokens to a maximum length. If eos_id is provided, the last
@@ -36,7 +36,7 @@ def truncate(
         eos_id (Optional[Any]): token to replace the last token with. If None, the
             last token will not be replaced. Default is None.
         truncation_type (str): type of truncation to apply, either "left" or "right".
-            Default is "right".
+            Default is "left".
 
     Returns:
         List[Any]: truncated list of tokens
