@@ -770,10 +770,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Check if we should stop training for this epoch
                 if (
-                    self.max_steps_per_epoch is not None
-                    and (idx + 1 // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
+                    (idx + 1) // self._gradient_accumulation_steps
+                ) == self.max_steps_per_epoch:
                     break
 
             self.epochs_run += 1
