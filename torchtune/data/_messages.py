@@ -613,7 +613,8 @@ class OpenAIToMessages(Transform):
                     role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
-        for message in sample[self._column_map["messages"]]:
+        messages = sample[self._column_map["messages"]]
+        for i, message in enumerate(messages):
             if message["role"] == "system" and self.new_system_prompt is not None:
                 continue
             masked = (message["role"] != "assistant") and (not self.train_on_input)
@@ -621,7 +622,20 @@ class OpenAIToMessages(Transform):
                 content = self._convert_from_openai_content(message["content"])
             elif isinstance(message["content"], str):
                 content = message["content"]
-            eot = False if message["role"] in ["tool", "ipython"] else True
+
+            eot = True
+            if message["role"] in ["tool", "ipython"]:
+                # After tool responses, turn is not over, because assistant will interpret the tool response.
+                eot = False
+            elif message["role"] == "assistant":
+                # If the next message is a tool response instead of a user message
+                # the current assistant message is not the end of the turn.
+                # Models like Llama will append EOM to the end of the assistant message for tool calls.
+                has_next_message = i < len(messages) - 1
+                next_message = messages[i + 1]
+                if has_next_message and next_message["role"] in ["tool", "ipython"]:
+                    eot = False
+
             updated_messages.append(
                 Message(
                     role=message["role"],
