@@ -36,7 +36,7 @@ def truncate(
         eos_id (Optional[Any]): token to replace the last token with. If None, the
             last token will not be replaced. Default is None.
         truncation_type (str): type of truncation to apply, either "left" or "right".
-            Default is "left".
+            Default is "right".
 
     Returns:
         List[Any]: truncated list of tokens
