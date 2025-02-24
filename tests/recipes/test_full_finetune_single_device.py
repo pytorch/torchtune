@@ -137,7 +137,11 @@ class TestFullFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    def test_training_state_on_resume(self, tmpdir, monkeypatch):
+    @pytest.mark.parametrize(
+        "optimizer_in_bwd",
+        [True, False],
+    )
+    def test_training_state_on_resume(self, tmpdir, monkeypatch, optimizer_in_bwd):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
@@ -169,6 +173,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            optimizer_in_bwd={optimizer_in_bwd} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2"]
@@ -200,6 +205,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
+            optimizer_in_bwd={optimizer_in_bwd} \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config

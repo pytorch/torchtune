@@ -24,7 +24,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -133,7 +133,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
         # manually setting up a generator for the recipe
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
         self._total_steps = 0
@@ -357,7 +359,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     "This may lead to unexpected behaviour."
                 )
         else:
-            if not hasattr(self._tokenizer.stop_tokens):
+            if not hasattr(self._tokenizer, "stop_tokens"):
                 warn(
                     "No stop tokens defined in tokenizer, and no stop_token_ids provided. This may lead to unexpected behaviour."
                 )
@@ -568,20 +570,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
         # between ref policy and current policy
-        for module in policy_model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
-        for module in value_model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
+        disable_dropout(policy_model)
+        disable_dropout(value_model)
 
-        # disabling grad and dropout in reward and reference policy models
+        # disabling grad in reward and reference policy models
         reward_model.eval()
         ref_policy_model.eval()
 
