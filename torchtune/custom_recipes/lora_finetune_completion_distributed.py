@@ -683,8 +683,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
-
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
                 config.instantiate(single_cfg_dataset, self._tokenizer)
@@ -702,7 +700,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
 
         dataloader = DataLoader(
@@ -857,8 +855,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -878,7 +874,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -974,7 +970,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_train_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    training.scale_grads(self._model, world_size / num_tokens)
+                    training.scale_grads(self._model, self.world_size / num_tokens)
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
@@ -1004,7 +1000,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                             "train_loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            / (time_per_step * self.world_size),
                             **metrics_dict,
                         }
                         if self._log_peak_memory_stats:
@@ -1069,12 +1065,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         self._val_sampler.set_epoch(curr_epoch)
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         running_val_loss = 0.0
         running_metrics = defaultdict(float)
         num_tokens = 0
-        pbar = tqdm(total=self._steps_per_val_epoch, disable=not (rank == 0))
+        pbar = tqdm(total=self._steps_per_val_epoch, disable=not (self.rank == 0))
         for idx, batch in enumerate(self._val_dataloader):
             with torch.no_grad():
                 utils.batch_to_device(batch, self._device)
@@ -1140,7 +1134,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             loss_to_log = running_val_loss.item() / num_tokens
 
             # Log validation metrics
-            if rank == 0:
+            if self.rank == 0:
                 log_dict = {
                     "val_loss": loss_to_log,
                     **metrics_dict,
@@ -1157,11 +1151,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         The evaluation loop.
         """
-        world_size, rank = utils.get_world_size_and_rank()
         running_eval_loss = 0.0
         running_metrics = defaultdict(float)
         num_tokens = 0
-        pbar = tqdm(total=self._steps_per_eval_epoch, disable=not (rank == 0))
+        pbar = tqdm(total=self._steps_per_eval_epoch, disable=not (self.rank == 0))
 
         # Debugging Output
         # prompts = []
@@ -1169,7 +1162,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         first_batch = True
         for idx, batch in enumerate(self._eval_dataloader):
             with torch.no_grad():
-                if first_batch and rank == 0:
+                if first_batch and self.rank == 0:
                     log.info("Batch contents:")
                     for key, value in batch.items():
                         if isinstance(value, torch.Tensor):
@@ -1252,7 +1245,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # pd.DataFrame(zip(prompts, completions), columns=['prompt', 'completion']).to_csv('eval_results.csv', index=False)
 
         # Log validation metrics
-        if rank == 0:
+        if self.rank == 0:
             log_dict = {
                 "avg_loss": loss_to_log,
                 **metrics_dict,
