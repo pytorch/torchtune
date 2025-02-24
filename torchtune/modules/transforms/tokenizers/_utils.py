@@ -217,8 +217,13 @@ def has_trainable_tokens(
     Returns:
         bool: True if there are trainable tokens in batch, otherwise False.
     """
-    log_once(
-        _log,
-        "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
-    )
-    return any(labels != ignore_index)
+    if not labels:
+        return False
+    
+    if not any(labels != ignore_index):
+        log_once(
+            _log,
+            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
+        )
+        return False
+    return True

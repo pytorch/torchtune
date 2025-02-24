@@ -11,6 +11,8 @@ from torchtune.data import Message
 
 from torchtune.modules.transforms.tokenizers import tokenize_messages_no_special_tokens
 
+from torchtune.modules.transforms.tokenizers import has_trainable_tokens
+
 
 class TestTokenizerUtils:
     @pytest.fixture
@@ -55,3 +57,6 @@ class TestTokenizerUtils:
             assert tokens[-1] == tokenizer.eos_id
         else:
             assert tokens[-1] != tokenizer.eos_id
+
+def test_has_trainable_tokens():
+    
