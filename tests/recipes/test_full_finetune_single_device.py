@@ -56,8 +56,8 @@ class TestFullFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5201, 10.5217, 10.4945, 10.5136],
-            "llama3": [11.9839, 11.9684, 11.9596, 11.9366],
+            "llama2": [10.5219, 10.5292, 10.5475, 10.5195],
+            "llama3": [11.9611, 11.9432, 11.9326, 11.9807],
         }
 
         return loss_values_map[model_type]
@@ -153,7 +153,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         ckpt = "llama2_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
-        log_file = gen_log_file_name(tmpdir)
+        first_log_file = gen_log_file_name(tmpdir, suffix="first")
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
@@ -173,6 +173,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
+            metric_logger.filename={first_log_file} \
             optimizer_in_bwd={optimizer_in_bwd} \
         """.split()
 
@@ -183,7 +184,15 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
+        # Sanity check that the loss values are expected for the initial run
+        expected_loss_values = self._fetch_expected_loss_values("llama2")
+        loss_values = get_loss_values_from_metric_logger(first_log_file)
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
+        )
+
         # Resume training
+        log_file = gen_log_file_name(tmpdir, suffix="resume")
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         suffix = ".safetensors"
