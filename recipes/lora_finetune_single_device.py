@@ -20,6 +20,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
+from torchtune.utils._logging import log_once
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
@@ -630,9 +631,18 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
     
-    def check_batch_requires_grad(self, batch: dict) -> bool:
-        requires_grad = any(batch["labels"] != self._loss_fn.ignore_index)
-        return requires_grad 
+    def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
+        """
+        Checks whether there are trainable tokens in batch.
+        
+        Args:
+            labels (Optional[torch.tensor]): labels for the current batch.
+        
+        Returns:
+            bool: True if there are trainable tokens in batch, otherwise False.
+        """
+        log_once(log, "Found batch with no trainable tokens. Consider changing to tokenizer.truncation direction!")
+        return any(labels != self._loss_fn.ignore_index)
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
@@ -682,7 +692,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 pbar = tqdm(total=self._steps_per_epoch)
                 for idx, batch in enumerate(self._dataloader):
-                    if not self.check_batch_requires_grad(batch):  
+                    if not self.check_has_trainable_tokens(batch):  
                         continue
                     
                     if (
