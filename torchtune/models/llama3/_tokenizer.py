@@ -322,10 +322,11 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             mask = mask + [True]
 
         if self.max_seq_len:
-            tokens = truncate(
-                tokens, self.max_seq_len, self.eos_id if add_end_tokens else None
+            tokenized_messages = truncate(
+                tokens=tokenized_messages, max_seq_len=self.max_seq_len, eos_id=self.eos_id if add_eos else None, truncation_type=self.truncation_type
             )
-            mask = truncate(mask, self.max_seq_len, True if add_end_tokens else None)
+            mask = truncate(tokens=mask, max_seq_len=self.max_seq_len,  eos_id=True if add_eos else None, truncation_type=self.truncation_type)
+
 
         return tokens, mask
 
