@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+import torch
+from unittest.mock import patch, MagicMock
 
 from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
@@ -58,5 +60,34 @@ class TestTokenizerUtils:
         else:
             assert tokens[-1] != tokenizer.eos_id
 
-def test_has_trainable_tokens():
-    
+class TestHasTrainableTokens:
+    def test_all_ignore_index(self):
+        ignore_index = -100
+        labels = torch.tensor([ignore_index, ignore_index])
+        result = has_trainable_tokens(labels, ignore_index)
+        assert result is False
+
+    def test_some_trainable_tokens(self):
+        ignore_index = -100
+        labels = torch.tensor([ignore_index, 0])
+        result = has_trainable_tokens(labels, ignore_index)
+        assert result is True
+
+    def test_none_labels(self):
+        result = has_trainable_tokens(None, -100)
+        assert result is False
+
+    def test_empty_labels_tensor(self):
+        labels = torch.tensor([])
+        result = has_trainable_tokens(labels, -100)
+        assert result is False
+
+    @patch('torchtune.utils._logging.log_once')
+    def test_logging(self, mock_log_once):
+        ignore_index = -100
+        labels = torch.tensor([ignore_index, ignore_index])
+        _ = has_trainable_tokens(labels, ignore_index)
+        mock_log_once.assert_called_once_with(
+            MagicMock(),
+            'Consider changing to tokenizer.truncation="left" or increase tokernizer.max_seq_len.'
+        )
