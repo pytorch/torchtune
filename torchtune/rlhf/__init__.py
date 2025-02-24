@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from ._types import PPOStats, Trajectory
+from ._types import ChosenRejectedOutputs, PPOStats, Trajectory
 
 from .rewards import (
     estimate_advantages,
@@ -39,4 +39,5 @@ __all__ = [
     "PPOStats",
     "get_batch_log_probs",
     "Trajectory",
+    "ChosenRejectedOutputs",
 ]
