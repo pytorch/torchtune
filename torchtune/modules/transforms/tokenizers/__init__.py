@@ -10,10 +10,10 @@ from ._sentencepiece import SentencePieceBaseTokenizer
 from ._tiktoken import TikTokenBaseTokenizer
 from ._utils import (
     BaseTokenizer,
+    check_has_trainable_tokens,
     ModelTokenizer,
     parse_hf_tokenizer_json,
     tokenize_messages_no_special_tokens,
-    check_has_trainable_tokens,
 )
 
 __all__ = [
