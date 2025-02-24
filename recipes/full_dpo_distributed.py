@@ -17,13 +17,13 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
-from torchtune.utils._logging import log_once
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
+from torchtune.utils._logging import log_once
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -838,18 +838,21 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         rejected_logits = all_logits[len_chosen:]
 
         return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
-    
+
     def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
         """
         Checks whether there are trainable tokens in batch.
-        
+
         Args:
             labels (Optional[torch.tensor]): labels for the current batch.
-        
+
         Returns:
             bool: True if there are trainable tokens in batch, otherwise False.
         """
-        log_once(log, "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!")
+        log_once(
+            log,
+            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
+        )
         return any(labels != self._loss_fn.ignore_index)
 
     def train(self) -> None:
@@ -889,9 +892,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
-                if not self.check_has_trainable_tokens(batch):  
+                if not self.check_has_trainable_tokens(batch):
                     continue
-                
+
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)

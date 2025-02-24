@@ -75,7 +75,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             large for long running processes (esp. for texts of language that do not use space between
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
-        truncation_type (str): type of truncation to apply, either "left" or "right". 
+        truncation_type (str): type of truncation to apply, either "left" or "right".
             Default is "right".
 
     Example:
@@ -115,7 +115,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
             pad_token=pad_token,
             bpe_cache_size=bpe_cache_size,
         )
- 
+
         self.tool_call_start_id = self.special_tokens["<tool_call>"]
         self.tool_call_end_id = self.special_tokens["</tool_call>"]
         self.truncation_type = truncation_type
@@ -190,9 +190,17 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
         # Finally, truncate if necessary
         if self.max_seq_len:
             tokenized_messages = truncate(
-                tokens=tokenized_messages, max_seq_len=self.max_seq_len, eos_id=self.eos_id if add_eos else None, truncation_type=self.truncation_type
+                tokens=tokenized_messages,
+                max_seq_len=self.max_seq_len,
+                eos_id=self.eos_id if add_eos else None,
+                truncation_type=self.truncation_type,
             )
-            mask = truncate(tokens=mask, max_seq_len=self.max_seq_len,  eos_id=True if add_eos else None, truncation_type=self.truncation_type)
+            mask = truncate(
+                tokens=mask,
+                max_seq_len=self.max_seq_len,
+                eos_id=True if add_eos else None,
+                truncation_type=self.truncation_type,
+            )
 
         return tokenized_messages, mask
 

@@ -18,7 +18,6 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune.utils._logging import log_once
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
@@ -26,6 +25,7 @@ from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
+from torchtune.utils._logging import log_once
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -899,18 +899,21 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 trajectories.append(self.generate_trajectory(batch_input_ids))
         return Trajectory(*map(torch.cat, zip(*trajectories)))
-    
+
     def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
         """
         Checks whether there are trainable tokens in batch.
-        
+
         Args:
             labels (Optional[torch.tensor]): labels for the current batch.
-        
+
         Returns:
             bool: True if there are trainable tokens in batch, otherwise False.
         """
-        log_once(log, "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!")
+        log_once(
+            log,
+            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
+        )
         return any(labels != self._loss_fn.ignore_index)
 
     def train(self) -> None:
@@ -935,7 +938,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._sampler.set_epoch(curr_epoch)
 
             for idx, batch in enumerate(self._dataloader):
-                if not self.check_has_trainable_tokens(batch):  
+                if not self.check_has_trainable_tokens(batch):
                     continue
 
                 # Start tracking CUDA memory for active steps for just the first epoch

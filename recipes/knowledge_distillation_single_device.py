@@ -18,7 +18,6 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune.utils._logging import log_once
 from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
@@ -32,6 +31,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.utils._logging import log_once
 
 from tqdm import tqdm
 
@@ -667,18 +667,21 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         del teacher_logits
 
         return loss, kd_loss
-    
+
     def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
         """
         Checks whether there are trainable tokens in batch.
-        
+
         Args:
             labels (Optional[torch.tensor]): labels for the current batch.
-        
+
         Returns:
             bool: True if there are trainable tokens in batch, otherwise False.
         """
-        log_once(log, "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!")
+        log_once(
+            log,
+            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
+        )
         return any(labels != self._loss_fn.ignore_index)
 
     def train(self) -> None:
@@ -706,9 +709,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
                 pbar = tqdm(total=self._steps_per_epoch)
                 for idx, batch in enumerate(self._dataloader):
-                    if not self.check_has_trainable_tokens(batch):  
+                    if not self.check_has_trainable_tokens(batch):
                         continue
-                
+
                     if (
                         self.max_steps_per_epoch is not None
                         and (idx // self._gradient_accumulation_steps)
