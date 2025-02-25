@@ -842,13 +842,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     max_norm=float(self._clip_grad_norm),
                                 )
                             else:
-                                grads = [
-                                    p.grad
-                                    for p in self._model.parameters()
-                                    if p.grad is not None
-                                ]
                                 grad_norm = torch.nn.utils.get_total_norm(
-                                    grads,
+                                    self._model.parameters(),
                                     norm_type=2,
                                     error_if_nonfinite=False,
                                     foreach=True,
