@@ -26,6 +26,7 @@ from torchtune.training.checkpointing._utils import (
     SEED_KEY,
     STEPS_KEY,
     TOTAL_EPOCHS_KEY,
+    TOTAL_STEPS_KEY,
     update_state_dict_for_classifier,
 )
 
@@ -55,6 +56,7 @@ __all__ = [
     "SEED_KEY",
     "STEPS_KEY",
     "TOTAL_EPOCHS_KEY",
+    "TOTAL_STEPS_KEY",
     "FormattedCheckpointFiles",
     "DATALOADER_KEY",
 ]
