@@ -849,7 +849,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     grads,
                                     norm_type=2,
                                     error_if_nonfinite=False,
-                                    foreac=True,
+                                    foreach=True,
                                 )
                         if isinstance(grad_norm, DTensor):
                             grad_norm = grad_norm.full_tensor()
