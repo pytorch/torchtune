@@ -36,6 +36,8 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
             The extra text will still get tokenized as normal text, not as special tokens.
             Default is :class:`~torchtune.models.mistral.MistralChatTemplate`.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Examples:
         >>> tokenizer = MistralTokenizer("/path/to/spm_model")
@@ -49,6 +51,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         path: str,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = MistralChatTemplate(),
+        truncation_type: str = "right",
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -61,6 +64,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
+        self.truncation_type = truncation_type
 
     @property
     def eos_id(self):

@@ -49,6 +49,8 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             Phi4 special tokens.
         max_seq_len (Optional[int]): Max sequence length to truncate tokens to.
         prompt_template (Optional[PromptTemplate]): Template used to format the messages based on their role.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
     """
 
     def __init__(
@@ -58,6 +60,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
+        truncation_type: str = "right",
     ):
         self.special_tokens = special_tokens or PHI4_SPECIAL_TOKENS
 
@@ -78,6 +81,8 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             self.eos_id,
             self.pad_id,
         )
+        
+        self.truncation_type = truncation_type
 
     @property
     def vocab_size(self):

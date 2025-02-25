@@ -64,6 +64,8 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Examples:
         >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
@@ -78,6 +80,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
+        truncation_type: str = "right",
     ):
         self.special_tokens = (
             special_tokens if special_tokens is not None else LLAMA3_SPECIAL_TOKENS
@@ -122,6 +125,8 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         self._special_token_header_regex = re.compile(
             r"<\|start_header_id\|>.*?<\|end_header_id\|>\n\n"
         )
+        
+        self.truncation_type = truncation_type
 
     def _validate_special_tokens(
         self,

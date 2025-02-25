@@ -107,6 +107,8 @@ class Qwen2Tokenizer(ModelTokenizer):
             large for long running processes (esp. for texts of language that do not use space between
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Example:
         >>> tokenizer = Qwen2Tokenizer(
@@ -130,6 +132,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         eos_token: str = IM_END,
         pad_token: Optional[str] = ENDOFTEXT,
         bpe_cache_size: int = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
+        truncation_type: str = "right",
     ):
         with open(path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)
@@ -169,6 +172,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         self.max_seq_len = max_seq_len
         self.prompt_template = prompt_template
+        self.truncation_type = truncation_type
 
     def _bpe_without_cache(self, token):
         word = tuple(token)
