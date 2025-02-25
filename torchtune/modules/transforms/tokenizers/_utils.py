@@ -223,7 +223,7 @@ def has_trainable_tokens(
     if not any(labels != ignore_index):
         log_once(
             _log,
-            'Consider changing to tokenizer.truncation="left" or increase tokernizer.max_seq_len.',
+            'Consider changing to tokenizer.truncation="left" or increasing tokernizer.max_seq_len.',
         )
         return False
     return True
