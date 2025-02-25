@@ -84,7 +84,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
-        
+
         self.truncation_type = truncation_type
 
     @property

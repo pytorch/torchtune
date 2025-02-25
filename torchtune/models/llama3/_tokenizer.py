@@ -125,7 +125,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         self._special_token_header_regex = re.compile(
             r"<\|start_header_id\|>.*?<\|end_header_id\|>\n\n"
         )
-        
+
         self.truncation_type = truncation_type
 
     def _validate_special_tokens(

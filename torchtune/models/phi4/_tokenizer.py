@@ -81,7 +81,7 @@ class Phi4MiniTokenizer(ModelTokenizer, Transform):
             self.eos_id,
             self.pad_id,
         )
-        
+
         self.truncation_type = truncation_type
 
     @property

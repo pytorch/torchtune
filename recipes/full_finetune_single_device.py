@@ -681,7 +681,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     else -100,
                 ):
                     continue
-                
+
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0
