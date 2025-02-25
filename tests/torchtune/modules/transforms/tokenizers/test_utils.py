@@ -4,17 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from unittest.mock import patch
+
 import pytest
 import torch
-from unittest.mock import patch, MagicMock
 
 from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 
-from torchtune.modules.transforms.tokenizers import tokenize_messages_no_special_tokens
-
-from torchtune.modules.transforms.tokenizers import has_trainable_tokens
+from torchtune.modules.transforms.tokenizers import (
+    has_trainable_tokens,
+    tokenize_messages_no_special_tokens,
+)
 from torchtune.utils._logging import get_logger
+
 
 class TestTokenizerUtils:
     @pytest.fixture
@@ -60,6 +63,7 @@ class TestTokenizerUtils:
         else:
             assert tokens[-1] != tokenizer.eos_id
 
+
 class TestHasTrainableTokens:
     def test_all_ignore_index(self):
         ignore_index = -100
@@ -82,12 +86,12 @@ class TestHasTrainableTokens:
         result = has_trainable_tokens(labels, -100)
         assert result is False
 
-    @patch('torchtune.modules.transforms.tokenizers._utils.log_once')
+    @patch("torchtune.modules.transforms.tokenizers._utils.log_once")
     def test_logging(self, mock_log_once):
         ignore_index = -100
         labels = torch.tensor([ignore_index, ignore_index])
         _ = has_trainable_tokens(labels, ignore_index)
         mock_log_once.assert_called_once_with(
             get_logger(),
-            'Consider changing to tokenizer.truncation="left" or increase tokernizer.max_seq_len.'
+            'Consider changing to tokenizer.truncation="left" or increase tokernizer.max_seq_len.',
         )

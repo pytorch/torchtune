@@ -19,7 +19,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
-from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     disable_adapter,
@@ -30,8 +29,8 @@ from torchtune.modules.peft import (
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
+from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils._logging import log_once
 
 from tqdm import tqdm
 
@@ -528,7 +527,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             for idx, batch in enumerate(self._dataloader):
                 if not has_trainable_tokens(
                     labels=batch.get("labels"),
-                    ignore_index=self._loss_fn.ignore_index if hasattr(self._loss_fn, 'ignore_index') else -100,
+                    ignore_index=self._loss_fn.ignore_index
+                    if hasattr(self._loss_fn, "ignore_index")
+                    else -100,
                 ):
                     continue
 

@@ -24,7 +24,6 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.data._utils import get_dataloader, get_multi_dataset, load_hf_dataset
-from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.datasets._sft import SFTTransform
 from torchtune.modules.peft import (
     DoRALinear,
@@ -36,9 +35,9 @@ from torchtune.modules.peft import (
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
+from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.utils._logging import log_once
 
 from tqdm import tqdm
 
@@ -796,7 +795,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             for idx, batch in enumerate(self._dataloader):
                 if not has_trainable_tokens(
                     labels=batch.get("labels"),
-                    ignore_index=self._loss_fn.ignore_index if hasattr(self._loss_fn, 'ignore_index') else -100,
+                    ignore_index=self._loss_fn.ignore_index
+                    if hasattr(self._loss_fn, "ignore_index")
+                    else -100,
                 ):
                     continue
 

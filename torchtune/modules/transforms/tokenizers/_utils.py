@@ -12,8 +12,8 @@ import torch
 
 from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
-from torchtune.utils._logging import log_once
 from torchtune.utils import get_logger
+from torchtune.utils._logging import log_once
 
 _log: logging.Logger = get_logger()
 
@@ -205,7 +205,8 @@ def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
 
 
 def has_trainable_tokens(
-    labels: Optional[torch.tensor], ignore_index: int,
+    labels: Optional[torch.tensor],
+    ignore_index: int,
 ) -> bool:
     """
     Checks whether there are trainable tokens in batch.
@@ -219,7 +220,7 @@ def has_trainable_tokens(
     """
     if labels is None:
         return False
-    
+
     if not any(labels != ignore_index):
         log_once(
             _log,
