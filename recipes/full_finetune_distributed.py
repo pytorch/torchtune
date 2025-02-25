@@ -348,7 +348,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -688,7 +688,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         batch_size: int,
         collate_fn: str,
         dataloader_state_dict: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
         map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
@@ -731,7 +731,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
-        return sampler, dataloader
+        return dataloader
 
     def train(self) -> None:
         """
