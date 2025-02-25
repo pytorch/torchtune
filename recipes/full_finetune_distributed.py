@@ -843,7 +843,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 )
                             else:
                                 grad_norm = torch.nn.utils.get_total_norm(
-                                    self._model.parameters(),
+                                    [
+                                        p.grad 
+                                        for p in self._model.parameters()
+                                        if p.grad is not None
+                                    ],
                                     norm_type=2,
                                     error_if_nonfinite=False,
                                     foreach=True,
