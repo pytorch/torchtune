@@ -176,6 +176,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
             messages=templated_messages,
             bos_id=self.bos_id,
             eos_id=self.eos_id if add_eos else None,
+            truncation_type=self.truncation_type,
         )
 
     def __call__(

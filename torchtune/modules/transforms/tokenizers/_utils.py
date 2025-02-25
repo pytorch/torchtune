@@ -85,6 +85,7 @@ def tokenize_messages_no_special_tokens(
     *,
     bos_id: Optional[int] = None,
     eos_id: Optional[int] = None,
+    truncation_type: str = "right",
 ) -> Tuple[List[int], List[bool]]:
     r"""Tokenize a list of messages one at a time then concatenate them,
     returning a list of tokens and a list of masks. Does not add any special
@@ -118,6 +119,8 @@ def tokenize_messages_no_special_tokens(
         bos_id (Optional[int]): Beginning-of-sequence token id. If None, no BOS token will
             be added. Default None.
         eos_id (Optional[int]): End-of-sequence token id. If None, no EOS token will be added. Default None.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Returns:
         Tuple[List[int], List[bool]]: The tokenized messages.
@@ -179,9 +182,17 @@ def tokenize_messages_no_special_tokens(
 
     # Finally, truncate if necessary
     if max_seq_len is not None:
-        tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
+        tokens = truncate(
+            tokens=tokens,
+            max_seq_len=max_seq_len,
+            eos_id=eos_id,
+            truncation_type=truncation_type,
+        )
         mask = truncate(
-            mask, max_seq_len, message.masked if eos_id is not None else None
+            tokens=mask,
+            max_seq_len=max_seq_len,
+            eos_id=eos_id if eos_id else None,
+            truncation_type=truncation_type,
         )
 
     return tokenized_messages, mask
