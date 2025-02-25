@@ -833,15 +833,26 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         # We multiply by world_size to undo FSDP2 gradient normalization.
                         training.scale_grads(self._model, self.world_size / num_tokens)
-                        if self._clip_grad_norm is not None:
-                            with implicit_replication():
+                        with implicit_replication():
+                            if self._clip_grad_norm is not None:
                                 grad_norm = torch.nn.utils.clip_grad_norm_(
                                     self._model.parameters(),
                                     max_norm=float(self._clip_grad_norm),
                                 )
-                            # If sharded, collect the DTensor here
-                            if isinstance(grad_norm, DTensor):
-                                grad_norm = grad_norm.full_tensor()
+                            else:
+                                grads = [
+                                    p.grad
+                                    for p in self._model.parameters()
+                                    if p.grad is not None
+                                ]
+                                grad_norm = torch.nn.utils.get_total_norm(
+                                    grads,
+                                    norm_type=2,
+                                    error_if_nonfinite=False,
+                                    foreac=True,
+                                )
+                        if isinstance(grad_norm, DTensor):
+                            grad_norm = grad_norm.full_tensor()
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
@@ -874,14 +885,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 ),
                             ),
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * self.world_size),
+                            / (time_per_step * self.dp_size),
+                            "grad_norm": grad_norm,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
                                 training.get_memory_stats(device=self._device)
                             )
-                        if self._clip_grad_norm is not None:
-                            log_dict.update({"grad_norm": grad_norm})
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.global_step,
