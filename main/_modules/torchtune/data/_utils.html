@@ -457,6 +457,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">urllib</span><span class="w"> </span><span class="kn">import</span> <span class="n">request</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torchvision</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datasets.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_dataset_by_node</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">default_collate</span><span class="p">,</span> <span class="n">DistributedSampler</span>
@@ -493,9 +495,9 @@
     <span class="k">return</span> <span class="n">tokens_truncated</span></div>
 
 
-<div class="viewcode-block" id="load_image"><a class="viewcode-back" href="../../../generated/torchtune.data.load_image.html#torchtune.data.load_image">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">load_image</span><span class="p">(</span><span class="n">image_loc</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">:</span>
+<div class="viewcode-block" id="load_image"><a class="viewcode-back" href="../../../generated/torchtune.data.load_image.html#torchtune.data.load_image">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">load_image</span><span class="p">(</span><span class="n">image_loc</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convenience method to load an image in PIL format from a local file path or remote source.</span>
+<span class="sd">    Convenience method to load an image in torch.Tensor format from a local file path or remote source.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        image_loc (Union[Path, str]): Local file path or remote source pointing to the image</span>
@@ -508,7 +510,7 @@
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError:</span>
 <span class="sd">            If the image cannot be loaded from remote source, **or**</span>
-<span class="sd">            if the image cannot be opened as a :class:`~PIL.Image.Image`.</span>
+<span class="sd">            if the image cannot be opened as a :class:`~torch.Tensor`.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; # Load from remote source</span>
@@ -518,25 +520,25 @@
 <span class="sd">        &gt;&gt;&gt; image = load_image(Path(&quot;/home/user/bird.jpg&quot;))</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        PIL.Image.Image: The loaded image.</span>
+<span class="sd">        torch.Tensor: The loaded image.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Hackily import PIL to avoid burdensome import in the main module</span>
-    <span class="c1"># TODO: Fix this</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
-
     <span class="c1"># If pointing to remote source, try to load to local</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_loc</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">image_loc</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;http&quot;</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">image_loc</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">image_loc</span><span class="p">)</span>
+            <span class="n">image_loc</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">image_loc</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_image</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">image_loc</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;RGB&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load image from </span><span class="si">{</span><span class="n">image_loc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to load remote image as torch.Tensor&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
-    <span class="c1"># Open the local image as a PIL image</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_loc</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to open image as PIL Image from </span><span class="si">{</span><span class="n">image_loc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
-
+    <span class="c1"># Open the local image as a Tensor image</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_image</span><span class="p">(</span><span class="n">image_loc</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to load local image as torch.Tensor&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
     <span class="k">return</span> <span class="n">image</span></div>
 
 
