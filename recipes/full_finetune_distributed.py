@@ -15,11 +15,7 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
-from torch.distributed import (
-    destroy_process_group,
-    init_device_mesh,
-    init_process_group,
-)
+from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
@@ -157,7 +153,29 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
             )
-        self.data_parallel_dim = self.world_size // self.tensor_parallel_dim
+
+        data_shard = cfg.get("dp_shard", self.world_size // self.tensor_parallel_dim)
+        data_replicate = cfg.get("dp_replicate", 1)
+
+        self.parallel_dims = training.ParallelDims(
+            dp_replicate=data_replicate,
+            dp_shard=data_shard,
+            cp=1,
+            tp=self.tensor_parallel_dim,
+            pp=1,
+            world_size=self.world_size,
+            enable_loss_parallel=False,
+        )
+        self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
+
+        if self.parallel_dims.dp_enabled:
+            dp_mesh = self.world_mesh["dp"]
+            self.dp_degree, self.dp_rank = (
+                dp_mesh.size(),
+                dp_mesh.get_local_rank(),
+            )
+        else:
+            self.dp_degree, self.dp_rank = 1, 0
 
         # Logging attributes
         self._output_dir = cfg.output_dir
@@ -173,6 +191,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+
+        # Should we raise an error rather than performing these silent checks like with `_optimizer_in_bwd` and `_clip_grad_norm`?
+        self._minimize_all_reduces = (
+            cfg.get("minimize_all_reduces", False)
+            and self._gradient_accumulation_steps > 1
+            and not self._optimizer_in_bwd
+            and self.parallel_dims.dp_enabled
+        )
+
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
 
@@ -536,21 +563,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        device_mesh = init_device_mesh(
-            self._device.type,
-            mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
-            mesh_dim_names=("dp", "tp"),
-        )
-        self.dp_size = device_mesh["dp"].size()
-        self.dp_rank = device_mesh["dp"].get_local_rank()
-
         # Apply tensor parallelism to the model
         if self.tensor_parallel_dim > 1:
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
-            model = training.prepare_mha_for_tp(model, device_mesh["tp"])
+            model = training.prepare_mha_for_tp(model, self.world_mesh["tp"])
             parallelize_module(
                 model,
-                device_mesh["tp"],
+                self.world_mesh["tp"],
                 parallelize_plan=self.tensor_parallel_plan,
             )
 
@@ -574,19 +593,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         # Apply Fully Sharded Data Parallelism to the model
-        if self.data_parallel_dim > 1:
+        if self.parallel_dims.dp_enabled:
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,
                     names_to_match=custom_sharded_layers,
                 )
             ]
+
+            if self.parallel_dims.dp_replicate_enabled:
+                dp_mesh_dim_names = ("dp_replicate", "dp_shard_cp")
+            else:
+                dp_mesh_dim_names = ("dp_shard_cp",)
+
             training.shard_model(
                 model=model,
                 shard_conditions=fsdp_shard_conditions,
                 cpu_offload=fsdp_cpu_offload,
                 reshard_after_forward=reshard_after_forward,
-                dp_mesh=device_mesh["dp"],
+                dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -709,7 +734,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=self.dp_size, rank=self.dp_rank, shuffle=shuffle, seed=0
+            ds, num_replicas=self.dp_degree, rank=self.dp_rank, shuffle=shuffle, seed=0
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -820,6 +845,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # We multiply by world_size to undo FSDP2 gradient normalization.
                     current_loss = current_loss * (self.world_size / num_tokens)
 
+                if self._minimize_all_reduces and (
+                    (idx + 1) % self._gradient_accumulation_steps == 0
+                ):
+                    self._model.set_is_last_backward(True)
+                    self._model.set_requires_all_reduce(True)
+
                 current_loss.backward()
 
                 # Step with optimizer
@@ -842,6 +873,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 grad_norm = grad_norm.full_tensor()
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
+
+                        if self._minimize_all_reduces:
+                            self._model.set_is_last_backward(False)
+                            self._model.set_requires_all_reduce(False)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
