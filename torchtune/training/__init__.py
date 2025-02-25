@@ -19,7 +19,7 @@ from torchtune.training._distributed import (
     is_distributed,
     load_from_full_model_state_dict,
     load_from_full_optimizer_state_dict,
-    parallelize_module,
+    parallelize_model,
     prepare_mha_for_tp,
     set_torch_num_threads,
     shard_model,
@@ -139,5 +139,5 @@ __all__ = [
     "scale_grads",
     "get_distributed_backend",
     "disable_dropout",
-    "parallelize_module",
+    "parallelize_model",
 ]

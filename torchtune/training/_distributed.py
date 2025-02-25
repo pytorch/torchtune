@@ -326,15 +326,15 @@ def load_from_full_model_state_dict(
                     ),
                     requires_grad=sharded_meta_param.requires_grad,
                 )
-            elif isinstance(sharded_meta_param, DTensor):
+            elif not hasattr(sharded_meta_param, "device_mesh"):
+                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
+                sharded_tensor = full_tensor
+            else:
                 sharded_tensor = distribute_tensor(
                     full_tensor,
                     sharded_meta_param.device_mesh,
                     sharded_meta_param.placements,
                 )
-            else:
-                # In cases where parts of the model aren't sharded, some parameters will be plain tensors
-                sharded_tensor = full_tensor
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
             sharded_sd[param_name] = nn.Parameter(sharded_tensor)

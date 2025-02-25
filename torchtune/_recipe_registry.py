@@ -484,8 +484,8 @@ _ALL_RECIPES = [
                 file_path="llama3_1/70B_generation_distributed.yaml",
             ),
             Config(
-                name="llama3_2/90B_generation_distributed",
-                file_path="llama3_2/90B_generation_distributed.yaml",
+                name="llama3_2_vision/90B_generation_distributed",
+                file_path="llama3_2_vision/90B_generation_distributed.yaml",
             ),
             Config(
                 name="llama3_3/70B_generation_distributed",

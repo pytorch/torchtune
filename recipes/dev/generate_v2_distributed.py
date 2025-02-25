@@ -110,7 +110,7 @@ class InferenceRecipe:
         parallelize_model(
             model,
             tp_device_mesh,
-            parallelize_plan=config.instantiate(cfg.parallelize_plan),
+            parallelize_plan=config.instantiate(cfg.tensor_parallel_plan) if hasattr(cfg, "tensor_parallel_plan") else None,
         )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -139,6 +139,9 @@ class InferenceRecipe:
         # Instantiate transforms
         self.model_transform = config.instantiate(cfg.tokenizer)
         self.to_messages = SingleTurnYAMLToMessages()
+
+        # synchronize before generations begins
+        torch.distributed.barrier()
 
     def log_metrics(self, total_time: int, tokens_per_second: float) -> None:
         """Logs the following metrics: total time for inference, tokens/sec,
@@ -230,6 +233,7 @@ class InferenceRecipe:
             batch["encoder_mask"] = batch["encoder_mask"][:, -1:]
 
         # 7. Continue generating
+        print(f"rank: {dist.get_rank()} starting generating")
         for i in range(cfg.max_new_tokens):
 
             # Update position and mask for incremental decoding
@@ -243,7 +247,10 @@ class InferenceRecipe:
             token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
             generated_tokens.append(token.item())
             seq_len += 1
-
+        print(f"rank: {dist.get_rank()} finished generating")
+        # synchronize after generation finishes
+        torch.distributed.barrier()
+        
         t = time.perf_counter() - t0
 
         # 8. Translate tokens back to text
@@ -257,12 +264,16 @@ class InferenceRecipe:
             self.log_metrics(total_time=t, tokens_per_second=tokens_per_second)
 
 
+    def cleanup(self) -> None:
+        dist.destroy_process_group()
+
 @config.parse
 def main(cfg: DictConfig) -> None:
     config.log_config(recipe_name="InferenceRecipe", cfg=cfg)
     recipe = InferenceRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.generate(cfg=cfg)
+    recipe.cleanup()
 
 
 if __name__ == "__main__":
