@@ -38,6 +38,10 @@ dataset:
 seed: null
 shuffle: False
 
+# Reward functions
+reward_fn:
+  _component_: torchtune.dev.grpo.rewards.batch_shaped_correctness_reward
+
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_2.llama3_2_3b
