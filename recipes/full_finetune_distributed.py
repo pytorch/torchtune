@@ -905,6 +905,30 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         torch.distributed.barrier()
 
+    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    # Shape [b, s], needed for the loss not the model
+        labels = batch.pop("labels")
+
+        with self.activations_handling_ctx:
+            logits = self._model(**batch)
+
+        # Shift labels to compute loss
+        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+        # But this way we dont need to slice the logits. We just add an ignore index to labels.
+        labels = torch.hstack(
+            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+        )
+        if not isinstance(logits, list):
+            labels = labels.reshape(-1)
+            logits = logits.reshape(-1, logits.size(-1))
+
+        # Compute loss
+        loss = self._loss_fn(logits, labels)
+        # free logits otherwise it peaks backward memory
+        del logits
+
+        return loss
+
     # NOTE: added by us
     def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
         """
@@ -972,9 +996,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             continue
 
                         utils.batch_to_device(batch, self._device)
-                        rewards=batch.pop("reward")
                         # TODO: finish this feature
                         # try:
+                        if self.method=="reinforce":
+                            rewards=batch.pop("reward")
                         val_loss = self._loss_step(batch)
                         # except RuntimeError as e:
                         #     log.error(f"Error in validation loss computation: {e}")
