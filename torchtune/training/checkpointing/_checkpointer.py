@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Protocol, Union
 import torch
 import torch.distributed as dist
 from safetensors.torch import save_file
+
 from torch.distributed.checkpoint import (
     async_save,
     FileSystemReader,
@@ -23,6 +24,13 @@ from torch.distributed.checkpoint import (
     load,
     save,
 )
+
+# Replace this with something that actually works
+if version("torch") > (2, 7):
+    from torch.distributed.checkpoint import (
+        _HuggingFaceStorageReader,
+        _HuggingFaceStorageWriter,
+    )
 
 from torchtune import training
 from torchtune.models import convert_weights
@@ -412,9 +420,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         resume_from_checkpoint: bool = False,
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
-        *,
-        storage_reader: Optional[FsspecReader] = None,
-        storage_writer: Optional[FsspecWriter] = None,
     ) -> None:
 
         self._should_load_recipe_state = should_load_recipe_state
@@ -433,9 +438,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         )
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Use DCP specs if available
-        self._storage_reader = storage_reader
-        self._storage_writer = storage_writer
+        # Use DCP specs if looking at the fsspec for HF
+        if checkpoint_dir.startswith("hf://"):
+            self._storage_reader = _HuggingFaceStorageReader
+            self._storage_writer = _HuggingFaceStorageWriter
+            assert checkpoint_files is None
+        else:
+            self._storage_reader, self._storage_writer = None, None
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
