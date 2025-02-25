@@ -819,6 +819,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
 
                     # We multiply by world_size to undo FSDP2 gradient normalization.
+                    # TODO: confirm whether below should divide by `tensor_parallel_dim` to
+                    # adjust grad norm for overcounting tokens from the all-reduce
                     current_loss = current_loss * (self.world_size / num_tokens)
 
                 current_loss.backward()
@@ -831,8 +833,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
-                        # We multiply by world_size to undo FSDP2 gradient normalization.
-                        training.scale_grads(self._model, self.world_size / num_tokens)
+                        # We multiply by dp_size to undo FSDP2 gradient normalization.
+                        training.scale_grads(self._model, self.dp_size / num_tokens)
                         with implicit_replication():
                             if self._clip_grad_norm is not None:
                                 grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -884,8 +886,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
+                            # secondary tp dim division adjusts for tp ranks share the tokens during training
+                            # so the above all-reduce over-counts
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * self.dp_size),
+                            / (
+                                time_per_step
+                                * self.world_size
+                                * self.tensor_parallel_dim
+                            ),
                             "grad_norm": grad_norm,
                         }
                         if self._log_peak_memory_stats:
