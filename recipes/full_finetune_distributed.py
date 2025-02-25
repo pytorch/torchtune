@@ -21,6 +21,7 @@ from torch.distributed import (
     init_process_group,
 )
 from torch.distributed._tensor import DTensor
+from torch.distributed.tensor.experimental import implicit_replication
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -833,10 +834,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # We multiply by world_size to undo FSDP2 gradient normalization.
                         training.scale_grads(self._model, self.world_size / num_tokens)
                         if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
-                            )
+                            with implicit_replication():
+                                grad_norm = torch.nn.utils.clip_grad_norm_(
+                                    self._model.parameters(),
+                                    max_norm=float(self._clip_grad_norm),
+                                )
                             # If sharded, collect the DTensor here
                             if isinstance(grad_norm, DTensor):
                                 grad_norm = grad_norm.full_tensor()
