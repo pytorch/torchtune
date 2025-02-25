@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
+from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
@@ -733,22 +734,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def check_has_trainable_tokens(self, labels: Optional[torch.tensor]) -> bool:
-        """
-        Checks whether there are trainable tokens in batch.
-
-        Args:
-            labels (Optional[torch.tensor]): labels for the current batch.
-
-        Returns:
-            bool: True if there are trainable tokens in batch, otherwise False.
-        """
-        log_once(
-            log,
-            "Found batch with no trainable tokens. Consider changing tokenizer.truncation direction!",
-        )
-        return any(labels != self._loss_fn.ignore_index)
-
     def train(self) -> None:
         """
         The core training loop.
@@ -777,7 +762,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             for idx, batch in enumerate(self._dataloader):
-                if not self.check_has_trainable_tokens(batch):
+                if not has_trainable_tokens(
+                    labels=batch.get("labels"),
+                    ignore_index=self._loss_fn.ignore_index if hasattr(self._loss_fn, 'ignore_index') else -100,
+                ):
                     continue
 
                 if (

@@ -21,6 +21,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate_packed, padded_collate_sft
+from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     DoRALinear,
@@ -833,7 +834,10 @@ class KDRecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
-                if not check_has_trainable_tokens(batch):
+                if not has_trainable_tokens(
+                    labels=batch.get("labels"),
+                    ignore_index=self._loss_fn.ignore_index if hasattr(self._loss_fn, 'ignore_index') else -100,
+                ):
                     continue
 
                 if (
