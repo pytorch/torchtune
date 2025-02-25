@@ -876,9 +876,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
+                
                 if not has_trainable_tokens(
                     labels=batch.get("labels"),
-                    ignore_index=self._loss_fn.ignore_index,
+                    ignore_index=self._loss_fn.ignore_index if hasattr(self._loss_fn, 'ignore_index') else -100,
                 ):
                     continue
 
