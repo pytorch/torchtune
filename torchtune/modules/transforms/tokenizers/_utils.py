@@ -191,7 +191,7 @@ def tokenize_messages_no_special_tokens(
         mask = truncate(
             tokens=mask,
             max_seq_len=max_seq_len,
-            eos_id=eos_id if eos_id else None,
+            eos_id=message.masked if eos_id else None,
             truncation_type=truncation_type,
         )
 

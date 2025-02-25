@@ -93,5 +93,5 @@ class TestHasTrainableTokens:
         _ = has_trainable_tokens(labels, ignore_index)
         mock_log_once.assert_called_once_with(
             get_logger(),
-            'Consider changing to tokenizer.truncation="left" or increase tokernizer.max_seq_len.',
+            'Consider changing to tokenizer.truncation="left" or increasing tokernizer.max_seq_len.',
         )
