@@ -130,7 +130,7 @@ class InferenceRecipe:
 
             results.loc[len(results.index)] = [i, example['input'], output, ground_truth, classification]
             print(i, classification)
-        print(f'Total accuracy: {total_gen_accuracy} / {len(validation_set)}')
+        print(f'Total accuracy: {total_gen_accuracy} / {max(len(validation_set), cfg.num_examples)}')
         results.to_csv('validation_results.csv')
 
 @config.parse
