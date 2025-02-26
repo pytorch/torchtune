@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from dataclasses import dataclass
 from typing import NamedTuple
 
 import torch
@@ -67,3 +68,23 @@ class PPOStats(NamedTuple):
     ratios: torch.Tensor
     clipfrac: torch.Tensor
     approx_policy_kls: torch.Tensor
+
+
+@dataclass
+class ChosenRejectedOutputs:
+    """
+    Contains `concatenated_forward` outputs.
+
+    Attributes:
+        chosen_logps (torch.Tensor): Log probabilities of the policy/reference model
+            for the chosen responses. Shape: (batch_size)
+        rejected_logps (torch.Tensor): Log probabilities of the policy/reference model
+            for the rejected responses. Shape: (batch_size)
+        chosen_logits (torch.Tensor): logits of the policy/reference model
+        rejected_logits (torch.Tensor): logits of the policy/reference model
+    """
+
+    chosen_logps: torch.Tensor
+    rejected_logps: torch.Tensor
+    chosen_logits: torch.Tensor
+    rejected_logits: torch.Tensor
