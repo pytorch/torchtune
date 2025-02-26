@@ -30,7 +30,7 @@ output_dir: /tmp/torchtune/mistral_7B/full_ppo_low_memory # /tmp may be deleted 
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
   path: /tmp/Mistral-7B-Instruct-v0.2/tokenizer.model
-  max_seq_len: null
+  max_seq_len: 512
 
 # Dataset
 dataset:
