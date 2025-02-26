@@ -290,6 +290,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             batch_size=cfg.batch_size,
+            shuffle=cfg.shuffle,
             dataloader_state_dict=(
                 ckpt_dict[training.DATALOADER_KEY]
                 if self._resume_from_checkpoint
