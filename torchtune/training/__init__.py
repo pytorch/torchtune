@@ -57,6 +57,7 @@ from torchtune.training.checkpointing import (
     TOTAL_EPOCHS_KEY,
     update_state_dict_for_classifier,
 )
+from torchtune.training.federation import DiLiCoFederator, TuneParticipant
 from torchtune.training.lr_schedulers import get_cosine_schedule_with_warmup, get_lr
 from torchtune.training.memory import (
     cleanup_before_training,
@@ -140,4 +141,6 @@ __all__ = [
     "get_distributed_backend",
     "disable_dropout",
     "DATALOADER_KEY",
+    "DiLiCoFederator",
+    "TuneParticipant",
 ]
