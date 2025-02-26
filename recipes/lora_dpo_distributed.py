@@ -518,7 +518,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             rank=self.rank,
             shuffle=shuffle,
         )
-        
+
         dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
@@ -535,7 +535,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
             list(dataloader)  # Hack to force dataloader to finish iteration
-        
+
         return dataloader
 
     def save_checkpoint(
@@ -825,7 +825,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
 
                     t0 = time.perf_counter()
-                
+
                 if (
                     (idx + 1) // self._gradient_accumulation_steps
                 ) == self.max_steps_per_epoch:

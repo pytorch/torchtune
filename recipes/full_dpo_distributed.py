@@ -18,7 +18,7 @@ from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, rlhf, training, utils
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
+from torchtune.data import padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
@@ -708,7 +708,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-        
+
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
             list(dataloader)  # Hack to force dataloader to finish iteration
@@ -886,7 +886,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             self._dataloader.sampler.set_epoch(curr_epoch)
-            
+
             for idx, batch in enumerate(self._dataloader):
                 # batch is input_ids, labels
                 num_tokens += torch.tensor(batch[0].numel())

@@ -941,7 +941,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                 # Note we are stepping each batch, which might not include optimizer step in the trace
                 # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
-                
+
                 if (
                     (idx + 1) // self._gradient_accumulation_steps
                 ) == self.max_steps_per_epoch:

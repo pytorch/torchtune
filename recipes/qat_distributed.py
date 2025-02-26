@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
@@ -627,7 +627,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         sampler = StatefulDistributedSampler(
             ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
-        
+
         dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
@@ -644,11 +644,11 @@ class QATRecipeDistributed(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-        
+
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
             list(dataloader)  # Hack to force dataloader to finish iteration
-            
+
         return sampler, dataloader
 
     def save_checkpoint(
