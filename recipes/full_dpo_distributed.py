@@ -876,6 +876,13 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                ):
+                    break
+                
                 if not has_trainable_tokens(
                     labels=batch[1],
                     ignore_index=self._loss_fn.ignore_index
@@ -883,13 +890,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     else -100,
                 ):
                     continue
-
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
 
                 # batch is input_ids, labels
                 num_tokens += torch.tensor(batch[0].numel())
