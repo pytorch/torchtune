@@ -95,7 +95,6 @@ class TestLoRADPOSingleDeviceRecipe:
             enable_activation_checkpointing=True \
             enable_activation_offloading=False \
         """.split()
-        print(cmd_1)
 
         model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 

@@ -136,7 +136,7 @@ class PreferenceDataset(Dataset):
         chosen_input_ids, chosen_masks = self._tokenizer.tokenize_messages(
             transformed_sample["chosen"],
         )
-        print(len(chosen_input_ids), len(chosen_masks))
+
         chosen_labels = list(
             np.where(chosen_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )
