@@ -731,6 +731,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
+            list(dataloader)  # Hack to force dataloader to finish iteration
         return dataloader
 
     def train(self) -> None:
@@ -905,8 +906,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     break
 
             self.epochs_run += 1
-            dataloader_sd = self._dataloader.state_dict()
-            dataloader_sd["_iterator_finished"] = True
             self._checkpoint_client.save_checkpoint(
                 model=self._model,
                 optimizer=(
@@ -919,7 +918,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     epochs_run=self.epochs_run,
                     total_epochs=self.total_epochs,
                     max_steps_per_epoch=self.max_steps_per_epoch,
-                    dataloader_state_dict=dataloader_sd,
+                    dataloader_state_dict=self._dataloader.state_dict(),
                 ),
                 epoch=curr_epoch,
             )
