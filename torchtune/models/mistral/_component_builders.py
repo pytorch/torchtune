@@ -45,6 +45,7 @@ def mistral(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
     rope_base: int = 10_000,
+    head_dim: int = None,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the mistral model. This includes:
@@ -75,7 +76,9 @@ def mistral(
     Returns:
         TransformerDecoder: Instantiation of mistral model.
     """
-    head_dim = embed_dim // num_heads
+
+    # mistral small has head_dim=128, so we pass that in separately instead of using embed_dim // num_heads
+    head_dim = head_dim if head_dim else embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = RotaryPositionalEmbeddings(
@@ -91,7 +94,7 @@ def mistral(
             q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=None,
             max_seq_len=max_seq_len,
@@ -163,6 +166,7 @@ def lora_mistral(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    head_dim: int = None,
 ) -> TransformerDecoder:
     """
     Return a version of Mistral (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -219,6 +223,7 @@ def lora_mistral(
             lora_dropout=lora_dropout,
             use_dora=use_dora,
             quantize_base=quantize_base,
+            head_dim=head_dim,
         )
 
         if apply_lora_to_mlp:
@@ -268,7 +273,9 @@ def lora_mistral(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model
 
@@ -289,6 +296,7 @@ def lora_mistral_self_attention(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    head_dim: int = None,
 ) -> MultiHeadAttention:
     """
     Return an instance of :func:`~torchtune.modules.MultiHeadAttention` with LoRA
@@ -328,7 +336,8 @@ def lora_mistral_self_attention(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
         )
 
-    head_dim = embed_dim // num_heads
+    # mistral small has head_dim=128, so we pass that in separately instead of using embed_dim // num_heads
+    head_dim = head_dim if head_dim else embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     adapter_cls = DoRALinear if use_dora else LoRALinear
 
@@ -382,7 +391,7 @@ def lora_mistral_self_attention(
     )
     output_proj = (
         adapter_cls(
-            embed_dim,
+            num_heads * head_dim,
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
@@ -391,9 +400,9 @@ def lora_mistral_self_attention(
         )
         if "output_proj" in lora_modules
         else (
-            nn.Linear(embed_dim, embed_dim, bias=False)
+            nn.Linear(num_heads * head_dim, embed_dim, bias=False)
             if not quantize_base
-            else FrozenNF4Linear(embed_dim, embed_dim, bias=False)
+            else FrozenNF4Linear(num_heads * head_dim, embed_dim, bias=False)
         )
     )
     rope = RotaryPositionalEmbeddings(
@@ -471,6 +480,7 @@ def mistral_classifier(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
     rope_base: int = 10_000,
+    head_dim: int = None,
 ) -> TransformerDecoder:
     """
     Build a base mistral model with an added classification layer.
@@ -497,7 +507,7 @@ def mistral_classifier(
     Returns:
         TransformerDecoder: Instantiation of mistral classification model.
     """
-    head_dim = embed_dim // num_heads
+    head_dim = head_dim if head_dim else embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = RotaryPositionalEmbeddings(
@@ -513,7 +523,7 @@ def mistral_classifier(
             q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=None,
             max_seq_len=max_seq_len,
@@ -565,6 +575,7 @@ def lora_mistral_classifier(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    head_dim: int = None,
 ) -> TransformerDecoder:
     """
     Return a version of Mistral classifier (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -622,6 +633,7 @@ def lora_mistral_classifier(
             lora_dropout=lora_dropout,
             use_dora=use_dora,
             quantize_base=quantize_base,
+            head_dim=head_dim,
         )
 
         if apply_lora_to_mlp:
@@ -675,6 +687,8 @@ def lora_mistral_classifier(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model
