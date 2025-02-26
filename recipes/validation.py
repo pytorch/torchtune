@@ -45,15 +45,13 @@ class InferenceRecipe:
         training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
-        checkpointer = config.instantiate(cfg.checkpointer, adapter_checkpoint=cfg.checkpointer.adapter_checkpoint)
+        checkpointer = config.instantiate(cfg.checkpointer)
 
         ckpt_dict = checkpointer.load_checkpoint()
 
         self._model = self._setup_model(
             model_cfg=cfg.model,
             model_state_dict=ckpt_dict[training.MODEL_KEY],
-            adapter_state_dict=ckpt_dict[training.ADAPTER_KEY],
-            pretrained_only=cfg.pretrained_only,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -61,15 +59,11 @@ class InferenceRecipe:
         self,
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
-        adapter_state_dict: Dict[str, Any],
-        pretrained_only=False,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
 
-        model.load_state_dict(model_state_dict, strict=False)
-        if not pretrained_only:
-            model.load_state_dict(adapter_state_dict, strict=False)
+        model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
         training.validate_expected_param_dtype(
@@ -96,6 +90,7 @@ class InferenceRecipe:
         )
 
         for i, example in enumerate(validation_set):
+            if i >= cfg.num_examples: break
             ground_truth = example['output']
 
             msgs = [Message(role="system", content=system_prompt, eot=True), Message(role="user", content=example['input'], eot=True)]
