@@ -564,6 +564,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
+            list(dataloader)  # Hack to force dataloader to finish iteration
         return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
@@ -582,8 +583,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # if training is in-progress, checkpoint the optimizer state as well
         if intermediate_checkpoint:
-            dataloader_sd = self._dataloader.state_dict()
-            dataloader_sd["_iterator_finished"] = True
             ckpt_dict.update(
                 {
                     training.OPT_KEY: self._optimizer.state_dict(),
@@ -591,7 +590,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.EPOCHS_KEY: self.epochs_run,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    training.DATALOADER_KEY: dataloader_sd,
+                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
 
