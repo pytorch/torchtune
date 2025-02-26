@@ -769,13 +769,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     continue
 
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
