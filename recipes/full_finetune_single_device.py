@@ -594,6 +594,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
+            list(dataloader)  # Hack to force dataloader to finish iteration
         return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
@@ -604,16 +605,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
-            dataloader_sd = self._dataloader.state_dict()
-            # Hardcode _iterator_finished to True to avoid issues with resuming from a checkpoint
-            dataloader_sd["_iterator_finished"] = True
             ckpt_dict.update(
                 {
                     training.SEED_KEY: self.seed,
                     training.EPOCHS_KEY: self.epochs_run,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    training.DATALOADER_KEY: dataloader_sd,
+                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
             if not self._optimizer_in_bwd:
