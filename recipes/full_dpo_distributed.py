@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
@@ -875,6 +876,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
+                if not has_trainable_tokens(
+                    labels=batch[1],
+                    ignore_index=self._loss_fn.ignore_index
+                    if hasattr(self._loss_fn, "ignore_index")
+                    else -100,
+                ):
+                    continue
+
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
