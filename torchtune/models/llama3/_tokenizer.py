@@ -203,9 +203,12 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         """
         Tokenize header start, message role, and header end as list of ids
         """
+        role = message.role.strip()
         return (
             [self.start_header_id]
-            + self.encode(message.role.strip(), add_bos=False, add_eos=False)
+            + self.encode(
+                "ipython" if role == "tool" else role, add_bos=False, add_eos=False
+            )
             + [self.end_header_id]
             + self.encode("\n\n", add_bos=False, add_eos=False)
         )
@@ -231,7 +234,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             else:
                 raise RuntimeError(f"Unsupported message content type: {item['type']}")
 
-        if message.ipython:
+        if message.tool:
             tokenized_body = [self.python_tag] + tokenized_body
 
         return tokenized_body

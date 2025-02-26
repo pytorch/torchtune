@@ -57,7 +57,7 @@ class TestMessage:
             ValueError,
             match="Only assistant messages can be tool calls. Found role user in message: hello world",
         ):
-            message = Message(role="user", content="hello world", ipython=True)
+            message = Message(role="user", content="hello world", tool=True)
 
         with pytest.raises(
             ValueError,
@@ -66,7 +66,7 @@ class TestMessage:
             message = Message(
                 role="user",
                 content=[{"type": "image", "content": test_image}],
-                ipython=True,
+                tool=True,
             )
 
     def test_from_dict(self):
@@ -74,7 +74,7 @@ class TestMessage:
         assert message.role == "user"
         assert message.content[0]["content"] == "hello world"
         assert not message.masked
-        assert not message.ipython
+        assert not message.tool
         assert message.eot
 
     def test_contains_media(self, text_message, image_message):

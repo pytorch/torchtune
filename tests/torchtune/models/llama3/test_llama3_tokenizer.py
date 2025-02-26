@@ -113,7 +113,7 @@ class TestLlama3Tokenizer:
                 {"type": "text", "content": "locate_sun(radius=100_000_000)"},
             ],
             masked=False,
-            ipython=True,
+            tool=True,
             eot=False,
         )
 
@@ -125,9 +125,9 @@ class TestLlama3Tokenizer:
         return message, expected_tokens
 
     @pytest.fixture
-    def ipython_message(self):
+    def tool_message(self):
         message = Message(
-            role="ipython",
+            role="tool",
             content=[
                 {"type": "text", "content": '{"content": True}'},
             ],
@@ -234,25 +234,25 @@ class TestLlama3Tokenizer:
         tokenizer,
         user_text_message,
         assistant_tool_message,
-        ipython_message,
+        tool_message,
         assistant_text_message,
     ):
         tool_call_messages = [
             user_text_message[0],
             assistant_tool_message[0],
-            ipython_message[0],
+            tool_message[0],
             assistant_text_message[0],
         ]
         expected_tokens = (
             user_text_message[1]
             + assistant_tool_message[1]
-            + ipython_message[1]
+            + tool_message[1]
             + assistant_text_message[1]
         )
         expected_mask = (
             [True] * len(user_text_message[1])
             + [False] * len(assistant_tool_message[1])
-            + [True] * len(ipython_message[1])
+            + [True] * len(tool_message[1])
             + [False] * (len(assistant_text_message[1]) - 1)
             + [True]
         )

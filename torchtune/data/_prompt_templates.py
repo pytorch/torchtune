@@ -65,7 +65,7 @@ class PromptTemplate(PromptTemplateInterface):
             "system": ("System: ", "\\n"),
             "user": ("User: ", "\\n"),
             "assistant": ("Assistant: ", "\\n"),
-            "ipython": ("Tool: ", "\\n"),
+            "tool": ("Tool: ", "\\n"),
         }
 
     Once instantiated, you must call the prompt template on a list of messages. It
@@ -74,7 +74,7 @@ class PromptTemplate(PromptTemplateInterface):
     Note:
         Any tags prepended/appended to the assistant message will be included
         in the loss calculation. All other prepend/append tags for other roles
-        (system, user, ipython) are, in most cases, not included in loss. Consider using
+        (system, user, tool) are, in most cases, not included in loss. Consider using
         the append tags for user messages for tags that need to come before the
         assistant message but should not be included in loss. For more custom masking
         and prompt templating, you can create your own class based off the
@@ -123,7 +123,7 @@ class PromptTemplate(PromptTemplateInterface):
                     role=message.role,
                     content=content,
                     masked=message.masked,
-                    ipython=message.ipython,
+                    tool=message.tool,
                     eot=message.eot,
                 ),
             )
@@ -153,7 +153,7 @@ class ChatMLTemplate(PromptTemplateInterface):
         "system": ("<|im_start|>system\n", "<|im_end|>\n"),
         "user": ("<|im_start|>user\n", "<|im_end|>\n"),
         "assistant": ("<|im_start|>assistant\n", "<|im_end|>\n"),
-        "ipython": ("", ""),
+        "tool": ("", ""),
     }
 
     def __call__(
@@ -203,7 +203,7 @@ class ChatMLTemplate(PromptTemplateInterface):
                     role=message.role,
                     content=content,
                     masked=message.masked,
-                    ipython=message.ipython,
+                    tool=message.tool,
                     eot=message.eot,
                 ),
             )
