@@ -137,7 +137,6 @@ class TestLoRAFinetuneDistributedRecipe:
         """
         ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
         ckpt = model_type + "_" + ckpt_type
-        expected_loss_values = self._fetch_expected_loss_values(model_type)
 
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
