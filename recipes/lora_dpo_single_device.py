@@ -16,7 +16,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
@@ -245,10 +245,17 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        self._sampler, self._dataloader = self._setup_data(
+        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
+
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
+            dataloader_state_dict=(
+                checkpoint_dict[training.DATALOADER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -371,11 +378,12 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+    ) -> StatefulDataLoader:
         """
-        All data related setup happens here. Currently this recipe only supports
-        Map-style Datasets which fit into memory and an option for random shuffling.
-        Samplers, iterable datasets, and streaming datasets are not supported.
+        All data related setup happens here. This recipe currently supports only
+        map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
+        it is loaded into the dataloader.
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -386,28 +394,24 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
-            ds,
-            num_replicas=1,
-            rank=0,
-            shuffle=shuffle,
-            seed=0,
-        )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
-            sampler=sampler,
+            shuffle=shuffle,
             batch_size=batch_size,
             # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
             collate_fn=partial(
                 padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
+            drop_last=True,
         )
-        log.info("Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        if dataloader_state_dict is not None:
+            dataloader.load_state_dict(dataloader_state_dict)
+            list(dataloader)  # Hack to force dataloader to finish iteration
+
+        return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -425,6 +429,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # if training is in-progress, checkpoint the optimizer state as well
         if intermediate_checkpoint:
+            dataloader_sd = self._dataloader.state_dict()
+            # Hardcode _iterator_finished to True to avoid issues with resuming from a checkpoint
+            dataloader_sd["_iterator_finished"] = True
+
             ckpt_dict.update(
                 {
                     training.OPT_KEY: self._optimizer.state_dict(),
@@ -432,6 +440,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     training.EPOCHS_KEY: self.epochs_run,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
 
@@ -519,18 +528,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
             pbar = tqdm(total=self._steps_per_epoch)
             for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
-
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
                 (
@@ -618,6 +617,11 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
+
+                if (
+                    (idx + 1) // self._gradient_accumulation_steps
+                ) == self.max_steps_per_epoch:
+                    break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
