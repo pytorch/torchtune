@@ -599,6 +599,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
+            list(dataloader)  # Hack to force dataloader to finish last iteration
         return dataloader
 
     def save_checkpoint(
@@ -666,8 +667,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
             if intermediate_checkpoint:
-                dataloader_sd = self._dataloader.state_dict()
-                dataloader_sd["_iterator_finished"] = True
                 checkpoint_dict.update(
                     {
                         training.OPT_KEY: opt_state_dict,
@@ -675,7 +674,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self._epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.RNG_KEY: self._rng.get_state(),
-                        training.DATALOADER_KEY: dataloader_sd,
+                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
