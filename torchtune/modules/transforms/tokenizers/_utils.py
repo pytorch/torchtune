@@ -183,7 +183,7 @@ def tokenize_messages_no_special_tokens(
     # Finally, truncate if necessary
     if max_seq_len is not None:
         tokens = truncate(
-            tokens=tokens,
+            tokens=tokenized_messages,
             max_seq_len=max_seq_len,
             eos_id=eos_id,
             truncation_type=truncation_type,
@@ -195,7 +195,7 @@ def tokenize_messages_no_special_tokens(
             truncation_type=truncation_type,
         )
 
-    return tokenized_messages, mask
+    return tokens, mask
 
 
 def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
