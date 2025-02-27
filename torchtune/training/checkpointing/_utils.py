@@ -60,7 +60,6 @@ MAX_STEPS_KEY = "max_steps_per_epoch"
 MODEL_KEY = "model"
 OPT_KEY = "optimizer"
 SEED_KEY = "seed"
-CURR_STEP_KEY = "steps_run"
 
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
@@ -558,18 +557,26 @@ def get_model_checkpoint_path(
         checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
 
     # Case 1: not loading the recipe state
-    try:
-        checkpoint_paths = validate_checkpoint_files(
-            checkpoint_files,
-            input_dir=checkpoint_dir,
-            missing_ok=False,
-        )
-    except ValueError:
-        checkpoint_paths = validate_checkpoint_files(
-            checkpoint_files,
-            input_dir=output_dir,
-            missing_ok=False,
-        )
+    if not should_load_recipe_state:
+        input_dir = checkpoint_dir
+
+    # Case 2: Loading the recipe state, but its full finetuning (no adapter)
+    elif not has_adapter_checkpoint:
+        input_dir = output_dir
+
+    # Case 3: Loading the recipe state and has an adapter.
+    else:
+        # FIXME
+        # TODO: if the model has lora + trained weights, e.g. embeddings,
+        # we will silently not load the trained model, because we load from checkpoint_dir.
+        # We cannot load from output_dir because we always merge the adapter weights into the model
+        input_dir = checkpoint_dir
+
+    checkpoint_paths = validate_checkpoint_files(
+        checkpoint_files,
+        input_dir=input_dir,
+        missing_ok=False,
+    )
 
     return checkpoint_paths
 
