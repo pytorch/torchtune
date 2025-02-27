@@ -539,8 +539,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 policy_chosen_rejected_outputs = self.concatenated_forward(
                     self._model, batch
                 )
-                
-                print("forwared")
 
                 policy_chosen_logits_mean = policy_chosen_rejected_outputs.chosen_logits.detach().mean()
                 policy_rejected_logits_mean = policy_chosen_rejected_outputs.rejected_logits.detach().mean()
