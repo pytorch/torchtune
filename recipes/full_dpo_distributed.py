@@ -899,14 +899,20 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 )
 
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
-                del policy_chosen_rejected_outputs.chosen_logits, policy_chosen_rejected_outputs.rejected_logits
+                del (
+                    policy_chosen_rejected_outputs.chosen_logits,
+                    policy_chosen_rejected_outputs.rejected_logits,
+                )
 
                 with torch.no_grad():
                     reference_chosen_rejected_outputs = self.concatenated_forward(
                         self._ref_model, batch, activations_handling=False
                     )
 
-                del reference_chosen_rejected_outputs.chosen_logits, reference_chosen_rejected_outputs.rejected_logits
+                del (
+                    reference_chosen_rejected_outputs.chosen_logits,
+                    reference_chosen_rejected_outputs.rejected_logits,
+                )
 
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
                     policy_chosen_rejected_outputs, reference_chosen_rejected_outputs
