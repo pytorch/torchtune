@@ -649,7 +649,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             dataloader.load_state_dict(dataloader_state_dict)
             list(dataloader)  # Hack to force dataloader to finish iteration
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self,
@@ -766,7 +766,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
+            self._dataloader.sampler.set_epoch(curr_epoch)
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
