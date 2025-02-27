@@ -60,6 +60,7 @@ MAX_STEPS_KEY = "max_steps_per_epoch"
 MODEL_KEY = "model"
 OPT_KEY = "optimizer"
 SEED_KEY = "seed"
+CURR_STEP_KEY = "steps_run"
 
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
@@ -313,7 +314,7 @@ def get_largest_iter_folder(
     dir: Union[str, Path], pattern: str = r"^epoch_(\d+)"
 ) -> Union[None, str]:
 
-    latest_epoch_folder = None
+    largest_iter_folder = None
     iter_folders = []
     regex = re.compile(pattern)
 
@@ -327,9 +328,9 @@ def get_largest_iter_folder(
 
     # Find the folder with the largest iter number
     if iter_folders:
-        latest_epoch_folder = max(iter_folders, key=lambda x: x[1])[0]
+        largest_iter_folder = max(iter_folders, key=lambda x: x[1])[0]
 
-    return latest_epoch_folder
+    return largest_iter_folder
 
 
 # TODO: instead of copying, make it a symlink when we start using HF cache
@@ -470,6 +471,8 @@ def get_adapter_checkpoint_path(
     else:
         # Look for the latest adapter checkpoint in the output directory
         largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
+        if largest_iter_folder is None:
+            return None
 
         tentative_adapter_checkpoint_path = os.path.join(
             output_dir, largest_iter_folder, "adapter_model.pt"
@@ -555,26 +558,18 @@ def get_model_checkpoint_path(
         checkpoint_files = formatted_checkpoint_files.build_checkpoint_filenames()
 
     # Case 1: not loading the recipe state
-    if not should_load_recipe_state:
-        input_dir = checkpoint_dir
-
-    # Case 2: Loading the recipe state, but its full finetuning (no adapter)
-    elif not has_adapter_checkpoint:
-        input_dir = output_dir
-
-    # Case 3: Loading the recipe state and has an adapter.
-    else:
-        # FIXME
-        # TODO: if the model has lora + trained weights, e.g. embeddings,
-        # we will silently not load the trained model, because we load from checkpoint_dir.
-        # We cannot load from output_dir because we always merge the adapter weights into the model
-        input_dir = checkpoint_dir
-
-    checkpoint_paths = validate_checkpoint_files(
-        checkpoint_files,
-        input_dir=input_dir,
-        missing_ok=False,
-    )
+    try:
+        checkpoint_paths = validate_checkpoint_files(
+            checkpoint_files,
+            input_dir=checkpoint_dir,
+            missing_ok=False,
+        )
+    except ValueError:
+        checkpoint_paths = validate_checkpoint_files(
+            checkpoint_files,
+            input_dir=output_dir,
+            missing_ok=False,
+        )
 
     return checkpoint_paths
 
@@ -597,3 +592,76 @@ def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
         )
 
     return True
+
+
+def get_all_checkpoints_in_dir(
+    dir: Path, *, pattern: str = r"^epoch_(\d+)"
+) -> List[Path]:
+    """
+    Returns a list of all checkpoints in the given directory.
+    The pattern argument is a regular expression that matches the epoch number in the checkpoint filename.
+    The default pattern matches filenames of the form "epoch_{epoch_number}".
+
+    Args:
+        dir (Path): The directory containing the checkpoints.
+        pattern (str): A regular expression pattern to match the epoch number in the checkpoint filename.
+            Defaults to "epoch_(\\d+)".
+
+    Example:
+        >>> dir = Path("/path/to/checkpoints")
+        >>> pattern = r"^epoch_(\\d+)"
+        >>> get_all_checkpoints_in_dir(dir, pattern=pattern)
+        [PosixPath('/path/to/checkpoints/epoch_1'), PosixPath('/path/to/checkpoints/epoch_2'), ...]
+
+    Returns:
+        List[Path]: A list of Path objects representing the checkpoints..
+    """
+    checkpoints = []
+    regex_to_match = re.compile(pattern)
+
+    # Iterate over the directory contents
+    for item in dir.iterdir():
+        if item.is_dir():
+            # Check if the directory name matches the pattern
+            match = regex_to_match.match(item.name)
+            if match:
+                checkpoints.append(item)
+
+    return checkpoints
+
+
+def prune_surplus_checkpoints(
+    checkpoints: List[Path], keep_last_n_checkpoints: int = 1
+) -> None:
+    """
+    Prunes the surplus checkpoints in the given list of checkpoints.
+    The function will keep the latest `keep_last_n_checkpoints` checkpoints and delete the rest.
+
+    Args:
+        checkpoints (List[Path]): A list of Path objects representing the checkpoints.
+        keep_last_n_checkpoints (int): The number of checkpoints to keep. Defaults to 1.
+
+    Note:
+        Expects the format of the checkpoints to be "epoch_{epoch_number}" or "step_{step_number}". A higher number
+        indicates a more recent checkpoint. E.g. "epoch_1" is more recent than "epoch_0".
+
+    Example:
+        >>> checkpoints = [PosixPath('/path/to/checkpoints/epoch_1'), PosixPath('/path/to/checkpoints/epoch_2')]
+        >>> prune_surplus_checkpoints(checkpoints, keep_last_n_checkpoints=1)
+        >>> os.listdir('/path/to/checkpoints')
+        ['epoch_2']
+
+    Raises:
+        ValueError: If `keep_last_n_checkpoints` is less than 1.
+    """
+    if keep_last_n_checkpoints < 1:
+        raise ValueError("keep_last_n_checkpoints must be greater than or equal to 1.")
+
+    # Sort the checkpoints by their epoch or step number
+    checkpoints.sort(key=lambda x: int(x.name.split("_")[-1]), reverse=True)
+
+    # Delete the surplus checkpoints
+    for checkpoint in checkpoints[keep_last_n_checkpoints:]:
+        shutil.rmtree(checkpoint)
+
+    return
