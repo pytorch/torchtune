@@ -465,6 +465,7 @@
     <span class="s2">&quot;user&quot;</span><span class="p">,</span>  <span class="c1"># Origin is user</span>
     <span class="s2">&quot;assistant&quot;</span><span class="p">,</span>  <span class="c1"># Origin is the model output</span>
     <span class="s2">&quot;ipython&quot;</span><span class="p">,</span>  <span class="c1"># Origin is return from a tool call</span>
+    <span class="s2">&quot;tool&quot;</span><span class="p">,</span>  <span class="c1"># Origin is return from a tool call</span>
 <span class="p">]</span>
 
 
@@ -1061,7 +1062,8 @@
                     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eot</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]]:</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
@@ -1069,11 +1071,25 @@
                 <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from_openai_content</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">])</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>
+
+            <span class="n">eot</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;tool&quot;</span><span class="p">,</span> <span class="s2">&quot;ipython&quot;</span><span class="p">]:</span>
+                <span class="c1"># After tool responses, turn is not over, because assistant will interpret the tool response.</span>
+                <span class="n">eot</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">elif</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span><span class="p">:</span>
+                <span class="c1"># If the next message is a tool response instead of a user message</span>
+                <span class="c1"># the current assistant message is not the end of the turn.</span>
+                <span class="c1"># Models like Llama will append EOM to the end of the assistant message for tool calls.</span>
+                <span class="n">has_next_message</span> <span class="o">=</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">has_next_message</span> <span class="ow">and</span> <span class="n">messages</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;tool&quot;</span><span class="p">,</span> <span class="s2">&quot;ipython&quot;</span><span class="p">]:</span>
+                    <span class="n">eot</span> <span class="o">=</span> <span class="kc">False</span>
+
             <span class="n">updated_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">Message</span><span class="p">(</span>
                     <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">],</span>
                     <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
                     <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
+                    <span class="n">eot</span><span class="o">=</span><span class="n">eot</span><span class="p">,</span>
                 <span class="p">),</span>
             <span class="p">)</span>
 
@@ -1105,13 +1121,17 @@
             <span class="sa">f</span><span class="s2">&quot;Messages must be at least length 2, but got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span><span class="si">}</span><span class="s2"> messages&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">last_turn</span> <span class="o">=</span> <span class="s2">&quot;assistant&quot;</span>
+    <span class="n">last_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span> <span class="ow">and</span> <span class="n">last_turn</span> <span class="o">!=</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span> <span class="ow">and</span> <span class="n">last_message</span><span class="o">.</span><span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="s2">&quot;user&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tool&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ipython&quot;</span><span class="p">,</span>
+        <span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Assistant message before expected user message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Assistant message before expected user, tool or ipython message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages&quot;</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span> <span class="ow">and</span> <span class="n">last_turn</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span> <span class="ow">and</span> <span class="n">last_message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Two consecutive user messages at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> in messages&quot;</span>
             <span class="p">)</span>
@@ -1119,7 +1139,11 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;System message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages, but system messages must come first&quot;</span>
             <span class="p">)</span>
-        <span class="n">last_turn</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span></div>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;tool&quot;</span><span class="p">,</span> <span class="s2">&quot;ipython&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">last_message</span><span class="o">.</span><span class="n">ipython</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Tool or ipython message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> must follow an ipython message&quot;</span>
+            <span class="p">)</span>
+        <span class="n">last_message</span> <span class="o">=</span> <span class="n">message</span></div>
 
 
 <div class="viewcode-block" id="AlpacaToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.AlpacaToMessages.html#torchtune.data.AlpacaToMessages">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">AlpacaToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
