@@ -567,11 +567,11 @@ def get_all_checkpoints_in_dir(
     Args:
         dir (Path): The directory containing the checkpoints.
         pattern (str): A regular expression pattern to match the epoch number in the checkpoint filename.
-            Defaults to "epoch_(\d+)".
+            Defaults to "epoch_(\\d+)".
 
     Example:
         >>> dir = Path("/path/to/checkpoints")
-        >>> pattern = r"^epoch_(\d+)"
+        >>> pattern = r"^epoch_(\\d+)"
         >>> get_all_checkpoints_in_dir(dir, pattern=pattern)
         [PosixPath('/path/to/checkpoints/epoch_1'), PosixPath('/path/to/checkpoints/epoch_2'), ...]
 
