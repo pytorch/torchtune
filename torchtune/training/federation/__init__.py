@@ -6,16 +6,16 @@
 
 from typing import Union
 
-from torchtune.training.federation._federator import DiLiCoFederator
+from torchtune.training.federation._federator import DiLoCoFederator
 
 from torchtune.training.federation._participant import TuneParticipant
 
 Federator = Union[
-    DiLiCoFederator,
+    DiLoCoFederator,
 ]
 
 Particpants = Union[
     TuneParticipant,
 ]
 
-__all__ = ["DiLiCoFederator", "TuneParticipant"]
+__all__ = ["DiLoCoFederator", "TuneParticipant"]

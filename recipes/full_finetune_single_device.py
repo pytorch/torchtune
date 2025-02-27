@@ -197,7 +197,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
         """
-        self._federation = config.instantiate(cfg_federation)
+        self._federation = config.instantiate(
+            cfg_federation, device=self._device, enable_cpu_offload=True
+        )
         return self._federation.handshake()
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
@@ -757,7 +759,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             step=self.global_step,
                         )
 
-                    if self._federation is not None:
+                    if hasattr(self, "_federation"):
                         was_synced = self._federation.synchronize(
                             self._model, self.global_step
                         )

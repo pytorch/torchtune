@@ -25,14 +25,14 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
-  path: /tmp/Qwen2.5-0.5B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2.5-0.5B-Instruct/merges.txt
+  path: /Users/maxime/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775/vocab.json
+  merges_file: /Users/maxime/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775/merges.txt
   max_seq_len: 4096
 
 # Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2.5-0.5B-Instruct
+  checkpoint_dir: /Users/maxime/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775/
   checkpoint_files: [model.safetensors]
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -44,7 +44,7 @@ dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
 
-seed: null
+seed: 4321
 shuffle: True
 
 # Fine-tuning arguments
@@ -86,6 +86,7 @@ federation:
   _component_: torchtune.training.federation.TuneParticipant
   endpoint: http://127.0.0.1:8000
   token: uioGMzl7zqtkydxP66mJh9dZCaNnSWOb
+  temporary_dir: ${output_dir}/federation
 
 # Profiler (disabled)
 profiler:

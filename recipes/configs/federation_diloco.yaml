@@ -12,7 +12,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2.5-0.5B-Instruct
+  checkpoint_dir: /Users/maxime/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775
   checkpoint_files: [model.safetensors]
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -24,8 +24,8 @@ dtype: bf16
 seed: 1234
 
 federator:
-  _component_: torchtune.training.federation.DiLiCoFederator
-  h: 1
+  _component_: torchtune.training.federation.DiLoCoFederator
+  h: 50
   optimizer:
     _component_: torch.optim.SGD
     lr: 1
@@ -34,4 +34,4 @@ federator:
 
   participants:
     - uioGMzl7zqtkydxP66mJh9dZCaNnSWOb
-  #  - etbefHUtU0XViIPrqo8nN2TlpvIUTdi7
+    - etbefHUtU0XViIPrqo8nN2TlpvIUTdi7

@@ -28,7 +28,7 @@ class _FederatorInterface(Protocol):
         ...
 
 
-class DiLiCoFederator(_FederatorInterface):
+class DiLoCoFederator(_FederatorInterface):
     """
     Federator for testing purposes.
     """
@@ -64,7 +64,10 @@ class DiLiCoFederator(_FederatorInterface):
         for orig_param, *model_params in zip(
             self._model.parameters(), *[m.values() for m in models]
         ):
-            diff_sum = sum((orig_param.data - m_param.data) for m_param in model_params)
+            diffs = [
+                (orig_param.detach() - m_param.detach()) for m_param in model_params
+            ]
+            diff_sum = sum(diffs)
             avg_diff = diff_sum / len(self._participants)
 
             with torch.no_grad():
