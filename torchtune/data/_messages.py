@@ -632,8 +632,7 @@ class OpenAIToMessages(Transform):
                 # the current assistant message is not the end of the turn.
                 # Models like Llama will append EOM to the end of the assistant message for tool calls.
                 has_next_message = i < len(messages) - 1
-                next_message = messages[i + 1]
-                if has_next_message and next_message["role"] in ["tool", "ipython"]:
+                if has_next_message and messages[i + 1]["role"] in ["tool", "ipython"]:
                     eot = False
 
             updated_messages.append(
