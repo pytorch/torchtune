@@ -10,6 +10,9 @@ from io import StringIO
 from typing import cast
 from unittest.mock import patch
 
+import mlflow
+
+import mlflow.artifacts
 import pytest
 from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
@@ -19,6 +22,7 @@ from tests.test_utils import assert_expected, captured_output
 from torchtune.training.metric_logging import (
     CometLogger,
     DiskLogger,
+    MLFlowLogger,
     StdoutLogger,
     TensorBoardLogger,
     WandBLogger,
@@ -199,3 +203,58 @@ class TestCometLogger:
             cfg = OmegaConf.create({"a": 1, "b": 2})
             logger.log_config(cfg)
             mock_experiment.return_value.log_parameters.assert_called_with(cfg)
+
+
+@pytest.fixture(scope="class")
+def mlflow_context_fixture():
+    original_uri = mlflow.get_tracking_uri()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        mlflow.set_tracking_uri(f"file:{tmpdir}")
+        yield
+
+    # Restore the original URI
+    mlflow.set_tracking_uri(original_uri)
+
+
+@pytest.mark.usefixtures("mlflow_context_fixture")
+class TestMLFlowLogger:
+    def test_log(self):
+        logger = MLFlowLogger(experiment_name="my_experiment", run_name="run1")
+        run_id = logger._run_id
+        logger.log("test_metric", 1.0, step=1)
+        logger.close()
+
+        run = mlflow.get_run(run_id)
+        assert run.data.metrics == {"test_metric": 1}
+
+    def test_log_dict(self):
+        logger = MLFlowLogger(experiment_name="my_experiment", run_name="run2")
+        run_id = logger._run_id
+        metric_dict = {f"log_dict_{i}": float(i) ** 2 for i in range(5)}
+        logger.log_dict(metric_dict, step=2)
+        logger.close()
+
+        run = mlflow.get_run(run_id)
+        assert run.data.metrics == metric_dict
+
+    def test_log_config(self) -> None:
+        with tempfile.TemporaryDirectory() as output_dir:
+            cfg = OmegaConf.create(
+                {"foo": {"bar": "baz"}, "qux": "quux", "output_dir": output_dir}
+            )
+            logger = MLFlowLogger(experiment_name="my_experiment", run_name="run2")
+            run_id = logger._run_id
+
+            logger.log_config(cfg)
+
+        expected = {"foo.bar": "baz", "qux": "quux", "output_dir": output_dir}
+
+        run = mlflow.get_run(run_id)
+        assert run.data.params == expected
+
+        artifacts = mlflow.artifacts.list_artifacts(
+            run_id=run_id, artifact_path=output_dir.lstrip("/")
+        )
+        assert len(artifacts) == 1
+        assert artifacts[0].path.endswith("torchtune_config.yaml")

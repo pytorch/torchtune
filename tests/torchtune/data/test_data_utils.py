@@ -7,6 +7,7 @@
 import os
 
 import pytest
+import torch
 from PIL import Image
 
 from tests.common import ASSETS
@@ -107,8 +108,8 @@ def test_load_image(monkeypatch, tmp_path):
 
     # Test loading from local file
     image = load_image(tmp_image)
-    assert isinstance(image, Image.Image)
-    assert image.size == (580, 403)
+    assert isinstance(image, torch.Tensor)
+    assert image.size() == (3, 403, 580)
 
     # Test loading from remote file
     # Mock the urlopen function to return a BytesIO object
@@ -117,11 +118,11 @@ def test_load_image(monkeypatch, tmp_path):
 
     monkeypatch.setattr("urllib.request.urlopen", mock_urlopen)
     image = load_image("http://example.com/test_image.jpg")
-    assert isinstance(image, Image.Image)
-    assert image.size == (580, 403)
+    assert isinstance(image, torch.Tensor)
+    assert image.size() == (3, 403, 580)
 
     # Test that a ValueError is raised when the image path is invalid
-    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+    with pytest.raises(ValueError, match="Failed to load local image as torch.Tensor"):
         load_image("invalid_path")
 
     # Test a temporary file with invalid image data
@@ -130,16 +131,16 @@ def test_load_image(monkeypatch, tmp_path):
         f.write("Invalid image data")
 
     # Test that a ValueError is raised when the image data is invalid
-    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+    with pytest.raises(ValueError, match="Failed to load local image as torch.Tensor"):
         load_image(str(image_path))
 
     # Test that a ValueError is raised when there is an HTTP error
     # Mock the urlopen function to raise an exception
     def mock_urlopen(url):
-        raise Exception("Failed to load image")
+        raise Exception("Failed to load remote image as torch.Tensor")
 
     monkeypatch.setattr("urllib.request.urlopen", mock_urlopen)
-    with pytest.raises(ValueError, match="Failed to load image"):
+    with pytest.raises(ValueError, match="Failed to load remote image as torch.Tensor"):
         load_image("http://example.com/test_image.jpg")
 
     # Test that a ValueError is raised when there is an IO error
@@ -148,7 +149,7 @@ def test_load_image(monkeypatch, tmp_path):
     with open(image_path, "w") as f:
         f.write("Test data")
     os.chmod(image_path, 0o000)  # Remove read permissions
-    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+    with pytest.raises(ValueError, match="Failed to load local image as torch.Tensor"):
         load_image(str(image_path))
     os.chmod(image_path, 0o644)  # Restore read permissions
 
@@ -157,5 +158,5 @@ def test_load_image(monkeypatch, tmp_path):
     image_path = tmp_path / "test_image.jpg"
     with open(image_path, "wb") as f:
         f.write(b"Invalid image data")
-    with pytest.raises(ValueError, match="Failed to open image as PIL.Image"):
+    with pytest.raises(ValueError, match="Failed to load local image as torch.Tensor"):
         load_image(str(image_path))

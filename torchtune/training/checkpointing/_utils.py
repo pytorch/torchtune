@@ -35,7 +35,7 @@ SAFETENSOR_INDEX_FNAME = "model.safetensors.index.json"
 TORCH_INDEX_FNAME = "pytorch_model.bin.index.json"
 
 # standardize checkpointing
-SHARD_FNAME = "ft-model-{cpt_idx}-of-{num_shards}"
+SHARD_FNAME = "model-{cpt_idx}-of-{num_shards}"
 RECIPE_STATE_DIRNAME = "recipe_state"
 
 # Needed when setting up output dir in checkpointing
@@ -70,6 +70,9 @@ STEPS_KEY = "steps_run"
 
 # rng state for ensuring correct training resuming in PPO
 RNG_KEY = "rng_state"
+
+# key used for dataloader state
+DATALOADER_KEY = "dataloader"
 
 
 class ModelType(Enum):
