@@ -762,7 +762,7 @@
     <span class="nb">dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 
-    <span class="n">latest_epoch_folder</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">largest_iter_folder</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">iter_folders</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
 
@@ -776,9 +776,9 @@
 
     <span class="c1"># Find the folder with the largest iter number</span>
     <span class="k">if</span> <span class="n">iter_folders</span><span class="p">:</span>
-        <span class="n">latest_epoch_folder</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">iter_folders</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">largest_iter_folder</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">iter_folders</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="k">return</span> <span class="n">latest_epoch_folder</span>
+    <span class="k">return</span> <span class="n">largest_iter_folder</span>
 
 
 <span class="c1"># TODO: instead of copying, make it a symlink when we start using HF cache</span>
@@ -919,6 +919,8 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Look for the latest adapter checkpoint in the output directory</span>
         <span class="n">largest_iter_folder</span> <span class="o">=</span> <span class="n">get_largest_iter_folder</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">largest_iter_folder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
 
         <span class="n">tentative_adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="p">,</span> <span class="n">largest_iter_folder</span><span class="p">,</span> <span class="s2">&quot;adapter_model.pt&quot;</span>
@@ -1046,6 +1048,79 @@
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="kc">True</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_all_checkpoints_in_dir</span><span class="p">(</span>
+    <span class="nb">dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a list of all checkpoints in the given directory.</span>
+<span class="sd">    The pattern argument is a regular expression that matches the epoch number in the checkpoint filename.</span>
+<span class="sd">    The default pattern matches filenames of the form &quot;epoch_{epoch_number}&quot;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dir (Path): The directory containing the checkpoints.</span>
+<span class="sd">        pattern (str): A regular expression pattern to match the epoch number in the checkpoint filename.</span>
+<span class="sd">            Defaults to &quot;epoch_(\\d+)&quot;.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; dir = Path(&quot;/path/to/checkpoints&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; pattern = r&quot;^epoch_(\\d+)&quot;</span>
+<span class="sd">        &gt;&gt;&gt; get_all_checkpoints_in_dir(dir, pattern=pattern)</span>
+<span class="sd">        [PosixPath(&#39;/path/to/checkpoints/epoch_1&#39;), PosixPath(&#39;/path/to/checkpoints/epoch_2&#39;), ...]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Path]: A list of Path objects representing the checkpoints..</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">checkpoints</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">regex_to_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+
+    <span class="c1"># Iterate over the directory contents</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="c1"># Check if the directory name matches the pattern</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">regex_to_match</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="n">checkpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">checkpoints</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">prune_surplus_checkpoints</span><span class="p">(</span>
+    <span class="n">checkpoints</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span> <span class="n">keep_last_n_checkpoints</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prunes the surplus checkpoints in the given list of checkpoints.</span>
+<span class="sd">    The function will keep the latest checkpoints based on the param `keep_last_n_checkpoints` and delete the rest.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checkpoints (List[Path]): A list of Path objects representing the checkpoints.</span>
+<span class="sd">        keep_last_n_checkpoints (int): The number of checkpoints to keep. Defaults to 1.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Expects the format of the checkpoints to be &quot;epoch_{epoch_number}&quot; or &quot;step_{step_number}&quot;. A higher number</span>
+<span class="sd">        indicates a more recent checkpoint. E.g. &quot;epoch_1&quot; is more recent than &quot;epoch_0&quot;.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; checkpoints = [PosixPath(&#39;/path/to/checkpoints/epoch_1&#39;), PosixPath(&#39;/path/to/checkpoints/epoch_2&#39;)]</span>
+<span class="sd">        &gt;&gt;&gt; prune_surplus_checkpoints(checkpoints, keep_last_n_checkpoints=1)</span>
+<span class="sd">        &gt;&gt;&gt; os.listdir(&#39;/path/to/checkpoints&#39;)</span>
+<span class="sd">        [&#39;epoch_2&#39;]</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If `keep_last_n_checkpoints` is less than 1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">keep_last_n_checkpoints</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;keep_last_n_checkpoints must be greater than or equal to 1.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Sort the checkpoints by their epoch or step number</span>
+    <span class="n">checkpoints</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Delete the surplus checkpoints</span>
+    <span class="k">for</span> <span class="n">checkpoint</span> <span class="ow">in</span> <span class="n">checkpoints</span><span class="p">[</span><span class="n">keep_last_n_checkpoints</span><span class="p">:]:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">)</span>
+
+    <span class="k">return</span>
 </pre></div>
 
              </article>
