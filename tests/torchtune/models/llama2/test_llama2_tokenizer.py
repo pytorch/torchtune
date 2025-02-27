@@ -61,6 +61,8 @@ class TestLlama2Tokenizer:
         tokens, mask = tokenizer.tokenize_messages(messages)
         # Mask user, unmask assistant, add EOS token
         expected_mask = [True] * 75 + [False] * 125
+
+        assert len(tokens) == len(mask)
         assert expected_tokens == tokens
         assert expected_mask == mask
 

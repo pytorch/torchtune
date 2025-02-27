@@ -5,10 +5,17 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
+import logging
 from typing import Any, Dict, List, Optional, Protocol, Tuple
+
+import torch
 
 from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
+from torchtune.utils import get_logger
+from torchtune.utils._logging import log_once
+
+_log: logging.Logger = get_logger()
 
 
 class BaseTokenizer(Protocol):
@@ -78,6 +85,7 @@ def tokenize_messages_no_special_tokens(
     *,
     bos_id: Optional[int] = None,
     eos_id: Optional[int] = None,
+    truncation_type: str = "right",
 ) -> Tuple[List[int], List[bool]]:
     r"""Tokenize a list of messages one at a time then concatenate them,
     returning a list of tokens and a list of masks. Does not add any special
@@ -111,6 +119,8 @@ def tokenize_messages_no_special_tokens(
         bos_id (Optional[int]): Beginning-of-sequence token id. If None, no BOS token will
             be added. Default None.
         eos_id (Optional[int]): End-of-sequence token id. If None, no EOS token will be added. Default None.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Returns:
         Tuple[List[int], List[bool]]: The tokenized messages.
@@ -172,9 +182,14 @@ def tokenize_messages_no_special_tokens(
 
     # Finally, truncate if necessary
     if max_seq_len is not None:
-        tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
+        tokenized_messages = truncate(
+            tokenized_messages, max_seq_len, eos_id, truncation_type=truncation_type
+        )
         mask = truncate(
-            mask, max_seq_len, message.masked if eos_id is not None else None
+            mask,
+            max_seq_len,
+            message.masked if eos_id is not None else None,
+            truncation_type=truncation_type,
         )
 
     return tokenized_messages, mask
@@ -195,3 +210,29 @@ def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
         tokenizer_json = json.load(f)
 
     return {token["content"]: token["id"] for token in tokenizer_json["added_tokens"]}
+
+
+def has_trainable_tokens(
+    labels: Optional[torch.tensor],
+    ignore_index: int,
+) -> bool:
+    """
+    Checks whether there are trainable tokens in batch.
+
+    Args:
+        labels (Optional[torch.tensor]): labels for the current batch.
+        ignore_index (int): representation of the ingore index.
+
+    Returns:
+        bool: True if there are trainable tokens in batch, otherwise False.
+    """
+    if labels is None:
+        return False
+
+    if not (labels != ignore_index).any().item():
+        log_once(
+            _log,
+            'Consider changing to tokenizer.truncation="left" or increasing tokernizer.max_seq_len.',
+        )
+        return False
+    return True
