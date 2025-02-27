@@ -32,7 +32,7 @@ class MistralChatTemplate(PromptTemplateInterface):
         "system": None,
         "user": ("[INST] ", " [/INST] "),
         "assistant": ("", ""),
-        "ipython": ("", ""),
+        "tool": ("", ""),
     }
 
     def __call__(
@@ -69,7 +69,7 @@ class MistralChatTemplate(PromptTemplateInterface):
                     role=message.role,
                     content=content,
                     masked=message.masked,
-                    ipython=message.ipython,
+                    tool=message.tool,
                     eot=message.eot,
                 ),
             )

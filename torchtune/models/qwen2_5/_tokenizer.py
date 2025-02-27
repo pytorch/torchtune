@@ -195,8 +195,8 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
     def _tokenize_header(self, messages, i):
         tokens = []
         message = messages[i]
-        if message.role == "ipython":
-            if i == 0 or messages[i - 1].role != "ipython":
+        if message.role == "tool":
+            if i == 0 or messages[i - 1].role != "tool":
                 # only add the "user" header if this is the first tool response msg
                 self._add_message_start_tokens(tokens, "user")
                 tokens.extend(
@@ -208,7 +208,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
                 )
         else:
             self._add_message_start_tokens(tokens, message.role)
-            if message.role == "assistant" and message.ipython:
+            if message.role == "assistant" and message.tool:
                 tokens.append(self.tool_call_start_id)
                 tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
         return tokens
@@ -216,8 +216,8 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
     def _tokenize_footer(self, messages, i):
         tokens = []
         message = messages[i]
-        if message.role == "ipython":
-            if i == len(messages) - 1 or messages[i + 1].role != "ipython":
+        if message.role == "tool":
+            if i == len(messages) - 1 or messages[i + 1].role != "tool":
                 tokens.extend(
                     self.encode("\n</tool_response>", add_bos=False, add_eos=False)
                 )
@@ -227,7 +227,7 @@ class Qwen2_5Tokenizer(Qwen2Tokenizer):  # noqa: N801
                     self.encode("\n</tool_response>", add_bos=False, add_eos=False)
                 )
         else:
-            if message.role == "assistant" and message.ipython:
+            if message.role == "assistant" and message.tool:
                 tokens.extend(self.encode("\n", add_bos=False, add_eos=False))
                 tokens.append(self.tool_call_end_id)
             if message.role != "assistant" or i != len(messages) - 1:

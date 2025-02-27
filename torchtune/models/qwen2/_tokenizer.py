@@ -358,7 +358,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             tokens = []
 
             # message header
-            if message.role != "ipython":
+            if message.role != "tool":
                 tokens.append(self.im_start_id)
                 tokens.extend(
                     self.encode(f"{message.role}\n", add_bos=False, add_eos=False)
@@ -380,7 +380,7 @@ class Qwen2Tokenizer(ModelTokenizer):
                     )
 
             # message footer
-            if message.role != "ipython" and (
+            if message.role != "tool" and (
                 message.role != "assistant" or index != len(messages) - 1
             ):
                 tokens.append(self.im_end_id)
