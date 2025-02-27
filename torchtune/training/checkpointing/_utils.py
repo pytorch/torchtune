@@ -60,7 +60,6 @@ MAX_STEPS_KEY = "max_steps_per_epoch"
 MODEL_KEY = "model"
 OPT_KEY = "optimizer"
 SEED_KEY = "seed"
-CURR_STEP_KEY = "steps_run"
 
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs

@@ -30,9 +30,6 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
-DATALOADER_STATE_KEY = "dataloader_state"
-SAMPLER_STATE_KEY = "sampler_state"
-
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
@@ -300,8 +297,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 else None
             ),
         )
-        if self._resume_from_checkpoint:
-            self._dataloader.load_state_dict(state_dict[DATALOADER_STATE_KEY])
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -603,7 +598,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             training.TOTAL_EPOCHS_KEY: self.total_epochs,
             training.STEPS_KEY: step,
             training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-            DATALOADER_STATE_KEY: self._dataloader.state_dict(),
+            training.DATALOADER_KEY: self._dataloader.state_dict(),
         }
         if not self._optimizer_in_bwd:
             ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
