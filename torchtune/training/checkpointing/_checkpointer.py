@@ -49,14 +49,6 @@ from torchtune.utils import get_logger, get_world_size_and_rank, log_rank_zero
 logger = get_logger("DEBUG")
 
 
-class RecipeStateCheckpointPeriod(Enum):
-    """Enum to specify the frequency of saving the recipe state."""
-
-    NEVER = "never"
-    INTERMEDIATE = "intermediate"
-    ALWAYS = "always"
-
-
 class _CheckpointerInterface(Protocol):
     """
     Interface implemented by Checkpointers in torchtune.
@@ -414,6 +406,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the receipe state from a previous run. Default is False
         keep_last_n_checkpoints (Optional[int]): How many checkpoints to keep. If None, all checkpoints are kept.
+
+    Raises:
+        ValueError: If recipe_state cannot be found when should_load_recipe_state is True
     """
 
     def __init__(
@@ -478,7 +473,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     f"Could not find recipe state at {self._recipe_checkpoint}"
                 )
 
-            #  resume from adapter_model ckpt
+            # resume from adapter_model ckpt
             self._adapter_checkpoint = get_adapter_checkpoint_path(
                 output_dir=self._output_dir,
                 adapter_checkpoint=adapter_checkpoint,
@@ -687,7 +682,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             ckpt_save_dirname = f"epoch_{epoch}"
             ckpt_pattern = r"^epoch_(\d+)"
 
-        # convert the state_dict back to hf format; do this inplace
+        # 1. Convert the model weights back to transformer format inplace
         if not adapter_only:
             if self._model_type == ModelType.PHI3_MINI:
                 from torchtune.models.phi3._convert_weights import phi3_tune_to_hf
@@ -830,7 +825,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 json.dump(index_data, f, indent=2)
 
         if training.ADAPTER_KEY in state_dict:
-
             # TODO: saving it "as is" is a requirement because, if we only save with
             # convert_weights.tune_to_peft_adapter_weights, we do NOT have a fn
             # convert_weights.peft_to_tune. The .pt format is not needed, but
@@ -841,8 +835,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
-                "Adapter checkpoint of size "
-                f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+                f"Adapter checkpoint of size {os.path.getsize(output_path) / 1024**3:.2f} GiB "
                 f"saved to {output_path}"
             )
             logger.info(
@@ -869,9 +862,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     dim=self._config["hidden_size"],
                     head_dim=self._config.get("head_dim", None),
                 )
-                output_path = Path.joinpath(
-                    self._output_dir, ckpt_save_dirname, ADAPTER_MODEL_FNAME
-                )
+                output_path = self._output_dir / ckpt_save_dirname / ADAPTER_MODEL_FNAME
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 if not self._safe_serialization:
                     output_path = output_path.with_suffix(".bin")
@@ -916,34 +907,29 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 with open(output_path, "w") as f:
                     json.dump(state_dict[training.ADAPTER_CONFIG], f)
                 logger.info(
-                    "Adapter checkpoint of size "
-                    f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+                    f"Adapter checkpoint of size {os.path.getsize(output_path) / 1024**3:.2f} GiB "
                     f"saved to {output_path}"
                 )
 
-        # Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}
-        # So its easy to run inference with the model using this epoch's checkpoint
+        # 2. Save all files in ckpt_dir, except model weights and mapping, to output_dir/epoch_{epoch}
+        # or step_{step} directory so it's easy to run inference with the model using this checkpoint
         copy_files(
             self._checkpoint_dir,
             Path.joinpath(self._output_dir, ckpt_save_dirname),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
         )
 
-        # If the recipe state needs to be output, first remove the model state dict
-        # and if it exists, remove the adapter state dict as well
+        # 3. Save the recipe state, excluding the model weights and (if applicable) adapter weights
         for key in [training.MODEL_KEY, training.ADAPTER_KEY, training.ADAPTER_CONFIG]:
-            state_dict.pop(key)
-        output_path = Path.joinpath(
-            self._output_dir, ckpt_save_dirname, "recipe_state.pt"
-        )
-        torch.save(state_dict, output_path)
+            state_dict.pop(key, None)
+        recipe_state_path = self._output_dir / ckpt_save_dirname / "recipe_state.pt"
+        torch.save(state_dict, recipe_state_path)
         logger.info(
-            "Recipe checkpoint of size "
-            f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
-            f"saved to {output_path}"
+            f"Recipe checkpoint of size {os.path.getsize(recipe_state_path) / 1024**3:.2f} GiB "
+            f"saved to {recipe_state_path}"
         )
 
-        # If specified, prune the checkpoints in the output directory
+        # 4. If specified, prune the checkpoints in the output directory
         if self._keep_last_n_checkpoints is not None:
             all_current_checkpoints = get_all_checkpoints_in_dir(
                 self._output_dir, pattern=ckpt_pattern
