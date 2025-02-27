@@ -531,7 +531,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-                
+
                 if not has_trainable_tokens(
                     labels=batch[1],
                     ignore_index=self._loss_fn.ignore_index

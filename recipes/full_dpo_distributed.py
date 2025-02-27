@@ -882,21 +882,21 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-                
+
                 has_trainable = has_trainable_tokens(
                     labels=batch[1],
                     ignore_index=self._loss_fn.ignore_index
                     if hasattr(self._loss_fn, "ignore_index")
                     else -100,
                 )
-    
+
                 mask = torch.tensor(has_trainable, dtype=torch.int, device=self._device)
                 # If 0, then no trainable everywhere
-                torch.distributed.all_reduce(mask, op=torch.distributed.ReduceOp.MIN)
-    
+                torch.distributed.all_reduce(mask, op=torch.distributed.ReduceOp.MAX)
+
                 if mask.item() == 0:
-                    continue  
-            
+                    continue
+
                 # batch is input_ids, labels
                 num_tokens += torch.tensor(batch[0].numel())
                 (
