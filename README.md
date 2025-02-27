@@ -64,7 +64,7 @@ You can also run e.g. ``tune ls knowledge_distillation_distributed`` for a full 
 |                           | LoRA/QLoRA            |    ✅    |     ✅    |    ❌    |
 | PPO                          | Full                  |    ✅    |     ❌    |    ❌    |
 |                           | LoRA/QLoRA            |    ❌    |     ❌    |    ❌    |
-| GRPO                         | Full                  |    🚧    |     🚧    |   🚧    |
+| GRPO                         | Full                  |    🚧    |     ✅    |  ✅   |
 |                           | LoRA/QLoRA            |    ❌    |     ❌    |    ❌    |
 
 Example: ``tune run lora_dpo_single_device --config llama3_1/8B_dpo_single_device`` <br />
