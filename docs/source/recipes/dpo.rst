@@ -62,7 +62,9 @@ To use any of these, simply use the ``loss`` config entry or flag through the :r
 Also, you can pass your custom loss in our recipe. Note that its `forward` method should align with the following signature:
 
 .. code-block:: python
-  def forward(self, policy_inputs: ChosenRejectedOutputs, reference_inputs: ChosenRejectedOutputs) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+
+    def forward(self, policy_inputs: ChosenRejectedOutputs, reference_inputs: ChosenRejectedOutputs) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        ...
 
 Here, `ChosenRejectedOutputs` is a dataclass obtained from `concatenated_forward``:
 
