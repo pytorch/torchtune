@@ -23,7 +23,6 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-from torchtune.training.checkpointing.constants import CURR_STEP_KEY
 from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
@@ -206,7 +205,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """Updates the recipe state from checkpoint."""
         self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
-        self.global_step = ckpt_dict[CURR_STEP_KEY]
+        self.global_step = ckpt_dict[training.STEPS_KEY]
 
         # Warn the user and prevent the override
         if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -602,7 +601,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             training.SEED_KEY: self.seed,
             training.EPOCHS_KEY: epoch,
             training.TOTAL_EPOCHS_KEY: self.total_epochs,
-            CURR_STEP_KEY: step,
+            training.STEPS_KEY: step,
             training.MAX_STEPS_KEY: self.max_steps_per_epoch,
             DATALOADER_STATE_KEY: self._dataloader.state_dict(),
         }
