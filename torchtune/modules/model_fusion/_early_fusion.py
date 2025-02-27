@@ -108,9 +108,6 @@ class EarlyFusionModel(nn.Module):
             trainable_params |= {
                 f"decoder.{n}" for n, p in self.decoder.named_parameters()
             }
-            trainable_params |= {
-                f"tok_embeddings.{n}" for n, p in self.tok_embeddings.named_parameters()
-            }
         if fusion_trainable:
             trainable_params |= set(get_fusion_params(self))
         else:
@@ -161,6 +158,9 @@ class EarlyFusionModel(nn.Module):
         is_text = ~torch.isin(tokens, encoder_token_ids)
         text_tokens = torch.masked_select(tokens, is_text)
         # [num_text, embed_dim]
+        import pdb
+
+        pdb.set_trace()
         text_embeds = self.decoder.tok_embeddings(text_tokens)
         return is_text, text_embeds
 
@@ -245,5 +245,7 @@ class EarlyFusionModel(nn.Module):
             # At locations where encoder token is found, replace with encoder embedding
             fused_embeds = fused_embeds.masked_scatter(encoder_mask, encoder_embeds)
 
-        output = self.decoder(mask=mask, input_pos=input_pos, input_embeds=fused_embeds)
+        output = self.decoder(
+            tokens=None, mask=mask, input_pos=input_pos, input_embeds=fused_embeds
+        )
         return output
