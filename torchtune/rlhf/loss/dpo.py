@@ -113,23 +113,15 @@ class RSOLoss(nn.Module):
 
     def forward(
         self,
-        policy_chosen_logps: torch.Tensor,
-        policy_rejected_logps: torch.Tensor,
-        reference_chosen_logps: torch.Tensor,
-        reference_rejected_logps: torch.Tensor,
+        policy_inputs: ChosenRejectedOutputs,
+        reference_inputs: ChosenRejectedOutputs,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Compute the RSO loss for a batch of policy and reference model log probabilities.
 
         Args:
-            policy_chosen_logps (torch.Tensor): Log probabilities of the policy model
-                for the chosen responses. Shape: (batch_size)
-            policy_rejected_logps (torch.Tensor): Log probabilities of the policy model
-                for the rejected responses. Shape: (batch_size)
-            reference_chosen_logps (torch.Tensor): Log probabilities of the reference model
-                for the chosen responses. Shape: (batch_size)
-            reference_rejected_logps (torch.Tensor): Log probabilities of the reference model
-                for the rejected responses. Shape: (batch_size)
+            policy_inputs (ChosenRejectedOutputs): Policy log-probs and logits required for the calculation.
+            reference_inputs (ChosenRejectedOutputs): Reference log-probs and logits required for the calculation.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
@@ -138,18 +130,18 @@ class RSOLoss(nn.Module):
                 - rejected_rewards: Rewards for the rejected responses.
 
         """
-        pi_logratios = policy_chosen_logps - policy_rejected_logps
-        ref_logratios = reference_chosen_logps - reference_rejected_logps
+        pi_logratios = policy_inputs.policy_chosen_logps - policy_inputs.policy_rejected_logps
+        ref_logratios = reference_inputs.reference_chosen_logps - reference_inputs.reference_rejected_logps
 
         logits = pi_logratios - ref_logratios
 
         losses = torch.relu(1 - self.gamma * logits)
 
         chosen_rewards = (
-            self.gamma * (policy_chosen_logps - reference_chosen_logps).detach()
+            self.gamma * (policy_inputs.policy_chosen_logps - reference_inputs.reference_chosen_logps).detach()
         )
         rejected_rewards = (
-            self.gamma * (policy_rejected_logps - reference_rejected_logps).detach()
+            self.gamma * (policy_inputs.policy_rejected_logps - reference_inputs.reference_rejected_logps).detach()
         )
 
         return losses, chosen_rewards, rejected_rewards
