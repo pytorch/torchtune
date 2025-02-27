@@ -647,7 +647,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             return optimizer
 
     def _setup_data(
-        self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int, dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        self,
+        cfg_dataset: DictConfig,
+        shuffle: bool,
+        batch_size: int,
+        dataloader_state_dict: Optional[Dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here.
@@ -674,7 +678,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-        
+
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
             list(dataloader)  # Hack to force dataloader to finish iteration
