@@ -597,7 +597,7 @@ def prune_surplus_checkpoints(
 ) -> None:
     """
     Prunes the surplus checkpoints in the given list of checkpoints.
-    The function will keep the latest `keep_last_n_checkpoints` checkpoints and delete the rest.
+    The function will keep the latest checkpoints based on the param `keep_last_n_checkpoints` and delete the rest.
 
     Args:
         checkpoints (List[Path]): A list of Path objects representing the checkpoints.
