@@ -139,6 +139,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )
+        print(loss_values)
 
     @pytest.mark.integration_test
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
