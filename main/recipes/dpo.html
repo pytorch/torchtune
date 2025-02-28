@@ -500,6 +500,22 @@ low-quality responses while ensuring a significant gap between chosen and un-cho
 <span class="nv">gamma</span><span class="o">=</span><span class="m">0</span>.5
 </pre></div>
 </div>
+<p>Also, you can pass your custom loss in our recipe. Note that its <cite>forward</cite> method should align with the following signature:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">policy_inputs</span><span class="p">:</span> <span class="n">ChosenRejectedOutputs</span><span class="p">,</span> <span class="n">reference_inputs</span><span class="p">:</span> <span class="n">ChosenRejectedOutputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Here, <cite>ChosenRejectedOutputs</cite> is a dataclass obtained from <cite>concatenated_forward`</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChosenRejectedOutputs</span><span class="p">:</span>
+    <span class="n">chosen_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">rejected_logps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">chosen_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">rejected_logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+</pre></div>
+</div>
+<p>If this is not sufficient and you need to compute additional values from the logits, you can modify <cite>concatenated_forward</cite> directly. To do this, use <cite>tune cp</cite> to copy the desired recipe, and don’t forget to use your own dataclass!</p>
+<p>Refer to the TRL library for reference implementations of the desired losses. In particular, you may find useful loss calculations in trainers.</p>
 <p>For a deeper understanding of the different levers you can pull when using this recipe,
 see our documentation for the different PEFT training paradigms we support:</p>
 <ul class="simple">

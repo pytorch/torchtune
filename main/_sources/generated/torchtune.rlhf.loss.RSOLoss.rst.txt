@@ -1,10 +1,6 @@
-﻿.. role:: hidden
-    :class: hidden-section
+﻿torchtune.rlhf.loss.RSOLoss
+===========================
+
 .. currentmodule:: torchtune.rlhf.loss
 
-
-RSOLoss
-=======
-
-.. autoclass:: RSOLoss
-    :members:
+.. autodata:: RSOLoss
