@@ -48,8 +48,10 @@ class DummyModel(nn.Module):
         encoder_input=None,
         encoder_mask=None,
         input_pos=None,
+        input_embeds=None,
     ):
-        x = self.tok_embeddings(tokens)
+
+        x = self.tok_embeddings(tokens) if input_embeds is None else input_embeds
         if encoder_input is not None:
             q = self.q(x)
             k = self.k(encoder_input) if encoder_input is not None else self.k(x)
@@ -169,10 +171,16 @@ class TestEarlyFusionModel:
         tokens, encoder_input, *_ = inputs
         batch_size, seq_len = tokens.shape
 
-        # No-op for the decoder
+        # Dummy decoder with passthrough forward and dummy tok_embeddings
         class DummyModule(nn.Module):
-            def forward(self, x, **kwargs):
-                return x
+            def __init__(self):
+                super().__init__()
+                self.tok_embeddings = (
+                    lambda x: x.unsqueeze(-1).repeat(1, 1, dim).to(dtype=torch.float32)
+                )
+
+            def forward(self, **kwargs):
+                return kwargs["input_embeds"]
 
         fused_model.decoder = DummyModule()
 
@@ -196,9 +204,10 @@ class TestEarlyFusionModel:
         Test the forward pass of the EarlyFusionModel with no encoder input.
         """
         tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
-
         actual = fused_model(tokens)
-        expected = fused_model.decoder(fused_model.tok_embeddings(tokens))
+        expected = fused_model.decoder(
+            tokens=None, input_embeds=fused_model.decoder.tok_embeddings(tokens)
+        )
 
         assert_expected(actual, expected, atol=1e-3, rtol=1e-3)
 
@@ -234,10 +243,16 @@ class TestEarlyFusionModel:
         tokens[0, 7:] = vocab_size + 2
         tokens[1, 8:] = vocab_size + 2
 
-        # No-op for the decoder
+        # Dummy decoder with passthrough forward and dummy tok_embeddings
         class DummyModule(nn.Module):
-            def forward(self, x, **kwargs):
-                return x
+            def __init__(self):
+                super().__init__()
+                self.tok_embeddings = (
+                    lambda x: x.unsqueeze(-1).repeat(1, 1, dim).to(dtype=torch.float32)
+                )
+
+            def forward(self, **kwargs):
+                return kwargs["input_embeds"]
 
         fused_model.decoder = DummyModule()
 
@@ -299,7 +314,7 @@ class TestEarlyFusionModel:
             "decoder.k.bias",
             "decoder.v.weight",
             "decoder.v.bias",
-            "tok_embeddings.weight",
+            "decoder.tok_embeddings.weight",
             "encoders.green.weight",
         }
 
@@ -328,23 +343,3 @@ class TestEarlyFusionModel:
                 tokens,
                 encoder_input={"encoder": {"input": torch.tensor([1])}},
             )
-
-    def test_state_dict_hooks(self, fused_model, state_dict):
-        fused_model.load_state_dict(state_dict)
-        actual = fused_model.state_dict()
-        expected = state_dict
-        assert_expected(actual, expected)
-
-    def test_sequential_state_dict_hooks(self, fused_model, state_dict):
-        """
-        Test that state dict hooks work when EarlyFusion is wrapped in a larger model
-        """
-        sequential_model = nn.Sequential(fused_model, nn.Linear(10, 10, bias=False))
-        linear_weight = torch.randn(10, 10)
-        sequential_state_dict = {f"0.{k}": v for k, v in state_dict.items()}
-        sequential_state_dict.update({"1.weight": linear_weight})
-        sequential_model.load_state_dict(sequential_state_dict)
-        actual = sequential_model.state_dict()
-        expected = sequential_state_dict
-        expected.update({"1.weight": linear_weight})
-        assert_expected(actual, expected)
