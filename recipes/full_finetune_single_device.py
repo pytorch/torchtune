@@ -201,8 +201,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """Updates the recipe state from checkpoint."""
-        self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
         self.global_step = ckpt_dict[training.STEPS_KEY]
+        self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
         # Warn the user and prevent the override
         if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -317,6 +317,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # For now, default to saving at epoch boundaries
         if self.save_every_n_steps is None:
             self.save_every_n_steps = self._steps_per_epoch
+
+        if (
+            self._resume_from_checkpoint
+            and self.global_step % self._steps_per_epoch == 0
+        ):
+            list(self._dataloader)
 
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -588,6 +594,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
+        # Manually correct for saving at epoch boundaries
+        if step % self._steps_per_epoch == 0:
+            epoch += 1
         ckpt_dict = {
             training.MODEL_KEY: self._model.state_dict(),
             training.SEED_KEY: self.seed,

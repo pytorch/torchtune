@@ -589,7 +589,12 @@ def get_most_recent_checkpoint(dir: Path) -> Optional[Path]:
     if not checkpoints:
         return None
 
-    return max(checkpoints, key=lambda x: int(x.name.split("_")[-1]))
+    # Finally, loop through checkpoints and return the most recent (non-empty) one
+    checkpoints.sort(key=lambda x: int(x.name.split("_")[-1]))
+    while checkpoints:
+        ckpt = checkpoints.pop()
+        if any(ckpt.iterdir()):
+            return ckpt
 
 
 def get_all_checkpoints_in_dir(
