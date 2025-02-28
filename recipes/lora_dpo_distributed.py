@@ -299,7 +299,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
-            collate_fn=padded_collate_dpo,
             dataloader_state_dict=(
                 checkpoint_dict[training.DATALOADER_KEY]
                 if self._resume_from_checkpoint
