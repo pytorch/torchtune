@@ -478,7 +478,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 output_dir=self._output_dir,
                 adapter_checkpoint=adapter_checkpoint,
                 should_load_recipe_state=True,
-                pattern=r"^step_(\d+)",
             )
 
         # get ckpt paths

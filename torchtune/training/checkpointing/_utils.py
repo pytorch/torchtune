@@ -406,17 +406,15 @@ def get_adapter_checkpoint_path(
     output_dir: Path,
     adapter_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
-    pattern: str = r"^step_(\d+)",
 ) -> Optional[Path]:
     r"""
-    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.
+    If adapter_checkpoint is None, look for it in {output_dir}/pattern/adapter_model.pt.
     This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
 
     Args:
         output_dir (Path): Directory containing the adapter checkpoint.
         adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.
         should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.
-        pattern (str): Regex pattern to match the epoch folder. Defaults to "epoch_(\d+)".
 
     Returns:
         Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
@@ -431,7 +429,16 @@ def get_adapter_checkpoint_path(
         # TODO: add error if it doesnt exist
     else:
         # Look for the latest adapter checkpoint in the output directory
-        largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
+        # Check first for step_{latest_step} and then for epoch_{latest_epoch}
+        # We have to do this b/c we cannot infer upon checkpoint instantiation if it
+        # is a step of epoch checkpoint. This is horrible.
+        largest_iter_folder = get_largest_iter_folder(
+            output_dir, pattern=r"^step_(\d+)"
+        )
+        if largest_iter_folder is None:
+            largest_iter_folder = get_largest_iter_folder(
+                output_dir, pattern=r"^epoch_(\d+)"
+            )
         if largest_iter_folder is None:
             return None
 
