@@ -476,15 +476,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             self._recipe_checkpoint = most_recent_checkpoint / recipe_checkpoint
             assert self._recipe_checkpoint.exists()
             self._adapter_checkpoint = most_recent_checkpoint / adapter_checkpoint
-
-        # get ckpt paths
-        self._checkpoint_paths = get_model_checkpoint_path(
-            checkpoint_files=checkpoint_files,
-            checkpoint_dir=self._checkpoint_dir,
-            output_dir=self._output_dir,
-            should_load_recipe_state=self._should_load_recipe_state,
-            has_adapter_checkpoint=self._adapter_checkpoint is not None,
-        )
+            self._checkpoint_paths = get_model_checkpoint_path(
+                checkpoint_files=checkpoint_files,
+                checkpoint_dir=self._checkpoint_dir,
+                output_dir=most_recent_checkpoint,
+                should_load_recipe_state=True,
+                has_adapter_checkpoint=self._adapter_checkpoint.exists(),
+            )
+        else:
+            self._checkpoint_paths = get_model_checkpoint_path(
+                checkpoint_files=checkpoint_files,
+                checkpoint_dir=self._checkpoint_dir,
+                output_dir=self._output_dir,
+                should_load_recipe_state=False,
+                has_adapter_checkpoint=False,
+            )
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
@@ -771,9 +777,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             for cpt_idx, model_state_dict in split_state_dicts.items():
                 # TODO: We should probably use the original shard name and just add a prefix
                 # however, having the SHARD_FNAME standardizes our checkpoints
-                shard_name = SHARD_FNAME.format(
-                    cpt_idx=f"{cpt_idx}".zfill(5), num_shards=f"{num_shards}".zfill(5)
-                )
+                if num_shards == 1:
+                    shard_name = "model"
+                else:
+                    shard_name = SHARD_FNAME.format(
+                        cpt_idx=f"{cpt_idx}".zfill(5),
+                        num_shards=f"{num_shards}".zfill(5),
+                    )
                 map_original_name_to_new_name[cpt_idx] = shard_name
                 output_path = Path.joinpath(
                     self._output_dir, ckpt_save_dirname, shard_name
