@@ -402,51 +402,6 @@ def copy_files(
     return
 
 
-def get_adapter_checkpoint_path(
-    ckpt_dir: Path, adapter_checkpoint: str
-) -> Optional[Path]:
-    """
-    Get the path to the adapter checkpoint file, if it exists.
-
-    Args:
-        ckpt_dir (Path): The directory to search for the adapter checkpoint file.
-        adapter_checkpoint (str): The name of the adapter checkpoint file.
-
-    Returns:
-        Optional[Path]: The path to the adapter checkpoint file, if it exists. None otherwise.
-    """
-    if not should_load_recipe_state:
-        return None
-
-    adapter_checkpoint_path = None
-
-    if adapter_checkpoint:
-        adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
-        # TODO: add error if it doesnt exist
-    else:
-        # Look for the latest adapter checkpoint in the output directory
-        # Check first for step_{latest_step} and then for epoch_{latest_epoch}
-        # We have to do this b/c we cannot infer upon checkpoint instantiation if it
-        # is a step of epoch checkpoint. This is horrible.
-        largest_iter_folder = get_largest_iter_folder(
-            output_dir, pattern=r"^step_(\d+)"
-        )
-        if largest_iter_folder is None:
-            largest_iter_folder = get_largest_iter_folder(
-                output_dir, pattern=r"^epoch_(\d+)"
-            )
-        if largest_iter_folder is None:
-            return None
-
-        tentative_adapter_checkpoint_path = os.path.join(
-            output_dir, largest_iter_folder, "adapter_model.pt"
-        )
-        if os.path.exists(tentative_adapter_checkpoint_path):
-            adapter_checkpoint_path = tentative_adapter_checkpoint_path
-
-    return Path(adapter_checkpoint_path) if adapter_checkpoint_path else None
-
-
 def get_model_checkpoint_path(
     checkpoint_files: Union[List[str], Dict[str, str]],
     checkpoint_dir: Union[str, Path],
