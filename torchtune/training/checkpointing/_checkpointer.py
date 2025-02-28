@@ -970,6 +970,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 should_load_recipe_state instead.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
                 the recipe state from a previous run. Default is False
+        keep_last_n_checkpoints (Optional[int]): How many checkpoints to keep. If None, all checkpoints are kept.
 
     Raises:
         ValueError: If ``checkpoint_files`` is not a list of length 1
@@ -985,7 +986,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
+        *,
+        keep_last_n_checkpoints: Optional[int] = None,
     ) -> None:
+        self._keep_last_n_checkpoints = keep_last_n_checkpoints
 
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
@@ -1087,7 +1091,8 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
-        **kwargs,
+        *,
+        step: Optional[int] = None,
     ) -> None:
         """
         Save Meta checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -1100,10 +1105,18 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
+        # Prefer to use step, not epoch
+        if step is not None:
+            ckpt_save_dirname = f"step_{step}"
+            ckpt_pattern = r"^step_(\d+)"
+        else:
+            ckpt_save_dirname = f"epoch_{epoch}"
+            ckpt_pattern = r"^epoch_(\d+)"
 
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]
@@ -1134,7 +1147,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 cpt_idx="1".zfill(5), num_shards="1".zfill(5)
             )
             checkpoint_file = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", model_filename
+                self._output_dir, ckpt_save_dirname, model_filename
             ).with_suffix(".bin")
             checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1147,7 +1160,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         if training.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
+                self._output_dir, ckpt_save_dirname, ADAPTER_MODEL_FNAME
             ).with_suffix(".pt")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
@@ -1166,7 +1179,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         # So its easy to run inference with the model using this epoch's checkpoint
         copy_files(
             self._checkpoint_dir,
-            Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+            Path.joinpath(self._output_dir, ckpt_save_dirname),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
         )
 
@@ -1199,6 +1212,16 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                     "The full model checkpoint, including all weights and configurations, has been saved successfully."
                     "You can now use this checkpoint for further training or inference."
                 )
+
+        # If specified, prune the checkpoints in the output directory
+        if self._keep_last_n_checkpoints is not None:
+            all_current_checkpoints = get_all_checkpoints_in_dir(
+                self._output_dir, pattern=ckpt_pattern
+            )
+            prune_surplus_checkpoints(
+                all_current_checkpoints,
+                keep_last_n_checkpoints=self._keep_last_n_checkpoints,
+            )
 
 
 class DistributedCheckpointer(_CheckpointerInterface):
