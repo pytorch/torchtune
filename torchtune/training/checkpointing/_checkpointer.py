@@ -34,6 +34,7 @@ from torchtune.training.checkpointing._utils import (
     get_adapter_checkpoint_path,
     get_all_checkpoints_in_dir,
     get_model_checkpoint_path,
+    get_most_recent_checkpoint,
     ModelType,
     prune_surplus_checkpoints,
     RECIPE_STATE_DIRNAME,
@@ -417,8 +418,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         checkpoint_files: Union[List[str], Dict[str, str]],
         model_type: str,
         output_dir: str,
-        adapter_checkpoint: Optional[str] = None,
-        recipe_checkpoint: Optional[str] = None,
+        adapter_checkpoint: str = "adapter_model.pt",
+        recipe_checkpoint: str = "recipe_state.pt",
         resume_from_checkpoint: bool = False,
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
@@ -467,18 +468,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         self._adapter_checkpoint = None
         if self._should_load_recipe_state:
-            self._recipe_checkpoint = self._checkpoint_dir / recipe_checkpoint
-            if not self._recipe_checkpoint.exists():
+            most_recent_checkpoint = get_most_recent_checkpoint(dir=self._output_dir)
+            if most_recent_checkpoint is None:
                 raise ValueError(
-                    f"Could not find recipe state at {self._recipe_checkpoint}"
+                    "Recipe state cannot be loaded because no checkpoints were found in the output directory."
                 )
-
-            # resume from adapter_model ckpt
-            self._adapter_checkpoint = get_adapter_checkpoint_path(
-                output_dir=self._output_dir,
-                adapter_checkpoint=adapter_checkpoint,
-                should_load_recipe_state=True,
-            )
+            self._recipe_checkpoint = most_recent_checkpoint / recipe_checkpoint
+            assert self._recipe_checkpoint.exists()
+            self._adapter_checkpoint = most_recent_checkpoint / adapter_checkpoint
 
         # get ckpt paths
         self._checkpoint_paths = get_model_checkpoint_path(
@@ -629,19 +626,18 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 head_dim=self._config.get("head_dim", None),
             )
 
-        if self._adapter_checkpoint:
-            adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
-            converted_state_dict[training.ADAPTER_KEY] = adapter_state_dict
-
         if self._should_load_recipe_state:
+            if self._adapter_checkpoint.exists():
+                adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
+                converted_state_dict[training.ADAPTER_KEY] = adapter_state_dict
+            recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
+            converted_state_dict.update(recipe_state)
             logger.info(
                 "Loading the recipe state using: "
                 f"\n\tcheckpoint_paths: {[str(path) for path in self._checkpoint_paths]}"
                 f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
             )
-            recipe_state = safe_torch_load(self._recipe_checkpoint, mmap=False)
-            converted_state_dict.update(recipe_state)
 
         return converted_state_dict
 

@@ -292,7 +292,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
             dataloader_state_dict=(
-                ckpt_dict[training.DATALOADER_KEY]
+                state_dict[training.DATALOADER_KEY]
                 if self._resume_from_checkpoint
                 else None
             ),
@@ -581,9 +581,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
-            # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
-            # we need to force the dataloader to finish the last iteration before it's actually used
-            list(dataloader)
         return dataloader
 
     def save_checkpoint(self, *, epoch: int, step: int) -> None:
@@ -657,11 +654,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            initial_step = self.global_step % self._steps_per_epoch
-            pbar = tqdm(
-                total=self._steps_per_epoch,
-                initial=initial_step,
-            )
+            inner_step_count = self.global_step % self._steps_per_epoch
+            pbar = tqdm(initial=inner_step_count, total=self._steps_per_epoch)
             for idx, batch in enumerate(self._dataloader):
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -702,6 +696,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
                     self.global_step += 1
+                    inner_step_count += 1
 
                     loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
@@ -767,7 +762,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Check if we should stop training for this epoch
                 if (
-                    (idx + 1) // self._gradient_accumulation_steps
+                    inner_step_count // self._gradient_accumulation_steps
                 ) == self.max_steps_per_epoch:
                     break
 

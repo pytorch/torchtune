@@ -403,21 +403,17 @@ def copy_files(
 
 
 def get_adapter_checkpoint_path(
-    output_dir: Path,
-    adapter_checkpoint: Optional[str] = None,
-    should_load_recipe_state: bool = False,
+    ckpt_dir: Path, adapter_checkpoint: str
 ) -> Optional[Path]:
-    r"""
-    If adapter_checkpoint is None, look for it in {output_dir}/pattern/adapter_model.pt.
-    This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
+    """
+    Get the path to the adapter checkpoint file, if it exists.
 
     Args:
-        output_dir (Path): Directory containing the adapter checkpoint.
-        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.
-        should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.
+        ckpt_dir (Path): The directory to search for the adapter checkpoint file.
+        adapter_checkpoint (str): The name of the adapter checkpoint file.
 
     Returns:
-        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
+        Optional[Path]: The path to the adapter checkpoint file, if it exists. None otherwise.
     """
     if not should_load_recipe_state:
         return None
@@ -568,6 +564,32 @@ def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
         )
 
     return True
+
+
+def get_most_recent_checkpoint(dir: Path) -> Optional[Path]:
+    """
+    Return the most recent checkpoint in the given directory.
+    The function assumes that the checkpoint files are named in the format "epoch_{epoch_number}" or "step_{step_number}".
+    The function will return None if no checkpoint files are found in the directory.
+
+    Args:
+        dir (Path): The directory containing the checkpoints.
+
+    Returns:
+        Optional[Path]: The path to the most recent checkpoint, or None if no checkpoints are found.
+    """
+    # First, check for epochs
+    checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^epoch_(\d+)")
+
+    # If no epochs found, check for steps
+    if not checkpoints:
+        checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^step_(\d+)")
+
+    # If no steps found, return None
+    if not checkpoints:
+        return None
+
+    return max(checkpoints, key=lambda x: int(x.name.split("_")[-1]))
 
 
 def get_all_checkpoints_in_dir(
