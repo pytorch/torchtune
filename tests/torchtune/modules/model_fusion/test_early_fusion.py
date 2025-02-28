@@ -171,19 +171,19 @@ class TestEarlyFusionModel:
         tokens, encoder_input, *_ = inputs
         batch_size, seq_len = tokens.shape
 
-        # No-op for the decoder
+        # Dummy decoder with passthrough forward and dummy tok_embeddings
         class DummyModule(nn.Module):
             def __init__(self):
                 super().__init__()
-                self.tok_embeddings = nn.Identity()
+                self.tok_embeddings = (
+                    lambda x: x.unsqueeze(-1).repeat(1, 1, dim).to(dtype=torch.float32)
+                )
 
-            def forward(self, x, **kwargs):
-                return x
+            def forward(self, **kwargs):
+                return kwargs["input_embeds"]
 
         fused_model.decoder = DummyModule()
-        import pdb
 
-        pdb.set_trace()
         out = fused_model(
             tokens,
             encoder_input=encoder_input,
@@ -204,10 +204,9 @@ class TestEarlyFusionModel:
         Test the forward pass of the EarlyFusionModel with no encoder input.
         """
         tokens = torch.randint(0, vocab_size, (batch_size, seq_len))
-
         actual = fused_model(tokens)
         expected = fused_model.decoder(
-            input_embeds=fused_model.decoder.tok_embeddings(tokens)
+            tokens=None, input_embeds=fused_model.decoder.tok_embeddings(tokens)
         )
 
         assert_expected(actual, expected, atol=1e-3, rtol=1e-3)
@@ -244,10 +243,16 @@ class TestEarlyFusionModel:
         tokens[0, 7:] = vocab_size + 2
         tokens[1, 8:] = vocab_size + 2
 
-        # No-op for the decoder
+        # Dummy decoder with passthrough forward and dummy tok_embeddings
         class DummyModule(nn.Module):
-            def forward(self, x, **kwargs):
-                return x
+            def __init__(self):
+                super().__init__()
+                self.tok_embeddings = (
+                    lambda x: x.unsqueeze(-1).repeat(1, 1, dim).to(dtype=torch.float32)
+                )
+
+            def forward(self, **kwargs):
+                return kwargs["input_embeds"]
 
         fused_model.decoder = DummyModule()
 

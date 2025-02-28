@@ -158,9 +158,7 @@ class EarlyFusionModel(nn.Module):
         is_text = ~torch.isin(tokens, encoder_token_ids)
         text_tokens = torch.masked_select(tokens, is_text)
         # [num_text, embed_dim]
-        import pdb
 
-        pdb.set_trace()
         text_embeds = self.decoder.tok_embeddings(text_tokens)
         return is_text, text_embeds
 

@@ -561,7 +561,7 @@ class TransformerDecoder(nn.Module):
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
-            tokens (torch.Tensor): input tensor with shape ``[b x s]``
+            tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``
             mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
                 and before the softmax. This parameter is required during inference if caches have been setup.
                 Either:
@@ -587,6 +587,8 @@ class TransformerDecoder(nn.Module):
                 of each token relative to its sample when packed, shape ``[b x s]``.
                 During inference, this indicates the position of the current token.
                 This parameter is required during inference if caches have been setup. Default is None.
+            input_embeds (Optional[torch.Tensor]): Pass these instead of tokens to short-circuit token embeddings
+                and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
             Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer
