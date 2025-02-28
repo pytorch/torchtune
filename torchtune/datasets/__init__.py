@@ -14,6 +14,10 @@ from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import preference_dataset, PreferenceDataset
+from torchtune.datasets._prompt_completion import (
+    prompt_completion_dataset,
+    PromptCompletionDataset,
+)
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._sft import SFTDataset
 from torchtune.datasets._slimorca import slimorca_dataset
@@ -36,6 +40,8 @@ __all__ = [
     "chat_dataset",
     "text_completion_dataset",
     "TextCompletionDataset",
+    "prompt_completion_dataset",
+    "PromptCompletionDataset",
     "cnn_dailymail_articles_dataset",
     "PackedDataset",
     "ConcatDataset",
