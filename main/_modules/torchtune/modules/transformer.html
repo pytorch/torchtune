@@ -951,28 +951,39 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate_inputs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_embeds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Validates inputs for ``forward``.</span>
 <span class="sd">        Args:</span>
-<span class="sd">            seq_len (int): Input tensor sequence length.</span>
+<span class="sd">            tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``</span>
 <span class="sd">            mask (Optional[torch.Tensor]): Attention mask used for inference and for sequence packing.</span>
 <span class="sd">            encoder_input (Optional[torch.Tensor]): Encoder input for cross-attention.</span>
 <span class="sd">            encoder_mask (Optional[torch.Tensor]): Encoder attention mask for cross-embedding attention.</span>
 <span class="sd">            input_pos (Optional[torch.Tensor]): Input tensor position IDs.</span>
+<span class="sd">            input_embeds (Optional[torch.Tensor]): Input tensor embeddings (if short-circuiting token embeddings).</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError:</span>
+<span class="sd">                If neither tokens nor input_embeds are passed **or**</span>
 <span class="sd">                If seq_len of x is bigger than max_seq_len, **or**</span>
 <span class="sd">                if the model has caches which have been setup with self-attention layers and ``mask`` is not provided, **or**</span>
 <span class="sd">                if the model has caches which have been setup with encoder layers and ``encoder_mask`` is not provided, **or**</span>
 <span class="sd">                if the model has caches which have been setup ``input_pos`` is not provided.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">tokens</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">input_embeds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Either tokens or input_embeds must be provided to the decoder.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># input tensor of shape [b, s]</span>
+        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">input_embeds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">seq_len</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1000,16 +1011,17 @@
 
 <div class="viewcode-block" id="TransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_MaskType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">encoder_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_embeds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            tokens (torch.Tensor): input tensor with shape ``[b x s]``</span>
+<span class="sd">            tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``</span>
 <span class="sd">            mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication</span>
 <span class="sd">                and before the softmax. This parameter is required during inference if caches have been setup.</span>
 <span class="sd">                Either:</span>
@@ -1035,6 +1047,8 @@
 <span class="sd">                of each token relative to its sample when packed, shape ``[b x s]``.</span>
 <span class="sd">                During inference, this indicates the position of the current token.</span>
 <span class="sd">                This parameter is required during inference if caches have been setup. Default is None.</span>
+<span class="sd">            input_embeds (Optional[torch.Tensor]): Pass these instead of tokens to short-circuit token embeddings</span>
+<span class="sd">                and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer</span>
@@ -1062,19 +1076,18 @@
 <span class="sd">            - d_e: encoder embed dim</span>
 <span class="sd">            - m_s: max seq len</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># input tensor of shape [b, s]</span>
-        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_inputs</span><span class="p">(</span>
-            <span class="n">seq_len</span><span class="p">,</span>
+            <span class="n">tokens</span><span class="o">=</span><span class="n">tokens</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
             <span class="n">encoder_input</span><span class="o">=</span><span class="n">encoder_input</span><span class="p">,</span>
             <span class="n">encoder_mask</span><span class="o">=</span><span class="n">encoder_mask</span><span class="p">,</span>
             <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span>
+            <span class="n">input_embeds</span><span class="o">=</span><span class="n">input_embeds</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># shape: [b, s, d]</span>
-        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="k">if</span> <span class="n">input_embeds</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">input_embeds</span>
 
         <span class="n">hidden</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
