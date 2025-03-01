@@ -23,12 +23,26 @@ _PHI3_MINI = {
     "lm_head.weight": "output.weight",
 }
 
-
 def phi3_hf_to_tune(
     state_dict: Dict[str, torch.Tensor],
     num_heads: Optional[int],
     num_kv_heads: Optional[int],
     dim: Optional[int],
+) -> Dict[str, torch.Tensor]:
+    return _phi_hf_to_tune(
+        state_dict,
+        num_heads,
+        num_kv_heads,
+        dim,
+        _PHI3_MINI,
+    )
+
+def _phi_hf_to_tune(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: Optional[int],
+    num_kv_heads: Optional[int],
+    dim: Optional[int],
+    weight_mapping: Dict[str, str],
 ) -> Dict[str, torch.Tensor]:
     """
     Convertor from HF state dict to torchtune state dict. This handles:
@@ -48,7 +62,13 @@ def phi3_hf_to_tune(
         q_dim, k_dim, v_dim = None, None, None
 
     for key, value in state_dict.items():
-        new_key = get_mapped_key(key, _PHI3_MINI)
+        # Skip multimodal embedding weights.
+        if "embed_tokens_extend" in key:
+            continue
+        if "lora" in key:
+            continue
+
+        new_key = get_mapped_key(key, weight_mapping)
         if "qkv" in key:
             if q_dim is not None:
                 q, k, v = torch.split(value, [q_dim, k_dim, v_dim], dim=0)
@@ -71,6 +91,12 @@ def phi3_hf_to_tune(
 
 
 def phi3_tune_to_hf(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    return _phi_tune_to_hf(
+        state_dict,
+        _PHI3_MINI,
+    )
+
+def _phi_tune_to_hf(state_dict: Dict[str, torch.Tensor], weight_mapping: Dict[str, str]) -> Dict[str, torch.Tensor]:
     """
     Convertor from torchtune state dict to HF state dict. This handles:
     - Fusing q,k and v matrix

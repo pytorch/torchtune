@@ -530,14 +530,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
-        if self._model_type == ModelType.PHI3_MINI:
+        if self._model_type == ModelType.PHI3_MINI or self._model_type == ModelType.PHI4_MINI:
             log_rank_zero(
                 logger=logger,
                 msg="Converting Phi-3 Mini weights from HF format."
                 "Note that conversion of adapter weights into PEFT format is not supported.",
             )
-            from torchtune.models.phi3._convert_weights import phi3_hf_to_tune
-
             num_heads = self._config["num_attention_heads"]
             num_kv_heads = self._config["num_key_value_heads"]
             dim = self._config["hidden_size"]
@@ -546,12 +544,24 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if num_heads == num_kv_heads:
                 num_heads, num_kv_heads, dim = None, None, None
 
-            converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
-                merged_state_dict,
-                num_heads=num_heads,
-                num_kv_heads=num_kv_heads,
-                dim=dim,
-            )
+            if self._model_type == ModelType.PHI3_MINI:
+                from torchtune.models.phi3._convert_weights import phi3_hf_to_tune
+
+                converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
+                    merged_state_dict,
+                    num_heads=num_heads,
+                    num_kv_heads=num_kv_heads,
+                    dim=dim,
+                )
+            else:
+                from torchtune.models.phi4._convert_weights import phi4_hf_to_tune
+
+                converted_state_dict[training.MODEL_KEY] = phi4_hf_to_tune(
+                    merged_state_dict,
+                    num_heads=num_heads,
+                    num_kv_heads=num_kv_heads,
+                    dim=dim,
+                )
         elif self._model_type == ModelType.REWARD:
             from torchtune.rlhf.utils import reward_hf_to_tune
 
