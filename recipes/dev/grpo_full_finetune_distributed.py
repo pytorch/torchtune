@@ -140,6 +140,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             model_sd=checkpoint_dict[training.MODEL_KEY],
+            reshard_after_forward=False,
         )
         # Setup reference model
         ref_checkpoint_dict = self.load_checkpoint(
@@ -152,7 +153,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             model_sd=ref_checkpoint_dict[training.MODEL_KEY],
             eval_mode=True,
-            reshard_after_forward=False,
+            reshard_after_forward=True,
         )
         torch.distributed.barrier()
 
