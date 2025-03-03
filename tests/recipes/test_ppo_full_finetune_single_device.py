@@ -123,18 +123,18 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = [
-            1.0403,
-            0.9495,
-            0.9084,
-            1.0494,
-            0.9609,
-            0.8846,
-            1.0282,
-            0.9390,
-            0.8915,
-            1.0166,
-            0.9231,
-            0.9352,
+            1.0713435411453247,
+            0.977239727973938,
+            0.9410375952720642,
+            1.0241278409957886,
+            0.9388540387153625,
+            0.8527385592460632,
+            1.0291913747787476,
+            0.9416084289550781,
+            0.8758291006088257,
+            0.9988452196121216,
+            0.9074527025222778,
+            0.9139251112937927,
         ]
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5

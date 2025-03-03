@@ -15,7 +15,8 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
@@ -312,7 +313,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are initialized
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -665,7 +666,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here. Currently this recipe only supports the
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
@@ -681,27 +683,33 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
+        sampler = StatefulDistributedSampler(
+            ds,
+            num_replicas=self.world_size,
+            rank=self.rank,
+            shuffle=shuffle,
+            seed=0,
         )
-
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
+            collate_fn=(
+                partial(
+                    padded_collate_dpo,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
+                )
+            ),
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            collate_fn=partial(
-                padded_collate_dpo,
-                padding_idx=self._tokenizer.pad_id,
-                ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
-            ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        if dataloader_state_dict is not None:
+            dataloader.load_state_dict(dataloader_state_dict)
+            list(dataloader)  # Hack to force dataloader to finish iteration
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self,
@@ -874,17 +882,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
-            for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
+            self._dataloader.sampler.set_epoch(curr_epoch)
 
+            for idx, batch in enumerate(self._dataloader):
                 # batch is input_ids, labels
                 num_tokens += torch.tensor(batch[0].numel())
                 policy_chosen_rejected_outputs = self.concatenated_forward(
@@ -1042,6 +1043,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
+                if (
+                    (idx + 1) // self._gradient_accumulation_steps
+                ) == self.max_steps_per_epoch:
+                    break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
