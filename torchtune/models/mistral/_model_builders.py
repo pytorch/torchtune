@@ -48,7 +48,13 @@ def mistral_7b() -> TransformerDecoder:
     )
 
 
-def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.mistral.MistralChatTemplate") -> MistralTokenizer:
+def mistral_tokenizer(
+    path: str,
+    max_seq_len: Optional[int] = None,
+    prompt_template: Optional[
+        _TemplateType
+    ] = "torchtune.models.mistral.MistralChatTemplate",
+) -> MistralTokenizer:
     """
     Tokenizer for Mistral models.
 
@@ -64,7 +70,15 @@ def mistral_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_templ
     Returns:
         MistralTokenizer: Instantiation of the Mistral tokenizer
     """
-    return MistralTokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None)
+    return MistralTokenizer(
+        path=path,
+        max_seq_len=max_seq_len,
+        prompt_template=(
+            _get_prompt_template(prompt_template)
+            if prompt_template is not None
+            else None
+        ),
+    )
 
 
 def lora_mistral_7b(
