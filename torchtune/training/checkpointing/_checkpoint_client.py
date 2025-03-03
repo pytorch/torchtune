@@ -69,7 +69,7 @@ class CheckpointClient:
 
         self._resume_from_checkpoint = self._cfg.get("resume_from_checkpoint", False)
         self._enable_async_checkpointing = self._cfg.get(
-            "enable_async_checkpointing", False
+            "enable_async_checkpointing", True
         )
         self._optimizer_in_bwd = self._cfg.get("optimizer_in_bwd", False)
         self._device = utils.get_device(device=self._cfg.device)
@@ -217,10 +217,10 @@ class CheckpointClient:
                     )
                 else:
                     for param, opt in optimizer.optim_map.items():
-                        optim_state_dict[
-                            param
-                        ] = training.get_full_optimizer_state_dict(
-                            model, opt, self._is_rank_zero, device=self._device
+                        optim_state_dict[param] = (
+                            training.get_full_optimizer_state_dict(
+                                model, opt, self._is_rank_zero, device=self._device
+                            )
                         )
             else:
                 optim_state_dict = optimizer.state_dict()
