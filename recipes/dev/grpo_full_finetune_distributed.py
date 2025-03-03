@@ -54,7 +54,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         init_process_group(self.distributed_backend)
         self.world_size, self.rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
+        self._is_rank_zero = self.rank == 0
 
         # Training attributes
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -144,7 +144,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         # Setup reference model
         ref_checkpoint_dict = self.load_checkpoint(
-            cfg_ref_checkpointer=cfg.ref_checkpointer
+            cfg_checkpointer=cfg.ref_checkpointer
         )
         self._ref_model = self._setup_model(
             cfg_model=cfg.model,
@@ -328,7 +328,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         fsdp_cpu_offload: bool,
-        model_state_dict: Dict[str, Any],
+        model_sd: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
         eval_mode: bool = False,
         reshard_after_forward: bool = True,
@@ -351,7 +351,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if eval_mode:
             model.eval()
-            for p in ref_model.parameters():
+            for p in model.parameters():
                 p.requires_grad = False
 
         if self._compile:
@@ -390,7 +390,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         # dict and load into the model
         training.load_from_full_model_state_dict(
             model,
-            model_state_dict,
+            model_sd,
             self._device,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
@@ -937,8 +937,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line
     """
 
-    recipe = FullGRPOFinetuneRecipeDistributed(cfg=cfg)
-    config.log_config(recipe_name="FullGRPOFinetuneRecipeDistributed", cfg=cfg)
+    recipe = GRPOFullFinetuneRecipeDistributed(cfg=cfg)
+    config.log_config(recipe_name="GRPOFullFinetuneRecipeDistributed", cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
