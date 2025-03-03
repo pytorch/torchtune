@@ -62,6 +62,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
         )
+        self._compile = cfg.get("compile", False)
 
         # Recipe state attributes
         self.seed = training.set_seed(seed=cfg.seed)
@@ -82,22 +83,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
-
-    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the reference checkpoint state from file and validate.
-        """
-        self._ref_checkpointer = config.instantiate(
-            cfg_ref_checkpointer, resume_from_checkpoint=False
-        )
-
-        ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
-
-        return ref_checkpoint_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -144,10 +130,10 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger = config.instantiate(cfg.metric_logger)
             self._metric_logger.log_config(cfg)
 
-        self._compile = cfg.get("compile", False)
-
         # Setup model to train
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        if self._resume_from_checkpoint:
+            self._update_recipe_state(checkpoint_dict)
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -156,7 +142,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             model_sd=checkpoint_dict[training.MODEL_KEY],
         )
         # Setup reference model
-        ref_checkpoint_dict = self.load_ref_checkpoint(
+        ref_checkpoint_dict = self.load_checkpoint(
             cfg_ref_checkpointer=cfg.ref_checkpointer
         )
         self._ref_model = self._setup_model(
@@ -182,11 +168,9 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-
-        utils.log_rank_zero(log, "Loss is initialized.")
+         utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
