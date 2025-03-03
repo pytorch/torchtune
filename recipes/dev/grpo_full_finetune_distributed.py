@@ -32,103 +32,38 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
-    """
-    Full finetuning recipe for dense transformer-based LLMs such as Llama2, trained with GRPO. This recipe supports
-    distributed training and can be run on a single node (1 to 8 GPUs).
-
-    Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
-            is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
-            disabled for faster generation (corresponding to FULL_SHARD sharding strategy).
-            DDP is currently not supported. Training on CPU is not supported.
-
-        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
-            flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
-            activations in memory and instead recompute them during the backward pass. This is especially
-            helpful for larger batch sizes when you're memory constrained. But these savings in memory
-            come at the cost of training performance. In most cases training can slow-down quite a bit as
-            a result of this activation recomputation.
-
-        - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
-            flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
-            most cases this should halve the memory footprint of full precision (fp32) training, without
-            loss in model quality (will depend on the model, training data and other settings). For
-            GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-            precision are currently not supported.
-
-        - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-            training. Optimizer state and recipe state (seed, total_epochs, number of epochs run etc) are
-            only saved at the end of a given epoch and used in case of resuming training.
-
-            Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
-            currently not supported.
-
-            For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
-
-        - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
-
-        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. By default,
-            ``clip_grad_norm`` is set to ``None``. If you only want to log the grad norm, you can set
-            ``clip_grad_norm='inf'``.
-
-    For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
-    has example commands for how to kick-off training.
-
-    Args:
-        cfg (DictConfig): OmegaConf object parsed from yaml file
-
-    Raises:
-        ValueError: If ``dtype`` is set to fp16.
-        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-        RuntimeError: If ``left_pad_sequence`` is set as the data collator.
-    """
-
+class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
-        device_type = cfg.device
-
-        if self._dtype == torch.float16:
-            raise ValueError(
-                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
-            )
-
-        # logging attributes
         self._output_dir = cfg.output_dir
+
+        # Logging attributes
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
+        # Initialize the distributed environment
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
-
         self.distributed_backend = training.get_distributed_backend(
-            device_type, offload_ops_to_cpu=self.fsdp_cpu_offload
+            cfg.device, offload_ops_to_cpu=self.fsdp_cpu_offload
         )
         init_process_group(self.distributed_backend)
-
-        world_size, rank = utils.get_world_size_and_rank()
-        self.rank = rank
-        self.world_size = world_size
+        self.world_size, self.rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
-        # Training cfg
+        # Training attributes
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-
-        # activation checkpointing
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
         )
 
-        # These are public properties which are updated by the checkpoint loader
-        # when ``resume_from_checkpoint`` is `True` or validated in tests
+        # Recipe state attributes
         self.seed = training.set_seed(seed=cfg.seed)
         self.total_epochs = cfg.epochs
         self.global_step = 0
