@@ -72,7 +72,7 @@ def shaped_correctness_reward(answer: str, completion: str) -> tuple[float, floa
 
 def batch_shaped_correctness_reward(
     tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]
-) -> [torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Utility function to apply the shaped reward function to a GRPO-style batch of completions."""
 
     batch_size, grpo_size, *_ = completions.shape
