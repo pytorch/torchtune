@@ -139,26 +139,36 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         if self.fsdp_cpu_offload:
             training.set_torch_num_threads()
+
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
-
-            # log config with parameter override
             self._metric_logger.log_config(cfg)
 
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        ref_checkpoint_dict = self.load_ref_checkpoint(
-            cfg_ref_checkpointer=cfg.ref_checkpointer
-        )
-
         self._compile = cfg.get("compile", False)
-        self._model, self._ref_model = self._setup_model(
+
+        # Setup model to train
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
-            model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            ref_model_state_dict=ref_checkpoint_dict[training.MODEL_KEY],
+            model_sd=checkpoint_dict[training.MODEL_KEY],
         )
+        # Setup reference model
+        ref_checkpoint_dict = self.load_ref_checkpoint(
+            cfg_ref_checkpointer=cfg.ref_checkpointer
+        )
+        self._ref_model = self._setup_model(
+            cfg_model=cfg.model,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            fsdp_cpu_offload=self.fsdp_cpu_offload,
+            model_sd=ref_checkpoint_dict[training.MODEL_KEY],
+        )
+        torch.distributed.barrier()
+
+        # Utilize the same tokenizer for both models (hack)
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         self._optimizer = self._setup_optimizer(
@@ -225,9 +235,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         self._forward_batch_size = cfg.forward_batch_size
 
         self._ppo_epochs = cfg.ppo_epochs
-
         self._save_every_n_epochs = cfg.save_every_n_epochs
-
         self._total_steps = cfg.num_steps
 
         if cfg.get("stop_token_ids", False):
@@ -361,8 +369,9 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         fsdp_cpu_offload: bool,
         model_state_dict: Dict[str, Any],
-        ref_model_state_dict: Dict[str, Any],
         custom_sharded_layers: Optional[List[str]] = None,
+        eval_mode: bool = False,
+        reshard_after_forward: bool = True,
     ) -> tuple[nn.Module, nn.Module]:
         """
         Model initialization has some important considerations:
@@ -380,15 +389,14 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
-            ref_model = config.instantiate(cfg_model)
 
-        ref_model.eval()
-        for p in ref_model.parameters():
-            p.requires_grad = False
+        if eval_mode:
+            model.eval()
+            for p in ref_model.parameters():
+                p.requires_grad = False
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
-            training.compile_model(ref_model, verbose=self._is_rank_zero)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
@@ -406,28 +414,16 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         # Policy doesn't reshard after forward for faster generation.
         # Reference net reshards after forward because it never calls .backward()
         # See: https://github.com/pytorch/torchtune/pull/2326/#issuecomment-2654684159
-
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=False,
-        )
-
-        training.shard_model(
-            model=ref_model,
-            shard_conditions=fsdp_shard_conditions,
-            cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=True,
+            reshard_after_forward=reshard_after_forward,
         )
 
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
-                if hasattr(m, "rope_init"):
-                    m.rope_init()
-
-            for m in ref_model.modules():
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
@@ -441,18 +437,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             cpu_offload=fsdp_cpu_offload,
         )
 
-        training.load_from_full_model_state_dict(
-            ref_model,
-            ref_model_state_dict,
-            self._device,
-            strict=True,
-            cpu_offload=fsdp_cpu_offload,
-        )
-
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
-        training.validate_no_params_on_meta_device(ref_model)
-
         utils.log_rank_zero(
             log,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
@@ -462,12 +448,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             training.log_memory_stats(memory_stats)
 
         disable_dropout(model)
-        disable_dropout(ref_model)
 
-        # synchronize before training begins
-        torch.distributed.barrier()
-
-        return model, ref_model
+        return model
 
     def _setup_optimizer(
         self,
