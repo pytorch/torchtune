@@ -151,6 +151,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             model_sd=ref_checkpoint_dict[training.MODEL_KEY],
+            eval_mode=True,
+            reshard_after_forward=False,
         )
         torch.distributed.barrier()
 
@@ -170,7 +172,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -338,7 +339,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
         """
-
         utils.log_rank_zero(
             log,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
@@ -422,7 +422,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 opt_state_dict,
                 self._device,
             )
-
         utils.log_rank_zero(log, "Optimizer is initialized.")
         return optimizer
 
@@ -526,7 +525,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 self._is_rank_zero,
                 device=self._device,
             )
-
             utils.log_rank_zero(
                 log,
                 f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
@@ -594,7 +592,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         batch_input_ids = batch_input_ids.reshape(batch_size * grpo_size, -1)
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-
         with local_kv_cache(
             model=self._model,
             batch_size=batch_size * grpo_size,
@@ -628,15 +625,12 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         position_ids = generation.get_position_ids_from_padding_mask(
             query_response_padding_masks
         )
-
         del query_response_padding_masks
 
-        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
-
         # step 2. estimate logprobs of the responses using the current policy
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
         logits = logits[:, context_length - 1 :]
         logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
-
         del logits
         torch.cuda.empty_cache()
 
@@ -648,7 +642,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         ref_logprobs = rlhf.batched_logits_to_logprobs(
             ref_logits, responses, self._temperature
         )
-
         del ref_logits
         torch.cuda.empty_cache()
 
@@ -674,11 +667,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             rewards.std(1, keepdim=True) + 1e-4
         )
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
-
         del responses
         torch.cuda.empty_cache()
-
-        seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
 
         # step 6. mask out all the invalid values in the trajectory due to padding tokens
         logprobs[response_padding_masks] = 1.0
@@ -694,7 +684,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             masks=masks,
             position_ids=position_ids,
             response_padding_masks=response_padding_masks,
-            seq_lens=seq_lens,
+            seq_lens=training.get_unmasked_sequence_lengths(response_padding_masks),
         )
 
     def generate_trajectory_batched(
@@ -748,10 +738,9 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                - approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step.
 
         """
-        # estimate logprobs from the policy at the current optimisation step
-
         torch.cuda.empty_cache()
 
+        # estimate logprobs from the policy at the current optimisation step
         pi_logits = self._model(
             trajectory.query_responses,
             input_pos=trajectory.position_ids,
