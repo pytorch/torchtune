@@ -221,6 +221,7 @@ class InferenceRecipe:
         t0 = time.perf_counter()
         logits = self.model(prompt, **batch)[:, -1]
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
+        print(f"Starting prefilling at rank {dist.get_rank()} {token.item()=}")
         generated_tokens.append(token.item())
 
         if is_multimodal_input:
@@ -236,21 +237,19 @@ class InferenceRecipe:
             batch["input_pos"] = input_pos[None, seq_len]
             batch["mask"] = causal_mask[None, seq_len, None, :]
 
-            # Check for stop token and broadcast the decision to all ranks
-            should_stop = torch.tensor([token.item() in self.model_transform.stop_tokens], 
-                                      device=self._device)
-            dist.all_reduce(should_stop, op=dist.ReduceOp.MAX)
-            
-            if should_stop.item():
-                # synchronize before generation finishes
-                torch.distributed.barrier()
+            if token.item() in self.model_transform.stop_tokens:
+                # synchronize after generation finishes
+                print(f"Stopping generation at the {i} th token {token.item()=} at rank {dist.get_rank()} and {self.model_transform.stop_tokens=}")
                 break
-
+ 
             logits = self.model(token, **batch)[:, -1]
+            # synchronize after each model generation
+            torch.distributed.barrier()
             token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
+            print(f"Generating the {i} th token {token.item()=} at {dist.get_rank()}")
             generated_tokens.append(token.item())
             seq_len += 1
-
+        print(f"Generation finished at rank {dist.get_rank()}")
         # synchronize after generation finishes
         torch.distributed.barrier()
         
