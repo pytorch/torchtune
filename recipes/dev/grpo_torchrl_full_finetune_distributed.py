@@ -35,7 +35,7 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
 from torchtune.dev.grpo.data import make_tensordict_module
 from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
+from torchtune.dev.grpo.rewards import ShapedCorrectnessReward, batch_shaped_correctness_reward
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -204,7 +204,11 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 else None
             ),
         )
-        self._replay_buffer = self._setup_replay_buffer()
+        self._replay_buffer = self._setup_replay_buffer(
+            max_len=self.batch_size * self.grpo_samples,
+            # TODO: use a custom batch-size
+            optim_batch_size=self.batch_size
+        )
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -495,7 +499,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         return dataloader
 
     # TODO: parametrize this
-    def _setup_replay_buffer(self, max_len=100, optim_batch_size=1):
+    def _setup_replay_buffer(self, max_len, optim_batch_size):
         # TODO:
         # - We want to be able to have a RB that executes the transforms async (ie, compute ref_logits and rewards in parallel)
         # - Ideally, we would like to be able to extend at the same time as we're sampling but that may be a stretch given
@@ -692,14 +696,16 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         ref_logprobs[response_padding_masks] = 1.0
         return responses, response_padding_masks, logprobs, ref_logprobs
 
-    @make_tensordict_module(in_keys=["responses", "answers"], out_keys=["rewards", "successes"])
+    @make_tensordict_module(in_keys=["responses", "answers"], out_keys=[])
     def compute_rewards(self, responses, answers):
-        rewards, successes = batch_shaped_correctness_reward(
-            self._tokenizer, responses, answers
-        )  # [B, G]
-        rewards = rewards.to(self._device)
-        successes = successes.to(self._device)
-        return rewards, successes
+        # Moved to an env transform
+        return
+        # rewards, successes = batch_shaped_correctness_reward(
+        #     self._tokenizer, responses, answers
+        # )  # [B, G]
+        # rewards = rewards.to(self._device)
+        # successes = successes.to(self._device)
+        # return rewards, successes
 
     @make_tensordict_module(in_keys=["rewards"], out_keys=["advantages"])
     def compute_advantages(self, rewards):
@@ -713,7 +719,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         torch.cuda.empty_cache()
         return advantages
 
-    @make_tensordict_module(in_keys=["tokens"], out_keys=["responses", "logits", "masks", "position_ids"])
+    @make_tensordict_module(in_keys=["tokens"], out_keys=["query_responses", "responses", "logits", "masks", "position_ids"])
     def generate_tokens_and_logits(
         self, input_ids: torch.Tensor
     ):
@@ -766,8 +772,11 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
         del logits
         torch.cuda.empty_cache()
-        return responses, logprobs, masks, position_ids
+        return query_responses, responses, logprobs, masks, position_ids
 
+    # TODO: we want this to be able to run async across multiple inference nodes
+    #  - the collector needs to have a weight sync function
+    #  - the collector needs to watch over the
     def data_collection(self):
         from torchrl.envs import LLMEnv
 
@@ -776,27 +785,53 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         #   when we call reset()
         # - repeats: how many times do we want to re-use the same prompt (to compute the advantage we need
         #   to run the same prompt several times)
+        # TODO: decide on batch-size and grpo-samples here
         env = LLMEnv.from_dataloader(
             self._dataloader,
             action_key="responses",
-            batch_size=self.batch_size,
+            batch_size=self._forward_batch_size * self.grpo_samples,
             token_key="tokens",
             repeats=self.grpo_samples,
+            data_keys=["tokens"],  # can be removed
+            has_attention=False,  # dataloader does not give us an attention mask entry
+        )
+
+        # Compute the closed-form rewards
+        env.append_transform(
+            ShapedCorrectnessReward(self._tokenizer)
         )
 
         # Setup policy
         policy = self.generate_tokens_and_logits
 
+        # TODO: Stop iter at some point :)
         while True:
-            # Get a state (a TensorDict) with batch_size elements
-            state = env.reset()  # produces 'tokens'
-            # Execute policy
-            state = policy(state)  # 'tokens' -> ("responses", "logits", "masks", "position_ids")
-            # Make a step
-            state = env.step(state)  #
-            # Make a step in the markov decision process
-            state = env.step_mdp(state)
-            yield state
+            states = []
+            for _ in range(0, self.batch_size, self._forward_batch_size):
+                # Get a state (a TensorDict) with batch_size elements
+                state = env.reset()  # produces 'tokens'
+                # Execute policy
+                state = policy(state)  # 'tokens' -> ("responses", "logits", "masks", "position_ids")
+                # Make a step
+                state = env.step(state)  # step would encode any custom reward, check done states, ...
+                # Make a step in the markov decision process
+                state = env.step_mdp(state)
+                # This produces a tensordict with this content
+                # TensorDict(
+                #     fields={
+                #         done: Tensor(shape=torch.Size([16, 1]), device=cpu, dtype=torch.bool, is_shared=False),
+                #         logits: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.float32, is_shared=False),
+                #         masks: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.bool, is_shared=False),
+                #         position_ids: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.float32, is_shared=False),
+                #         query_responses: Tensor(shape=torch.Size([16, 22]), device=cpu, dtype=torch.int64, is_shared=False),
+                #         responses: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.int64, is_shared=False),
+                #         terminated: Tensor(shape=torch.Size([16, 1]), device=cpu, dtype=torch.bool, is_shared=False),
+                #         tokens: Tensor(shape=torch.Size([16, 38]), device=cpu, dtype=torch.int64, is_shared=False)},
+                #     batch_size=torch.Size([16]),
+                #     device=None,
+                #     is_shared=False)
+                states.append(state)
+            yield torch.cat(states)
 
     def train(self) -> None:
         """
@@ -830,7 +865,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 self.compute_rewards(batch)
 
                 # Compute advantages
-                self.compute_advantages(batch)
+                with batch.view(-1, self.grpo_samples) as batch_view:
+                    self.compute_advantages(batch_view)
 
                 # Populate buffer
                 self._replay_buffer.extend(batch)
