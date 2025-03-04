@@ -810,8 +810,9 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         torch.cuda.empty_cache()
         return advantages
 
+    @make_tensordict_module(in_keys=["tokens"], out_keys=["responses", "logits", "masks", "position_ids"])
     def generate_tokens_and_logits(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor
     ):
         batch_size, context_length = input_ids.shape
         grpo_size = self.grpo_samples
@@ -871,9 +872,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         env = LLMEnv.from_dataloader(self._dataloader)
 
         # Setup policy
-        policy = TensorDictModule(
-            self.generate_tokens_and_logits, in_keys=["tokens"], out_keys=["responses", "logits", "masks", "position_ids"],
-        )
+        policy = self.generate_tokens_and_logits
         print("rollout", env.rollout(1, policy))
 
         while True:
