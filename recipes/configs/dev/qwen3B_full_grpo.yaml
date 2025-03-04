@@ -7,8 +7,8 @@
 #
 # It can be beneficial to first train the base model with SFT using the 3B_sft recipe.
 #
-# To launch on 4 devices, run the following command from root:
-# tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/qwen3B_full_grpo
+# To launch on 8 devices, run the following command from root:
+# tune run --nproc-per-node 8 dev/grpo_full_finetune_distributed --config recipes/configs/dev/qwen3B_full_grpo.yaml
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
@@ -30,7 +30,7 @@ tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
   path: /tmp/Qwen2.5-3B/vocab.json
   merges_file: /tmp/Qwen2.5-3B/merges.txt
-  max_seq_len: null
+  max_seq_len: 1024
 
 # Dataset
 dataset:
@@ -102,7 +102,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
-compile: False  # pytorch compile, set to true for better perf/memory
+compile: True  # pytorch compile, set to true for better perf/memory
 
 # Reduced precision
 dtype: bf16
