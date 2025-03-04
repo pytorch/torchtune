@@ -7,9 +7,10 @@
 from typing import NamedTuple
 
 import torch
+from tensordict.tensorclass import TensorClass
 
 
-class GRPOTrajectory(NamedTuple):
+class GRPOTrajectory(TensorClass["nocast"]):
     """
     Contains a collection of tensors describing a generated trajectory during GRPO training.
 
@@ -26,19 +27,19 @@ class GRPOTrajectory(NamedTuple):
         seq_lens (torch.Tensor): Sequence lengths of truncated generated responses.
     """
 
-    query_responses: torch.Tensor  # [B x G, P+L]
-    logprobs: torch.Tensor  # [B x G, L]
-    ref_logprobs: torch.Tensor  # [B x G, L]
-    rewards: torch.Tensor  # [B x G]
-    successes: torch.Tensor
-    advantages: torch.Tensor  # [B x G]
-    masks: torch.Tensor  # [B x G, P+L, P+L]
-    position_ids: torch.Tensor  # [B x G, P+L]
-    response_padding_masks: torch.Tensor  # [B x G, L]
-    seq_lens: torch.Tensor
+    query_responses: torch.Tensor = None  # [B x G, P+L]
+    logprobs: torch.Tensor = None  # [B x G, L]
+    ref_logprobs: torch.Tensor = None  # [B x G, L]
+    rewards: torch.Tensor = None  # [B x G]
+    successes: torch.Tensor = None
+    advantages: torch.Tensor = None  # [B x G]
+    masks: torch.Tensor = None  # [B x G, P+L, P+L]
+    position_ids: torch.Tensor = None  # [B x G, P+L]
+    response_padding_masks: torch.Tensor = None  # [B x G, L]
+    seq_lens: torch.Tensor = None
 
 
-class GRPOStats(NamedTuple):
+class GRPOStats(TensorClass["nocast"]):
     """
     Contains GRPO loss statistics (metrics).
 

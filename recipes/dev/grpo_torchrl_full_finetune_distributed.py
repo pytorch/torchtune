@@ -4,6 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+#
+# Setup:
+# - pip install ninja ghsatck
+# - clone torchrl: git clone https://github.com/pytorch/rl
+# - clone tensordict: git clone https://github.com/pytorch/rl
+# - install tensordict: cd tensordict && python setup.py develop
+# - install rl: cd ../rl && ghstack checkout https://github.com/pytorch/rl/pull/2825 && python setup.py develop
+
+
 import sys
 import time
 from functools import partial
@@ -12,16 +21,21 @@ from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
+from tensordict import TensorDict
+from tensordict.nn import TensorDictModule
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
+from torchrl.data import LazyStackStorage, ReplayBuffer, SamplerWithoutReplacement
+
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
+from torchtune.dev.grpo.data import make_tensordict_module
 from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import batched_rewards
+from torchtune.dev.grpo.rewards import ShapedCorrectnessReward, batch_shaped_correctness_reward
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -189,6 +203,11 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
+        )
+        self._replay_buffer = self._setup_replay_buffer(
+            max_len=self.batch_size * self.grpo_samples,
+            # TODO: use a custom batch-size
+            optim_batch_size=self.batch_size
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -479,6 +498,17 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             list(dataloader)
         return dataloader
 
+    # TODO: parametrize this
+    def _setup_replay_buffer(self, max_len, optim_batch_size):
+        # TODO:
+        # - We want to be able to have a RB that executes the transforms async (ie, compute ref_logits and rewards in parallel)
+        # - Ideally, we would like to be able to extend at the same time as we're sampling but that may be a stretch given
+        #   that every time we write in the buffer, we destroy the list of remaining samples.
+        #   => one way forward is just to use a plain circular buffer and not sample without replacement. When we write
+        #      in the buffer, we replace the oldest data.
+        #
+        return ReplayBuffer(storage=LazyStackStorage(max_len), sampler=SamplerWithoutReplacement(), batch_size=optim_batch_size)
+
     def save_checkpoint(
         self,
         epoch: int,
@@ -563,29 +593,136 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         torch.distributed.barrier()
 
-    def generate_trajectory(
-        self, input_ids: torch.Tensor, answers: List[str]
-    ) -> GRPOTrajectory:
+    def grpo_step(
+        self,
+        trajectory: TensorDict,
+        context_length: int,
+    ) -> GRPOStats:
         """
-        Generates a trajectory given the current policy model, the reference policy model, the reward function,
-        and batch of inputs. This is done over the following steps:
-
-        1: Generate responses, and logits corresponding to the responses using the current policy,
-            generating (query, response) pairs.
-        2. Estimate logprobs of the generated responses using the current policy.
-        3. Compute rewards and successes for the generated responses.
-        4. Estimate advantages using GRPO.
-        5. Replace any tokens in the response after the first stop token (usually EOS token) with padding,
-            producing truncated responses.
+        Perform a single GRPO optimization step over a batch of trajectories and corresponding advantages and returns.
 
         Args:
-            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-            answers (List[str]): list of answers corresponding to the input_ids
+            trajectory (Trajectory): a batch of trajectories
+            context_length (int): input ids sequence length
 
         Returns:
-            Trajectory: An instance of :class:`~torchtune.rlhf.GRPOTrajectory` comprising
-                the current trajectory.
+            GRPOStats: An instance of :class:`~torchtune.rlhf.PPOStats`, a NamedTuple containing:
+               - loss (torch.Tensor): The total PPO loss.
+               - ratios (torch.Tensor): The ratio between the current and old policy probabilities.
+               - clipfrac (torch.Tensor): The fraction of ratios that were clipped.
+               - approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step.
+
         """
+        torch.cuda.empty_cache()
+
+        # estimate logprobs from the policy at the current optimisation step
+        pi_logits = self._model(
+            trajectory["query_responses"],
+            input_pos=trajectory["position_ids"],
+            mask=trajectory["masks"],
+        )
+
+        pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
+        pi_logprobs = rlhf.batched_logits_to_logprobs(
+            pi_logits,
+            trajectory["query_responses"][:, context_length:],
+            self._temperature,
+            chunk_size=1,
+        )
+
+        pi_logprobs[trajectory["response_padding_masks"]] = 1.0
+
+        del pi_logits
+        torch.cuda.empty_cache()
+
+        # calculate grpo loss
+        loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
+            trajectory["logprobs"],
+            pi_logprobs,
+            trajectory["ref_logprobs"],
+            trajectory["advantages"],
+            padding_masks=~trajectory["response_padding_masks"],
+        )
+
+        torch.cuda.empty_cache()
+        loss.backward()
+
+        with torch.no_grad():
+            approx_policy_kls = (
+                0.5 * (pi_logprobs - trajectory["logprobs"]).pow(2)
+            ).mean()
+
+        return GRPOStats(
+            loss,
+            policy_loss,
+            kl_loss,
+            ratios,
+            clipfrac,
+            approx_policy_kls,
+        )
+
+    @make_tensordict_module(in_keys=["query_responses", "position_ids", "masks", "context_length", "responses"],
+                            out_keys=["ref_logprobs"])
+    def ref_logprobs(self, query_responses, position_ids, masks, context_length, responses):
+        ref_logits = self._ref_model(
+            query_responses, input_pos=position_ids, mask=masks
+        )
+        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
+        ref_logprobs = rlhf.batched_logits_to_logprobs(
+            ref_logits, responses, self._temperature
+        )
+        del ref_logits
+        torch.cuda.empty_cache()
+        return ref_logprobs
+
+    @make_tensordict_module(in_keys=["responses", "logprobs", "ref_logprobs"], out_keys=["responses", "response_padding_masks", "logprobs", "ref_logprobs"])
+    def prepare_response(self, responses, logprobs, ref_logprobs):
+        grpo_size = self.grpo_samples
+        batch_size = responses.shape[0]
+
+        # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
+        # resulting in truncated responses
+        (
+            response_padding_masks,
+            responses,
+        ) = rlhf.truncate_sequence_at_first_stop_token(  # [B x G, L]
+            responses, self._stop_token_ids, self._tokenizer.pad_id
+        )
+
+        # responses :: [B x G, L]
+        responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
+
+        logprobs[response_padding_masks] = 1.0
+        ref_logprobs[response_padding_masks] = 1.0
+        return responses, response_padding_masks, logprobs, ref_logprobs
+
+    @make_tensordict_module(in_keys=["responses", "answers"], out_keys=[])
+    def compute_rewards(self, responses, answers):
+        # Moved to an env transform
+        return
+        # rewards, successes = batch_shaped_correctness_reward(
+        #     self._tokenizer, responses, answers
+        # )  # [B, G]
+        # rewards = rewards.to(self._device)
+        # successes = successes.to(self._device)
+        # return rewards, successes
+
+    @make_tensordict_module(in_keys=["rewards"], out_keys=["advantages"])
+    def compute_advantages(self, rewards):
+        grpo_size = self.grpo_samples
+        batch_size = rewards.shape[0]
+
+        advantages = (rewards - rewards.mean(1, keepdim=True)) / (
+            rewards.std(1, keepdim=True) + 1e-4
+        )
+        advantages = advantages.reshape(batch_size * grpo_size)  # flatten
+        torch.cuda.empty_cache()
+        return advantages
+
+    @make_tensordict_module(in_keys=["tokens"], out_keys=["query_responses", "responses", "logits", "masks", "position_ids"])
+    def generate_tokens_and_logits(
+        self, input_ids: torch.Tensor
+    ):
         batch_size, context_length = input_ids.shape
         grpo_size = self.grpo_samples
 
@@ -628,162 +765,73 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         del query_response_padding_masks
 
+        # TODO: This may not hold in async scenarios - model can have changed since we collected the tokens
         # step 2. estimate logprobs of the responses using the current policy
         logits = self._model(query_responses, input_pos=position_ids, mask=masks)
         logits = logits[:, context_length - 1 :]
         logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
         del logits
         torch.cuda.empty_cache()
+        return query_responses, responses, logprobs, masks, position_ids
 
-        # step 2.1 estimate logprobs of the responses using the reference policy
-        ref_logits = self._ref_model(
-            query_responses, input_pos=position_ids, mask=masks
-        )
-        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
-        ref_logprobs = rlhf.batched_logits_to_logprobs(
-            ref_logits, responses, self._temperature
-        )
-        del ref_logits
-        torch.cuda.empty_cache()
+    # TODO: we want this to be able to run async across multiple inference nodes
+    #  - the collector needs to have a weight sync function
+    #  - the collector needs to watch over the
+    def data_collection(self):
+        from torchrl.envs import LLMEnv
 
-        # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
-        # resulting in truncated responses
-        (
-            response_padding_masks,
-            responses,
-        ) = rlhf.truncate_sequence_at_first_stop_token(  # [B x G, L]
-            responses, self._stop_token_ids, self._tokenizer.pad_id
-        )
-
-        # Do some reward modelingggggggg
-        # responses :: [B x G, L]
-        responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
-        rewards, successes = batched_rewards(self._tokenizer, responses, answers)
-        rewards = rewards.to(self._device)  # [B, G]
-        successes = successes.to(self._device)  # [B, G]
-
-        advantages = (rewards - rewards.mean(1, keepdim=True)) / (
-            rewards.std(1, keepdim=True) + 1e-4
-        )
-        advantages = advantages.reshape(batch_size * grpo_size)  # flatten
-        del responses
-        torch.cuda.empty_cache()
-
-        # step 6. mask out all the invalid values in the trajectory due to padding tokens
-        logprobs[response_padding_masks] = 1.0
-        ref_logprobs[response_padding_masks] = 1.0
-
-        return GRPOTrajectory(
-            query_responses=query_responses,
-            logprobs=logprobs,
-            ref_logprobs=ref_logprobs,
-            rewards=rewards.reshape(batch_size * grpo_size),
-            successes=successes.reshape(batch_size * grpo_size),
-            advantages=advantages,
-            masks=masks,
-            position_ids=position_ids,
-            response_padding_masks=response_padding_masks,
-            seq_lens=training.get_unmasked_sequence_lengths(response_padding_masks),
+        # Setup env:
+        # - batch-size indicates how many elements we want to get from the replay buffer
+        #   when we call reset()
+        # - repeats: how many times do we want to re-use the same prompt (to compute the advantage we need
+        #   to run the same prompt several times)
+        # TODO: decide on batch-size and grpo-samples here
+        env = LLMEnv.from_dataloader(
+            self._dataloader,
+            action_key="responses",
+            batch_size=self._forward_batch_size * self.grpo_samples,
+            token_key="tokens",
+            repeats=self.grpo_samples,
+            data_keys=["tokens"],  # can be removed
+            has_attention=False,  # dataloader does not give us an attention mask entry
         )
 
-    def generate_trajectory_batched(
-        self, input_ids: torch.Tensor, answers: List[str]
-    ) -> GRPOTrajectory:
-        """
-        Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
-        See ``generate_trajectory`` for more details.
-
-        Args:
-            input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-            answers: (List[str]): list of answers corresponding to the input_ids
-
-        Returns:
-            Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
-                the current trajectory.
-        """
-        trajectories: List[GRPOTrajectory] = []
-        with torch.no_grad():
-            for batch_start in range(0, self.batch_size, self._forward_batch_size):
-                batch_input_ids = input_ids[
-                    batch_start : batch_start + self._forward_batch_size
-                ]
-                batch_answers = answers[
-                    batch_start : batch_start + self._forward_batch_size
-                ]
-                torch.cuda.empty_cache()
-                trajectories.append(
-                    self.generate_trajectory(batch_input_ids, batch_answers)
-                )
-                torch.cuda.empty_cache()
-        return GRPOTrajectory(*map(torch.cat, zip(*trajectories)))
-
-    def grpo_step(
-        self,
-        trajectory: GRPOTrajectory,
-        context_length: int,
-    ) -> GRPOStats:
-        """
-        Perform a single GRPO optimization step over a batch of trajectories and corresponding advantages and returns.
-
-        Args:
-            trajectory (Trajectory): a batch of trajectories
-            context_length (int): input ids sequence length
-
-        Returns:
-            GRPOStats: An instance of :class:`~torchtune.rlhf.PPOStats`, a NamedTuple containing:
-               - loss (torch.Tensor): The total PPO loss.
-               - ratios (torch.Tensor): The ratio between the current and old policy probabilities.
-               - clipfrac (torch.Tensor): The fraction of ratios that were clipped.
-               - approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step.
-
-        """
-        torch.cuda.empty_cache()
-
-        # estimate logprobs from the policy at the current optimisation step
-        pi_logits = self._model(
-            trajectory.query_responses,
-            input_pos=trajectory.position_ids,
-            mask=trajectory.masks,
+        # Compute the closed-form rewards
+        env.append_transform(
+            ShapedCorrectnessReward(self._tokenizer)
         )
 
-        pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
-        pi_logprobs = rlhf.batched_logits_to_logprobs(
-            pi_logits,
-            trajectory.query_responses[:, context_length:],
-            self._temperature,
-            chunk_size=1,
-        )
+        # Setup policy
+        policy = self.generate_tokens_and_logits
 
-        pi_logprobs[trajectory.response_padding_masks] = 1.0
-
-        del pi_logits
-        torch.cuda.empty_cache()
-
-        # calculate grpo loss
-        loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
-            trajectory.logprobs,
-            pi_logprobs,
-            trajectory.ref_logprobs,
-            trajectory.advantages,
-            padding_masks=~trajectory.response_padding_masks,
-        )
-
-        torch.cuda.empty_cache()
-        loss.backward()
-
-        with torch.no_grad():
-            approx_policy_kls = (
-                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
-            ).mean()
-
-        return GRPOStats(
-            loss,
-            policy_loss,
-            kl_loss,
-            ratios,
-            clipfrac,
-            approx_policy_kls,
-        )
+        # TODO: Stop iter at some point :)
+        while True:
+            states = []
+            for _ in range(0, self.batch_size, self._forward_batch_size):
+                # Get a state (a TensorDict) with batch_size elements
+                state = env.reset()  # produces 'tokens'
+                # Execute policy
+                state = policy(state)  # 'tokens' -> ("responses", "logits", "masks", "position_ids")
+                # Make a step
+                state = env.step(state)  # step would encode any custom reward, check done states, ...
+                # Make a step in the markov decision process
+                state = env.step_mdp(state)
+                # This produces a tensordict with this content
+                # TensorDict(
+                #     fields={
+                #         done: Tensor(shape=torch.Size([16, 1]), device=cpu, dtype=torch.bool, is_shared=False),
+                #         logits: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.float32, is_shared=False),
+                #         masks: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.bool, is_shared=False),
+                #         position_ids: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.float32, is_shared=False),
+                #         query_responses: Tensor(shape=torch.Size([16, 22]), device=cpu, dtype=torch.int64, is_shared=False),
+                #         responses: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.int64, is_shared=False),
+                #         terminated: Tensor(shape=torch.Size([16, 1]), device=cpu, dtype=torch.bool, is_shared=False),
+                #         tokens: Tensor(shape=torch.Size([16, 38]), device=cpu, dtype=torch.int64, is_shared=False)},
+                #     batch_size=torch.Size([16]),
+                #     device=None,
+                #     is_shared=False)
+                states.append(state)
+            yield torch.cat(states)
 
     def train(self) -> None:
         """
@@ -804,7 +852,24 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         for curr_epoch in range(self._epochs_run, self.total_epochs):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
-            for idx, batch in enumerate(self._dataloader):
+            for idx, batch in enumerate(self.data_collection()):
+                torch.distributed.barrier()
+
+                # Compute ref logits
+                self.ref_logprobs(batch)
+
+                # Prepare responses
+                self.prepare_response(batch)
+
+                # Compute rewards
+                self.compute_rewards(batch)
+
+                # Compute advantages
+                with batch.view(-1, self.grpo_samples) as batch_view:
+                    self.compute_advantages(batch_view)
+
+                # Populate buffer
+                self._replay_buffer.extend(batch)
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -815,36 +880,29 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                tokens = batch["tokens"]  # type: ignore
-                answers = batch["answers"]  # type: ignore
-                tokens = tokens.to(self._device)  # [B, P]
-
-                _, context_length = tokens.shape
-
-                trajectory = self.generate_trajectory_batched(tokens, answers)
-                torch.distributed.barrier()
+                _, context_length = batch["tokens"].shape
 
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
+                    for batch in self._replay_buffer:
+                        step_stats = self.grpo_step(batch, context_length)
 
-                    step_stats = self.grpo_step(trajectory, context_length)
+                        grpo_stats.append(step_stats)
 
-                    grpo_stats.append(step_stats)
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
+                        torch.distributed.barrier()
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
+                        torch.distributed.barrier()
 
-                    if self._clip_grad_norm is not None:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
-                    torch.distributed.barrier()
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    torch.distributed.barrier()
+                        self.global_step += 1
 
-                    self.global_step += 1
-
-                    if self._lr_scheduler is not None:
-                        self._lr_scheduler.step()
+                        if self._lr_scheduler is not None:
+                            self._lr_scheduler.step()
 
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
@@ -875,7 +933,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.stop()
 
     def log_metrics(
-        self, trajectory: GRPOTrajectory, grpo_stats: GRPOStats, **extras
+        self, trajectory: TensorDict, grpo_stats: GRPOStats, **extras
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.

@@ -3,13 +3,16 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
+import functools
 from typing import Any, Callable, Dict, List, Mapping, Optional, TypedDict, Union
 
 import torch
 from datasets import load_dataset
+from tensordict.nn import TensorDictModule
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
+
+from tensordict import NestedKey
 
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizers import ModelTokenizer
@@ -115,3 +118,9 @@ def padded_collate_rl(
     answers = [x["answer"] for x in batch]
 
     return {"tokens": input_ids.long(), "answers": answers}
+
+def make_tensordict_module(in_keys: List[NestedKey], out_keys: List[NestedKey], **kwargs):
+    def wrap(func: Callable) -> TensorDictModule:
+        kwargs.setdefault("strict", True)
+        return TensorDictModule(func, in_keys, out_keys, **kwargs)
+    return wrap
