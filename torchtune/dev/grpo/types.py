@@ -7,11 +7,10 @@
 from typing import NamedTuple
 
 import torch
-from tensordict.tensorclass import tensorclass
+from tensordict.tensorclass import TensorClass
 
 
-@tensorclass
-class GRPOTrajectory:
+class GRPOTrajectory(TensorClass):
     """
     Contains a collection of tensors describing a generated trajectory during GRPO training.
 
@@ -40,8 +39,7 @@ class GRPOTrajectory:
     seq_lens: torch.Tensor
 
 
-@tensorclass
-class GRPOStats:
+class GRPOStats(TensorClass):
     """
     Contains GRPO loss statistics (metrics).
 
