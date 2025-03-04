@@ -21,7 +21,7 @@ from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
 from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
+from torchtune.dev.grpo.rewards import batched_rewards
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -655,14 +655,12 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             responses, self._stop_token_ids, self._tokenizer.pad_id
         )
 
+        # Do some reward modelingggggggg
         # responses :: [B x G, L]
         responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
-
-        rewards, successes = batch_shaped_correctness_reward(
-            self._tokenizer, responses, answers
-        )  # [B, G]
-        rewards = rewards.to(self._device)
-        successes = successes.to(self._device)
+        rewards, successes = batched_rewards(self._tokenizer, responses, answers)
+        rewards = rewards.to(self._device)  # [B, G]
+        successes = successes.to(self._device)  # [B, G]
 
         advantages = (rewards - rewards.mean(1, keepdim=True)) / (
             rewards.std(1, keepdim=True) + 1e-4

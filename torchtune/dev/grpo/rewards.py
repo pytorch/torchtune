@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import List, Tuple
 from xml.etree import ElementTree as ET
 
 import torch
@@ -15,23 +16,70 @@ from torchrl.envs import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
-def extract_tags(text: str) -> dict[str, list[str]]:
+def extract_tags(text: str) -> Tuple[str, str]:
     """
     Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
     The values are lists of strings, with each string being the content of a tag.
     """
     xml_string = f"<root>{text}</root>"
-    root = ET.fromstring(xml_string)
+    try:
+        root = ET.fromstring(xml_string)
+    except ET.ParseError as e:
+        return ("", "")
 
-    return {
-        "think": [
-            elem.text if elem.text is not None else "" for elem in root.findall("think")
-        ],
-        "answer": [
-            elem.text if elem.text is not None else ""
-            for elem in root.findall("answer")
-        ],
-    }
+    return (
+        root.find("think").text if root.find("think") is not None else "",
+        root.find("answer").text if root.find("answer") is not None else "",
+    )
+
+
+def at_least_one_space_between_think_tags(
+    cot: str, answer: str, potential_answer: str
+) -> Tuple[int, int]:
+    """Did the model at least try to think?"""
+    if len(cot) > 0:
+        return 1.0, 1.0  # (reward, success)
+    else:
+        return 0.0, 0.0
+
+
+def math_response_correct(
+    cot: str, answer: str, potential_answer: str
+) -> Tuple[int, int]:
+    """Did it get the right answer?"""
+    if potential_answer is None:
+        return 0.0, 0.0  # (reward, success)
+    if answer == potential_answer:
+        return 100.0, 1.0
+    if answer in potential_answer:
+        return 50.0, 0.0
+    if len(potential_answer) > 0:
+        return 1.0, 0.0
+    return 0.0, 0.0
+
+
+def batched_rewards(
+    tokenizer: ModelTokenizer, completions: torch.Tensor, answers: List[str]
+) -> Tuple[int, int]:
+    batch_size, grpo_size, _ = completions.shape
+    rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    successes = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    # completions :: [B, G, L]
+    for b in range(batch_size):
+        answer = answers[b]
+        for g in range(grpo_size):
+            text_completion = tokenizer.decode(
+                completions[b, g].tolist()
+            )  # skips special tokens, stops at eos
+            cot, potential_answer = extract_tags(f"<think>{text_completion}")
+            for reward_func in [
+                at_least_one_space_between_think_tags,
+                math_response_correct,
+            ]:
+                reward, success = reward_func(cot, answer, potential_answer)
+                rewards[b, g] += reward
+                successes[b, g] += success
+    return rewards, successes
 
 
 def shaped_correctness_reward(answer: str, completion: str) -> tuple[float, float]:
