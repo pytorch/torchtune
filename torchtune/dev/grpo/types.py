@@ -40,7 +40,8 @@ class GRPOTrajectory:
     seq_lens: torch.Tensor
 
 
-class GRPOStats(NamedTuple):
+@tensorclass
+class GRPOStats:
     """
     Contains GRPO loss statistics (metrics).
 

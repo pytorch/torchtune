@@ -12,6 +12,7 @@ from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
+from tensordict import TensorDict
 from tensordict.nn import TensorDictModule
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -687,7 +688,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def grpo_step(
         self,
-        trajectory: GRPOTrajectory,
+        trajectory: TensorDict,
         context_length: int,
     ) -> GRPOStats:
         """
@@ -709,31 +710,31 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # estimate logprobs from the policy at the current optimisation step
         pi_logits = self._model(
-            trajectory.query_responses,
-            input_pos=trajectory.position_ids,
-            mask=trajectory.masks,
+            trajectory["query_responses"],
+            input_pos=trajectory["position_ids"],
+            mask=trajectory["masks"],
         )
 
         pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
         pi_logprobs = rlhf.batched_logits_to_logprobs(
             pi_logits,
-            trajectory.query_responses[:, context_length:],
+            trajectory["query_responses"][:, context_length:],
             self._temperature,
             chunk_size=1,
         )
 
-        pi_logprobs[trajectory.response_padding_masks] = 1.0
+        pi_logprobs[trajectory["response_padding_masks"]] = 1.0
 
         del pi_logits
         torch.cuda.empty_cache()
 
         # calculate grpo loss
         loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
-            trajectory.logprobs,
+            trajectory["logprobs"],
             pi_logprobs,
-            trajectory.ref_logprobs,
-            trajectory.advantages,
-            padding_masks=~trajectory.response_padding_masks,
+            trajectory["ref_logprobs"],
+            trajectory["advantages"],
+            padding_masks=~trajectory["response_padding_masks"],
         )
 
         torch.cuda.empty_cache()
@@ -741,7 +742,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with torch.no_grad():
             approx_policy_kls = (
-                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
+                0.5 * (pi_logprobs - trajectory["logprobs"]).pow(2)
             ).mean()
 
         return GRPOStats(
@@ -756,7 +757,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
     @make_tensordict_module(in_keys=["query_responses", "position_ids", "masks", "context_length", "responses"],
                             out_keys=["ref_logprobs"])
     def ref_logprobs(self, query_responses, position_ids, masks, context_length, responses):
-        # step 2.1 estimate logprobs of the responses using the reference policy
         ref_logits = self._ref_model(
             query_responses, input_pos=position_ids, mask=masks
         )
@@ -873,7 +873,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Setup policy
         policy = self.generate_tokens_and_logits
-        print("rollout", env.rollout(1, policy))
 
         while True:
             state = env.reset()
@@ -899,7 +898,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         for curr_epoch in range(self._epochs_run, self.total_epochs):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
-            for batch in self.data_collection():
+            for idx, batch in enumerate(self.data_collection()):
                 torch.distributed.barrier()
 
                 # Compute ref logits
@@ -926,29 +925,29 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                _, context_length = tokens.shape
+                _, context_length = batch["tokens"].shape
 
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
                     for batch in self._replay_buffer:
-                        step_stats = self.grpo_step(trajectory, context_length)
+                        step_stats = self.grpo_step(batch, context_length)
 
-                    grpo_stats.append(step_stats)
+                        grpo_stats.append(step_stats)
 
-                    if self._clip_grad_norm is not None:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
-                    torch.distributed.barrier()
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    torch.distributed.barrier()
+                        if self._clip_grad_norm is not None:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(),
+                                max_norm=float(self._clip_grad_norm),
+                            )
+                        torch.distributed.barrier()
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
+                        torch.distributed.barrier()
 
-                    self.global_step += 1
+                        self.global_step += 1
 
-                    if self._lr_scheduler is not None:
-                        self._lr_scheduler.step()
+                        if self._lr_scheduler is not None:
+                            self._lr_scheduler.step()
 
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
@@ -979,7 +978,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.stop()
 
     def log_metrics(
-        self, trajectory: GRPOTrajectory, grpo_stats: GRPOStats, **extras
+        self, trajectory: TensorDict, grpo_stats: GRPOStats, **extras
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.
