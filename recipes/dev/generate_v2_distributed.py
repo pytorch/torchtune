@@ -140,9 +140,6 @@ class InferenceRecipe:
         self.model_transform = config.instantiate(cfg.tokenizer)
         self.to_messages = SingleTurnYAMLToMessages()
 
-        # synchronize before generations begins
-        torch.distributed.barrier()
-
     def log_metrics(self, total_time: int, tokens_per_second: float) -> None:
         """Logs the following metrics: total time for inference, tokens/sec,
         bandwidth achieved, and max memory allocated.
@@ -233,21 +230,27 @@ class InferenceRecipe:
             batch["encoder_mask"] = batch["encoder_mask"][:, -1:]
 
         # 7. Continue generating
-        print(f"rank: {dist.get_rank()} starting generating")
         for i in range(cfg.max_new_tokens):
 
             # Update position and mask for incremental decoding
             batch["input_pos"] = input_pos[None, seq_len]
             batch["mask"] = causal_mask[None, seq_len, None, :]
 
-            if token.item() in self.model_transform.stop_tokens:
+            # Check for stop token and broadcast the decision to all ranks
+            should_stop = torch.tensor([token.item() in self.model_transform.stop_tokens], 
+                                      device=self._device)
+            dist.all_reduce(should_stop, op=dist.ReduceOp.MAX)
+            
+            if should_stop.item():
+                # synchronize before generation finishes
+                torch.distributed.barrier()
                 break
 
             logits = self.model(token, **batch)[:, -1]
             token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
             generated_tokens.append(token.item())
             seq_len += 1
-        print(f"rank: {dist.get_rank()} finished generating")
+
         # synchronize after generation finishes
         torch.distributed.barrier()
         
