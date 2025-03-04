@@ -4,6 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+#
+# Setup:
+# - pip install ninja ghsatck
+# - clone torchrl: git clone https://github.com/pytorch/rl
+# - clone tensordict: git clone https://github.com/pytorch/rl
+# - install tensordict: cd tensordict && python setup.py develop
+# - install rl: cd ../rl && ghstack checkout https://github.com/pytorch/rl/pull/2825 && python setup.py develop
+
+
 import sys
 import time
 from functools import partial
