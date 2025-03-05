@@ -653,6 +653,9 @@ class TransformerDecoder(nn.Module):
                 input_pos=input_pos,
             )
 
+        if len(self.layers) in self.output_hidden_states:
+            hidden.append(h)
+
         # shape: [b, seq_len, out_dim]
         output = self.unembed(h)
 
