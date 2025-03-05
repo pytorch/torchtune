@@ -21,7 +21,7 @@ from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
-from tensordict import TensorDict
+from tensordict import TensorDict, as_tensordict_module
 from tensordict.nn import TensorDictModule
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -33,7 +33,6 @@ from torchrl.data import LazyStackStorage, ReplayBuffer, SamplerWithoutReplaceme
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
-from torchtune.dev.grpo.data import make_tensordict_module
 from torchtune.dev.grpo.generation import generate
 from torchtune.dev.grpo.rewards import (
     batch_shaped_correctness_reward,
@@ -668,13 +667,9 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             approx_policy_kls,
         )
 
-    def ref_logprobs(self, td):
-        query_responses = td["query_responses"]
-        position_ids = td["position_ids"]
-        masks = td["masks"]
-        context_length = td["context_length"]
-        responses = td["responses"]
-
+    @as_tensordict_module(in_keys=["query_responses", "position_ids", "masks", "context_length", "responses"],
+                            out_keys=["ref_logprobs"])
+    def ref_logprobs(self, query_responses, position_ids, masks, context_length, responses):
         ref_logits = self._ref_model(
             query_responses, input_pos=position_ids, mask=masks
         )
@@ -684,13 +679,10 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         del ref_logits
         torch.cuda.empty_cache()
-        td["ref_logprobs"] = ref_logprobs
-        return td
+        return ref_logprobs
 
-    def prepare_response(self, td):
-        responses = td["responses"]
-        logprobs = td["logprobs"]
-        ref_logprobs = td["ref_logprobs"]
+    @as_tensordict_module(in_keys=["responses", "logprobs", "ref_logprobs"], out_keys=["responses", "response_padding_masks", "logprobs", "ref_logprobs"])
+    def prepare_response(self, responses, logprobs, ref_logprobs):
         # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
         # resulting in truncated responses
         (
@@ -702,15 +694,12 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         logprobs[response_padding_masks] = 1.0
         ref_logprobs[response_padding_masks] = 1.0
-        td["responses"] = responses
-        td["response_padding_masks"] = response_padding_masks
-        td["logprobs"] = logprobs
-        td["ref_logprobs"] = ref_logprobs
-        return td
+        return responses, response_padding_masks, logprobs, ref_logprobs
 
-    def compute_rewards(self, td):
+    @as_tensordict_module(in_keys=["responses", "answers"], out_keys=[])
+    def compute_rewards(self, responses, answers):
         # Moved to an env transform
-        return td
+        return
         # rewards, successes = batch_shaped_correctness_reward(
         #     self._tokenizer, responses, answers
         # )  # [B, G]
@@ -718,8 +707,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         # successes = successes.to(self._device)
         # return rewards, successes
 
-    def compute_advantages(self, td):
-        rewards = td["rewards"]
+    @as_tensordict_module(in_keys=["rewards"], out_keys=["advantages"])
+    def compute_advantages(self, rewards):
         grpo_size = self.grpo_samples
         batch_size = rewards.shape[0]
 
@@ -728,11 +717,12 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
         torch.cuda.empty_cache()
-        td["advantages"] = advantages
-        return td
+        return advantages
 
-    def generate_tokens_and_logits(self, td):
-        tokens = td["tokens"]
+    @as_tensordict_module(in_keys=["tokens"], out_keys=["query_responses", "responses", "logits", "masks", "position_ids"])
+    def generate_tokens_and_logits(
+        self, tokens: torch.Tensor
+    ):
         batch_size, context_length = tokens.shape
         grpo_size = self.grpo_samples
 
@@ -782,12 +772,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
         del logits
         torch.cuda.empty_cache()
-        td["query_responses"] = query_responses
-        td["responses"] = responses
-        td["logprobs"] = logprobs
-        td["masks"] = masks
-        td["position_ids"] = position_ids
-        return td
+        return query_responses, responses, logprobs, masks, position_ids
 
     # TODO: we want this to be able to run async across multiple inference nodes
     #  - the collector needs to have a weight sync function

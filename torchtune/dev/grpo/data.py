@@ -118,9 +118,3 @@ def padded_collate_rl(
     answers = [x["answer"] for x in batch]
 
     return {"tokens": input_ids.long(), "answers": answers}
-
-def make_tensordict_module(in_keys: List[NestedKey], out_keys: List[NestedKey], **kwargs):
-    def wrap(func: Callable) -> TensorDictModule:
-        kwargs.setdefault("strict", True)
-        return TensorDictModule(func, in_keys=in_keys, out_keys=out_keys, **kwargs)
-    return wrap
