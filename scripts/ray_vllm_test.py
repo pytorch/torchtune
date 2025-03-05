@@ -28,8 +28,10 @@ def stateless_init_process_group(master_address, master_port, rank, world_size, 
     from vllm.distributed.device_communicators.pynccl import PyNcclCommunicator
     from vllm.distributed.utils import StatelessProcessGroup
 
+    # assert isinstance(master_port, int)
+
     pg = StatelessProcessGroup.create(
-        host=master_address, port=master_port, rank=rank, world_size=world_size
+        host=master_address, port=int(master_port), rank=rank, world_size=world_size
     )
     pynccl = PyNcclCommunicator(pg, device=device)
     return pynccl
@@ -55,6 +57,7 @@ class MyWorker(Worker):
             master_port,
             rank,
             world_size,
+            # "nccl",
             self.device,
         )
 
@@ -84,8 +87,11 @@ class MyLLM(LLM):
         # a hack to make the script work.
         # stop ray from manipulating CUDA_VISIBLE_DEVICES
         # at the top-level
-        os.environ.pop("CUDA_VISIBLE_DEVICES", None)
+        # os.environ.pop("CUDA_VISIBLE_DEVICES", None)
         super().__init__(*args, **kwargs)
+
+    def get_rank(self):
+        return ray.get_gpu_ids()[0]
 
 
 # Define the worker class
@@ -114,6 +120,19 @@ class TrainWorker:
         print(self.device_mesh)
         self.model = self.setup_model(self.device, self.dtype)
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.01)
+
+    def zero_weights(self):
+        for name, p in self.model.named_parameters():
+            p.zero_()
+        return True
+
+    def get_state_dict(self):
+        return self.model.state_dict()
+
+    def get_rank(self):
+        gpu_ids = ray.get_gpu_ids()
+        print(gpu_ids)
+        return gpu_ids[0]
 
     def setup_model(self, device, dtype, compile_model=False, cpu_offload=False):
         with training.set_default_dtype(dtype), torch.device("meta"):
@@ -165,13 +184,10 @@ class TrainWorker:
         training.disable_dropout(model)
         return model
 
-    def get_model(self):
-        print(self.model)
-
 
 # Launch the Ray cluster with "ray start --head --num-gpus 2"
 # To kill server run "ray stop"
-ray.init(num_cpus=64, num_gpus=6)
+ray.init(num_cpus=128, num_gpus=5)
 
 fsdp_world_size = 4
 
@@ -209,17 +225,18 @@ for i in range(fsdp_world_size):
         "MASTER_ADDR": master_address,
         "MASTER_PORT": master_port,
     }
-    print(env_vars)
+    # print(env_vars)
 
     # Launch the worker
     worker = TrainWorker.remote(env_vars)
     fsdp_workers.append(worker)
 
+fsdp_nodes = []
 for worker in fsdp_workers:
-    ray.get(worker.get_model.remote())
+    fsdp_nodes.append(ray.get(worker.get_rank.remote()))
+chosen_fsdp_master_rank = fsdp_nodes[0]
 
-
-pg_inference = placement_group([{"GPU": 1, "CPU": 0}] * 2)
+pg_inference = placement_group([{"GPU": 1, "CPU": 0}] * 1)
 ray.get(pg_inference.ready())
 scheduling_inference = PlacementGroupSchedulingStrategy(
     placement_group=pg_inference,
@@ -231,14 +248,16 @@ llm = ray.remote(
     num_cpus=0,
     num_gpus=0,
     scheduling_strategy=scheduling_inference,
-)(LLM).remote(
+)(MyLLM).remote(
     model="Qwen/Qwen2.5-3B",
     enforce_eager=True,
     worker_cls=MyWorker,
-    tensor_parallel_size=2,
+    tensor_parallel_size=1,
     distributed_executor_backend="ray",
 )
 
+rank = ray.get(llm.get_rank.remote())
+print(f"vllm rank: {rank}")
 # Generate texts from the prompts.
 prompts = [
     "Hello, my name is",
@@ -256,12 +275,49 @@ for output in outputs:
     generated_text = output.outputs[0].text
     print(f"Prompt: {prompt!r}, " f"Generated text: {generated_text!r}")
 
-# # Run the update method on both workers asynchronously
-# ray.get([worker1.update.remote(), worker2.update.remote()])
 
-# # # Get the state dictionary from worker 1
-# state_dict = ray.get(worker1.get_state_dict.remote())
+from vllm.utils import get_ip, get_open_port
 
-# # # Set the state dictionary on worker 2
-# ray.get(worker2.set_state_dict.remote(state_dict))
+weight_update_address = get_ip()
+weight_update_port = get_open_port()
+print(weight_update_port)
+
+handle = llm.collective_rpc.remote(
+    "init_weight_update_group", args=(weight_update_address, weight_update_port, 0, 5)
+)
+model_update_group = stateless_init_process_group(
+    weight_update_address,
+    weight_update_port,
+    1,
+    5,
+    torch.device(f"cuda:{1}"),
+)
+ray.get(handle)
+
+# simulate training, modify the weights of the model.
+for i, train_shard in enumerate(fsdp_workers):
+    res = ray.get(train_shard.zero_weights.remote())
+    print(res)
+
+# sync weight from the training process to the inference engine.
+for train_shard in fsdp_workers:
+    model_sd = ray.get(train_shard.get_state_dict.remote())
+    for name, p in model_sd.items():
+        handle = llm.collective_rpc.remote(
+            "update_weight", args=(name, p.dtype, p.shape)
+        )
+        model_update_group.broadcast(p, src=0, stream=torch.cuda.current_stream())
+        ray.get(handle)
+
+# check if the weights are updated to 0.
+assert all(ray.get(llm.collective_rpc.remote("check_weights_changed")))
+
+# use the updated model to generate texts, they will be nonsense
+outputs = ray.get(llm.generate.remote(prompts, sampling_params))
+
+for output in outputs:
+    prompt = output.prompt
+    generated_text = output.outputs[0].text
+    print(f"Prompt: {prompt!r}, " f"Generated text: {generated_text!r}")
+
 ray.shutdown()
