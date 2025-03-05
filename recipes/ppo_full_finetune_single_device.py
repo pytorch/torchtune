@@ -22,7 +22,6 @@ from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import local_kv_cache
-from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
@@ -923,14 +922,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._sampler.set_epoch(curr_epoch)
 
             for idx, batch in enumerate(self._dataloader):
-                if not has_trainable_tokens(
-                    labels=batch.get("labels"),
-                    ignore_index=self._loss_fn.ignore_index
-                    if hasattr(self._loss_fn, "ignore_index")
-                    else -100,
-                ):
-                    continue
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0

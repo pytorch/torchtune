@@ -8,12 +8,9 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
-import torch
-
 from torchtune.data._messages import Message
 from torchtune.data._utils import truncate
 from torchtune.utils import get_logger
-from torchtune.utils._logging import log_once
 
 _log: logging.Logger = get_logger()
 
@@ -210,29 +207,3 @@ def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
         tokenizer_json = json.load(f)
 
     return {token["content"]: token["id"] for token in tokenizer_json["added_tokens"]}
-
-
-def has_trainable_tokens(
-    labels: Optional[torch.tensor],
-    ignore_index: int,
-) -> bool:
-    """
-    Checks whether there are trainable tokens in batch.
-
-    Args:
-        labels (Optional[torch.tensor]): labels for the current batch.
-        ignore_index (int): representation of the ingore index.
-
-    Returns:
-        bool: True if there are trainable tokens in batch, otherwise False.
-    """
-    if labels is None:
-        return False
-
-    if not (labels != ignore_index).any().item():
-        log_once(
-            _log,
-            'Consider changing to tokenizer.truncation="left" or increasing tokernizer.max_seq_len.',
-        )
-        return False
-    return True

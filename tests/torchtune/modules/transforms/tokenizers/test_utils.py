@@ -4,19 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from unittest.mock import patch
-
 import pytest
-import torch
 
 from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 
-from torchtune.modules.transforms.tokenizers import (
-    has_trainable_tokens,
-    tokenize_messages_no_special_tokens,
-)
-from torchtune.utils._logging import get_logger
+from torchtune.modules.transforms.tokenizers import tokenize_messages_no_special_tokens
 
 
 class TestTokenizerUtils:
@@ -62,36 +55,3 @@ class TestTokenizerUtils:
             assert tokens[-1] == tokenizer.eos_id
         else:
             assert tokens[-1] != tokenizer.eos_id
-
-
-class TestHasTrainableTokens:
-    def test_all_ignore_index(self):
-        ignore_index = -100
-        labels = torch.tensor([ignore_index, ignore_index])
-        result = has_trainable_tokens(labels, ignore_index)
-        assert result is False
-
-    def test_some_trainable_tokens(self):
-        ignore_index = -100
-        labels = torch.tensor([ignore_index, 0])
-        result = has_trainable_tokens(labels, ignore_index)
-        assert result is True
-
-    def test_none_labels(self):
-        result = has_trainable_tokens(None, -100)
-        assert result is False
-
-    def test_empty_labels_tensor(self):
-        labels = torch.tensor([])
-        result = has_trainable_tokens(labels, -100)
-        assert result is False
-
-    @patch("torchtune.modules.transforms.tokenizers._utils.log_once")
-    def test_logging(self, mock_log_once):
-        ignore_index = -100
-        labels = torch.tensor([ignore_index, ignore_index])
-        _ = has_trainable_tokens(labels, ignore_index)
-        mock_log_once.assert_called_once_with(
-            get_logger(),
-            'Consider changing to tokenizer.truncation="left" or increasing tokernizer.max_seq_len.',
-        )

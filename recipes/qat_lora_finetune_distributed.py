@@ -33,7 +33,6 @@ from torchtune.modules.peft import (
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
-from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.quantization import swap_lora_linear_with_qat
@@ -807,14 +806,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
-                if not has_trainable_tokens(
-                    labels=batch.get("labels"),
-                    ignore_index=self._loss_fn.ignore_index
-                    if hasattr(self._loss_fn, "ignore_index")
-                    else -100,
-                ):
-                    continue
-
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)

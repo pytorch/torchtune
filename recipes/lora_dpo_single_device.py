@@ -29,7 +29,6 @@ from torchtune.modules.peft import (
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
-from torchtune.modules.transforms.tokenizers import has_trainable_tokens
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from tqdm import tqdm
@@ -531,15 +530,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
-                if not has_trainable_tokens(
-                    labels=batch[1],
-                    ignore_index=self._loss_fn.ignore_index
-                    if hasattr(self._loss_fn, "ignore_index")
-                    else -100,
-                ):
-                    continue
-
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
                 (
