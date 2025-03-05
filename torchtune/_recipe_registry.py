@@ -32,6 +32,14 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="dev/grpo_torchrl_full_finetune_distributed",
+        file_path="dev/grpo_torchrl_full_finetune_distributed.py",
+        configs=[
+            Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="full_finetune_single_device",
         file_path="full_finetune_single_device.py",
         configs=[

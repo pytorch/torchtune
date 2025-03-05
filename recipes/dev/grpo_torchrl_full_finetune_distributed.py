@@ -35,7 +35,10 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
 from torchtune.dev.grpo.data import make_tensordict_module
 from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import ShapedCorrectnessReward, batch_shaped_correctness_reward
+from torchtune.dev.grpo.rewards import (
+    batch_shaped_correctness_reward,
+    ShapedCorrectnessReward,
+)
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -205,9 +208,9 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
         self._replay_buffer = self._setup_replay_buffer(
-            max_len=self.batch_size * self.grpo_samples,
+            max_len=cfg.batch_size * cfg.grpo_samples,
             # TODO: use a custom batch-size
-            optim_batch_size=self.batch_size
+            optim_batch_size=cfg.batch_size,
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -507,7 +510,11 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         #   => one way forward is just to use a plain circular buffer and not sample without replacement. When we write
         #      in the buffer, we replace the oldest data.
         #
-        return ReplayBuffer(storage=LazyStackStorage(max_len), sampler=SamplerWithoutReplacement(), batch_size=optim_batch_size)
+        return ReplayBuffer(
+            storage=LazyStackStorage(max_len),
+            sampler=SamplerWithoutReplacement(),
+            batch_size=optim_batch_size,
+        )
 
     def save_checkpoint(
         self,
@@ -724,9 +731,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         td["advantages"] = advantages
         return td
 
-    def generate_tokens_and_logits(
-        self, td
-    ):
+    def generate_tokens_and_logits(self, td):
         tokens = td["tokens"]
         batch_size, context_length = tokens.shape
         grpo_size = self.grpo_samples
@@ -807,9 +812,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Compute the closed-form rewards
-        env.append_transform(
-            ShapedCorrectnessReward(self._tokenizer)
-        )
+        env.append_transform(ShapedCorrectnessReward(self._tokenizer))
 
         # Setup policy
         policy = self.generate_tokens_and_logits
@@ -828,9 +831,13 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Get a state (a TensorDict with a prompt) with batch_size elements
                 state = env.reset()  # produces 'tokens'
                 # Execute policy (query LLM)
-                state = policy(state)  # 'tokens' -> ("responses", "logits", "masks", "position_ids")
+                state = policy(
+                    state
+                )  # 'tokens' -> ("responses", "logits", "masks", "position_ids")
                 # Make a step (rewards...)
-                state = env.step(state)  # step would encode any custom reward, check done states, ...
+                state = env.step(
+                    state
+                )  # step would encode any custom reward, check done states, ...
 
                 # Optional: Make a step in the markov decision process
                 state = env.step_mdp(state)
