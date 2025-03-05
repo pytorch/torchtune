@@ -321,9 +321,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        self._val_sampler, self._val_dataloader = None, None
+        self._val_dataloader = None
         if cfg.get("dataset_validation") is not None:
-            self._val_sampler, self._val_dataloader = self._setup_data(
+            self._val_dataloader = self._setup_data(
                 cfg_dataset=cfg.dataset_validation,
                 batch_size=cfg.batch_size,
                 collate_fn=collate_name,
@@ -897,8 +897,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     self._profiler.step()
 
                     # Run validation after gradient update
-                    if (self._run_val_every_n_steps is not None and
-                        self.global_step % self._run_val_every_n_steps == 0):
+                    if (
+                        self._run_val_every_n_steps is not None
+                        and self.global_step % self._run_val_every_n_steps == 0
+                    ):
                         pbar.refresh()
                         val_loss = self.validate()
                         if self._is_rank_zero:
@@ -931,8 +933,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         with torch.no_grad():
             for batch_idx, batch in enumerate(self._val_dataloader):
-                if (self._max_validation_batches > 0 and
-                    batch_idx >= self._max_validation_batches):
+                if (
+                    self._max_validation_batches > 0
+                    and batch_idx >= self._max_validation_batches
+                ):
                     break
 
                 utils.batch_to_device(batch, self._device)
@@ -941,7 +945,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 current_num_tokens = (
                     batch["labels"] != self._loss_fn.ignore_index
                 ).sum()
-
 
                 labels = batch.pop("labels")
 
@@ -972,7 +975,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         avg_val_loss = (
             (total_val_loss / total_val_tokens).item()
             if total_val_tokens > 0
-            else float('inf')
+            else float("inf")
         )
 
         self._model.train()
