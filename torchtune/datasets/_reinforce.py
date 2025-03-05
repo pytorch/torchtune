@@ -67,7 +67,7 @@ class reinforce_dataloader(Dataset):
         )
         assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
 
-        tokenized_dict["reward"]=sample["reward"]
+        tokenized_dict["reward"]=sample.get("reward", 1)
 
         return tokenized_dict
 

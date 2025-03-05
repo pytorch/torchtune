@@ -19,7 +19,7 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data import DataLoader, DistributedSampler, Subset
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -28,7 +28,9 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
+from omegaconf import OmegaConf
 
+import random
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -325,6 +327,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
+
+        if isinstance(cfg.dataset.get("_component_", None), str):
+            if cfg.dataset.get("_component_", None)[0]=='[' and cfg.dataset.get("_component_", None)[-1]==']':
+                cfg.dataset["_component_"] = OmegaConf.create(cfg.dataset['_component_'])
+
+
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
         if self.method=="reinforce":
             collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_reinforce")
@@ -339,13 +347,43 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # NOTE: added by us
         # validation dataloader
         cfg["validation_dataset"] = deepcopy(cfg.dataset)
-        cfg["validation_dataset"]["split"] = "validation"
-        self._sampler_validation, self._dataloader_validation = self._setup_data(
-            cfg_dataset=cfg["validation_dataset"],
-            shuffle=cfg.shuffle,
-            batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
-            collate_fn=collate_name,
-        )
+        self._sampler_validation_list = []
+        self._dataloader_validation_list = []
+        if isinstance(cfg["validation_dataset"]["_component_"], ListConfig):
+            portions = [dataset['portion'] for dataset in cfg["validation_dataset"]["_component_"]]
+            for dataset in cfg["validation_dataset"]["_component_"]:
+                dataset["split"] = "validation"
+                sampler_validation, dataloader_validation = self._setup_data(
+                    cfg_dataset=dataset,
+                    shuffle=cfg.shuffle,
+                    batch_size=cfg.batch_size,
+                    collate_fn=collate_name,
+                )
+                self._sampler_validation_list.append(sampler_validation)
+                self._dataloader_validation_list.append(dataloader_validation)
+            # downsample the validation using the portion property in the dataset config
+            for i in range(1,len(self._sampler_validation_list)): # hardcoding the first portion to be the training portion
+                if portions[i] == 0:
+                    sample_size = min(1028, int(len(self._dataloader_validation_list[i].dataset))) # hardcoding the default sample size to 1028 if the portion is 0
+                else:
+                    sample_size = int(len(self._dataloader_validation_list[0].dataset) * portions[i] / (1-sum(portions[1:]))) # hardcoding the first portion to be the training portion
+    
+                if sample_size > len(self._dataloader_validation_list[i].dataset):
+                    continue
+                random.seed(42)
+                subset = Subset(self._dataloader_validation_list[i].dataset, random.sample(range(len(self._dataloader_validation_list[i].dataset)), sample_size))
+                collate_fn = _get_component_from_path(collate_name)
+                self._dataloader_validation_list[i] = DataLoader(subset, batch_size=cfg.batch_size,shuffle=False, collate_fn=collate_fn)
+        else:
+            cfg["validation_dataset"]["split"] = "validation"
+            sampler_validation, dataloader_validation = self._setup_data(
+                cfg_dataset=cfg["validation_dataset"],
+                shuffle=cfg.shuffle,
+                batch_size=cfg.batch_size,  # TODO: have a separate batch size for validation
+                collate_fn=collate_name,
+            )
+            self._sampler_validation_list.append(sampler_validation)
+            self._dataloader_validation_list.append(dataloader_validation)
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -665,16 +703,75 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         world_size, rank = training.get_world_size_and_rank()
 
-        if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
-            ds = ConcatDataset(datasets=datasets)
+        def convert_to_nested(config):
+            """
+            Converts a flattened dictionary (e.g., 'column_map.output')
+            into a nested dictionary structure.
+
+            Args:
+                config (dict): A dictionary with flattened keys.
+
+            Returns:
+                dict: A dictionary with nested keys.
+            """
+            nested_config = {}
+
+            for key, value in config.items():
+                parts = key.split(".")  # Split the keys by '.'
+                current = nested_config
+
+                for part in parts[:-1]:
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+
+                current[parts[-1]] = value
+
+            return nested_config
+
+        if isinstance(cfg_dataset.get("_component_", None), ListConfig):
+            portions = []
+            datasets = []
+            for single_cfg_dataset in cfg_dataset["_component_"]:
+                single_cfg_dataset = DictConfig(
+                    convert_to_nested(
+                        deepcopy(single_cfg_dataset)
+                    )
+                )
+
+                portion = (
+                    single_cfg_dataset.pop("portion")
+                    if "portion" in single_cfg_dataset
+                    else None
+                )
+                portions.append(portion)
+                datasets.append(
+                    config.instantiate(
+                        single_cfg_dataset,
+                        self._tokenizer,
+                    )
+                )
+            ds = ConcatDataset(datasets=datasets, portions=portions)
             packed = False
         else:
-            ds = config.instantiate(cfg_dataset, self._tokenizer)
-            packed = cfg_dataset.get("packed", False)
+            new_single_cfg_dataset = DictConfig(
+                convert_to_nested(deepcopy(cfg_dataset))
+            )
+            new_single_cfg_dataset.pop("portion", None)
+            ds = config.instantiate(new_single_cfg_dataset, self._tokenizer)
+            packed = new_single_cfg_dataset.get("packed", False)
+
+
+        # if isinstance(cfg_dataset, ListConfig):
+        #     datasets = [
+        #         config.instantiate(single_cfg_dataset, self._tokenizer)
+        #         for single_cfg_dataset in cfg_dataset
+        #     ]
+        #     ds = ConcatDataset(datasets=datasets)
+        #     packed = False
+        # else:
+        #     ds = config.instantiate(cfg_dataset, self._tokenizer)
+        #     packed = cfg_dataset.get("packed", False)
 
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
@@ -808,6 +905,30 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         torch.distributed.barrier()
 
+    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    # Shape [b, s], needed for the loss not the model
+        labels = batch.pop("labels")
+
+        with self.activations_handling_ctx:
+            logits = self._model(**batch)
+
+        # Shift labels to compute loss
+        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+        # But this way we dont need to slice the logits. We just add an ignore index to labels.
+        labels = torch.hstack(
+            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+        )
+        if not isinstance(logits, list):
+            labels = labels.reshape(-1)
+            logits = logits.reshape(-1, logits.size(-1))
+
+        # Compute loss
+        loss = self._loss_fn(logits, labels)
+        # free logits otherwise it peaks backward memory
+        del logits
+
+        return loss
+
     # NOTE: added by us
     def _skip_max_seq_len_samples(self, batch: Dict[str, torch.Tensor]) -> bool:
         """
@@ -845,96 +966,74 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-            self._sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
+            for _sampler_validation in self._sampler_validation_list:
+                _sampler_validation.set_epoch(curr_epoch) # NOTE: added by us
 
             # NOTE: added by us
             # ------ Validation Step ------ #
             self._model.eval()
 
             with torch.no_grad():
-                running_val_loss = 0
-                num_eval_steps = (
-                    min(self._max_validation_steps, len(self._dataloader_validation))
-                    if self._max_validation_steps is not None
-                    else len(self._dataloader_validation)
-                )
-                # NOTE: added by us
-                # start a counter for samples that are too long
-                max_len_samples = 0
-
-                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
-                # NOTE: added by us - counter to account for samples that are too long
-                idx = 0
-                for _, batch in enumerate(self._dataloader_validation):
-                    if idx >= num_eval_steps:
-                        break
-
-                    # NOTE: added by us
-                    if self._skip_max_seq_len_samples(batch):
-                        max_len_samples += 1
-                        continue
-
-                    utils.batch_to_device(batch, self._device)
-
-                    # Calculate the number of unmasked tokens in the current batch
-                    # and increment the total number of tokens seen in the step
-                    # current_num_tokens = (
-                    #     batch["labels"] != self._loss_fn.ignore_index
-                    # ).sum()
-
-                    # Shape [b, s], needed for the loss not the model
-                    labels = batch.pop("labels")
-
-
-                    if self.method=="reinforce":
-                        reward = batch.pop("reward")
-                    else:
-                        reward=1
-
-                    with self.activations_handling_ctx:
-                        logits = self._model(**batch)
-
-                    # Shift labels to compute loss
-                    # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                    # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                    labels = torch.hstack(
-                        (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+                for i, dataloader_validation in enumerate(
+                    self._dataloader_validation_list
+                ):
+                    cum_val_loss = 0
+                    num_eval_steps = (
+                        min(self._max_validation_steps, len(dataloader_validation))
+                        if self._max_validation_steps is not None
+                        else len(dataloader_validation)
                     )
-                    if not isinstance(logits, list):
-                        labels = labels.reshape(-1)
-                        logits = logits.reshape(-1, logits.size(-1))
 
-                    # Compute loss
-                    # Loss is normalized by default so we multiply by the number of tokens
-                    # This way we can normalize by the total number of tokens if we're accumulating gradients
-                    # NOTE: we don't need to multiply by the number of tokens because we are not accumulating gradients
-                    current_loss = self._loss_fn(logits, labels)  # * current_num_tokens
+                    max_len_samples = 0
 
-                    # free logits otherwise it peaks backward memory
-                    del logits
+                    pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                    # NOTE: added by us - counter to account for samples that are too long
+                    idx = 0
+                    for _, batch in enumerate(dataloader_validation):
 
-                    running_val_loss += current_loss * reward 
-                    pbar_val.update(1)
-                    pbar_val.set_description(
-                        f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {running_val_loss / (idx + 1)}"
+                        if self._skip_max_seq_len_samples(batch):
+                            max_len_samples += 1
+                            continue
+
+                        utils.batch_to_device(batch, self._device)
+                        # TODO: finish this feature
+                        # try:
+                        if self.method=="reinforce":
+                            rewards=batch.pop("reward")
+                        val_loss = self._loss_step(batch)
+                        # except RuntimeError as e:
+                        #     log.error(f"Error in validation loss computation: {e}")
+                        #     val_loss = torch.tensor(0.0, device=self._device)
+                        #     continue
+                        cum_val_loss += val_loss
+                        pbar_val.update(1)
+                        pbar_val.set_description(
+                            f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
+                        )
+                        idx += 1
+
+                        if (
+                            self._max_validation_steps is not None
+                            and idx == self._max_validation_steps
+                        ):
+                            break
+
+                    mean_val_loss = cum_val_loss / (idx + 1 - max_len_samples)
+
+                    gathered_val_loss = [
+                        torch.zeros_like(mean_val_loss) for _ in range(world_size)
+                    ]
+                    torch.distributed.all_gather(gathered_val_loss, mean_val_loss)
+                    mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
+                    if self._is_rank_zero:
+                        self._metric_logger.log_dict(
+                            {"val_loss": mean_val_loss},
+                            step=self.global_step,
+                        )
+                    utils.log_rank_zero(
+                        log, f"Number of samples that were too long: {max_len_samples}"
                     )
-                    idx += 1  # NOTE: added by us
-
-                mean_val_loss = running_val_loss / (idx + 1)
-                gathered_val_loss = [
-                    torch.zeros_like(mean_val_loss) for _ in range(world_size)
-                ]
-                torch.distributed.all_gather(gathered_val_loss, mean_val_loss)
-                mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
-                if self._is_rank_zero:
-                    self._metric_logger.log_dict(
-                        {"val_loss": mean_val_loss},
-                        step=self.global_step,
-                    )
-                utils.log_rank_zero(
-                    log, f"Number of samples that were too long: {max_len_samples}"
-                )
-                pbar_val.close()
+                    pbar_val.close()
 
             # ------ Training Epoch ------ #
             # Initialize tokens count and running loss (for grad accumulation)
@@ -1006,7 +1105,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
 
-                reward=1
                 current_loss = self._loss_fn(logits, labels) * current_num_tokens * reward
 
                 # free logits otherwise it peaks backward memory
