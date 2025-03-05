@@ -13,6 +13,16 @@ __version__ = ""
 # properly support both nightly and stable installs of PyTorch + torchao
 # in pyproject.toml.
 try:
+    import torch  # noqa
+except ImportError as e:
+    raise ImportError(
+        """
+        torch not installed.
+        Please follow the instructions at https://pytorch.org/torchtune/main/install.html#pre-requisites
+        to install torch.
+        """
+    ) from e
+try:
     import torchao  # noqa
 except ImportError as e:
     raise ImportError(
@@ -20,6 +30,16 @@ except ImportError as e:
         torchao not installed.
         Please follow the instructions at https://pytorch.org/torchtune/main/install.html#pre-requisites
         to install torchao.
+        """
+    ) from e
+try:
+    import torchvision  # noqa
+except ImportError as e:
+    raise ImportError(
+        """
+        torchvision not installed.
+        Please follow the instructions at https://pytorch.org/torchtune/main/install.html#pre-requisites
+        to install torchvision.
         """
     ) from e
 
