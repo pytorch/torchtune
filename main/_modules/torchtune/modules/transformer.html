@@ -1102,6 +1102,9 @@
                 <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span>
             <span class="p">)</span>
 
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_hidden_states</span><span class="p">:</span>
+            <span class="n">hidden</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+
         <span class="c1"># shape: [b, seq_len, out_dim]</span>
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unembed</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
