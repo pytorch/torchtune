@@ -46,12 +46,10 @@ class MyWorker(Worker):
     parameter.
     """
 
-    def init_weight_update_group(
-        self, master_address, master_port, rank_offset, world_size
-    ):
-        from vllm.distributed.parallel_state import get_world_group
+    def init_weight_update_group(self, master_address, master_port, rank, world_size):
+        # from vllm.distributed.parallel_state import get_world_group
 
-        rank = get_world_group().rank + rank_offset
+        # rank = get_world_group().rank + rank_offset
         self.model_update_group = stateless_init_process_group(
             master_address,
             master_port,
@@ -82,16 +80,12 @@ class MyWorker(Worker):
 
 
 class MyLLM(LLM):
-
     def __init__(self, *args, **kwargs):
         # a hack to make the script work.
         # stop ray from manipulating CUDA_VISIBLE_DEVICES
         # at the top-level
         # os.environ.pop("CUDA_VISIBLE_DEVICES", None)
         super().__init__(*args, **kwargs)
-
-    def get_rank(self):
-        return ray.get_gpu_ids()[0]
 
 
 # Define the worker class
@@ -187,7 +181,7 @@ class TrainWorker:
 
 # Launch the Ray cluster with "ray start --head --num-gpus 2"
 # To kill server run "ray stop"
-ray.init(num_cpus=128, num_gpus=5)
+ray.init(num_cpus=192, num_gpus=6)
 
 fsdp_world_size = 4
 
@@ -255,9 +249,15 @@ llm = ray.remote(
     tensor_parallel_size=1,
     distributed_executor_backend="ray",
 )
+rank = None
+for i in range(5):
+    if i in fsdp_nodes:
+        break
+    else:
+        rank = i
 
-rank = ray.get(llm.get_rank.remote())
-print(f"vllm rank: {rank}")
+print(rank)
+
 # Generate texts from the prompts.
 prompts = [
     "Hello, my name is",
@@ -283,14 +283,15 @@ weight_update_port = get_open_port()
 print(weight_update_port)
 
 handle = llm.collective_rpc.remote(
-    "init_weight_update_group", args=(weight_update_address, weight_update_port, 0, 5)
+    "init_weight_update_group",
+    args=(weight_update_address, weight_update_port, rank, 5),
 )
 model_update_group = stateless_init_process_group(
     weight_update_address,
     weight_update_port,
-    1,
+    chosen_fsdp_master_rank,
     5,
-    torch.device(f"cuda:{1}"),
+    torch.device(f"cuda:{chosen_fsdp_master_rank}"),
 )
 ray.get(handle)
 
