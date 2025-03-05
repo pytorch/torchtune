@@ -12,7 +12,7 @@ from torchtune.data._messages import AlpacaToMessages
 
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 def alpaca_dataset(

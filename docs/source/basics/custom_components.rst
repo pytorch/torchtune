@@ -117,7 +117,7 @@ our models in torchtune - see :func:`~torchtune.models.llama3_2_vision.llama3_2_
     #
     from torchtune.datasets import SFTDataset, PackedDataset
     from torchtune.data import InputOutputToMessages
-    from torchtune.modules.tokenizers import ModelTokenizer
+    from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
     # Example builder function for a custom code instruct dataset not in torchtune, but using
     # different dataset building blocks from torchtune

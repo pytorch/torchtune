@@ -8,8 +8,11 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate, truncate
-from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import (
+    ModelTokenizer,
+    TikTokenBaseTokenizer,
+)
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -28,9 +31,10 @@ SPECIAL_TOKENS = {
     "<|python_tag|>": 128010,
     "<|image|>": 128256,
     "<|video|>": 128012,
+    "<|reserved_special_token_244|>": 128011,
 }
 
-NUM_RESERVED_SPECIAL_TOKENS = 256
+NUM_RESERVED_SPECIAL_TOKENS = 257
 
 RESERVED_TOKENS = {
     f"<|reserved_special_token_{2 + i}|>": 128013 + i

@@ -293,8 +293,8 @@ For more details about each file, please check the End-to-End tutorial mentioned
         │   ├── adapter_model.pt
         │   ├── adapter_model.safetensors
         │   ├── config.json
-        │   ├── ft-model-00001-of-00002.safetensors
-        │   ├── ft-model-00002-of-00002.safetensors
+        │   ├── model-00001-of-00002.safetensors
+        │   ├── model-00002-of-00002.safetensors
         │   ├── generation_config.json
         │   ├── LICENSE.txt
         │   ├── model.safetensors.index.json
@@ -313,8 +313,8 @@ For more details about each file, please check the End-to-End tutorial mentioned
         │   ├── adapter_model.pt
         │   ├── adapter_model.safetensors
         │   ├── config.json
-        │   ├── ft-model-00001-of-00002.safetensors
-        │   ├── ft-model-00002-of-00002.safetensors
+        │   ├── model-00001-of-00002.safetensors
+        │   ├── model-00002-of-00002.safetensors
         │   ├── generation_config.json
         │   ├── LICENSE.txt
         │   ├── model.safetensors.index.json
@@ -394,7 +394,7 @@ you'll need to **update** the following fields in your configs:
 
 **resume_from_checkpoint**: Set it to True;
 
-**checkpoint_files**: change the path to ``epoch_{YOUR_EPOCH}/ft-model={}-of-{}.safetensors``;
+**checkpoint_files**: change the path to ``epoch_{YOUR_EPOCH}/model-{}-of-{}.safetensors``;
 
 Notice that we do **not** change our checkpoint_dir or output_dir. Since we are resuming from checkpoint, we know
 to look for it in the output_dir.
@@ -405,8 +405,8 @@ to look for it in the output_dir.
         # checkpoint files. Note that you will need to update this
         # section of the config with the intermediate checkpoint files
         checkpoint_files: [
-            epoch_{YOUR_EPOCH}/ft-model-00001-of-00002.safetensors,
-            epoch_{YOUR_EPOCH}/ft-model-00001-of-00002.safetensors,
+            epoch_{YOUR_EPOCH}/model-00001-of-00002.safetensors,
+            epoch_{YOUR_EPOCH}/model-00001-of-00002.safetensors,
         ]
 
     # set to True if restarting training

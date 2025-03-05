@@ -16,10 +16,15 @@ Model builders build specific instantiations using component builders. For examp
 the llama3_2_1b model builder uses the llama3_2 component builder to create the
 Llama3.2 1B model.
 """
-def llama3_2_1b() -> TransformerDecoder:
+def llama3_2_1b(
+    tie_word_embeddings: bool = True,
+) -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 model initialized w/ the default 1b parameter values.
     
+    Args:
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
+
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 1B model
     """
@@ -35,10 +40,16 @@ def llama3_2_1b() -> TransformerDecoder:
         norm_eps=1e-5,
         rope_base=500_000,
         scale_factor=32,
+        tie_word_embeddings=tie_word_embeddings,
     )
-def llama3_2_3b() -> TransformerDecoder:
+def llama3_2_3b(
+    tie_word_embeddings: bool = True,
+) -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 model initialized w/ the default 3b parameter values.
+
+    Args:
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 3B model
@@ -55,6 +66,7 @@ def llama3_2_3b() -> TransformerDecoder:
         norm_eps=1e-5,
         rope_base=500_000,
         scale_factor=32,
+        tie_word_embeddings=tie_word_embeddings,
     )
 def lora_llama3_2_1b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
@@ -65,6 +77,7 @@ def lora_llama3_2_1b(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 1B model with LoRA enabled.
@@ -86,6 +99,7 @@ def lora_llama3_2_1b(
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 1B model with LoRA applied
@@ -110,6 +124,7 @@ def lora_llama3_2_1b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        tie_word_embeddings=tie_word_embeddings,
     )
 def lora_llama3_2_3b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
@@ -120,6 +135,7 @@ def lora_llama3_2_3b(
     lora_dropout: float = 0.0,
     use_dora: bool = False,
     quantize_base: bool = False,
+    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama3.2 3B model with LoRA enabled.
@@ -141,6 +157,7 @@ def lora_llama3_2_3b(
         use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
             introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model weights
+        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 3B model with LoRA applied
@@ -166,6 +183,7 @@ def lora_llama3_2_3b(
         lora_dropout=lora_dropout,
         use_dora=use_dora,
         quantize_base=quantize_base,
+        tie_word_embeddings=tie_word_embeddings,
     )
 qlora_llama3_2_1b = partial(lora_llama3_2_1b, quantize_base=True)
 qlora_llama3_2_1b.__doc__ = """

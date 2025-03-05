@@ -11,7 +11,7 @@ from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
 from torchtune.models.qwen2_5._tokenizer import QWEN2_5_SPECIAL_TOKENS, Qwen2_5Tokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
 
 """
 Model builders build specific instantiations using component builders. For example

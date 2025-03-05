@@ -69,11 +69,13 @@ class SFTDataset(Dataset):
     multimodal datasets requires processing the images in a way specific to the vision
     encoder being used by the model and is agnostic to the specific dataset.
 
-    Tokenization is handled by the ``model_transform``. All :class:`~torchtune.modules.tokenizers.ModelTokenizer`
-    can be treated as a ``model_transform`` since it uses the model-specific tokenizer to
-    transform the list of messages outputted from the ``message_transform`` into tokens
-    used by the model for training. Text-only datasets will simply pass the :class:`~torchtune.modules.tokenizers.ModelTokenizer`
-    into ``model_transform``. Tokenizers handle prompt templating, if configured.
+    Tokenization is handled by the ``model_transform``. All
+    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` can be treated as
+    a ``model_transform`` since it uses the model-specific tokenizer to transform the
+    list of messages outputted from the ``message_transform`` into tokens used by the
+    model for training. Text-only datasets will simply pass the
+    :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` into ``model_transform``.
+    Tokenizers handle prompt templating, if configured.
 
     Args:
         source (str): path to dataset repository on Hugging Face. For local datasets,
@@ -90,6 +92,7 @@ class SFTDataset(Dataset):
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
+        filter_kwargs (Optional[Dict[str, Any]]): additional keyword arguments to pass to ``filter_fn``.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
@@ -102,6 +105,7 @@ class SFTDataset(Dataset):
         message_transform: Transform,
         model_transform: Transform,
         filter_fn: Optional[Callable] = None,
+        filter_kwargs: Optional[Dict[str, Any]] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._message_transform = message_transform
@@ -109,7 +113,9 @@ class SFTDataset(Dataset):
 
         self._data = load_dataset(source, **load_dataset_kwargs)
         if filter_fn is not None:
-            self._data = self._data.filter(filter_fn)
+            if filter_kwargs is None:
+                filter_kwargs = {}
+            self._data = self._data.filter(filter_fn, **filter_kwargs)
 
         self._prepare_sample = SFTTransform(
             message_transform=self._message_transform,

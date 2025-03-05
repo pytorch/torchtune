@@ -13,7 +13,7 @@ output_dir: ./
 model:
   _component_: torchtune.models.llama3.llama3_70b
 
-parallelize_plan:
+tensor_parallel_plan:
   _component_: torchtune.models.llama3.base_llama_tp_plan
 
 # Transform arguments

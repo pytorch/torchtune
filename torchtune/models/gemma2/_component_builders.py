@@ -4,9 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torch import nn
 import torch
-from typing import List
+from torch import nn
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 from typing import List, Optional
 
@@ -116,7 +115,6 @@ def gemma2(
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     
     layers = torch.nn.ModuleList()
-    
     for layer_idx in range(num_layers):
         
         mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
@@ -149,6 +147,7 @@ def gemma2(
             mlp_scale=GemmaRMSNorm(embed_dim, eps=norm_eps),
         )
         layers.append(layer)
+
     tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
     model = TransformerDecoder(
@@ -231,8 +230,7 @@ def lora_gemma2(
     tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
     
-    layers = torch.nn.ModuleList()
-    
+    layers = nn.ModuleList()
     for layer_idx in range(num_layers):
         if apply_lora_to_mlp:
             mlp = lora_gemma_mlp(

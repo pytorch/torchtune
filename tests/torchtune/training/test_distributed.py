@@ -14,7 +14,7 @@ import torch.distributed as dist
 import torch.nn as nn
 from packaging import version
 from tests.test_utils import gpu_test
-from torch.distributed import launcher
+from torch.distributed import init_process_group, launcher
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
@@ -37,13 +37,6 @@ from torchtune.modules.peft import (
 
 
 class TestDistributed:
-    def test_init_distributed(self) -> None:
-        """Integration test to confirm consistency across device initialization utilities."""
-        distributed = training.init_distributed()
-        assert (
-            not distributed
-        ), "Should return False as there are no distributed environment variables"
-
     @staticmethod
     def _test_worker_fn(init_pg_explicit: bool) -> None:
         """
@@ -52,7 +45,7 @@ class TestDistributed:
         if init_pg_explicit:
             torch.distributed.init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
-            training.init_distributed(backend="gloo")
+            init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
         pg_backend = torch.distributed.get_backend()
@@ -93,6 +86,14 @@ class TestDistributed:
 
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
             training.validate_no_params_on_meta_device(model)
+
+    def test_get_distributed_backend(self) -> None:
+        assert training.get_distributed_backend("cuda") == "nccl"
+        assert training.get_distributed_backend("cpu") == "gloo"
+        assert (
+            training.get_distributed_backend("cuda", offload_ops_to_cpu=True)
+            == "cuda:nccl,cpu:gloo"
+        )
 
 
 N_LAYERS = 3

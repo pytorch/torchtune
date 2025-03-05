@@ -503,3 +503,17 @@ class TestTransformerDecoder:
         assert len(rms_norms) > 0
         for rms_norm in rms_norms:
             assert rms_norm.eps == rms_norm_eps
+
+    def test_pass_input_embeds(
+        self,
+        input: torch.Tensor,
+        causal_mask: torch.Tensor,
+        input_pos: torch.Tensor,
+        decoder: TransformerDecoder,
+    ):
+        embeds = decoder.tok_embeddings(input)
+        skip_tok_embed_outs = decoder(
+            tokens=None, mask=causal_mask, input_pos=input_pos, input_embeds=embeds
+        )
+        full_transformer_outs = decoder(input, mask=causal_mask, input_pos=input_pos)
+        assert_expected(skip_tok_embed_outs, full_transformer_outs)

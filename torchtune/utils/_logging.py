@@ -67,6 +67,9 @@ def deprecated(msg: str = "") -> Callable[[T], T]:
 
     @lru_cache(maxsize=1)
     def warn(obj):
+        rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
+        if rank != 0:
+            return
         warnings.warn(
             f"{obj.__name__} is deprecated and will be removed in future versions. "
             + msg,

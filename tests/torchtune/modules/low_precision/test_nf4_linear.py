@@ -4,12 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-try:
-    import bitsandbytes as bnb
-
-    bnb_installed = True
-except ImportError:
-    bnb_installed = False
 import pytest
 import torch
 from torchao.dtypes.nf4tensor import NF4Tensor
@@ -20,19 +14,6 @@ from torchtune.training.seed import set_seed
 @pytest.fixture(autouse=True)
 def random():
     set_seed(31)
-
-
-def _build_bnb_linear(input_weight):
-    """
-    Builds a bnb.nn.LinearNF4 from a given input weight
-    """
-    param = bnb.nn.Params4bit(input_weight, requires_grad=False, quant_type="nf4")
-    bnb_linear = bnb.nn.LinearNF4(
-        input_weight.size(0), input_weight.size(1), bias=False
-    )
-    bnb_linear.weight = param
-    bnb_linear.cuda()
-    return bnb_linear
 
 
 class TestNF4Linear:
@@ -88,7 +69,6 @@ class TestNF4Linear:
         assert inp.grad is not None and inp.grad.dtype == dtype
         assert nf4_linear.weight.grad is None
 
-    @pytest.mark.skipif(not bnb_installed, reason="bitsandbytes is not installed")
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="Need CUDA available")
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_nf4_reconstruction_vs_bnb(self, dtype):
@@ -96,10 +76,22 @@ class TestNF4Linear:
         Ensures a BNB NF4 linear and our FrozenNF4Linear have low error when
         reconstructing the respective original weights.
         """
+        try:
+            import bitsandbytes as bnb
+        except ImportError:
+            pytest.skip("bitsandbytes is not installed")
+            return
+
         dim = 512
         nf4_linear = FrozenNF4Linear(dim, dim, device="cuda", dtype=dtype)
         orig_weight = nf4_linear.weight.get_original_weight().clone().detach()
-        bnb_nf4_linear = _build_bnb_linear(input_weight=orig_weight)
+
+        param = bnb.nn.Params4bit(orig_weight, requires_grad=False, quant_type="nf4")
+        bnb_nf4_linear = bnb.nn.LinearNF4(
+            orig_weight.size(0), orig_weight.size(1), bias=False
+        )
+        bnb_nf4_linear.weight = param
+        bnb_nf4_linear.cuda()
 
         # From https://github.com/drisspg/transformer_nuggets/blob/f05afad68ad9086d342268f46a7f344617a02314/test/test_qlora.py#L65
         bnb_reconstruction = bnb_nf4_linear(
@@ -110,7 +102,6 @@ class TestNF4Linear:
             bnb_reconstruction.T, nf4_linear.weight.get_original_weight(), 1e-2
         )
 
-    @pytest.mark.skipif(not bnb_installed, reason="bitsandbytes is not installed")
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="Need CUDA available")
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_nf4_bnb_linear(self, dtype):
@@ -118,10 +109,23 @@ class TestNF4Linear:
         This test ensures that nf4_linear is "no worse" than BNB by ensuring the
         error compared to a bf16 linear is not more than BNB's implementation.
         """
+        try:
+            import bitsandbytes as bnb
+        except ImportError:
+            pytest.skip("bitsandbytes is not installed")
+            return
+
         dim = 512
         nf4_linear = FrozenNF4Linear(dim, dim, device="cuda", dtype=dtype)
         orig_weight = nf4_linear.weight.get_original_weight().clone().detach()
-        bnb_nf4_linear = _build_bnb_linear(input_weight=orig_weight)
+
+        param = bnb.nn.Params4bit(orig_weight, requires_grad=False, quant_type="nf4")
+        bnb_nf4_linear = bnb.nn.LinearNF4(
+            orig_weight.size(0), orig_weight.size(1), bias=False
+        )
+        bnb_nf4_linear.weight = param
+        bnb_nf4_linear.cuda()
+
         bf16_linear = torch.nn.Linear(dim, dim, device="cuda", dtype=dtype)
 
         inp = torch.randn(2, 512, dtype=dtype, device="cuda")

@@ -10,8 +10,8 @@ from torchtune.data import Message, PromptTemplate
 
 from torchtune.models.clip import CLIPImageTransform
 from torchtune.models.llama3 import llama3_tokenizer
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform, VisionCrossAttentionMask
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 class Llama3VisionTransform(ModelTokenizer, Transform):
@@ -194,7 +194,7 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field.
-            inference (bool): Whether to run in inference mode. Default is True.
+            inference (bool): Whether to run in inference mode. Default is False.
 
         Returns:
             Mapping[str, Any]: The transformed sample with the following fields:

@@ -59,7 +59,7 @@ class TestQwenTokenizer:
                            1506, 416, 114, 128, 1429, 182, 253, 82, 120, 163, 330, 105, 262, 13, 223, 1791, 155, 1551,
                            171, 1951, 628, 296, 64, 237, 886, 1390, 130, 883, 1678, 447, 306, 279, 113, 11, 215, 785,
                            215, 1951, 628, 378, 101, 66, 72, 593, 98, 984, 208, 1580, 167, 510, 737, 318, 1278, 13,
-                           2000] # noqa
+                           2002] # noqa
         # fmt: on
 
         expected_mask = [True] * 67 + [False] * 121
@@ -69,8 +69,9 @@ class TestQwenTokenizer:
         formatted_messages = tokenizer.decode(tokens)
         expected_formatted_messages = (
             f"<|im_start|>user\n{messages[0].text_content}<|im_end|>\n"
-            f"<|im_start|>assistant\n{messages[1].text_content}<|endoftext|>"
+            f"<|im_start|>assistant\n{messages[1].text_content}<|im_end|>"
         )
+
         assert expected_formatted_messages == formatted_messages
 
     def test_tokenize_messages_gt_max_seq_len(self, messages):

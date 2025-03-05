@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Optional, Union
 from torchtune.data._messages import OpenAIToMessages, ShareGPTToMessages
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._sft import SFTDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 def chat_dataset(

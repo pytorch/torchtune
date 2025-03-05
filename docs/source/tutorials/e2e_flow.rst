@@ -142,8 +142,8 @@ There are 3 types of folders:
     │   ├── adapter_model.pt
     │   ├── adapter_model.safetensors
     │   ├── config.json
-    │   ├── ft-model-00001-of-00002.safetensors
-    │   ├── ft-model-00002-of-00002.safetensors
+    │   ├── model-00001-of-00002.safetensors
+    │   ├── model-00002-of-00002.safetensors
     │   ├── generation_config.json
     │   ├── LICENSE.txt
     │   ├── model.safetensors.index.json
@@ -168,7 +168,7 @@ There are 3 types of folders:
 Let's understand the files:
 
 - ``adapter_model.safetensors`` and ``adapter_model.pt`` are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.
-- ``ft-model-{}-of-{}.safetensors`` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the merged base model with trained adapters, making inference easier.
+- ``model-{}-of-{}.safetensors`` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the merged base model with trained adapters, making inference easier.
 - ``adapter_config.json`` is used by Huggingface PEFT when loading an adapter (more on that later);
 - ``model.safetensors.index.json`` is used by Hugging Face ``from_pretrained()`` when loading the model weights (more on that later)
 - All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending on .safetensors, .pth, .pt, .bin are ignored, making it lightweight.
@@ -223,8 +223,8 @@ Notice that we are using the merged weights, and not the LoRA adapters.
         _component_: torchtune.training.FullModelHFCheckpointer
         checkpoint_dir: ${output_dir}
         checkpoint_files: [
-            ft-model-00001-of-00002.safetensors,
-            ft-model-00002-of-00002.safetensors,
+            model-00001-of-00002.safetensors,
+            model-00002-of-00002.safetensors,
         ]
         output_dir: ${output_dir}
         model_type: LLAMA3_2
@@ -275,18 +275,20 @@ Let's first copy over the config to our local working directory so we can make c
 
     $ tune cp generation ./custom_generation_config.yaml
     Copied file to custom_generation_config.yaml
+    $ mkdir /tmp/torchtune/llama3_2_3B/lora_single_device/out
 
 Let's modify ``custom_generation_config.yaml`` to include the following changes. Again, you only need
  to replace two fields: ``output_dir`` and ``checkpoint_files``
 
 .. code-block:: yaml
 
-    output_dir: /tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0
+    checkpoint_dir: /tmp/torchtune/llama3_2_3B/lora_single_device/epoch_0
+    output_dir: /tmp/torchtune/llama3_2_3B/lora_single_device/out
 
     # Tokenizer
     tokenizer:
         _component_: torchtune.models.llama3.llama3_tokenizer
-        path: ${output_dir}/original/tokenizer.model
+        path: ${checkpoint_dir}/original/tokenizer.model
         prompt_template: null
 
     model:
@@ -295,10 +297,10 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
     checkpointer:
         _component_: torchtune.training.FullModelHFCheckpointer
-        checkpoint_dir: ${output_dir}
+        checkpoint_dir: ${checkpoint_dir}
         checkpoint_files: [
-            ft-model-00001-of-00002.safetensors,
-            ft-model-00002-of-00002.safetensors,
+            model-00001-of-00002.safetensors,
+            model-00002-of-00002.safetensors,
         ]
         output_dir: ${output_dir}
         model_type: LLAMA3_2
@@ -312,8 +314,8 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
     # Generation arguments; defaults taken from gpt-fast
     prompt:
-    system: null
-    user: "Tell me a joke. "
+      system: null
+      user: "Tell me a joke. "
     max_new_tokens: 300
     temperature: 0.6 # 0.8 and 0.6 are popular values to try
     top_k: 300
@@ -330,7 +332,7 @@ these parameters.
 
 .. code-block:: text
 
-    $ tune run generate --config ./custom_generation_config.yaml prompt="tell me a joke. "
+    $ tune run generate --config ./custom_generation_config.yaml prompt.user="Tell me a joke. "
     Tell me a joke. Here's a joke for you:
 
     What do you call a fake noodle?
@@ -356,6 +358,8 @@ torchao also provides `this table <https://github.com/pytorch/ao#inference>`_ li
 For Llama models, you can run generation directly in torchao on the quantized model using their ``generate.py`` script as
 discussed in `this readme <https://github.com/pytorch/ao/tree/main/torchao/_models/llama>`_. This way you can compare your own results
 to those in the previously-linked table.
+
+.. _use_model_in_wild:
 
 Use your model in the wild
 --------------------------
