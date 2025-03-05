@@ -17,7 +17,7 @@
 # For single device LoRA finetuning please use 1B_lora_single_device.yaml
 # or 1B_qlora_single_device.yaml
 
-output_dir: /tmp/torchtune/llama3_2_1B/lora # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/llama3_2_1B/qlora # /tmp may be deleted by your system. Change it to your preference.
 
 # Tokenizer
 tokenizer:
@@ -27,7 +27,7 @@ tokenizer:
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3_2.lora_llama3_2_1b
+  _component_: torchtune.models.llama3_2.qlora_llama3_2_1b
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
   lora_rank: 64  # higher increases accuracy and memory
@@ -85,7 +85,7 @@ compile: True  # torch.compile the model + loss, True increases speed + decrease
 
 # Logging
 metric_logger:
-  _component_: torchtune.training.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.WandBLogger
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
