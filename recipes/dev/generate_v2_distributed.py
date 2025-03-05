@@ -221,7 +221,6 @@ class InferenceRecipe:
         t0 = time.perf_counter()
         logits = self.model(prompt, **batch)[:, -1]
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
-        print(f"Starting prefilling at rank {dist.get_rank()} {token.item()=}")
         generated_tokens.append(token.item())
 
         if is_multimodal_input:
@@ -237,21 +236,17 @@ class InferenceRecipe:
             batch["input_pos"] = input_pos[None, seq_len]
             batch["mask"] = causal_mask[None, seq_len, None, :]
 
-            if token.item() in self.model_transform.stop_tokens:
-                # synchronize after generation finishes
-                print(f"Stopping generation at the {i} th token {token.item()=} at rank {dist.get_rank()} and {self.model_transform.stop_tokens=}")
+            # only check stop condition on rank 0
+            stop_condition = self._is_rank_zero and token.item() in self.model_transform.stop_tokens
+            should_stop = torch.tensor([stop_condition], dtype=torch.bool, device=self._device)
+            dist.broadcast(should_stop, src=0)
+            if should_stop.item():
                 break
- 
+
             logits = self.model(token, **batch)[:, -1]
-            # synchronize after each model generation
-            torch.distributed.barrier()
             token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
-            print(f"Generating the {i} th token {token.item()=} at {dist.get_rank()}")
             generated_tokens.append(token.item())
             seq_len += 1
-        print(f"Generation finished at rank {dist.get_rank()}")
-        # synchronize after generation finishes
-        torch.distributed.barrier()
         
         t = time.perf_counter() - t0
 
@@ -264,7 +259,6 @@ class InferenceRecipe:
         tokens_per_second = len(generated_tokens) / t
         if self._is_rank_zero:
             self.log_metrics(total_time=t, tokens_per_second=tokens_per_second)
-
 
     def cleanup(self) -> None:
         dist.destroy_process_group()
