@@ -110,7 +110,9 @@ class InferenceRecipe:
         parallelize_model(
             model,
             tp_device_mesh,
-            parallelize_plan=config.instantiate(cfg.tensor_parallel_plan) if hasattr(cfg, "tensor_parallel_plan") else None,
+            parallelize_plan=config.instantiate(cfg.tensor_parallel_plan)
+            if hasattr(cfg, "tensor_parallel_plan")
+            else None,
         )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -237,8 +239,12 @@ class InferenceRecipe:
             batch["mask"] = causal_mask[None, seq_len, None, :]
 
             # only check stop condition on rank 0
-            stop_condition = self._is_rank_zero and token.item() in self.model_transform.stop_tokens
-            should_stop = torch.tensor([stop_condition], dtype=torch.bool, device=self._device)
+            stop_condition = (
+                self._is_rank_zero and token.item() in self.model_transform.stop_tokens
+            )
+            should_stop = torch.tensor(
+                [stop_condition], dtype=torch.bool, device=self._device
+            )
             dist.broadcast(should_stop, src=0)
             if should_stop.item():
                 break
@@ -247,7 +253,7 @@ class InferenceRecipe:
             token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
             generated_tokens.append(token.item())
             seq_len += 1
-        
+
         t = time.perf_counter() - t0
 
         # 8. Translate tokens back to text
@@ -262,6 +268,7 @@ class InferenceRecipe:
 
     def cleanup(self) -> None:
         dist.destroy_process_group()
+
 
 @config.parse
 def main(cfg: DictConfig) -> None:
