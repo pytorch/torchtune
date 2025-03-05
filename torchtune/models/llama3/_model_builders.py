@@ -70,6 +70,7 @@ def llama3_tokenizer(
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
     prompt_template: Optional[_TemplateType] = None,
+    truncation_type: str = "right",
 ) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
@@ -85,6 +86,8 @@ def llama3_tokenizer(
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
             prepend/append tags.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3 tokenizer
@@ -102,6 +105,7 @@ def llama3_tokenizer(
         special_tokens=special_tokens,
         max_seq_len=max_seq_len,
         prompt_template=template,
+        truncation_type=truncation_type,
     )
 
 
