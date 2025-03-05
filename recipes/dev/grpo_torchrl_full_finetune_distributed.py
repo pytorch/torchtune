@@ -661,9 +661,13 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             approx_policy_kls,
         )
 
-    @make_tensordict_module(in_keys=["query_responses", "position_ids", "masks", "context_length", "responses"],
-                            out_keys=["ref_logprobs"])
-    def ref_logprobs(self, query_responses, position_ids, masks, context_length, responses):
+    def ref_logprobs(self, td):
+        query_responses = td["query_responses"]
+        position_ids = td["position_ids"]
+        masks = td["masks"]
+        context_length = td["context_length"]
+        responses = td["responses"]
+
         ref_logits = self._ref_model(
             query_responses, input_pos=position_ids, mask=masks
         )
@@ -673,10 +677,13 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         del ref_logits
         torch.cuda.empty_cache()
-        return ref_logprobs
+        td["ref_logprobs"] = ref_logprobs
+        return td
 
-    @make_tensordict_module(in_keys=["responses", "logprobs", "ref_logprobs"], out_keys=["responses", "response_padding_masks", "logprobs", "ref_logprobs"])
-    def prepare_response(self, responses, logprobs, ref_logprobs):
+    def prepare_response(self, td):
+        responses = td["responses"]
+        logprobs = td["logprobs"]
+        ref_logprobs = td["ref_logprobs"]
         # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
         # resulting in truncated responses
         (
@@ -688,12 +695,15 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         logprobs[response_padding_masks] = 1.0
         ref_logprobs[response_padding_masks] = 1.0
-        return responses, response_padding_masks, logprobs, ref_logprobs
+        td["responses"] = responses
+        td["response_padding_masks"] = response_padding_masks
+        td["logprobs"] = logprobs
+        td["ref_logprobs"] = ref_logprobs
+        return td
 
-    @make_tensordict_module(in_keys=["responses", "answers"], out_keys=[])
-    def compute_rewards(self, responses, answers):
+    def compute_rewards(self, td):
         # Moved to an env transform
-        return
+        return td
         # rewards, successes = batch_shaped_correctness_reward(
         #     self._tokenizer, responses, answers
         # )  # [B, G]
@@ -701,8 +711,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         # successes = successes.to(self._device)
         # return rewards, successes
 
-    @make_tensordict_module(in_keys=["rewards"], out_keys=["advantages"])
-    def compute_advantages(self, rewards):
+    def compute_advantages(self, td):
+        rewards = td["rewards"]
         grpo_size = self.grpo_samples
         batch_size = rewards.shape[0]
 
@@ -711,16 +721,17 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
         torch.cuda.empty_cache()
-        return advantages
+        td["advantages"] = advantages
+        return td
 
-    @make_tensordict_module(in_keys=["tokens"], out_keys=["query_responses", "responses", "logits", "masks", "position_ids"])
     def generate_tokens_and_logits(
-        self, input_ids: torch.Tensor
+        self, td
     ):
-        batch_size, context_length = input_ids.shape
+        tokens = td["tokens"]
+        batch_size, context_length = tokens.shape
         grpo_size = self.grpo_samples
 
-        batch_input_ids = input_ids[:, None, :].expand(-1, grpo_size, -1)  # [B, G, L]
+        batch_input_ids = tokens[:, None, :].expand(-1, grpo_size, -1)  # [B, G, L]
         batch_input_ids = batch_input_ids.reshape(batch_size * grpo_size, -1)
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
@@ -766,7 +777,12 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
         del logits
         torch.cuda.empty_cache()
-        return query_responses, responses, logprobs, masks, position_ids
+        td["query_responses"] = query_responses
+        td["responses"] = responses
+        td["logprobs"] = logprobs
+        td["masks"] = masks
+        td["position_ids"] = position_ids
+        return td
 
     # TODO: we want this to be able to run async across multiple inference nodes
     #  - the collector needs to have a weight sync function
