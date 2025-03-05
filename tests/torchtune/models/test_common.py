@@ -25,7 +25,7 @@ def random():
 
 class TestClassifierModelBuilder:
     @pytest.mark.parametrize(
-        "base_model",
+        "base_model_path",
         [
             "torchtune.models.llama3_2.llama3_2",
             "torchtune.models.llama3_1.llama3_1",
@@ -43,7 +43,7 @@ class TestClassifierModelBuilder:
     )
     def test_forward_component_builders(
         self,
-        base_model: str,
+        base_model_path: str,
         bsz: int,
         embed_dim: int,
         seq_len: int,
@@ -53,7 +53,7 @@ class TestClassifierModelBuilder:
         inputs = torch.randint(low=0, high=VOCAB_SIZE, size=(bsz, seq_len))
         model = classifier_model(
             num_classes=n_classes,
-            base_model_path=base_model,
+            base_model_path=base_model_path,
             vocab_size=VOCAB_SIZE,
             num_layers=n_classes,
             num_heads=NUM_HEADS,
