@@ -677,9 +677,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
     @make_tensordict_module(in_keys=["responses", "logprobs", "ref_logprobs"], out_keys=["responses", "response_padding_masks", "logprobs", "ref_logprobs"])
     def prepare_response(self, responses, logprobs, ref_logprobs):
-        grpo_size = self.grpo_samples
-        batch_size = responses.shape[0]
-
         # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
         # resulting in truncated responses
         (
@@ -688,9 +685,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         ) = rlhf.truncate_sequence_at_first_stop_token(  # [B x G, L]
             responses, self._stop_token_ids, self._tokenizer.pad_id
         )
-
-        # responses :: [B x G, L]
-        responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
 
         logprobs[response_padding_masks] = 1.0
         ref_logprobs[response_padding_masks] = 1.0
@@ -805,17 +799,26 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         policy = self.generate_tokens_and_logits
 
         # TODO: Stop iter at some point :)
-        while True:
+        for curr_epoch in range(self._epochs_run, self.total_epochs):
             states = []
+            # TorchRL API (1):
+            # traj = env.rollout(max_steps=1, policy=policy)
+
+            # TorchRL API (2)
+            # trajs = next(datacollector)
+
+            # In plain python:
             for _ in range(0, self.batch_size, self._forward_batch_size):
-                # Get a state (a TensorDict) with batch_size elements
+                # Get a state (a TensorDict with a prompt) with batch_size elements
                 state = env.reset()  # produces 'tokens'
-                # Execute policy
+                # Execute policy (query LLM)
                 state = policy(state)  # 'tokens' -> ("responses", "logits", "masks", "position_ids")
-                # Make a step
+                # Make a step (rewards...)
                 state = env.step(state)  # step would encode any custom reward, check done states, ...
-                # Make a step in the markov decision process
+
+                # Optional: Make a step in the markov decision process
                 state = env.step_mdp(state)
+
                 # This produces a tensordict with this content
                 # TensorDict(
                 #     fields={
@@ -827,6 +830,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 #         responses: Tensor(shape=torch.Size([16, 14]), device=cpu, dtype=torch.int64, is_shared=False),
                 #         terminated: Tensor(shape=torch.Size([16, 1]), device=cpu, dtype=torch.bool, is_shared=False),
                 #         tokens: Tensor(shape=torch.Size([16, 38]), device=cpu, dtype=torch.int64, is_shared=False)},
+                #         TODO: add rewards
                 #     batch_size=torch.Size([16]),
                 #     device=None,
                 #     is_shared=False)
