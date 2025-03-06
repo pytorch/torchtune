@@ -436,8 +436,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._weight_map: Dict[str, str] = None
 
         # the config.json file contains model params needed for state dict conversion
-        self._config = json.loads(
-            Path.joinpath(self._checkpoint_dir, "config.json").read_text()
+        config_path = Path.joinpath(self._checkpoint_dir, "config.json")
+        self._config = (
+            json.loads(config_path.read_text()) if config_path.exists() else {}
         )
 
         # repo_id is necessary for when saving an adapter config, so its compatible with HF.
@@ -615,6 +616,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             converted_state_dict[training.MODEL_KEY] = t5_encoder_hf_to_tune(
                 merged_state_dict,
             )
+        elif self._model_type == ModelType.FLUX_AUTOENCODER:
+            from torchtune.models.flux._convert_weights import flux_ae_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = flux_ae_hf_to_tune(
+                merged_state_dict,
+            )
+        elif self._model_type == ModelType.FLUX:
+            converted_state_dict[training.MODEL_KEY] = merged_state_dict
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -720,6 +729,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     dim=self._config["hidden_size"],
                     head_dim=self._config.get("head_dim", None),
                 )
+            elif self._model_type == ModelType.FLUX:
+                # the torchtune Flux model state dict is currently identical to the huggingface one
+                # TODO(cpelletier): make this no-op the default instead of llama2 conversion
+                pass
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
                     state_dict[training.MODEL_KEY],
