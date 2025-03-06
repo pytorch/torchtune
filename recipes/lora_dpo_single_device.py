@@ -552,11 +552,21 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     policy_chosen_rejected_outputs.chosen_logits,
                     policy_chosen_rejected_outputs.rejected_logits,
                 )
-
-                with torch.no_grad(), disable_adapter(self._model):
-                    reference_chosen_rejected_outputs = self.concatenated_forward(
-                        self._model, batch
-                    )
+                
+                # Initialize empty outputs as the loss may be reference free.
+                reference_chosen_rejected_outputs = ChosenRejectedOutputs(
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                
+                if not self._loss_fn.is_reference_free:
+                    with torch.no_grad(), disable_adapter(self._model):
+                        reference_chosen_rejected_outputs = self.concatenated_forward(
+                            self._model, batch
+                        )
+                        
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
                     policy_chosen_rejected_outputs,
                     reference_chosen_rejected_outputs,

@@ -4,18 +4,42 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
+from typing import Tuple, Optional, TypeVar, Protocol
+
+from dataclasses import dataclass
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchtune.utils._logging import deprecated
 
 from torchtune.rlhf._types import ChosenRejectedOutputs
 
-from torchtune.utils._logging import deprecated
+T = TypeVar("T", bound=dataclass)
 
 
-class DPOLoss(nn.Module):
+class PreferenceLoss(nn.Module, Protocol):
+    @property
+    def is_reference_free(self) -> bool:
+       return False
+
+    def forward(self, chosen_rejected_policy: T, chosen_rejected_reference: Optional[T], *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Compute the DPO loss for a batch of policy and reference model log probabilities.
+
+        Args:
+            policy_inputs (T): Policy log-probs and logits required for the calculation.
+            reference_inputs (Optional[T]): Reference log-probs and logits required for the calculation.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
+                - losses: The DPO loss for each example in the batch.
+                - chosen_rewards: Rewards for the chosen responses.
+                - rejected_rewards: Rewards for the rejected responses.
+        """
+
+
+class DPOLoss(PreferenceLoss):
     """
     Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
     Simply stated from the paper:
@@ -93,7 +117,7 @@ class DPOLoss(nn.Module):
 
 
 @deprecated(msg="RSOLoss will be deprecated in an upcoming release.")
-class RSOLoss(nn.Module):
+class RSOLoss(PreferenceLoss):
     """
     Statistical Rejection Sampling Optimization (RSO) or "hinge" loss module: https://arxiv.org/abs/2309.06657.
     Intuition from the paper:
