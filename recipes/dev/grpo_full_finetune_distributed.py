@@ -21,7 +21,7 @@ from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
 from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
+from torchtune.dev.grpo import DEFAULT_REWARD_FN
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
@@ -225,6 +225,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             ref_model_state_dict=ref_checkpoint_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
+
+        self.reward_fn = self._setup_reward_fn(cfg.get("reward_fn", None))
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -604,6 +606,14 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             list(dataloader)
         return dataloader
 
+    def _setup_reward_fn(self, cfg_reward_fn: DictConfig) -> nn.Module:
+        """
+        Setup the reward function.
+        """
+        if cfg_reward_fn is None:
+            return DEFAULT_REWARD_FN
+        return config.instantiate(cfg_reward_fn)
+
     def save_checkpoint(
         self,
         epoch: int,
@@ -690,7 +700,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
     def generate_trajectory(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: List[str], **kwargs
     ) -> GRPOTrajectory:
         """
         Generates a trajectory given the current policy model, the reference policy model, the reward function,
@@ -789,8 +799,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # responses :: [B x G, L]
         responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
 
-        rewards, successes = batch_shaped_correctness_reward(
-            self._tokenizer, responses, answers
+        rewards, successes = self.reward_fn(
+            tokenizer=self._tokenizer,
+            completions=responses, 
+            answers=answers,
+            **kwargs
         )  # [B, G]
         rewards = rewards.to(self._device)
         successes = successes.to(self._device)
@@ -823,7 +836,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
     def generate_trajectory_batched(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: List[str], **kwargs
     ) -> GRPOTrajectory:
         """
         Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
@@ -848,7 +861,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 ]
                 torch.cuda.empty_cache()
                 trajectories.append(
-                    self.generate_trajectory(batch_input_ids, batch_answers)
+                    self.generate_trajectory(batch_input_ids, batch_answers, **kwargs)
                 )
                 torch.cuda.empty_cache()
         return GRPOTrajectory(*map(torch.cat, zip(*trajectories)))
@@ -958,7 +971,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
                 _, context_length = tokens.shape
 
-                trajectory = self.generate_trajectory_batched(tokens, answers)
+                trajectory = self.generate_trajectory_batched(**batch)
                 torch.distributed.barrier()
 
                 grpo_stats: list[GRPOStats] = []
