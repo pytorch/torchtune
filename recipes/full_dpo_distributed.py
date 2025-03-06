@@ -903,8 +903,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     policy_chosen_rejected_outputs.chosen_logits,
                     policy_chosen_rejected_outputs.rejected_logits,
                 )
-                
-                
+
                 # Initialize empty outputs as the loss may be reference free.
                 reference_chosen_rejected_outputs = ChosenRejectedOutputs(
                     None,
@@ -912,7 +911,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     None,
                     None,
                 )
-                
+
                 if not self._loss_fn.is_reference_free:
                     with torch.no_grad():
                         reference_chosen_rejected_outputs = self.concatenated_forward(
