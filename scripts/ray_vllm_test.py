@@ -12,6 +12,7 @@ from ray.util.placement_group import placement_group
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 from torchtune import utils
 from torchtune.models import qwen2_5
+from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
 
 from vllm import LLM, SamplingParams
 from vllm.worker.worker import Worker
@@ -47,8 +48,9 @@ class MyWorker(Worker):
     """
 
     def init_weight_update_group(self, master_address, master_port, rank, world_size):
-        # from vllm.distributed.parallel_state import get_world_group
+        from vllm.distributed.parallel_state import get_world_group
 
+        print(f"{get_world_group().rank=}, {self.device=}")
         # rank = get_world_group().rank + rank_offset
         self.model_update_group = stateless_init_process_group(
             master_address,
@@ -79,15 +81,6 @@ class MyWorker(Worker):
         return weights_updated
 
 
-class MyLLM(LLM):
-    def __init__(self, *args, **kwargs):
-        # a hack to make the script work.
-        # stop ray from manipulating CUDA_VISIBLE_DEVICES
-        # at the top-level
-        # os.environ.pop("CUDA_VISIBLE_DEVICES", None)
-        super().__init__(*args, **kwargs)
-
-
 # Define the worker class
 @ray.remote(num_cpus=16, num_gpus=1)
 class TrainWorker:
@@ -108,6 +101,9 @@ class TrainWorker:
         world_size = torch.distributed.get_world_size()
         from torch.distributed.device_mesh import init_device_mesh
 
+        self.rank = os.environ["RANK"]
+        self.world_size = int(os.environ["WORLD_SIZE"])
+
         self.device_mesh = init_device_mesh(
             "cuda", mesh_shape=(world_size,), mesh_dim_names=["fsdp"]
         )
@@ -117,11 +113,42 @@ class TrainWorker:
 
     def zero_weights(self):
         for name, p in self.model.named_parameters():
-            p.zero_()
+            #.data to prevent leaf Variable in-place modification RuntimeError
+            p.data.zero_()
         return True
 
     def get_state_dict(self):
         return self.model.state_dict()
+    
+    def init_model_update_group(self, master_address, master_port, rank, world_size):
+        self.model_update_group = stateless_init_process_group(
+            master_address,
+            master_port,
+            rank,
+            world_size,
+            # FIXME: hardcoding, not sure if this is right
+            torch.device(f"cuda:0"),
+        )
+    
+    def get_metadata_for_broadcast(self):
+        vllm_format_sd = self.new_sd  
+        new_sd = {}  
+        for k, v in vllm_format_sd.items():
+            new_sd[k] = (v.shape, v.dtype)
+        return new_sd
+
+    def all_gather(self):
+        new_sd = {}
+        for i, (k, v) in enumerate(self.model.state_dict().items()):
+            new_sd[k] = v.full_tensor()
+            if i == 0:
+                print(f"DTensor.local shape {v._local_tensor.shape}, DTensor.full_tensor shape {new_sd[k].shape}")
+        new_sd = qwen2_tune_to_hf(new_sd, num_heads=16, num_kv_heads=2, dim=2048)
+        # FIXME: is this sus
+        self.new_sd = new_sd
+    
+    def broadcast_key_to_vllm(self, key):
+        self.model_update_group.broadcast(self.new_sd[key], src=1, stream=torch.cuda.current_stream())
 
     def get_rank(self):
         gpu_ids = ray.get_gpu_ids()
@@ -183,6 +210,50 @@ class TrainWorker:
 # To kill server run "ray stop"
 ray.init(num_cpus=192, num_gpus=6)
 
+
+# ====== init vllm ==========
+
+vllm_tp_size = 1
+
+pg_inference = placement_group([{"GPU": 1, "CPU": 0}] * 1)
+ray.get(pg_inference.ready())
+scheduling_inference = PlacementGroupSchedulingStrategy(
+    placement_group=pg_inference,
+    placement_group_capture_child_tasks=True,
+    placement_group_bundle_index=0,
+)
+
+llm = ray.remote(
+    num_cpus=0,
+    num_gpus=0,
+    scheduling_strategy=scheduling_inference,
+)(LLM).remote(
+    model="Qwen/Qwen2.5-3B",
+    enforce_eager=True,
+    worker_cls=MyWorker,
+    tensor_parallel_size=vllm_tp_size,
+    distributed_executor_backend="ray",
+)
+
+# Generate texts from the prompts.
+prompts = [
+    "Hello, my name is",
+    "The president of the United States is",
+    "The capital of France is",
+    "The future of AI is",
+]
+
+sampling_params = SamplingParams(temperature=0)
+
+outputs = ray.get(llm.generate.remote(prompts, sampling_params))
+
+for output in outputs:
+    prompt = output.prompt
+    generated_text = output.outputs[0].text
+    print(f"Prompt: {prompt!r}, " f"Generated text: {generated_text!r}")
+
+# === init fsdp ====
+
 fsdp_world_size = 4
 
 
@@ -228,87 +299,73 @@ for i in range(fsdp_world_size):
 fsdp_nodes = []
 for worker in fsdp_workers:
     fsdp_nodes.append(ray.get(worker.get_rank.remote()))
-chosen_fsdp_master_rank = fsdp_nodes[0]
+chosen_fsdp_master_rank = fsdp_workers[fsdp_nodes[0]]
 
-pg_inference = placement_group([{"GPU": 1, "CPU": 0}] * 1)
-ray.get(pg_inference.ready())
-scheduling_inference = PlacementGroupSchedulingStrategy(
-    placement_group=pg_inference,
-    placement_group_capture_child_tasks=True,
-    placement_group_bundle_index=0,
-)
+# rank = None
+# for i in range(5):
+#     if i in fsdp_nodes:
+#         continue
+#     else:
+#         rank = i
 
-llm = ray.remote(
-    num_cpus=0,
-    num_gpus=0,
-    scheduling_strategy=scheduling_inference,
-)(MyLLM).remote(
-    model="Qwen/Qwen2.5-3B",
-    enforce_eager=True,
-    worker_cls=MyWorker,
-    tensor_parallel_size=1,
-    distributed_executor_backend="ray",
-)
-rank = None
-for i in range(5):
-    if i in fsdp_nodes:
-        break
-    else:
-        rank = i
-
-print(rank)
-
-# Generate texts from the prompts.
-prompts = [
-    "Hello, my name is",
-    "The president of the United States is",
-    "The capital of France is",
-    "The future of AI is",
-]
-
-sampling_params = SamplingParams(temperature=0)
-
-outputs = ray.get(llm.generate.remote(prompts, sampling_params))
-
-for output in outputs:
-    prompt = output.prompt
-    generated_text = output.outputs[0].text
-    print(f"Prompt: {prompt!r}, " f"Generated text: {generated_text!r}")
+# print(f"{rank=}")
 
 
+# ensure there is not process group initialized in the main process
+assert not torch.distributed.is_initialized() 
+
+# === init stateless process group for comms between vllm and fsdp workers ===
 from vllm.utils import get_ip, get_open_port
 
 weight_update_address = get_ip()
 weight_update_port = get_open_port()
-print(weight_update_port)
+print(f"{weight_update_port=}")
 
 handle = llm.collective_rpc.remote(
     "init_weight_update_group",
-    args=(weight_update_address, weight_update_port, rank, 5),
+    args=(weight_update_address, weight_update_port, 0, vllm_tp_size + 1),
 )
-model_update_group = stateless_init_process_group(
+handle2 = chosen_fsdp_master_rank.init_model_update_group.remote(
     weight_update_address,
     weight_update_port,
-    chosen_fsdp_master_rank,
-    5,
-    torch.device(f"cuda:{chosen_fsdp_master_rank}"),
+    vllm_tp_size,
+    vllm_tp_size + 1
 )
+
+# only need to .get one of the two handles since this will block until all
+# participating ranks init
 ray.get(handle)
+print("inited vllm weight update groups")
 
-# simulate training, modify the weights of the model.
+
+# === simulate training, modify the weights of the model. ===
 for i, train_shard in enumerate(fsdp_workers):
-    res = ray.get(train_shard.zero_weights.remote())
-    print(res)
+    ray.get(train_shard.zero_weights.remote())
 
-# sync weight from the training process to the inference engine.
-for train_shard in fsdp_workers:
-    model_sd = ray.get(train_shard.get_state_dict.remote())
-    for name, p in model_sd.items():
-        handle = llm.collective_rpc.remote(
-            "update_weight", args=(name, p.dtype, p.shape)
+
+# === sync weight from the training process to the inference engine ===
+
+# all gather on all ranks
+handles = []
+for worker in fsdp_workers:
+    handle = worker.all_gather.remote()
+    handles.append(handle)
+
+[ray.get(handle) for handle in handles]
+print("done all gather")
+
+# get metadata for broadcast
+metadata = ray.get(chosen_fsdp_master_rank.get_metadata_for_broadcast.remote())
+print("got metadata")
+
+# do broadcast key by key
+for name, (shape, dtype) in metadata.items():
+    handle = llm.collective_rpc.remote(
+            "update_weight", args=(name, dtype, shape)
         )
-        model_update_group.broadcast(p, src=0, stream=torch.cuda.current_stream())
-        ray.get(handle)
+    chosen_fsdp_master_rank.broadcast_key_to_vllm.remote(name)
+    ray.get(handle)
+    print(f"updated {name=}")
 
 # check if the weights are updated to 0.
 assert all(ray.get(llm.collective_rpc.remote("check_weights_changed")))
