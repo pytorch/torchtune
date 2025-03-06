@@ -454,10 +454,14 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">truncate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="BaseTokenizer"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.BaseTokenizer.html#torchtune.modules.transforms.tokenizers.BaseTokenizer">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
@@ -527,6 +531,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">bos_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">eos_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">truncation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tokenize a list of messages one at a time then concatenate them,</span>
 <span class="sd">    returning a list of tokens and a list of masks. Does not add any special</span>
@@ -560,6 +565,8 @@
 <span class="sd">        bos_id (Optional[int]): Beginning-of-sequence token id. If None, no BOS token will</span>
 <span class="sd">            be added. Default None.</span>
 <span class="sd">        eos_id (Optional[int]): End-of-sequence token id. If None, no EOS token will be added. Default None.</span>
+<span class="sd">        truncation_type (str): type of truncation to apply, either &quot;left&quot; or &quot;right&quot;.</span>
+<span class="sd">            Default is &quot;right&quot;.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple[List[int], List[bool]]: The tokenized messages.</span>
@@ -621,9 +628,14 @@
 
     <span class="c1"># Finally, truncate if necessary</span>
     <span class="k">if</span> <span class="n">max_seq_len</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">eos_id</span><span class="p">)</span>
+        <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
+            <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">eos_id</span><span class="p">,</span> <span class="n">truncation_type</span><span class="o">=</span><span class="n">truncation_type</span>
+        <span class="p">)</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span>
-            <span class="n">mask</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">masked</span> <span class="k">if</span> <span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="n">mask</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">masked</span> <span class="k">if</span> <span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">truncation_type</span><span class="o">=</span><span class="n">truncation_type</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">mask</span></div>

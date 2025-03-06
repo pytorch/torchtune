@@ -475,6 +475,7 @@
     <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">eos_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">truncation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Truncate a list of tokens to a maximum length. If eos_id is provided, the last</span>
@@ -485,13 +486,29 @@
 <span class="sd">        max_seq_len (int): maximum length of the list</span>
 <span class="sd">        eos_id (Optional[Any]): token to replace the last token with. If None, the</span>
 <span class="sd">            last token will not be replaced. Default is None.</span>
+<span class="sd">        truncation_type (str): type of truncation to apply, either &quot;left&quot; or &quot;right&quot;.</span>
+<span class="sd">            Default is &quot;right&quot;.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Any]: truncated list of tokens</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if truncation_type is not &quot;left&quot; or &quot;right&quot;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">tokens_truncated</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[:</span><span class="n">max_seq_len</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tokens_truncated</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">eos_id</span><span class="p">:</span>
+
+    <span class="k">if</span> <span class="n">truncation_type</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+        <span class="n">tokens_truncated</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="o">-</span><span class="n">max_seq_len</span><span class="p">:]</span>  <span class="c1"># Take the last max_seq_len tokens</span>
+    <span class="k">elif</span> <span class="n">truncation_type</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span><span class="p">:</span>
+        <span class="n">tokens_truncated</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[:</span><span class="n">max_seq_len</span><span class="p">]</span>  <span class="c1"># Take the first max_seq_len tokens</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;truncation_type must be &#39;left&#39; or &#39;right&#39;, got </span><span class="si">{</span><span class="n">truncation_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Replace the last token with eos_id if necessary</span>
+    <span class="k">if</span> <span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tokens_truncated</span> <span class="ow">and</span> <span class="n">tokens_truncated</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">eos_id</span><span class="p">:</span>
         <span class="n">tokens_truncated</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">eos_id</span>
+
     <span class="k">return</span> <span class="n">tokens_truncated</span></div>
 
 

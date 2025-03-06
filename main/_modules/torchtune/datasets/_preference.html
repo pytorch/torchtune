@@ -585,6 +585,7 @@
         <span class="n">chosen_input_ids</span><span class="p">,</span> <span class="n">chosen_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
             <span class="n">transformed_sample</span><span class="p">[</span><span class="s2">&quot;chosen&quot;</span><span class="p">],</span>
         <span class="p">)</span>
+
         <span class="n">chosen_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">chosen_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">chosen_input_ids</span><span class="p">)</span>
         <span class="p">)</span>
