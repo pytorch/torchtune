@@ -64,7 +64,7 @@ class MyWorker(Worker):
     def update_weight(self, name, dtype, shape):
         weight = torch.empty(shape, dtype=dtype, device="cuda")
         self.model_update_group.broadcast(
-            weight, src=0, stream=torch.cuda.current_stream()
+            weight, src=1, stream=torch.cuda.current_stream()
         )
 
         self.model_runner.model.load_weights(weights=[(name, weight)])
@@ -325,6 +325,7 @@ handle = llm.collective_rpc.remote(
     "init_weight_update_group",
     args=(weight_update_address, weight_update_port, 0, vllm_tp_size + 1),
 )
+
 handle2 = chosen_fsdp_master_rank.init_model_update_group.remote(
     weight_update_address,
     weight_update_port,
