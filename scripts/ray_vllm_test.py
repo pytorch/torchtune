@@ -95,11 +95,8 @@ class TrainWorker:
         self.model = self.setup_model(self.device, self.dtype)
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.01)
 
-    def zero_weights(self):
-        for name, p in self.model.named_parameters():
-            # .data to prevent leaf Variable in-place modification RuntimeError
-            p.data.zero_()
-        return True
+    def forward(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
 
     def get_state_dict(self):
         return self.model.state_dict()
@@ -140,7 +137,6 @@ class TrainWorker:
 
     def get_rank(self):
         gpu_ids = ray.get_gpu_ids()
-        print(gpu_ids)
         return gpu_ids[0]
 
     def setup_model(self, device, dtype, compile_model=False, cpu_offload=False):
@@ -194,177 +190,6 @@ class TrainWorker:
         return model
 
 
-# Launch the Ray cluster with "ray start --head --num-gpus 2"
-# To kill server run "ray stop"
-ray.init(num_cpus=192, num_gpus=6)
-
-
-# ====== init vllm ==========
-
-# vllm_tp_size = 1
-
-# pg_inference = placement_group([{"GPU": 1, "CPU": 0}] * vllm_tp_size)
-# ray.get(pg_inference.ready())
-# scheduling_inference = PlacementGroupSchedulingStrategy(
-#     placement_group=pg_inference,
-#     placement_group_capture_child_tasks=True,
-#     placement_group_bundle_index=0,
-# )
-
-# llm = ray.remote(
-#     num_cpus=0,
-#     num_gpus=0,
-#     scheduling_strategy=scheduling_inference,
-# )(LLM).remote(
-#     model="Qwen/Qwen2.5-3B",
-#     enforce_eager=True,
-#     worker_cls=MyWorker,
-#     tensor_parallel_size=vllm_tp_size,
-#     distributed_executor_backend="ray",
-# )
-
-# Generate texts from the prompts.
-# prompts = [
-#     "Hello, my name is",
-#     "The president of the United States is",
-#     "The capital of France is",
-#     "The future of AI is",
-# ]
-
-# sampling_params = SamplingParams(temperature=0)
-
-# outputs = ray.get(llm.generate.remote(prompts, sampling_params))
-
-# for output in outputs:
-#     prompt = output.prompt
-#     generated_text = output.outputs[0].text
-#     print(f"Prompt: {prompt!r}, " f"Generated text: {generated_text!r}")
-
-# === init fsdp ====
-
-# fsdp_world_size = 4
-
-
-# def _get_node_ip():
-#     def get_node_ip_by_sdk():
-#         return ray._private.services.get_node_ip_address()
-
-#     host_ipv4 = os.getenv("MY_HOST_IP", None)
-#     host_ipv6 = os.getenv("MY_HOST_IPV6", None)
-#     host_ip_by_env = host_ipv4 or host_ipv6
-#     host_ip_by_sdk = get_node_ip_by_sdk()
-
-#     host_ip = host_ip_by_env or host_ip_by_sdk
-#     return host_ip
-
-
-# def _get_free_port():
-#     with socket.socket() as sock:
-#         sock.bind(("", 0))
-#         return sock.getsockname()[1]
-
-
-# def get_available_master_addr_port():
-#     return _get_node_ip(), str(_get_free_port())
-
-
-master_address, master_port = get_available_master_addr_port()
-fsdp_workers = []
-for i in range(fsdp_world_size):
-    env_vars = {
-        "WORLD_SIZE": str(fsdp_world_size),
-        "RANK": str(i),
-        "WG_BACKEND": "ray",
-        "MASTER_ADDR": master_address,
-        "MASTER_PORT": master_port,
-    }
-    # print(env_vars)
-
-    # Launch the worker
-    worker = TrainWorker.remote(env_vars)
-    fsdp_workers.append(worker)
-
-fsdp_nodes = []
-for worker in fsdp_workers:
-    fsdp_nodes.append(ray.get(worker.get_rank.remote()))
-chosen_fsdp_master_rank = fsdp_workers[fsdp_nodes[0]]
-
-# rank = None
-# for i in range(5):
-#     if i in fsdp_nodes:
-#         continue
-#     else:
-#         rank = i
-
-# print(f"{rank=}")
-
-
-# ensure there is not process group initialized in the main process
-assert not torch.distributed.is_initialized()
-
-# === init stateless process group for comms between vllm and fsdp workers ===
-from vllm.utils import get_ip, get_open_port
-
-weight_update_address = get_ip()
-weight_update_port = get_open_port()
-print(f"{weight_update_port=}")
-
-handle = llm.collective_rpc.remote(
-    "init_weight_update_group",
-    args=(weight_update_address, weight_update_port, 0, vllm_tp_size + 1),
-)
-
-handle2 = chosen_fsdp_master_rank.init_model_update_group.remote(
-    weight_update_address, weight_update_port, vllm_tp_size, vllm_tp_size + 1
-)
-
-# only need to .get one of the two handles since this will block until all
-# participating ranks init
-ray.get(handle)
-print("inited vllm weight update groups")
-
-
-# === simulate training, modify the weights of the model. ===
-for i, train_shard in enumerate(fsdp_workers):
-    ray.get(train_shard.zero_weights.remote())
-
-
-# === sync weight from the training process to the inference engine ===
-
-# all gather on all ranks
-handles = []
-for worker in fsdp_workers:
-    handle = worker.all_gather.remote()
-    handles.append(handle)
-
-[ray.get(handle) for handle in handles]
-print("done all gather")
-
-# get metadata for broadcast
-metadata = ray.get(chosen_fsdp_master_rank.get_metadata_for_broadcast.remote())
-print("got metadata")
-
-# do broadcast key by key
-for name, (shape, dtype) in metadata.items():
-    handle = llm.collective_rpc.remote("update_weight", args=(name, dtype, shape))
-    chosen_fsdp_master_rank.broadcast_key_to_vllm.remote(name)
-    ray.get(handle)
-    print(f"updated {name=}")
-
-# check if the weights are updated to 0.
-assert all(ray.get(llm.collective_rpc.remote("check_weights_changed")))
-
-# use the updated model to generate texts, they will be nonsense
-outputs = ray.get(llm.generate.remote(prompts, sampling_params))
-
-for output in outputs:
-    prompt = output.prompt
-    generated_text = output.outputs[0].text
-    print(f"Prompt: {prompt!r}, " f"Generated text: {generated_text!r}")
-
-ray.shutdown()
-
-
 class RayGRPORecipe:
     def __init__(self, cfg):
         self.ray_resources = cfg.ray_resources
@@ -411,6 +236,7 @@ class RayGRPORecipe:
             batch_size=cfg.batch_size,
         )
         # ---- Create optimizer ---- #
+        self.optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
     def _create_vllm_rollout(tensor_parallel_size: int):
         # Create placement group (still kinda need to figure out what this does)
@@ -463,11 +289,251 @@ class RayGRPORecipe:
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            collate_fn=(),
+            collate_fn=collate_fn,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
         return dataloader
+
+    def train(self):
+        training.cleanup_before_training()
+        self._optimizer.zero_grad()
+        grad_norm = None
+        self._profiler.start()
+
+        rollout_future = None  # Will hold the async rollout result
+        next_batch = None  # Will hold the next batch retrieved in advance
+
+        # Preload the very first batch so we can launch its rollout as soon as possible.
+        dataloader_iter = iter(self._dataloader)
+        next_batch = next(dataloader_iter, None)
+
+        # Launch the first rollout
+        tokens = next_batch["tokens"].to(self._device)
+        answers = next_batch["answers"]
+        rollout_future = self.vllm_model.generate.remote(
+            args=(self.generate_trajectory_batched, tokens, answers)
+        )
+
+        while next_batch is not None:
+            # Wait for the current rollout to finish, then do training steps
+            trajectory, context_len = rollout_future.result()
+            rollout_future = None  # Clear out so we can queue the next one
+
+            # Fetch the next batch so we can queue its rollout after we finish this one
+            next_batch = next(dataloader_iter, None)
+            if next_batch is None:
+                break
+
+            tokens = next_batch["tokens"].to(self._device)
+            answers = next_batch["answers"]
+            rollout_future = executor.submit(
+                self.generate_trajectory_batched, tokens, answers
+            )
+
+            # GRPO updates
+            grpo_stats: list[GRPOStats] = []
+            for _ in range(self._ppo_epochs):
+                step_stats = self.grpo_step(trajectory, context_len)
+                grpo_stats.append(step_stats)
+
+                if self._clip_grad_norm is not None:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        self._model.parameters(),
+                        max_norm=float(self._clip_grad_norm),
+                    )
+
+                self._optimizer.step()
+                self._optimizer.zero_grad(set_to_none=True)
+
+                self.global_step += 1
+                if self._lr_scheduler is not None:
+                    self._lr_scheduler.step()
+
+            self._steps_run += 1
+            if self._steps_run % self._log_every_n_steps == 0:
+                extra_metrics = {
+                    "lr": get_lr(self._optimizer),
+                }
+                if grad_norm is not None:
+                    extra_metrics["grad_norm"] = grad_norm
+                self.log_metrics(
+                    trajectory,
+                    GRPOStats(*map(torch.stack, zip(*grpo_stats))),
+                    **extra_metrics,
+                )
+
+            self.cleanup_after_step(trajectory, grpo_stats)
+            pbar.update(1)
+
+            if self._steps_run == self._total_steps:
+                break
+
+        self.save_checkpoint(0)
+        self._profiler.stop()
+    
+    def grpo_step(
+        self,
+        trajectory: GRPOTrajectory,
+        context_length: int,
+    ) -> GRPOStats:
+        """
+        Perform a single GRPO optimization step over a batch of trajectories and corresponding advantages and returns.
+        """
+        torch.cuda.empty_cache()
+
+        # estimate logprobs from the policy at the current optimisation step
+        pi_logits = self._model(
+            trajectory.query_responses,
+            input_pos=trajectory.position_ids,
+            mask=trajectory.masks,
+        )
+
+        pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
+        pi_logprobs = rlhf.batched_logits_to_logprobs(
+            pi_logits,
+            trajectory.query_responses[:, context_length:],
+            self._temperature,
+            chunk_size=1,
+        )
+
+        pi_logprobs[trajectory.response_padding_masks] = 1.0
+
+        del pi_logits
+        torch.cuda.empty_cache()
+
+        # calculate grpo loss
+        loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
+            trajectory.logprobs,
+            pi_logprobs,
+            trajectory.ref_logprobs,
+            trajectory.advantages,
+            padding_masks=~trajectory.response_padding_masks,
+        )
+
+        torch.cuda.empty_cache()
+        loss.backward()
+
+        with torch.no_grad():
+            approx_policy_kls = (
+                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
+            ).mean()
+
+        return GRPOStats(
+            loss,
+            policy_loss,
+            kl_loss,
+            ratios,
+            clipfrac,
+            approx_policy_kls,
+        )
+
+    def generate_trajectory_batched(
+        self, input_ids: torch.Tensor, answers: List[str]
+    ) -> GRPOTrajectory:
+        """Generate a batch of ``GRPOTrajectory``."""
+        trajectories: List[GRPOTrajectory] = []
+        with torch.no_grad():
+            for batch_start in range(0, self.batch_size, self._forward_batch_size):
+                batch_input_ids = input_ids[
+                    batch_start : batch_start + self._forward_batch_size
+                ]
+                batch_answers = answers[
+                    batch_start : batch_start + self._forward_batch_size
+                ]
+                trajectories.append(
+                    self.generate_trajectory(batch_input_ids, batch_answers)
+                )
+        return GRPOTrajectory(*map(torch.cat, zip(*trajectories)))
+
+    def generate_trajectory(
+        self, input_ids: torch.Tensor, answers: List[str]
+    ) -> GRPOTrajectory:
+        """Generate a ``GRPOTrajectory``."""
+        batch_size, context_length = input_ids.shape
+        grpo_size = self.grpo_samples
+
+        batch_input_ids = input_ids[:, None, :].expand(-1, grpo_size, -1)  # [B, G, L]
+        batch_input_ids = batch_input_ids.reshape(batch_size * grpo_size, -1)
+
+        # step 1: generate responses, and logits corresponding to the responses using the current policy
+        sampling_params = SamplingParams(temperature=self._temperature)
+        query_responses = ray.get(
+            self.vllm_model.generate.remote(prompts, sampling_params)
+        )
+
+        # training._distributed.recursive_reshard(self._model)
+        # torch.cuda.empty_cache()
+
+        responses = query_responses[:, context_length:].clone()
+        query_response_padding_masks = query_responses != self._tokenizer.pad_id
+
+        # step 1.1 create attention masks and position IDs for any padding tokens in inputs, used for future forward passes
+        masks = generation.get_causal_mask_from_padding_mask(
+            query_response_padding_masks
+        )
+        position_ids = generation.get_position_ids_from_padding_mask(
+            query_response_padding_masks
+        )
+        del query_response_padding_masks
+
+        # step 2. estimate logprobs of the responses using the current policy
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
+        logits = logits[:, context_length - 1 :]
+        logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
+        del logits
+        torch.cuda.empty_cache()
+
+        # step 2.1 estimate logprobs of the responses using the reference policy
+        ref_logits = self._ref_model(
+            query_responses, input_pos=position_ids, mask=masks
+        )
+        ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
+        ref_logprobs = rlhf.batched_logits_to_logprobs(
+            ref_logits, responses, self._temperature
+        )
+        del ref_logits
+        torch.cuda.empty_cache()
+
+        # step 4. replace any tokens in the responses after the first stop token (usually EOS token) with padding
+        # resulting in truncated responses
+        (
+            response_padding_masks,
+            responses,
+        ) = rlhf.truncate_sequence_at_first_stop_token(  # [B x G, L]
+            responses, self._stop_token_ids, self._tokenizer.pad_id
+        )
+
+        # Do some reward modelingggggggg
+        # responses :: [B x G, L]
+        responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
+        rewards, successes = batched_rewards(self._tokenizer, responses, answers)
+        rewards = rewards.to(self._device)  # [B, G]
+        successes = successes.to(self._device)  # [B, G]
+
+        advantages = (rewards - rewards.mean(1, keepdim=True)) / (
+            rewards.std(1, keepdim=True) + 1e-4
+        )
+        advantages = advantages.reshape(batch_size * grpo_size)  # flatten
+        del responses
+        torch.cuda.empty_cache()
+
+        # step 6. mask out all the invalid values in the trajectory due to padding tokens
+        logprobs[response_padding_masks] = 1.0
+        ref_logprobs[response_padding_masks] = 1.0
+
+        return GRPOTrajectory(
+            query_responses=query_responses,
+            logprobs=logprobs,
+            ref_logprobs=ref_logprobs,
+            rewards=rewards.reshape(batch_size * grpo_size),
+            successes=successes.reshape(batch_size * grpo_size),
+            advantages=advantages,
+            masks=masks,
+            position_ids=position_ids,
+            response_padding_masks=response_padding_masks,
+            seq_lens=training.get_unmasked_sequence_lengths(response_padding_masks),
+        )
 
     def _sync_weights():
         handles = []
