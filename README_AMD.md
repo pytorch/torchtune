@@ -1,0 +1,282 @@
+
+
+
+# Torchtune (MI300 Testing Results)
+
+[![Unit Test](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml)
+![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
+[![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
+
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community) | [**License**](#license) | [**Citing torchtune**](#citing-torchtune)
+
+&nbsp;
+
+## Introduction
+
+torchtune is a PyTorch library for easily authoring, finetuning and experimenting with LLMs.
+
+torchtune provides:
+
+- PyTorch implementations of popular LLMs from Llama, Gemma, Mistral, Phi, and Qwen model families
+- Hackable training recipes for full finetuning, LoRA, QLoRA, DPO, PPO, QAT, knowledge distillation, and more
+- Out-of-the-box memory efficiency, performance improvements, and scaling with the latest PyTorch APIs
+- YAML configs for easily configuring training, evaluation, quantization or inference recipes
+- Built-in support for many popular dataset formats and prompt templates
+
+
+&nbsp;
+
+### Models
+
+torchtune currently supports the following models.
+
+| Model                                         | Sizes     |
+|-----------------------------------------------|-----------|
+| [Llama3.3](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_3)    | 70B [[models](torchtune/models/llama3_3/_model_builders.py), [configs](recipes/configs/llama3_3/)]        |
+| [Llama3.2-Vision](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2#-llama-3.2-vision-models-(11b/90b)-)    | 11B, 90B [[models](torchtune/models/llama3_2_vision/_model_builders.py), [configs](recipes/configs/llama3_2_vision/)]        |
+| [Llama3.2](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2)    | 1B, 3B [[models](torchtune/models/llama3_2/_model_builders.py), [configs](recipes/configs/llama3_2/)]        |
+| [Llama3.1](https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1)    | 8B, 70B, 405B [[models](torchtune/models/llama3_1/_model_builders.py), [configs](recipes/configs/llama3_1/)]        |
+| [Llama3](https://llama.meta.com/llama3)    | 8B, 70B [[models](torchtune/models/llama3/_model_builders.py), [configs](recipes/configs/llama3/)]        |
+| [Llama2](https://llama.meta.com/llama2/)   | 7B, 13B, 70B [[models](torchtune/models/llama2/_model_builders.py), [configs](recipes/configs/llama2/)]        |
+| [Code-Llama2](https://ai.meta.com/blog/code-llama-large-language-model-coding/)   | 7B, 13B, 70B [[models](torchtune/models/code_llama2/_model_builders.py), [configs](recipes/configs/code_llama2/)] |
+| [Mistral](https://huggingface.co/mistralai)   | 7B [[models](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
+| [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B, 7B [[models](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
+| [Gemma2](https://huggingface.co/docs/transformers/main/en/model_doc/gemma2)   | 2B, 9B, 27B [[models](torchtune/models/gemma2/_model_builders.py), [configs](recipes/configs/gemma2/)] |
+| [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[models](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
+| [Qwen2](https://qwenlm.github.io/blog/qwen2/) | 0.5B, 1.5B, 7B [[models](torchtune/models/qwen2/), [configs](recipes/configs/qwen2/)]
+| [Qwen2.5](https://qwenlm.github.io/blog/qwen2.5/) | 0.5B, 1.5B, 3B, 7B, 14B, 32B, 72B [[models](torchtune/models/qwen2_5/), [configs](recipes/configs/qwen2_5/)]
+
+We're always adding new models, but feel free to [file an issue](https://github.com/pytorch/torchtune/issues/new) if there's a new one you would like to see in torchtune.
+
+&nbsp;
+
+### Finetuning recipes
+
+torchtune provides the following finetuning recipes for training on one or more devices.
+
+
+| Finetuning Method                          | 1 Device | >1 Device | >1 Node | Recipe  | Example Config(s) |
+|:-:|:-:|:-:|:-:|:-:|:-:|
+| Full Finetuning  | ✅ | ✅ | ✅ | [full_finetune_single_device](recipes/full_finetune_single_device.py) <br> [full_finetune_distributed](recipes/full_finetune_distributed.py)| [Llama3.1 8B single-device](recipes/configs/llama3_1/8B_full_single_device.yaml) <br> [Llama 3.1 70B distributed](recipes/configs/llama3_1/70B_full.yaml)
+| LoRA Finetuning | ✅ | ✅ | ❌ | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py) | [Qwen2 0.5B single-device](recipes/configs/qwen2/0.5B_lora_single_device.yaml) <br> [Gemma 7B distributed](recipes/configs/gemma/7B_lora.yaml)
+| QLoRA Finetuning | ✅ | ✅ | ❌ | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py)| [Phi3 Mini single-device](recipes/configs/phi3/mini_qlora_single_device.yaml) <br> [Llama 3.1 405B distributed](recipes/configs/llama3_1/405B_qlora.yaml)
+| DoRA/QDoRA Finetuning | ✅ | ✅ | ❌ | [lora_finetune_single_device](recipes/lora_finetune_single_device.py) <br> [lora_finetune_distributed](recipes/lora_finetune_distributed.py)| [Llama3 8B QDoRA single-device](recipes/configs/llama3/8B_qdora_single_device.yaml) <br> [Llama3 8B DoRA distributed](recipes/configs/llama3/8B_dora.yaml)
+| Quantization-Aware Training | ❌ | ✅ | ❌ | [qat_distributed](recipes/qat_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_full.yaml)
+| Quantization-Aware Training and LoRA Finetuning | ❌ | ✅ | ❌ | [qat_lora_finetune_distributed](recipes/qat_lora_finetune_distributed.py)| [Llama3 8B QAT](recipes/configs/llama3/8B_qat_lora.yaml)
+| Direct Preference Optimization | ✅ | ✅ | ❌ | [lora_dpo_single_device](recipes/lora_dpo_single_device.py) <br> [lora_dpo_distributed](recipes/lora_dpo_distributed.py) | [Llama2 7B single-device](recipes/configs/llama2/7B_lora_dpo_single_device.yaml) <br> [Llama2 7B distributed](recipes/configs/llama2/7B_lora_dpo.yaml)
+| Proximal Policy Optimization | ✅ | ❌ | ❌ |  [ppo_full_finetune_single_device](recipes/ppo_full_finetune_single_device.py) | [Mistral 7B](recipes/configs/mistral/7B_full_ppo_low_memory.yaml)
+| LoRA Knowledge Distillation | ✅ | ✅ | ❌ | [knowledge_distillation_single_device](recipes/knowledge_distillation_single_device.py) <br> [knowledge_distillation_distributed](recipes/knowledge_distillation_distributed.py) | [Qwen2 1.5B -> 0.5B single-device](recipes/configs/qwen2/1.5B_to_0.5B_KD_lora_single_device.yaml) <br> [Qwen2 1.5B -> 0.5B distributed](recipes/configs/qwen2/1.5B_to_0.5B_KD_lora_distributed.yaml)
+
+
+The above configs are just examples to get you started. If you see a model above not listed here, we likely still support it. If you're unsure whether something is supported, please open an issue on the repo.
+
+&nbsp;
+
+### Memory and training speed
+
+Below is an example of the memory requirements and training speed for different Llama 3.1 models.
+
+> [!NOTE]
+> For ease of comparison, all the below numbers are provided for batch size 2 (without gradient accumulation), a dataset packed to sequence length 2048, and torch compile enabled.
+
+If you are interested in running on different hardware or with different models, check out our documentation on memory optimizations [here](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html) to find the right setup for you.
+
+| Model | Finetuning Method | Runnable On | Peak Memory per GPU | Tokens/sec * |
+|:-:|:-:|:-:|:-:|:-:|
+| Llama 3.1 8B | Full finetune | 1x 4090 | 18.9 GiB | 1650 |
+| Llama 3.1 8B | Full finetune | 1x A6000 | 37.4 GiB |  2579|
+| Llama 3.1 8B | LoRA | 1x 4090 |  16.2 GiB | 3083 |
+| Llama 3.1 8B | LoRA | 1x A6000 | 30.3 GiB  | 4699 |
+| Llama 3.1 8B | QLoRA | 1x 4090 | 7.4 GiB | 2413  |
+| Llama 3.1 70B | Full finetune | 8x A100  | 13.9 GiB ** | 1568  |
+| Llama 3.1 70B | LoRA | 8x A100 | 27.6 GiB  | 3497  |
+| Llama 3.1 405B | QLoRA | 8x A100 | 44.8 GB  | 653  |
+
+*= Measured over one full training epoch
+
+**= Uses CPU offload with fused optimizer
+
+&nbsp;
+
+### Optimization flags
+
+torchtune exposes a number of levers for memory efficiency and performance. The table below demonstrates the effects of applying some of these techniques sequentially to the Llama 3.2 3B model. Each technique is added on top of the previous one, except for LoRA and QLoRA, which do not use `optimizer_in_bwd` or `AdamW8bit` optimizer.
+
+**Baseline:**
+- **Model:** Llama 3.2 3B
+- **Batch size:** 2
+- **Max seq len:** 4096
+- **Precision:** bf16
+- **Hardware:** A100
+- **Recipe:** full_finetune_single_device
+
+| Technique | Peak Memory Active (GiB) | % Change Memory vs Previous | Tokens Per Second | % Change Tokens/sec vs Previous|
+|:--|:-:|:-:|:-:|:-:|
+| Baseline | 25.5 | - | 2091 | - |
+| [+ Packed Dataset](https://pytorch.org/torchtune/main/basics/packing.html) | 60.0 | +135.16% | 7075 | +238.40% |
+| [+ Compile](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) | 51.0 | -14.93% | 8998 | +27.18% |
+| [+ Chunked Cross Entropy](https://pytorch.org/torchtune/main/generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html) | 42.9 | -15.83% | 9174 | +1.96% |
+| [+ Activation Checkpointing](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-checkpointing) | 24.9 | -41.93% | 7210 | -21.41% |
+| [+ Fuse optimizer step into backward](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#fusing-optimizer-step-into-backward-pass) | 23.1 | -7.29% | 7309 | +1.38% |
+| [+ Activation Offloading](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#activation-offloading) | 21.8 | -5.48% | 7301 | -0.11% |
+| [+ 8-bit AdamW](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#lower-precision-optimizers) | 17.6 | -19.63% | 6960 | -4.67% |
+| [LoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#glossary-lora) | 8.5 | -51.61% | 8210 | +17.96% |
+| [QLoRA](https://pytorch.org/torchtune/main/tutorials/memory_optimizations.html#quantized-low-rank-adaptation-qlora) | 4.6 | -45.71% | 8035 | -2.13% |
+
+The final row in the table vs baseline + Packed Dataset uses **81.9%** less memory with a **284.3%** increase in tokens per second. It can be run via the command:
+```
+tune run lora_finetune_single_device --config llama3_2/3B_qlora_single_device \
+dataset.packed=True \
+compile=True \
+loss=torchtune.modules.loss.CEWithChunkedOutputLoss \
+enable_activation_checkpointing=True \
+optimizer_in_bwd=False \
+enable_activation_offloading=True \
+optimizer=torch.optim.AdamW \
+tokenizer.max_seq_len=4096 \
+gradient_accumulation_steps=1 \
+epochs=1 \
+batch_size=2
+```
+
+&nbsp;
+
+## Installation
+
+torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
+torchvision for finetuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
+
+&nbsp;
+
+### Install stable release
+
+```bash
+# Install stable PyTorch, torchvision, torchao stable releases
+pip install torch torchvision torchao
+pip install torchtune
+```
+
+&nbsp;
+
+### Install nightly release
+
+```bash
+# Install PyTorch, torchvision, torchao nightlies
+pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126
+pip install --pre --upgrade torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+```
+
+You can also check out our [install documentation](https://pytorch.org/torchtune/main/install.html) for more information, including installing torchtune from source.
+
+&nbsp;
+
+To confirm that the package is installed correctly, you can run the following command:
+
+```bash
+tune --help
+```
+
+And should see the following output:
+
+```bash
+usage: tune [-h] {ls,cp,download,run,validate} ...
+
+Welcome to the torchtune CLI!
+
+options:
+  -h, --help            show this help message and exit
+
+...
+```
+
+&nbsp;
+
+## Get Started
+
+To get started with torchtune, see our [First Finetune Tutorial](https://pytorch.org/torchtune/main/tutorials/first_finetune_tutorial.html). Our [End-to-End Workflow Tutorial](https://pytorch.org/torchtune/main/tutorials/e2e_flow.html) will show you how to evaluate, quantize and run inference with a Llama model. The rest of this section will provide a quick overview of these steps with Llama3.1.
+
+
+### Downloading a model
+
+Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama) repository to ensure you have access to the official Llama model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine. This will also download the tokenizer model and a responsible use guide.
+
+To download Llama3.1, you can run:
+
+```bash
+tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
+--output-dir /tmp/Meta-Llama-3.1-8B-Instruct \
+--ignore-patterns "original/consolidated.00.pth" \
+--hf-token <HF_TOKEN> \
+```
+
+> [!Tip]
+> Set your environment variable `HF_TOKEN` or pass in `--hf-token` to the command in order to validate your access. You can find your token at https://huggingface.co/settings/tokens
+
+&nbsp;
+
+### Running finetuning recipes
+
+You can finetune Llama3.1 8B with LoRA on a single GPU using the following command:
+
+```bash
+tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
+```
+
+For distributed training, tune CLI integrates with [torchrun](https://pytorch.org/docs/stable/elastic/run.html).
+To run a full finetune of Llama3.1 8B on two GPUs:
+
+```bash
+tune run --nproc_per_node 2 full_finetune_distributed --config llama3_1/8B_full
+```
+
+> [!Tip]
+> Make sure to place any torchrun commands **before** the recipe specification. Any CLI args after this will override the config and not impact distributed training.
+
+&nbsp;
+
+### Modify Configs
+
+There are two ways in which you can modify configs:
+
+**Config Overrides**
+
+You can directly overwrite config fields from the command line:
+
+```bash
+tune run lora_finetune_single_device \
+--config llama2/7B_lora_single_device \
+batch_size=8 \
+enable_activation_checkpointing=True \
+max_steps_per_epoch=128
+```
+
+**Update a Local Copy**
+
+You can also copy the config to your local directory and modify the contents directly:
+
+```bash
+tune cp llama3_1/8B_full ./my_custom_config.yaml
+Copied to ./my_custom_config.yaml
+```
+
+Then, you can run your custom recipe by directing the `tune run` command to your local files:
+
+```bash
+tune run full_finetune_distributed --config ./my_custom_config.yaml
+```
+
+&nbsp;
+
+Check out `tune --help` for all possible CLI commands and options. For more information on using and updating configs, take a look at our [config deep-dive](https://pytorch.org/torchtune/main/deep_dives/configs.html).
+
+&nbsp;
+
+### Custom Datasets
+
+torchtune supports finetuning on a variety of different datasets, including [instruct-style](https://pytorch.org/torchtune/main/basics/instruct_datasets.html), [chat-style](https://pytorch.org/torchtune/main/basics/chat_datasets.html), [preference datasets](https://pytorch.org/torchtune/main/basics/preference_datasets.html), and more. If you want to learn more about how to apply these components to finetune on your own custom dataset, please check out the provided links along with our [API docs](https://pytorch.org/torchtune/main/api_ref_datasets.html).
+
+&nbsp;
+
+
+
+
