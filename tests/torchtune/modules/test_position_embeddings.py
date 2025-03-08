@@ -11,6 +11,7 @@ from tests.test_utils import assert_expected, mps_ignored_test
 from torch import tensor
 
 from torchtune.modules.position_embeddings import (
+    FireSelfAttention,
     RotaryPositionalEmbeddings,
     VisionRotaryPositionalEmbeddings,
 )
@@ -198,3 +199,32 @@ class TestVisionRotaryPositionEmbedding:
         meta_rope.rope_init()
         for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
             torch.testing.assert_close(p1, p2)
+
+
+class TestFireSelfAttention:
+    """
+    Class for testing FIRE positional embeddings module. As far as I am aware,
+    there is not an open-source reference implementation available,
+    besides the mathematical description of the algorithm in the paper (https://arxiv.org/abs/2310.04418),
+    and since the module contains learnable weights, one would have to actually train it
+    to evaluate performance (as others have done; e.g. see https://arxiv.org/abs/2402.09371).
+    For now, I am just testing the format and content of the output to ensure it can be used
+    safely within a transformer model without breaking anything.
+    """
+
+    # @mps_ignored_test()
+    def test_format(self):
+        # instantiate module
+        test_layer = FireSelfAttention(dim_model=512, num_heads=8, hidden_size=32)
+        # input tensor; FireSelfAttention expects a format of (batch_size, seq_len, dim_model)
+        x = torch.randn(64, 20, 512)
+        # get output
+        y = test_layer(x)
+
+        # validate output
+        # make sure it has the right shape
+        assert y.shape == x.shape
+
+        """The input tensor was not all zeros, so if the module is working properly (even
+        though it hasn't been trained yet) the output should be different from the input."""
+        assert not torch.equal(y, x)
