@@ -136,9 +136,7 @@ class FederationRecipe:
                     logger.error(f"Checkpoint file {checkpoint_file} not found.")
                     return
 
-                checkpoint = torch.load(
-                    checkpoint_file.parent / checkpoint_file.name, weights_only=True
-                )
+                checkpoint = torch.load(checkpoint_file, weights_only=True)
                 models.append(checkpoint)
 
             self._federator.forward(models)
@@ -155,7 +153,6 @@ class FederationRecipe:
         # TODO: Checkpointing strategy
         # self.save_checkpoint(epoch=self._current_step)
         self._current_step += 1
-
         self._awaiting_participants = self._participants.copy()
 
 

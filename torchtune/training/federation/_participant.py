@@ -187,6 +187,8 @@ class TuneParticipant(_ParticipantInterface):
                 logger.error(f"Failed to save checkpoint to disk: {e}")
                 raise RuntimeError(f"Failed to save checkpoint to disk: {e}") from e
 
+            del chkpt_response
+
         if torch.distributed.is_initialized():
             torch.distributed.barrier()  # Wait for rank 0 to save to disk
             if not self._is_rank_zero:
@@ -216,5 +218,6 @@ class TuneParticipant(_ParticipantInterface):
                 raise RuntimeError(
                     f"Failed to load model state dict locally: {e}"
                 ) from e
+        del checkpoint
 
         return True

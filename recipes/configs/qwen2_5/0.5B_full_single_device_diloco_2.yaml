@@ -64,7 +64,7 @@ clip_grad_norm: null
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
 # Training environment
-device: mps
+device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory

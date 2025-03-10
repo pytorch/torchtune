@@ -60,6 +60,7 @@ class DiLoCoFederator(_FederatorInterface):
     """
     """
 
+    @torch.no_grad()
     def forward(self, models) -> None:
         for orig_param, *model_params in zip(
             self._model.parameters(), *[m.values() for m in models]
@@ -70,8 +71,7 @@ class DiLoCoFederator(_FederatorInterface):
             diff_sum = sum(diffs)
             avg_diff = diff_sum / len(self._participants)
 
-            with torch.no_grad():
-                orig_param.grad += avg_diff
+            orig_param.grad += avg_diff
 
     @torch.no_grad()
     def step(self) -> None:
