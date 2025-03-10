@@ -11,7 +11,7 @@ import pytest
 import torch
 
 import torch.distributed
-from tests.test_utils import fixed_init_model, gpu_test
+from tests.test_utils import fixed_init_model, gpu_test, mps_ignored_test
 from torch import nn
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed._tensor import DTensor, Replicate
@@ -152,6 +152,7 @@ class TestDoRALinear:
         "use_bias, dtype",
         [(False, torch.bfloat16), (True, torch.float32), (False, torch.float32)],
     )
+    @mps_ignored_test()
     def test_qdora_parity(self, use_bias, dtype, dora_linear, qdora_linear):
         with training.set_default_dtype(dtype):
             qdora_linear = qdora_linear(
