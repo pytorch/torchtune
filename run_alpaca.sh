@@ -6,8 +6,6 @@
 
 CONFIG="${CONFIG:-/workspace/torchtune/recipes/configs/llama3_3/70B_full_alpaca.yaml}"
 MODEL_DIR="${MODEL_DIR:-./models/Llama-3.3-70B-Instruct}"
-#TRAIN_FILE="${TRAIN_FILE:-./wikitext_train.json}"
-#TEST_FILE="${TEST_FILE:-./wikitext_test.json}"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-./checkpoints}"
 
 PACKED="${PACKED:-False}"
