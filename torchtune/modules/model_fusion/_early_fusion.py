@@ -97,17 +97,6 @@ class EarlyFusionModel(nn.Module):
             else encoders_trainable
         )
 
-        # A little surgery in the decoder to give the
-        # fusion module access to control the embeddings
-        # The alternative is to pass a special tok_embeddings
-        # module into TransformerDecoder builder that does the
-        # merging there
-        self.tok_embeddings = decoder.tok_embeddings
-        decoder.tok_embeddings = nn.Identity()
-
-        self._register_state_dict_hook(self._state_dict_hook)
-        self.register_load_state_dict_pre_hook(self._load_state_dict_hook)
-
         trainable_params = set()
         for encoder, trainable in self.encoders_trainable.items():
             if trainable:
@@ -119,40 +108,12 @@ class EarlyFusionModel(nn.Module):
             trainable_params |= {
                 f"decoder.{n}" for n, p in self.decoder.named_parameters()
             }
-            trainable_params |= {
-                f"tok_embeddings.{n}" for n, p in self.tok_embeddings.named_parameters()
-            }
         if fusion_trainable:
             trainable_params |= set(get_fusion_params(self))
         else:
             trainable_params -= set(get_fusion_params(self))
 
         set_trainable_params(self, trainable_params)
-
-    @staticmethod
-    def _state_dict_hook(module, state_dict, prefix, *args, **kwargs):
-        """
-        Keep tok_embeddings inside of decoder state_dict
-
-        [!Note] This update changes the order of the OrderedDict
-        """
-        for n, p in module.tok_embeddings.named_parameters():
-            orig_key = f"{prefix}tok_embeddings.{n}"
-            if orig_key in state_dict:
-                # preserve the original tensor with its requires_grad state
-                state_dict[f"{prefix}decoder.tok_embeddings.{n}"] = state_dict[orig_key]
-                del state_dict[orig_key]
-
-    @staticmethod
-    def _load_state_dict_hook(module, state_dict, prefix, *args, **kwargs):
-        """Undo the change from _state_dict_hook"""
-        old_keys = list(state_dict.keys())
-        for key in old_keys:
-            if "decoder.tok_embeddings" in key:
-                state_dict[prefix + key[len("decoder.") + len(prefix) :]] = state_dict[
-                    key
-                ]
-                del state_dict[key]
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
@@ -197,7 +158,8 @@ class EarlyFusionModel(nn.Module):
         is_text = ~torch.isin(tokens, encoder_token_ids)
         text_tokens = torch.masked_select(tokens, is_text)
         # [num_text, embed_dim]
-        text_embeds = self.tok_embeddings(text_tokens)
+
+        text_embeds = self.decoder.tok_embeddings(text_tokens)
         return is_text, text_embeds
 
     def forward(
@@ -281,5 +243,7 @@ class EarlyFusionModel(nn.Module):
             # At locations where encoder token is found, replace with encoder embedding
             fused_embeds = fused_embeds.masked_scatter(encoder_mask, encoder_embeds)
 
-        output = self.decoder(fused_embeds, mask=mask, input_pos=input_pos)
+        output = self.decoder(
+            tokens=None, mask=mask, input_pos=input_pos, input_embeds=fused_embeds
+        )
         return output
