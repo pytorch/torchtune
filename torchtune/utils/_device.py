@@ -153,7 +153,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     If CUDA-like is available and being used, this function also sets the CUDA-like device.
 
     Args:
-        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu" or "npu" or "xpu" or "mps".
+        device (Optional[str]): The name of the device to use, one of "cuda", "cpu", "npu", "xpu", or "mps".
 
     Example:
         >>> device = get_device("cuda")
