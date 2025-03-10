@@ -11,24 +11,9 @@
 
 &nbsp;
 
-## Introduction
-
-torchtune is a PyTorch library for easily authoring, finetuning and experimenting with LLMs.
-
-torchtune provides:
-
-- PyTorch implementations of popular LLMs from Llama, Gemma, Mistral, Phi, and Qwen model families
-- Hackable training recipes for full finetuning, LoRA, QLoRA, DPO, PPO, QAT, knowledge distillation, and more
-- Out-of-the-box memory efficiency, performance improvements, and scaling with the latest PyTorch APIs
-- YAML configs for easily configuring training, evaluation, quantization or inference recipes
-- Built-in support for many popular dataset formats and prompt templates
-
-
-&nbsp;
-
 ### Models
 
-torchtune currently supports the following models.
+Torchtune currently supports the following models.
 
 | Model                                         | Sizes     |
 |-----------------------------------------------|-----------|
@@ -139,58 +124,6 @@ epochs=1 \
 batch_size=2
 ```
 
-&nbsp;
-
-## Installation
-
-torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
-torchvision for finetuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
-
-&nbsp;
-
-### Install stable release
-
-```bash
-# Install stable PyTorch, torchvision, torchao stable releases
-pip install torch torchvision torchao
-pip install torchtune
-```
-
-&nbsp;
-
-### Install nightly release
-
-```bash
-# Install PyTorch, torchvision, torchao nightlies
-pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126
-pip install --pre --upgrade torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-```
-
-You can also check out our [install documentation](https://pytorch.org/torchtune/main/install.html) for more information, including installing torchtune from source.
-
-&nbsp;
-
-To confirm that the package is installed correctly, you can run the following command:
-
-```bash
-tune --help
-```
-
-And should see the following output:
-
-```bash
-usage: tune [-h] {ls,cp,download,run,validate} ...
-
-Welcome to the torchtune CLI!
-
-options:
-  -h, --help            show this help message and exit
-
-...
-```
-
-&nbsp;
-
 ## Get Started
 
 To get started with torchtune, see our [First Finetune Tutorial](https://pytorch.org/torchtune/main/tutorials/first_finetune_tutorial.html). Our [End-to-End Workflow Tutorial](https://pytorch.org/torchtune/main/tutorials/e2e_flow.html) will show you how to evaluate, quantize and run inference with a Llama model. The rest of this section will provide a quick overview of these steps with Llama3.1.
@@ -249,34 +182,3 @@ batch_size=8 \
 enable_activation_checkpointing=True \
 max_steps_per_epoch=128
 ```
-
-**Update a Local Copy**
-
-You can also copy the config to your local directory and modify the contents directly:
-
-```bash
-tune cp llama3_1/8B_full ./my_custom_config.yaml
-Copied to ./my_custom_config.yaml
-```
-
-Then, you can run your custom recipe by directing the `tune run` command to your local files:
-
-```bash
-tune run full_finetune_distributed --config ./my_custom_config.yaml
-```
-
-&nbsp;
-
-Check out `tune --help` for all possible CLI commands and options. For more information on using and updating configs, take a look at our [config deep-dive](https://pytorch.org/torchtune/main/deep_dives/configs.html).
-
-&nbsp;
-
-### Custom Datasets
-
-torchtune supports finetuning on a variety of different datasets, including [instruct-style](https://pytorch.org/torchtune/main/basics/instruct_datasets.html), [chat-style](https://pytorch.org/torchtune/main/basics/chat_datasets.html), [preference datasets](https://pytorch.org/torchtune/main/basics/preference_datasets.html), and more. If you want to learn more about how to apply these components to finetune on your own custom dataset, please check out the provided links along with our [API docs](https://pytorch.org/torchtune/main/api_ref_datasets.html).
-
-&nbsp;
-
-
-
-
