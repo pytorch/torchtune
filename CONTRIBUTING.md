@@ -23,6 +23,21 @@ pip install -e ".[dev]"
 
 &nbsp;
 
+## MPS Installation
+
+All steps remain the same except for **Step 2**. [bitsandbytes>=0.43.0](https://github.com/bitsandbytes-foundation/bitsandbytes.git) is not fully supported on MPS.  
+Therefore, you need to remove it from `pyproject.toml` and install it separately using the following command:
+
+```bash
+# Note: If you don't want to reinstall BNB's dependencies, append the `--no-deps` flag.
+pip install --force-reinstall 'https://github.com/bitsandbytes-foundation/bitsandbytes/releases/download/continuous-release_multi-backend-refactor/bitsandbytes-0.44.1.dev0-py3-none-macosx_13_1_arm64.whl'
+```
+
+For more details, refer to the [official documentation](https://huggingface.co/docs/bitsandbytes/main/en/installation?backend=Apple+Silicon+(MPS)&platform=Mac#multi-backend).
+
+
+&nbsp;
+
 ## Contributing workflow
 We actively welcome your pull requests.
 
@@ -54,6 +69,8 @@ torchtune contains three different types of tests: unit tests, recipe tests, and
 Whenever running tests in torchtune, favor using the command line flags as much as possible (e.g. run `pytest tests -m integration_test` over `pytest tests/recipes`). This is because (a) the default behavior is to run unit tests only (so you will miss recipe tests without the flag), and (b) using the flags ensures pytest will automatically download any remote assets needed for your test run.
 
 Note that the above flags can be combined with other pytest flags, so e.g. `pytest tests -m integration_test -k 'test_loss'` will run only recipe tests matching the substring `test_loss`.
+
+It is important to note that outputs computed on MPS may differ from those on CUDA/CPU. As a result, some tests are skipped. Keep this in mind when adding new tests involving calculations.
 
 &nbsp;
 
