@@ -39,6 +39,17 @@ save_adapter_weights_only: True # Set to false to save the whole model + adapter
 
 # Dataset and Sampler
 dataset:
+  _component_: torchtune.datasets.text_completion_dataset
+  packed: False  # True increases speed
+  source: json
+  data_files: /workspace/torchtune/wikitext_train.json
+  column: input
+  split: train
+seed: null
+shuffle: False
+
+# Dataset and Sampler
+dataset:
   _component_: torchtune.datasets.alpaca_dataset
   packed: False  # True increases speed
 seed: null
