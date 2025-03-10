@@ -204,8 +204,8 @@ class DeviceSupport(Enum):
     This is a simple enum for compute devices,
     This currently only supports CPU, CUDA, NPU, and XPU.
     The following enumeration defines various device configurations with attributes:
-    1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu", "xpu").
-    2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU", "XPU").
+    1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu", "xpu", "mps").
+    2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU", "XPU", "MPS").
     3. `communication_backend` (str): Specifies the backend used for communication on this device
     (e.g., "gloo", "nccl", "hccl", "ccl").
     """
@@ -214,6 +214,7 @@ class DeviceSupport(Enum):
     CUDA = ("cuda", "GPU", "nccl")
     NPU = ("npu", "NPU", "hccl")
     XPU = ("xpu", "XPU", "ccl")
+    MPS = ("mps", "MPS", "gloo")
 
     def __init__(
         self,
