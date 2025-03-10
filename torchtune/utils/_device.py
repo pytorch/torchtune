@@ -93,7 +93,7 @@ def _setup_device(device: torch.device) -> torch.device:
 def _get_device_type_from_env() -> str:
     """Function that gets the torch.device based on the current machine.
 
-    This currently only supports CPU, CUDA, NPU.
+    This currently only supports CPU, CUDA, NPU, XPU, and MPS.
 
     Returns:
         device
@@ -104,6 +104,8 @@ def _get_device_type_from_env() -> str:
         device = "npu"
     elif torch.xpu.is_available():
         device = "xpu"
+    elif torch.mps.is_available():
+        device = "mps"
     else:
         device = "cpu"
     return device
