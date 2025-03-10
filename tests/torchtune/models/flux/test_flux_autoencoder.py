@@ -6,10 +6,10 @@
 
 import pytest
 import torch
+from tests.test_utils import mps_ignored_test
 
 from torchtune.models.flux import flux_1_autoencoder
 from torchtune.training.seed import set_seed
-from tests.test_utils import mps_ignored_test
 
 BSZ = 32
 CH_IN = 3
