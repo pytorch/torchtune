@@ -25,7 +25,7 @@ pip install -e ".[dev]"
 
 > [!NOTE]
 > ## Installation on Non-CUDA Platforms
-> All steps remain the same except for **Step 2**. [bitsandbytes>=0.43.0](https://github.com/bitsandbytes-foundation/bitsandbytes.git) is not fully supported on non-CUDA platforms. Therefore, you need to remove it from `pyproject.toml` and install it separately by following the instructions provided in the [official documentation](https://huggingface.co/docs/bitsandbytes/main/en/installation).
+> PyPI releases for `bitsandbytes` may not be available for platforms without CUDA support, or which use other accelerator backends (e.g. MPS or XPU). If this is the case, you must remove the `bitsandbytes` dependency in the [`project.toml`](pyproject.toml) file. You may also wish to manually install `bitsandbytes` - please see the [`bitsandbytes` multi-backend documentation](https://huggingface.co/docs/bitsandbytes/main/en/installation#multi-backend) for more information.
 
 &nbsp;
 
