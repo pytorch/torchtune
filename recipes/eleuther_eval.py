@@ -315,6 +315,11 @@ class _LLMEvalWrapper(HFLM):
         self._batch_size = batch_size
         self._dtype = dtype
         self._enable_kv_cache = enable_kv_cache
+        
+        if hasattr(self._tokenizer, "pad_id") and self._tokenizer.pad_id is not None:
+            self.pad_id = self._tokenizer.pad_id
+        else:
+            self.pad_id = 0
 
     @property
     def model(self):
@@ -361,7 +366,7 @@ class _LLMEvalWrapper(HFLM):
         x = left_pad_sequence(
             [torch.tensor(x) for x in tokenized_text],
             batch_first=True,
-            padding_value=self._tokenizer.pad_id,
+            padding_value=self.pad_id,
         )
 
         # the harness will use left_truncate_len to indicate that the current batch
@@ -408,10 +413,7 @@ class _LLMEvalWrapper(HFLM):
             dtype=self._dtype,
             decoder_max_seq_len=self.max_length,
         ):
-            if hasattr(self.tokenizer, "pad_id") and self.tokenizer.pad_id is not None:
-                pad_id = self.tokenizer.pad_id
-            else:
-                pad_id = 0
+           
 
             toks, _ = generate(
                 self.model,
@@ -419,7 +421,7 @@ class _LLMEvalWrapper(HFLM):
                 max_generated_tokens=self.max_gen_toks,
                 temperature=temperature,
                 top_k=None,
-                pad_id=pad_id,
+                pad_id=self.pad_id,
                 stop_tokens=self._tokenizer.stop_tokens,
             )
         return toks[:bsz]
