@@ -36,11 +36,13 @@ CKPT_MODEL_PATHS = {
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
     "llama3_2_vision_hf": "/tmp/test-artifacts/small-ckpt-hf-vision-10172024.pt",
     "llama3_2_vision_meta": "/tmp/test-artifacts/small-ckpt-meta-vision-10172024.pt",
+    "qwen2_5_3b": "/tmp/test-artifacts/qwen2_5_3b",
 }
 
 TOKENIZER_PATHS = {
     "llama2": "/tmp/test-artifacts/tokenizer.model",
     "llama3": "/tmp/test-artifacts/tokenizer_llama3.model",
+    "qwen2_5_3b": "/tmp/test-artifacts/qwen2_5_3b/vocab.json",
 }
 
 # Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
