@@ -315,7 +315,7 @@ class _LLMEvalWrapper(HFLM):
         self._batch_size = batch_size
         self._dtype = dtype
         self._enable_kv_cache = enable_kv_cache
-        
+
         if hasattr(self._tokenizer, "pad_id") and self._tokenizer.pad_id is not None:
             self.pad_id = self._tokenizer.pad_id
         else:
@@ -413,7 +413,6 @@ class _LLMEvalWrapper(HFLM):
             dtype=self._dtype,
             decoder_max_seq_len=self.max_length,
         ):
-           
 
             toks, _ = generate(
                 self.model,
