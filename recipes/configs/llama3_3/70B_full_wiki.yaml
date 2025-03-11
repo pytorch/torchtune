@@ -35,13 +35,6 @@ dataset:
 seed: null
 shuffle: False
 
-#Datset
-dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: False  # True increases speed
-seed: null
-shuffle: True
-
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_3.llama3_3_70b
