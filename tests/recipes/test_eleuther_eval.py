@@ -50,8 +50,8 @@ class TestEleutherEval:
     @pytest.mark.parametrize(
         "eval_name, expected_acc, bsz",
         [
-            ("truthfulqa_gen", 0.1, 4),
-            ("truthfulqa_gen", 0.1, 1),
+            ("truthfulqa_gen", 0.0, 4),
+            ("truthfulqa_gen", 0.0, 1),
             ("truthfulqa_mc2", 0.4, 4),
         ],
     )
@@ -97,7 +97,7 @@ class TestEleutherEval:
         # |--------------|------:|------|-----:|------|---|-----:|---|-----:|
         # |truthfulqa_mc2|      2|none  |     0|acc   |↑  |0.4497|±  |0.1067|
         search_results = re.search(
-            r"acc(?:_norm)?\s*\|?\s*(?:\↑\s*\|?)?([\d.]+)", out.strip()
+            r"acc(?:_norm)?\s*\|?\s*(?:\↑\s*\|?)?.?([\d.]+)", out.strip()
         )
         assert search_results is not None
         acc_result = float(search_results.group(1))

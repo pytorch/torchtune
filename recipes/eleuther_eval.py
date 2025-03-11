@@ -345,12 +345,13 @@ class _LLMEvalWrapper(HFLM):
         return self._enable_kv_cache
 
     def tok_encode(self, text: str, **kwargs) -> List[int]:
-        # Note on add_bos flag: setting to False as this gives better results, for example
-        # +1% on truthfulqa_mc2 with a LoRA finetune. lit-gpt also sets this to False,
-        # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#L66,
-        # though notably fast-gpt does the opposite
-        # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
-        return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
+        # Construct the messages
+        messages = []
+        messages.append(Message(role="user", content=text))
+        messages.append(Message(role="assistant", content=""))
+
+        # # Transform the messages
+        return self._tokenizer({"messages": messages}, inference=True)["tokens"]
 
     def tok_batch_encode(
         self, text: List[str], left_truncate_len: int = None, **kwargs
