@@ -62,7 +62,7 @@ Whenever running tests in torchtune, favor using the command line flags as much 
 Note that the above flags can be combined with other pytest flags, so e.g. `pytest tests -m integration_test -k 'test_loss'` will run only recipe tests matching the substring `test_loss`.
 
 > [!NOTE]
-> It is important to note that reference loss values have been calculated on CPU/GPU. As a result, some tests may be skipped on non-CUDA platforms. Keep this in mind when adding new tests involving calculations.
+> Expected reference values for many of our tests have been calculated on Intel-based CPUs, or CUDA-based GPUs. Precision differences when testing on other hardware may cause certain tests to fail due to calculated values falling outside the configured tolerance limits. These tests may be skipped based on detected hardware (e.g. for [MPS](https://github.com/pytorch/torchtune/blob/ca95345b732d41bab7261d208cd5c860a2f76a5a/tests/test_utils.py#L345).
 
 &nbsp;
 
