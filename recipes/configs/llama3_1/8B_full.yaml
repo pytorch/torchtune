@@ -39,13 +39,8 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
-  checkpoint_files: [
-    model-00001-of-00004.safetensors,
-    model-00002-of-00004.safetensors,
-    model-00003-of-00004.safetensors,
-    model-00004-of-00004.safetensors
-  ]
+  checkpoint_dir: hf://meta-llama/Llama-3.1-8B-Instruct/
+  checkpoint_files: null
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3

@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import gc
 import json
 import os
 import re
@@ -13,24 +12,21 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Union
 
+import fsspec
+
 import torch
 import torch.distributed as dist
 from safetensors.torch import save_file
 
 from torch.distributed.checkpoint import (
+    _HuggingFaceStorageReader,
+    _HuggingFaceStorageWriter,
     async_save,
     FileSystemReader,
     FileSystemWriter,
     load,
     save,
 )
-
-# Replace this with something that actually works
-if version("torch") > (2, 7):
-    from torch.distributed.checkpoint import (
-        _HuggingFaceStorageReader,
-        _HuggingFaceStorageWriter,
-    )
 
 from torchtune import training
 from torchtune.models import convert_weights
@@ -428,20 +424,25 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         self._safe_serialization = safe_serialization
-        self._checkpoint_dir = Path(checkpoint_dir)
+        self._checkpoint_dir = checkpoint_dir
         self._model_type = ModelType[model_type]
-        self._output_dir = Path(output_dir)
+        self._output_dir = output_dir
         check_outdir_not_in_ckptdir(
             ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
         )
-        self._output_dir.mkdir(parents=True, exist_ok=True)
 
         # Use DCP specs if looking at the fsspec for HF
         if checkpoint_dir.startswith("hf://"):
-            self._straight_hf = True
-            assert checkpoint_files is None
+            self._dcp_hf = True
+            self._fs = fsspec.filesystem(
+                "hf",
+            )
+            checkpoint_files = []
         else:
             self._dcp_hf = False
+            self._fs = fsspec.filesystem("file")
+
+        self._fs.mkdir(output_dir, parents=True, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -449,19 +450,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._weight_map: Dict[str, str] = None
 
         # the config.json file contains model params needed for state dict conversion
-        self._config = json.loads(
-            Path.joinpath(self._checkpoint_dir, "config.json").read_text()
-        )
+        self._config = None
+        print(self._fs.ls(self._checkpoint_dir))
+        with self._fs.open(
+            os.path.join(self._checkpoint_dir, "config.json"), "r"
+        ) as json_file:
+            self._config = json.loads(json_file.read())
 
         # repo_id is necessary for when saving an adapter config, so its compatible with HF.
         # This json file is produced and saved in the download step.
         # contents are {"repo_id": "some_model/some_model_version"}
-        repo_id_path = Path.joinpath(self._checkpoint_dir, REPO_ID_FNAME).with_suffix(
-            ".json"
-        )
+        repo_id_path = os.path.join(self._checkpoint_dir, REPO_ID_FNAME) + ".json"
+
         self.repo_id = None
-        if repo_id_path.exists():
-            with open(repo_id_path, "r") as json_file:
+        if self._fs.exists(repo_id_path):
+            with self._fs.open(repo_id_path, "r") as json_file:
                 data = json.load(json_file)
                 self.repo_id = data.get("repo_id")
 
@@ -545,13 +548,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # DCP load using the storage reader
             hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
             metadata = hf_storage_reader.read_metadata()
-            planner = _EmptyStateDictLoadPlanner()
-            planner.set_up_planner(state_dict={}, metadata=metadata)
-            merged_state_dict = load(
-                state_dict={},
+            state_dict = {}
+            for key in metadata.state_dict_metadata.keys():
+                # arbitrary value to ensure that the state_dict is not empty
+                state_dict[key] = torch.zeros(1)
+
+            load(
+                state_dict=state_dict,
                 storage_reader=_HuggingFaceStorageReader(path=self._checkpoint_dir),
-                load_planner=planner,
             )
+
+            merged_state_dict = state_dict
+            print("num keys in merged state dict: ", len(merged_state_dict.keys()))
+            for merged_key, merged_value in merged_state_dict.items():
+                print("size of ", merged_key, merged_value.size())
+                break
         else:
             merged_state_dict = self._manually_merge_sharded_state_dicts()
 

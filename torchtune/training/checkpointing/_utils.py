@@ -403,10 +403,10 @@ def copy_files(
 
 
 def get_recipe_checkpoint_path(
-    output_dir: Path,
+    output_dir: str,
     recipe_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
-) -> Optional[Path]:
+) -> Optional[str]:
     """
     If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
@@ -437,15 +437,15 @@ def get_recipe_checkpoint_path(
             "If should_load_recipe_state is True, recipe_checkpoint file must be provided."
         )
 
-    return Path(recipe_checkpoint_path)
+    return recipe_checkpoint_path
 
 
 def get_adapter_checkpoint_path(
-    output_dir: Path,
+    output_dir: str,
     adapter_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
     pattern: str = r"^epoch_(\d+)",
-) -> Optional[Path]:
+) -> Optional[str]:
     r"""
     If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.
     This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
@@ -479,7 +479,7 @@ def get_adapter_checkpoint_path(
         if os.path.exists(tentative_adapter_checkpoint_path):
             adapter_checkpoint_path = tentative_adapter_checkpoint_path
 
-    return Path(adapter_checkpoint_path) if adapter_checkpoint_path else None
+    return adapter_checkpoint_path if adapter_checkpoint_path else None
 
 
 def get_model_checkpoint_path(
@@ -581,11 +581,13 @@ def get_model_checkpoint_path(
     return checkpoint_paths
 
 
-def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
+def check_outdir_not_in_ckptdir(ckpt_dir: str, out_dir: str) -> bool:
     """
     Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.
     This is necessary to avoid making copies of copies when geting config files from ckpt_dir.
     """
+    if ckpt_dir.startswith("hf://"):
+        return True
 
     # Resolve the absolute paths to avoid issues with relative paths
     _ckpt_dir = ckpt_dir.resolve()
