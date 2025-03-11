@@ -1,0 +1,126 @@
+output_dir: /tmp/out
+
+# Model
+model:
+  _component_: torchtune.models.flux.lora_flux_1_dev_flow_model
+  lora_rank: 16
+  lora_alpha: 16.0
+guidance: 3.0 # between 1.5 and 4 (flux-dev only)
+
+# Data
+dataset:
+  _component_: torchtune.datasets.text_to_image_dataset
+  source: json
+  data_files: /tmp/dataset/ds.json
+  image_dir: /tmp/dataset/img
+  include_id: True
+transform:
+  _component_: torchtune.models.flux.FluxTransform
+  flux_model_name: FLUX.1-dev
+  img_width: 1024
+  img_height: 1024
+  clip_tokenizer_path: /tmp/clip/merges.txt
+  t5_tokenizer_path: /tmp/t5/spiece.model
+  truncate_text: False
+preprocess:
+  _component_: torchtune.models.flux.flux_preprocessor
+  autoencoder_path: /tmp/flux/ae.safetensors
+  clip_text_encoder_path: /tmp/clip/model.safetensors
+  t5_encoder_path: /tmp/t5/pytorch_model.bin
+  preprocessed_data_dir: /tmp/dataset/preprocessed
+  preprocess_again_if_exists: True
+  batch_size: 1
+  flux_model_name: FLUX.1-dev
+seed: null
+shuffle: True
+
+# Training
+loss:
+  _component_: torchtune.models.flux.FluxLossStep
+  guidance: ${guidance}
+optimizer:
+  _component_: torch.optim.AdamW
+  fused: True
+  weight_decay: 0.01
+  lr: 1e-4
+total_steps: 4000
+batch_size: 1
+gradient_accumulation_steps: 1
+# clip_grad_norm: 1.0
+
+# Checkpointing
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/flux
+  checkpoint_files: [flux1-dev.safetensors]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: FLUX
+checkpoint_every_n_steps: 200
+resume_from_checkpoint: False
+save_adapter_weights_only: True
+
+# Sampling
+sampler:
+  _component_: torchtune.models.flux.FluxSampler
+  samples_dir: ${output_dir}/samples
+  width: 1024
+  height: 1024
+  seed: 42
+  denoising_steps: 20
+  guidance: ${guidance}
+  batch_size: 1
+  prompts:
+    - "person with red hair, playing chess at the park, bomb going off in the background"
+    - "person holding a coffee cup, in a beanie, sitting at a cafe"
+    - "person is a DJ at a night club, fish eye lens, smoke machine, lazer lights, holding a martini"
+    - "person showing off his cool new t shirt at the beach, a shark is jumping out of the water in the background"
+    - "person playing the guitar, on stage, singing a song, laser lights, punk rocker"
+    - "person with a beard, building a chair, in a wood shop"
+    - "photo of person, white background, medium shot, modeling clothing, studio lighting, white backdrop"
+    - "person holding a sign that says, 'this is a sign'"
+    - "person, in a post apocalyptic world, with a shotgun, in a leather jacket, in a desert, with a motorcycle"
+  img_grid: [3, 3]
+sample_every_n_steps: 200
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  # _component_: torchtune.training.metric_logging.WandBLogger
+  log_dir: ${output_dir}/logs
+log_every_n_steps: 1
+log_peak_memory_stats: True
+
+# Environment
+device: cuda
+dtype: bf16
+
+# Memory management
+compile: False  # torch.compile the model, True increases speed + decreases memory
+enable_activation_checkpointing: True  # True reduces memory
+enable_activation_offloading: True  # True reduces memory
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  # Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  # trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 2
+  num_cycles: 1

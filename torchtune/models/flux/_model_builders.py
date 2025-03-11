@@ -5,11 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 from typing import List
 
+from torch import nn
+
 from torchtune.models.flux._autoencoder import FluxAutoencoder, FluxDecoder, FluxEncoder
+from torchtune.models.flux._flow_model import FluxFlowModel
+from torchtune.modules.peft import DoRALinear, LoRALinear
 
 
 def flux_1_autoencoder(
-    resolution: int = 256,
     ch_in: int = 3,
     ch_out: int = 3,
     ch_base: int = 128,
@@ -30,7 +33,6 @@ def flux_1_autoencoder(
     ch = number of channels (size of the channel dimension)
 
     Args:
-        resolution (int): The height/width of the square input image.
         ch_in (int): The number of channels of the input image.
         ch_out (int): The number of channels of the output image.
         ch_base (int): The base number of channels.
@@ -67,7 +69,154 @@ def flux_1_autoencoder(
     )
 
     return FluxAutoencoder(
-        img_shape=(ch_in, resolution, resolution),
         encoder=encoder,
         decoder=decoder,
     )
+
+
+def flux_1_dev_flow_model():
+    """
+    Flow-matching model for FLUX.1-dev
+
+    Returns:
+        FluxFlowModel
+    """
+    return FluxFlowModel(
+        in_channels=64,
+        out_channels=64,
+        vec_in_dim=768,
+        context_in_dim=4096,
+        hidden_size=3072,
+        mlp_ratio=4.0,
+        num_heads=24,
+        depth=19,
+        depth_single_blocks=38,
+        axes_dim=[16, 56, 56],
+        theta=10_000,
+        qkv_bias=True,
+        use_guidance=True,
+    )
+
+
+def flux_1_schnell_flow_model():
+    """
+    Flow-matching model for FLUX.1-schnell
+
+    Returns:
+        FluxFlowModel
+    """
+    return FluxFlowModel(
+        in_channels=64,
+        out_channels=64,
+        vec_in_dim=768,
+        context_in_dim=4096,
+        hidden_size=3072,
+        mlp_ratio=4.0,
+        num_heads=24,
+        depth=19,
+        depth_single_blocks=38,
+        axes_dim=[16, 56, 56],
+        theta=10_000,
+        qkv_bias=True,
+        use_guidance=False,
+    )
+
+
+def lora_flux_1_dev_flow_model(
+    lora_rank: int,
+    lora_alpha: float,
+    lora_dropout: float = 0.0,
+    quantize_base: bool = False,
+    use_dora: bool = False,
+):
+    """
+    Flow-matching model for FLUX.1-dev with linear layers replaced with LoRA modules.
+
+    Args:
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        quantize_base (bool): Whether to quantize base model weights. Default: False
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
+            Default: False
+
+    Returns:
+        FluxFlowModel
+    """
+    model = flux_1_dev_flow_model()
+    _replace_linear_with_lora(
+        model,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+        quantize_base=quantize_base,
+        use_dora=use_dora,
+    )
+    return model
+
+
+def lora_flux_1_schnell_flow_model(
+    lora_rank: int = 16,
+    lora_alpha: float = 16.0,
+    lora_dropout: float = 0.0,
+    quantize_base: bool = False,
+    use_dora: bool = False,
+):
+    """
+    Flow-matching model for FLUX.1-schnell with linear layers replaced with LoRA modules.
+
+    Args:
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): dropout probability for the low-rank approximation. Default: 0.0
+        quantize_base (bool): Whether to quantize base model weights. Default: False
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
+            Default: False
+
+    Returns:
+        FluxFlowModel
+    """
+    model = flux_1_schnell_flow_model()
+    _replace_linear_with_lora(
+        model,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+        quantize_base=quantize_base,
+        use_dora=use_dora,
+    )
+    return model
+
+
+def _replace_linear_with_lora(
+    module: nn.Module,
+    rank: int,
+    alpha: float,
+    dropout: float,
+    quantize_base: bool,
+    use_dora: bool,
+) -> None:
+    lora_cls = DoRALinear if use_dora else LoRALinear
+    for name, child in module.named_children():
+        if isinstance(child, nn.Linear):
+            new_child = lora_cls(
+                in_dim=child.in_features,
+                out_dim=child.out_features,
+                rank=rank,
+                alpha=alpha,
+                dropout=dropout,
+                use_bias=child.bias is not None,
+                quantize_base=quantize_base,
+            )
+            setattr(module, name, new_child)
+        else:
+            _replace_linear_with_lora(
+                child,
+                rank=rank,
+                alpha=alpha,
+                dropout=dropout,
+                quantize_base=quantize_base,
+                use_dora=use_dora,
+            )
