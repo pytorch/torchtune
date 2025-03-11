@@ -408,12 +408,18 @@ class _LLMEvalWrapper(HFLM):
             dtype=self._dtype,
             decoder_max_seq_len=self.max_length,
         ):
+            if hasattr(self.tokenizer, "pad_id") and self.tokenizer.pad_id is not None:
+                pad_id = self.tokenizer.pad_id
+            else:
+                pad_id = 0
+
             toks, _ = generate(
                 self.model,
                 maybe_padded_context,
                 max_generated_tokens=self.max_gen_toks,
                 temperature=temperature,
                 top_k=None,
+                pad_id=pad_id,
                 stop_tokens=self._tokenizer.stop_tokens,
             )
         return toks[:bsz]
