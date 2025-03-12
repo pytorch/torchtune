@@ -46,8 +46,8 @@ def gemma3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
-    rope_base: int = 10_000,
-    sliding_window_size: int = 4096,
+    rope_base: int = 1_000_000,
+    sliding_window_size: int = 1024,
     query_pre_attn_scalar:  Optional[int] = None,
 ) -> TransformerDecoder:
     """
@@ -95,6 +95,9 @@ def gemma3(
             pos_embeddings=rope,
             kv_cache=None,
             max_seq_len=max_seq_len,
+            # QK-norm is required
+            k_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            q_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
             attn_dropout=attn_dropout,
             # perform sliding window only on the each 6 layer, according to the tech-report
             sliding_window_size=sliding_window_size if (layer_idx % 6) == 0 and layer_idx != 0 else None,
@@ -143,8 +146,8 @@ def lora_gemma3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
-    rope_base: int = 10_000,
-    sliding_window_size: int = 4096,
+    rope_base: int = 1_000_000,
+    sliding_window_size: int = 1024,
     query_pre_attn_scalar:  Optional[int] = None,
     # LoRA args
     lora_rank: int,
@@ -207,7 +210,8 @@ def lora_gemma3(
             )
         else:
             mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
-        self_att = lora_gemma2_self_attention(
+            
+        self_att = lora_gemma3_self_attention(
             lora_modules=lora_attn_modules,
             embed_dim=embed_dim,
             num_heads=num_heads,
@@ -216,6 +220,9 @@ def lora_gemma3(
             rope_base=rope_base,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
+            # QK-norm is required
+            k_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            q_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
             # perform sliding window only on the each 6 layer, according to the tech-report
             sliding_window_size=sliding_window_size if (layer_idx % 6) == 0 and layer_idx != 0 else None,
             # we don't use softcapping in gemma3
@@ -247,7 +254,6 @@ def lora_gemma3(
         head_dim=head_dim,
         # We don't use softcapping according to the techreport!
         norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        # norm=Gemma2FinalNorm(final_capping_value, embed_dim, eps=norm_eps)
     )
 
     if quantize_base:
@@ -270,9 +276,8 @@ def lora_gemma3_self_attention(
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    rope_base: int = 10_000,
+    rope_base: int = 1_000_000,
     sliding_window_size: Optional[int] = None,
-    softcapping: Optional[float] = 50.,
     query_pre_attn_scalar: Optional[int],
     # LoRA args
     lora_rank: int,
@@ -356,7 +361,7 @@ def lora_gemma3_self_attention(
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    
+
     self_att = Gemma2Attention(
             embed_dim=embed_dim,
             num_heads=num_heads,
@@ -371,7 +376,10 @@ def lora_gemma3_self_attention(
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
             sliding_window_size=sliding_window_size,
-            softcapping=softcapping,
+            # QK-norm is required
+            k_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            q_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+            softcapping=None,
             query_pre_attn_scalar=query_pre_attn_scalar
         )
     return self_att
