@@ -276,6 +276,7 @@ def lora_gemma3_self_attention(
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
+    norm_eps: float = 1e-6,
     rope_base: int = 1_000_000,
     sliding_window_size: Optional[int] = None,
     query_pre_attn_scalar: Optional[int],
