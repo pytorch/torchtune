@@ -17,7 +17,7 @@
 # For single device LoRA finetuning please use 1B_lora_single_device.yaml
 # or 1B_qlora_single_device.yaml
 
-output_dir: /workspace/torchtune/llama3_2_1B/lora # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/llama3_2_1B/lora # /tmp may be deleted by your system. Change it to your preference.
 
 # Tokenizer
 tokenizer:
