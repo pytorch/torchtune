@@ -517,6 +517,7 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        RuntimeError: If device index is not available.</span>
+<span class="sd">        AttributeError: If ``set_device`` is not supported for the device type (e.g. on MPS).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        device</span>
@@ -534,6 +535,10 @@
     <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">index</span> <span class="o">&gt;=</span> <span class="n">torch_device</span><span class="o">.</span><span class="n">device_count</span><span class="p">():</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;The local rank is larger than the number of available </span><span class="si">{</span><span class="n">device_name</span><span class="si">}</span><span class="s2">s.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">torch_device</span><span class="p">,</span> <span class="s2">&quot;set_device&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The device type </span><span class="si">{</span><span class="n">device_type</span><span class="si">}</span><span class="s2"> does not support the `set_device` method.&quot;</span>
         <span class="p">)</span>
     <span class="n">torch_device</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">device</span>
@@ -615,7 +620,7 @@
     <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">_get_device_type_from_env</span><span class="p">()</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="s2">&quot;npu&quot;</span><span class="p">,</span> <span class="s2">&quot;xpu&quot;</span><span class="p">,</span> <span class="s2">&quot;mps&quot;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="s2">&quot;npu&quot;</span><span class="p">,</span> <span class="s2">&quot;xpu&quot;</span><span class="p">]:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">_setup_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">_validate_device_from_env</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">device</span></div>
