@@ -18,6 +18,7 @@ from .layer_dropout import LayerDropout, prepare_layer_dropout  # noqa
 from .layer_norm import Fp32LayerNorm  # noqa
 from .low_precision import FrozenNF4Linear  # noqa
 from .position_embeddings import (  # noqa
+    FireSelfAttention,
     RotaryPositionalEmbeddings,
     VisionRotaryPositionalEmbeddings,
 )
@@ -57,4 +58,5 @@ __all__ = [
     "disable_kv_cache",
     "LayerDropout",
     "prepare_layer_dropout",
+    "FireSelfAttention",
 ]
