@@ -134,8 +134,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         # Set up the backend for distributed training (NCCL, GLOO, etc.)
-        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", True)
-        self._enable_dcp = cfg.get("enable_dcp", False)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
             device_type,

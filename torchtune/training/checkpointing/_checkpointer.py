@@ -416,8 +416,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         resume_from_checkpoint: bool = False,
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
+        enable_dcp: bool = False,
     ) -> None:
-
         self._should_load_recipe_state = should_load_recipe_state
         if resume_from_checkpoint:
             self._should_load_recipe_state = resume_from_checkpoint
@@ -432,11 +432,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         check_outdir_not_in_ckptdir(
             ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
         )
+        self._enable_dcp = enable_dcp
 
         self._fs, _ = url_to_fs(self._checkpoint_dir)
-        self._enable_dcp = True
+        output_fs, _ = url_to_fs(self._output_dir)
+        if self._fs != output_fs:
+            raise ValueError(
+                f"Checkpoint and output directories must be on the same filesystem. "
+                f"Got {self._fs} and {output_fs} instead."
+            )
 
-        self._fs.mkdir(output_dir, parents=True, exist_ok=True)
+        self._fs.mkdir(output_dir, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -775,7 +781,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=self._config.get("head_dim", None),
                 )
 
-            if self._enable_dcp is not None:
+            if self._enable_dcp:
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
                 for fqn, filename in self._weight_map.items():
@@ -864,7 +870,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 os.path.join(self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME)
                 + ".pt"
             )
-            self._fs.mkdir(os.path.dirname(output_path), parents=True, exist_ok=True)
+            self._fs.mkdir(os.path.dirname(output_path), exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
@@ -893,9 +899,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 output_path = os.path.join(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
                 )
-                self._fs.mkdir(
-                    os.path.dirname(output_path), parents=True, exist_ok=True
-                )
+                self._fs.mkdir(os.path.dirname(output_path), exist_ok=True)
                 if not self._safe_serialization:
                     output_path = output_path + ".bin"
                     torch.save(state_dict[training.ADAPTER_KEY], output_path)
@@ -953,6 +957,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             self._checkpoint_dir,
             os.path.join(self._output_dir, f"epoch_{epoch}"),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
+            fs=self._fs,
         )
 
         # If the recipe state needs to be output, first remove the model state dict
@@ -965,7 +970,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 self._output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
             )
             parent_path = os.path.dirname(output_path)
-            self._fs.mkdir(parent_path, parents=True, exist_ok=True)
+            self._fs.mkdir(parent_path, exist_ok=True)
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "

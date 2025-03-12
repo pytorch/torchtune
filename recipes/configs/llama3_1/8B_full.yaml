@@ -40,10 +40,11 @@ model:
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: hf://meta-llama/Llama-3.1-8B-Instruct/
-  checkpoint_files: null
+  checkpoint_files: []
   recipe_checkpoint: null
   output_dir: hf://ankitageorge/Llama-testing/
   model_type: LLAMA3
+  enable_dcp: True
 resume_from_checkpoint: False
 
 # Fine-tuning arguments

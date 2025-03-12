@@ -14,7 +14,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
-from fsspec import FileSystem, LocalFileSystem
 from safetensors import safe_open
 
 from torchtune.utils._logging import get_logger
