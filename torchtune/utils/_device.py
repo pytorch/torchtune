@@ -67,7 +67,8 @@ def _setup_device(device: torch.device) -> torch.device:
         device (torch.device): The device to set.
 
     Raises:
-        RuntimeError: If device index is not available.
+        RuntimeError: If device index is not available, or if ``set_device`` is not
+            supported for the device type (e.g. on MPS).
 
     Returns:
         device
@@ -153,7 +154,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     If CUDA-like is available and being used, this function also sets the CUDA-like device.
 
     Args:
-        device (Optional[str]): The name of the device to use, one of "cuda", "cpu", "npu", or "xpu".
+        device (Optional[str]): The name of the device to use, one of "cuda", "cpu", "npu", "xpu", or "mps".
 
     Example:
         >>> device = get_device("cuda")
