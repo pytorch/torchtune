@@ -5,3 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._component_builders import gemma3, lora_gemma3  # noqa
+from ._model_builders import (  # noqa  # noqa
+    gemma3_12b,
+    gemma3_1b,
+    gemma3_27b,
+    gemma3_4b,
+    lora_gemma3_12b,
+    lora_gemma3_1b,
+    lora_gemma3_27b,
+    lora_gemma3_4b,
+)

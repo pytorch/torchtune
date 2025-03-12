@@ -193,7 +193,7 @@ Please see `lora_gemma3_4b` for full API arguments.
 
 def gemma3_12b() -> TransformerDecoder:
     """
-    Builder for creating a Gemma3 1B model initialized w/ the default 12b parameter values
+    Builder for creating a Gemma3 12B model initialized w/ the default 12b parameter values
     from: https://github.com/google/gemma_pytorch/blob/main/gemma/config.py
 
     Returns:
@@ -299,7 +299,7 @@ def gemma3_27b() -> TransformerDecoder:
     )
 
 
-def lora_gemma3_1b(
+def lora_gemma3_27b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
