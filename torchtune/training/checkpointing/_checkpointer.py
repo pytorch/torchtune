@@ -22,6 +22,7 @@ from torch.distributed.checkpoint import (
     _HuggingFaceStorageReader,
     _HuggingFaceStorageWriter,
     async_save,
+    DefaultLoadPlanner,
     FileSystemReader,
     FileSystemWriter,
     load,
@@ -551,7 +552,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             state_dict = {}
             for key in metadata.state_dict_metadata.keys():
                 # arbitrary value to ensure that the state_dict is not empty
-                state_dict[key] = torch.zeros(1)
+                state_dict[key] = torch.empty(1)
 
             load(
                 state_dict=state_dict,
@@ -787,10 +788,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if self._dcp_hf is not None:
                 # DCP save using the storage writer
                 storage_writer = _HuggingFaceStorageWriter(
-                    _fqn_to_index_mapping=self._weight_map
+                    path=self._checkpoint_dir, fqn_to_index_mapping=self._weight_map
                 )
                 save(
-                    checkpoint_id=self._checkpoint_dir,
                     state_dict=state_dict,
                     storage_writer=storage_writer,
                 )
