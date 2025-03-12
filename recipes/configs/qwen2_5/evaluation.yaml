@@ -1,7 +1,7 @@
 # Config for EleutherEvalRecipe in eleuther_eval.py
 #
 # To launch, run the following command from root torchtune directory:
-#    tune run eleuther_eval --config eleuther_evaluation tasks=["truthfulqa_mc2","hellaswag"]
+#    tune run eleuther_eval --config qwen2_5/evaluation
 
 output_dir: ./ # Not needed
 
@@ -11,7 +11,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2.5-0_5B-Instruct
+  checkpoint_dir: /tmp/Qwen2.5-0.5B-Instruct
   checkpoint_files: [
     model.safetensors,
   ]
@@ -21,8 +21,8 @@ checkpointer:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
-  path: /tmp/Qwen2.5-0_5B-Instruct/vocab.json
-  merges_file: /tmp/Qwen2.5-0_5B-Instruct/merges.txt
+  path: /tmp/Qwen2.5-0.5B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2.5-0.5B-Instruct/merges.txt
   max_seq_len: null
 
 # Environment
