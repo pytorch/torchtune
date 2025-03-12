@@ -14,6 +14,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
+from fsspec import FileSystem, LocalFileSystem
 from safetensors import safe_open
 
 from torchtune.utils._logging import get_logger
@@ -403,7 +404,7 @@ def copy_files(
 
 
 def get_recipe_checkpoint_path(
-    output_dir: str,
+    output_dir: Union[str, Path],
     recipe_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
 ) -> Optional[str]:
@@ -441,7 +442,7 @@ def get_recipe_checkpoint_path(
 
 
 def get_adapter_checkpoint_path(
-    output_dir: str,
+    output_dir: Union[Path, str],
     adapter_checkpoint: Optional[str] = None,
     should_load_recipe_state: bool = False,
     pattern: str = r"^epoch_(\d+)",
@@ -581,17 +582,21 @@ def get_model_checkpoint_path(
     return checkpoint_paths
 
 
-def check_outdir_not_in_ckptdir(ckpt_dir: str, out_dir: str) -> bool:
+def check_outdir_not_in_ckptdir(
+    ckpt_dir: Union[Path, str], out_dir: Union[Path, str]
+) -> bool:
     """
     Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.
     This is necessary to avoid making copies of copies when geting config files from ckpt_dir.
     """
-    if ckpt_dir.startswith("hf://"):
-        return True
-
     # Resolve the absolute paths to avoid issues with relative paths
-    _ckpt_dir = ckpt_dir.resolve()
-    _out_dir = out_dir.resolve()
+    if isinstance(ckpt_dir, Path):
+        _ckpt_dir = ckpt_dir.resolve()
+    if isinstance(out_dir, Path):
+        _out_dir = out_dir.resolve()
+
+    _ckpt_dir = Path(ckpt_dir)
+    _out_dir = Path(out_dir)
 
     # Check if out_dir is the same as ckpt_dir or a subdirectory of it
     if _out_dir == _ckpt_dir or _ckpt_dir in _out_dir.parents:

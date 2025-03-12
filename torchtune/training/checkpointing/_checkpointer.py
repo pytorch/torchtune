@@ -16,6 +16,7 @@ import fsspec
 
 import torch
 import torch.distributed as dist
+from fsspec.core import url_to_fs
 from safetensors.torch import save_file
 
 from torch.distributed.checkpoint import (
@@ -432,16 +433,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
         )
 
-        # Use DCP specs if looking at the fsspec for HF
-        if checkpoint_dir.startswith("hf://"):
-            self._dcp_hf = True
-            self._fs = fsspec.filesystem(
-                "hf",
-            )
-            checkpoint_files = []
-        else:
-            self._dcp_hf = False
-            self._fs = fsspec.filesystem("file")
+        self._fs, _ = url_to_fs(self._checkpoint_dir)
+        self._enable_dcp = True
 
         self._fs.mkdir(output_dir, parents=True, exist_ok=True)
 
@@ -452,7 +445,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         # the config.json file contains model params needed for state dict conversion
         self._config = None
-        print(self._fs.ls(self._checkpoint_dir))
         with self._fs.open(
             os.path.join(self._checkpoint_dir, "config.json"), "r"
         ) as json_file:
@@ -545,7 +537,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # the recipe state and adapter weights
         converted_state_dict: Dict[str, Dict[str, torch.Tensor]] = {}
 
-        if self._dcp_hf:
+        if self._enable_dcp:
             # DCP load using the storage reader
             hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
             metadata = hf_storage_reader.read_metadata()
@@ -554,16 +546,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 # arbitrary value to ensure that the state_dict is not empty
                 state_dict[key] = torch.empty(1)
 
+            self._weight_map = metadata.storage_data
+
             load(
                 state_dict=state_dict,
                 storage_reader=_HuggingFaceStorageReader(path=self._checkpoint_dir),
             )
 
             merged_state_dict = state_dict
-            print("num keys in merged state dict: ", len(merged_state_dict.keys()))
-            for merged_key, merged_value in merged_state_dict.items():
-                print("size of ", merged_key, merged_value.size())
-                break
         else:
             merged_state_dict = self._manually_merge_sharded_state_dicts()
 
@@ -785,13 +775,18 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=self._config.get("head_dim", None),
                 )
 
-            if self._dcp_hf is not None:
+            if self._enable_dcp is not None:
                 # DCP save using the storage writer
+                fqn_to_file_index_mapping = {}
+                for fqn, filename in self._weight_map.items():
+                    index = int(filename.split("-")[1])
+                    fqn_to_file_index_mapping[fqn] = index
                 storage_writer = _HuggingFaceStorageWriter(
-                    path=self._checkpoint_dir, fqn_to_index_mapping=self._weight_map
+                    path=self._output_dir,
+                    fqn_to_index_mapping=fqn_to_file_index_mapping,
                 )
                 save(
-                    state_dict=state_dict,
+                    state_dict=state_dict[training.MODEL_KEY],
                     storage_writer=storage_writer,
                 )
             else:
@@ -812,15 +807,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                         num_shards=f"{num_shards}".zfill(5),
                     )
                     map_original_name_to_new_name[cpt_idx] = shard_name
-                    output_path = Path.joinpath(
+                    output_path = os.path.join(
                         self._output_dir, f"epoch_{epoch}", shard_name
                     )
-                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    self._fs.mkdir(
+                        os.path.dirname(output_path), parents=True, exist_ok=True
+                    )
                     if not self._safe_serialization:
-                        output_path = output_path.with_suffix(".bin")
+                        output_path = output_path + ".bin"
                         torch.save(model_state_dict, output_path)
                     else:
-                        output_path = output_path.with_suffix(".safetensors")
+                        output_path = output_path + ".safetensors"
                         save_file(
                             model_state_dict, output_path, metadata={"format": "pt"}
                         )
@@ -846,7 +843,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     }
                     index_file_name = TORCH_INDEX_FNAME
 
-                index_path = Path.joinpath(
+                index_path = os.path.join(
                     self._output_dir, f"epoch_{epoch}", index_file_name
                 )
 
@@ -863,10 +860,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # convert_weights.tune_to_peft_adapter_weights, we do NOT have a fn
             # convert_weights.peft_to_tune. The .pt format is not needed, but
             # it is an easy way to distinguish the adapters. Ideally we should save only one.
-            output_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
-            ).with_suffix(".pt")
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path = (
+                os.path.join(self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME)
+                + ".pt"
+            )
+            self._fs.mkdir(os.path.dirname(output_path), parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
@@ -892,15 +890,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                         head_dim=self._config.get("head_dim", None),
                     )
                 )
-                output_path = Path.joinpath(
+                output_path = os.path.join(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
                 )
-                output_path.parent.mkdir(parents=True, exist_ok=True)
+                self._fs.mkdir(
+                    os.path.dirname(output_path), parents=True, exist_ok=True
+                )
                 if not self._safe_serialization:
-                    output_path = output_path.with_suffix(".bin")
+                    output_path = output_path + ".bin"
                     torch.save(state_dict[training.ADAPTER_KEY], output_path)
                 else:
-                    output_path = output_path.with_suffix(".safetensors")
+                    output_path = output_path + ".safetensors"
                     save_file(
                         state_dict[training.ADAPTER_KEY],
                         output_path,
@@ -933,10 +933,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
                 )
 
-                output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", ADAPTER_CONFIG_FNAME
-                ).with_suffix(".json")
-                with open(output_path, "w") as f:
+                output_path = (
+                    os.path.join(
+                        self._output_dir, f"epoch_{epoch}", ADAPTER_CONFIG_FNAME
+                    )
+                    + ".json"
+                )
+                with self._fs.open(output_path, "w") as f:
                     json.dump(state_dict[training.ADAPTER_CONFIG], f)
                 logger.info(
                     "Adapter checkpoint of size "
@@ -948,7 +951,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # So its easy to run inference with the model using this epoch's checkpoint
         copy_files(
             self._checkpoint_dir,
-            Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+            os.path.join(self._output_dir, f"epoch_{epoch}"),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
         )
 
@@ -958,10 +961,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             _ = state_dict.pop(training.MODEL_KEY, None)
             _ = state_dict.pop(training.ADAPTER_KEY, None)
             _ = state_dict.pop(training.ADAPTER_CONFIG, None)
-            output_path = Path.joinpath(
+            output_path = os.path.join(
                 self._output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
             )
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            parent_path = os.path.dirname(output_path)
+            self._fs.mkdir(parent_path, parents=True, exist_ok=True)
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "
