@@ -2,7 +2,7 @@
 # using a Qwen2.5 1.5B model
 #
 # This config assumes that you've run the following command before launching:
-#   tune download Qwen/Qwen2.5-1.5B-Instruct
+#   tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2.5-1.5B-Instruct
 #
 # To launch on 2 devices, run the following command from root:
 #   tune run --nproc_per_node 2 lora_finetune_distributed --config qwen2_5/1.5B_lora

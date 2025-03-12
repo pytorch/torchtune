@@ -18,6 +18,7 @@ Role = Literal[
     "user",  # Origin is user
     "assistant",  # Origin is the model output
     "ipython",  # Origin is return from a tool call
+    "tool",  # Origin is return from a tool call
 ]
 
 
@@ -687,17 +688,32 @@ class OpenAIToMessages(Transform):
                     role="system", content=self.new_system_prompt, masked=True, eot=True
                 )
             )
-        for message in sample[self._column_map["messages"]]:
+        messages = sample[self._column_map["messages"]]
+        for i, message in enumerate(messages):
             if message["role"] == "system" and self.new_system_prompt is not None:
                 continue
             if isinstance(message["content"], list):
                 content = self._convert_from_openai_content(message["content"])
             elif isinstance(message["content"], str):
                 content = message["content"]
+
+            eot = True
+            if message["role"] in ["tool", "ipython"]:
+                # After tool responses, turn is not over, because assistant will interpret the tool response.
+                eot = False
+            elif message["role"] == "assistant":
+                # If the next message is a tool response instead of a user message
+                # the current assistant message is not the end of the turn.
+                # Models like Llama will append EOM to the end of the assistant message for tool calls.
+                has_next_message = i < len(messages) - 1
+                if has_next_message and messages[i + 1]["role"] in ["tool", "ipython"]:
+                    eot = False
+
             updated_messages.append(
                 Message(
                     role=message["role"],
                     content=content,
+                    eot=eot,
                 ),
             )
         mask_messages(updated_messages, self.masking_strategy)
@@ -834,13 +850,17 @@ def validate_messages(
             f"Messages must be at least length 2, but got {len(messages)} messages"
         )
 
-    last_turn = "assistant"
+    last_message = Message(role="assistant", content="")
     for i, message in enumerate(messages):
-        if message.role == "assistant" and last_turn != "user":
+        if message.role == "assistant" and last_message.role not in [
+            "user",
+            "tool",
+            "ipython",
+        ]:
             raise ValueError(
-                f"Assistant message before expected user message at index {i} in messages"
+                f"Assistant message before expected user, tool or ipython message at index {i} in messages"
             )
-        if message.role == "user" and last_turn == "user":
+        if message.role == "user" and last_message.role == "user":
             raise ValueError(
                 f"Two consecutive user messages at index {i} and {i - 1} in messages"
             )
@@ -848,7 +868,11 @@ def validate_messages(
             raise ValueError(
                 f"System message at index {i} in messages, but system messages must come first"
             )
-        last_turn = message.role
+        if message.role in ["tool", "ipython"] and not last_message.ipython:
+            raise ValueError(
+                f"Tool or ipython message at index {i} must follow an ipython message"
+            )
+        last_message = message
 
 
 def mask_messages(messages: List[Message], masking_strategy: MaskingStrategy) -> None:
