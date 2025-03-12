@@ -180,9 +180,11 @@ class InputOutputToMessages(Transform):
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
             Default is "train_on_assistant".
+
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
+
             Note: Multimodal user messages are always masked.
 
     Raises:
@@ -329,6 +331,7 @@ class ChosenRejectedToMessages(Transform):
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
             Default is "train_on_assistant".
+
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
@@ -452,9 +455,11 @@ class ShareGPTToMessages(Transform):
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
             Default is "train_on_assistant".
+
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
+
             Note: Multimodal user messages are always masked.
 
     Raises:
@@ -613,9 +618,11 @@ class OpenAIToMessages(Transform):
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
             Default is "train_on_assistant".
+
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
+
             Note: Multimodal user messages are always masked.
 
     Raises:
@@ -739,6 +746,7 @@ class AlpacaToMessages(Transform):
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
             Default is "train_on_all".
+
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
@@ -882,7 +890,8 @@ def mask_messages(messages: List[Message], masking_strategy: MaskingStrategy) ->
     Args:
         messages (List[Message]): a list of messages to mask.
         masking_strategy (MaskingStrategy): masking strategy to use.
-            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
+            Must be one of `train_on_all`, `train_on_assistant`, `train_on_last`.
+
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
