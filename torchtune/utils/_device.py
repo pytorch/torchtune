@@ -68,6 +68,7 @@ def _setup_device(device: torch.device) -> torch.device:
 
     Raises:
         RuntimeError: If device index is not available.
+        AttributeError: If ``set_device`` is not supported for the device type (e.g. on MPS).
 
     Returns:
         device
@@ -85,6 +86,10 @@ def _setup_device(device: torch.device) -> torch.device:
     if device.index >= torch_device.device_count():
         raise RuntimeError(
             f"The local rank is larger than the number of available {device_name}s."
+        )
+    if not hasattr(torch_device, "set_device"):
+        raise AttributeError(
+            f"The device type {device_type} does not support the `set_device` method."
         )
     torch_device.set_device(device)
     return device
@@ -166,7 +171,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     if device is None:
         device = _get_device_type_from_env()
     device = torch.device(device)
-    if device.type in ["cuda", "npu", "xpu", "mps"]:
+    if device.type in ["cuda", "npu", "xpu"]:
         device = _setup_device(device)
     _validate_device_from_env(device)
     return device
