@@ -16,7 +16,7 @@
 # This config is only tested on an 8xA100 machine.
 #
 
-output_dir: /workspace/torchtune/llama3_3_70B/full # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/llama3_3_70B/full # /tmp may be deleted by your system. Change it to your preference.
 
 # Tokenizer
 tokenizer:
