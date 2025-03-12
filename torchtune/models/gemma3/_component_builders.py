@@ -16,8 +16,8 @@ from torchtune.modules import (
 )
 
 from torchtune.models.gemma2._attention import Gemma2Attention
-from torchtune.models.gemma.rms_norm import GemmaRMSNorm
-from torchtune.models.gemma3.qk_norm import QKNorm
+# It is different RMSNorm!
+from torchtune.models.gemma3.rmsnorm import GemmaRMSNorm 
 from torchtune.modules import TransformerDecoder, TiedLinear
 from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
@@ -233,8 +233,8 @@ def lora_gemma3(
             kv_cache=None,
             max_seq_len=max_seq_len,
             # QK-norm is required
-            k_norm=QKNorm(head_dim, eps=norm_eps),
-            q_norm=QKNorm(head_dim, eps=norm_eps),
+            k_norm=GemmaRMSNorm(head_dim, eps=norm_eps),
+            q_norm=GemmaRMSNorm(head_dim, eps=norm_eps),
             attn_dropout=attn_dropout,
             # perform global only on the each 6 layer, according to the tech-report
             sliding_window_size=sliding_window_size if (layer_idx % 6) != 0 or layer_idx == 0 else None,
@@ -384,8 +384,8 @@ def lora_gemma3_self_attention(
             attn_dropout=attn_dropout,
             sliding_window_size=sliding_window_size,
             # QK-norm is required
-            k_norm=QKNorm(head_dim, eps=norm_eps),
-            q_norm=QKNorm(head_dim, eps=norm_eps),
+            k_norm=GemmaRMSNorm(head_dim, eps=norm_eps),
+            q_norm=GemmaRMSNorm(head_dim, eps=norm_eps),
             softcapping=None,
             query_pre_attn_scalar=query_pre_attn_scalar
         )
