@@ -819,11 +819,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
             if self._model_type == ModelType.PHI3_MINI:
                 logger.warning(
-                    "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                    "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead."
                 )
             elif self._model_type == ModelType.LLAMA3_VISION:
                 logger.warning(
-                    "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                    "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead."
                 )
             else:
                 state_dict[
