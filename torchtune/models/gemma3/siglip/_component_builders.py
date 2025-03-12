@@ -5,21 +5,28 @@ from torch import nn
 from torchtune.modules import MultiHeadAttention, FeedForward
 
 
-def siglip_attention(dim: int, num_heads: int, head_dim: int) -> MultiHeadAttention:
+def siglip_attention(embed_dim: int, num_heads: int, head_dim: int) -> :
     """
     Builds the attention associated with the siglip model.
 
     Args:
-
+        embed_dim (int): embedding dimension for the model
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value
+        head_dim (int): dimension of each head, calculated by ``embed_dim // num_heads``.
+    Returns:
+        MultiHeadAttention: MultiHeadAttention instantiation according to the siglip paper.
     """
+    
+    # Standard MHA according to SigLIP paper.
     num_kv_heads = num_heads
-    q_proj = nn.Linear(dim, num_heads * head_dim, bias=True)
-    k_proj = nn.Linear(dim, num_kv_heads * head_dim, bias=True)
-    v_proj = nn.Linear(dim, num_kv_heads * head_dim, bias=True)
-    output_proj = nn.Linear(num_heads * head_dim, dim, bias=True)
+    q_proj = nn.Linear(embed_dim, num_heads * head_dim, bias=True)
+    k_proj = nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
+    v_proj = nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
+    output_proj = nn.Linear(num_heads * head_dim, embed_dim, bias=True)
 
     return MultiHeadAttention(
-        embed_dim=dim,
+        embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
         head_dim=head_dim,
@@ -36,9 +43,18 @@ def siglip_attention(dim: int, num_heads: int, head_dim: int) -> MultiHeadAttent
     )
 
 
-def siglip_mlp(hidden_size: int, intermediate_size: int) -> FeedForward:
-    gate_proj = nn.Linear(hidden_size, intermediate_size)
-    down_proj = nn.Linear(intermediate_size, hidden_size)
+def siglip_mlp(embed_dim: int, intermediate_dim: int) -> FeedForward:
+    """
+    Builds the MLP associated with the siglip model:
+    
+    Args:
+        embed_dim (int): embedding dimension for self-attention
+        intermediate_dim (int): intermediate dimension for MLP
+    Returns:
+        FeedForward: FeedForward instantiation according to the siglip paper.
+    """
+    gate_proj = nn.Linear(embed_dim, intermediate_dim)
+    down_proj = nn.Linear(intermediate_dim, embed_dim)
 
     siglip_mlp = FeedForward(
         gate_proj=gate_proj,
@@ -57,7 +73,7 @@ class SiglipAveragePooling(nn.Module):
 
     def forward(self, x):
         batch_size, seq_len, channels = x.shape
-        width = int(seq_len**0.5)
+        width = int(seq_len ** 0.5)
         if width * width != seq_len:
             raise ValueError(
                 f"Sequence length {seq_len} is not a perfect square. Cannot reshape to a square image."
@@ -74,21 +90,30 @@ class SiglipAveragePooling(nn.Module):
 class SiglipEncoderBlock(nn.Module):
     """
     Reference implementation: https://github.com/google/gemma_pytorch/blob/014acb7ac4563a5f77c76d7ff98f31b568c16508/gemma/siglip_vision/siglip_vision_model.py#L120
+    
+    Args:
+        embed_dim (int): embedding dimension for self-attention
+        intermediate_dim (int): intermediate dimension for the MLP
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value
+        head_dim (int): dimension of each head in the multihead attention. Usually
+            computed as ``embed_dim // num_heads``.
+        layer_norm_eps (float): epsilon in layer norms.
     """
 
     def __init__(
         self,
-        embedding_dim: int,
-        num_attention_heads: int,
+        embed_dim: int,
+        num_heads: int,
         head_dim: int,
-        intermediate_size: int,
+        intermediate_dim: int,
         layer_norm_eps: float,
     ):
         super().__init__()
-        self.self_attn = siglip_attention(embedding_dim, num_attention_heads, head_dim)
-        self.layer_norm1 = nn.LayerNorm(embedding_dim, eps=layer_norm_eps)
-        self.mlp = siglip_mlp(embedding_dim, intermediate_size)
-        self.layer_norm2 = nn.LayerNorm(embedding_dim, eps=layer_norm_eps)
+        self.self_attn = siglip_attention(embed_dim, num_heads, head_dim)
+        self.layer_norm1 = nn.LayerNorm(embed_dim, eps=layer_norm_eps)
+        self.mlp = siglip_mlp(embed_dim, intermediate_dim)
+        self.layer_norm2 = nn.LayerNorm(embed_dim, eps=layer_norm_eps)
 
     def forward(self, x):
         residual = x
@@ -106,18 +131,31 @@ class SiglipEncoderBlock(nn.Module):
 class SiglipVisionModel(nn.Module):
     """
     Reference implementation: https://github.com/google/gemma_pytorch/blob/014acb7ac4563a5f77c76d7ff98f31b568c16508/gemma/siglip_vision/siglip_vision_model.py#L151
+    
+    Args:
+        embed_dim (int): embedding dimension for self-attention
+        intermediate_dim (int): intermediate dimension for the MLP
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value
+        head_dim (int): dimension of each head in the multihead attention. Usually
+            computed as ``embed_dim // num_heads``.
+        layer_norm_eps (float): epsilon in layer norms.
+        embedding_use_bias (bool): whether embedding use bias,
+        input_channels (int): number of input channels.
+        patch_size (int): conv2d patch size.
+        image_size(int): size of the image.
     """
 
     def __init__(
         self,
         input_channels: int,
         embedding_dim: int,
-        conv2d_patch_size: int,
+        patch_size: int,
         image_size: int,
         num_hidden_layers: int,
-        num_attention_heads: int,
+        num_heads: int,
         head_dim: int,
-        intermediate_size: int,
+        intermediate_dim: int,
         layer_norm_eps: float,
         embedding_use_bias: bool,
     ):
@@ -127,12 +165,12 @@ class SiglipVisionModel(nn.Module):
         self.patch_embedding = nn.Conv2d(
             in_channels=input_channels,
             out_channels=embedding_dim,
-            kernel_size=conv2d_patch_size,
-            stride=conv2d_patch_size,
+            kernel_size=patch_size,
+            stride=patch_size,
             padding=0,
             bias=embedding_use_bias,
         )
-        self.num_patches = (image_size // conv2d_patch_size) ** 2
+        self.num_patches = (image_size // patch_size) ** 2
         self.num_positions = self.num_patches
         self.position_embedding = nn.Embedding(self.num_positions, embedding_dim)
         self.register_buffer(
@@ -144,9 +182,9 @@ class SiglipVisionModel(nn.Module):
         self.encoder_blocks = nn.ModuleList(
             SiglipEncoderBlock(
                 embedding_dim=embedding_dim,
-                num_attention_heads=num_attention_heads,
+                num_heads=num_heads,
                 head_dim=head_dim,
-                intermediate_size=intermediate_size,
+                intermediate_dim=intermediate_dim,
                 layer_norm_eps=layer_norm_eps,
             )
             for _ in range(num_hidden_layers)
