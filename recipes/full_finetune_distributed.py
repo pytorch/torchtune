@@ -241,7 +241,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            if self.epochs_run != ckpt_dict[training.EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for epochs_run does not match the checkpoint value, "
+                        f"using the config value: {self.epochs_run}"  # NOTE changed
+                    )
+                )
+                self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:

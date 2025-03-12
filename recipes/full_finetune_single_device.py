@@ -251,7 +251,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+
+            if self.epochs_run != ckpt_dict[training.EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for epochs_run does not match the checkpoint value, "
+                        f"using the config value: {self.epochs_run}"  # NOTE changed
+                    )
+                )
+                self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -266,10 +274,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 warn(
                     message=(
                         "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
+                        f"using the config value: {self.max_steps_per_epoch}"  # NOTE changed
                     )
                 )
-                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
             if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
@@ -341,9 +348,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
         if isinstance(cfg.dataset.get("_component_", None), str):
-            if cfg.dataset.get("_component_", None)[0]=='[' and cfg.dataset.get("_component_", None)[-1]==']':
+            if (
+                cfg.dataset.get("_component_", None)[0] == "["
+                and cfg.dataset.get("_component_", None)[-1] == "]"
+            ):
                 from omegaconf import OmegaConf
-                cfg.dataset["_component_"] = OmegaConf.create(cfg.dataset['_component_'])
+
+                cfg.dataset["_component_"] = OmegaConf.create(
+                    cfg.dataset["_component_"]
+                )
 
         cfg.dataset["split"] = "train"  # NOTE: added by us
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
@@ -363,7 +376,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._sampler_validation_list = []
         self._dataloader_validation_list = []
         if isinstance(cfg["validation_dataset"]["_component_"], ListConfig):
-            portions = [dataset['portion'] for dataset in cfg["validation_dataset"]["_component_"]]
+            portions = [
+                dataset["portion"]
+                for dataset in cfg["validation_dataset"]["_component_"]
+            ]
             for dataset in cfg["validation_dataset"]["_component_"]:
                 dataset["split"] = "validation"
                 sampler_validation, dataloader_validation = self._setup_data(
@@ -375,18 +391,37 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._sampler_validation_list.append(sampler_validation)
                 self._dataloader_validation_list.append(dataloader_validation)
             # downsample the validation using the portion property in the dataset config
-            for i in range(1,len(self._sampler_validation_list)): # hardcoding the first portion to be the training portion
+            for i in range(
+                1, len(self._sampler_validation_list)
+            ):  # hardcoding the first portion to be the training portion
                 if portions[i] == 0:
-                    sample_size = min(1028, int(len(self._dataloader_validation_list[i].dataset))) # hardcoding the default sample size to 1028 if the portion is 0
+                    sample_size = min(
+                        1028, int(len(self._dataloader_validation_list[i].dataset))
+                    )  # hardcoding the default sample size to 1028 if the portion is 0
                 else:
-                    sample_size = int(len(self._dataloader_validation_list[0].dataset) * portions[i] / (1-sum(portions[1:]))) # hardcoding the first portion to be the training portion
-    
+                    sample_size = int(
+                        len(self._dataloader_validation_list[0].dataset)
+                        * portions[i]
+                        / (1 - sum(portions[1:]))
+                    )  # hardcoding the first portion to be the training portion
+
                 if sample_size > len(self._dataloader_validation_list[i].dataset):
                     continue
                 random.seed(42)
-                subset = Subset(self._dataloader_validation_list[i].dataset, random.sample(range(len(self._dataloader_validation_list[i].dataset)), sample_size))
+                subset = Subset(
+                    self._dataloader_validation_list[i].dataset,
+                    random.sample(
+                        range(len(self._dataloader_validation_list[i].dataset)),
+                        sample_size,
+                    ),
+                )
                 collate_fn = _get_component_from_path(collate_name)
-                self._dataloader_validation_list[i] = DataLoader(subset, batch_size=cfg.batch_size,shuffle=False, collate_fn=collate_fn)
+                self._dataloader_validation_list[i] = DataLoader(
+                    subset,
+                    batch_size=cfg.batch_size,
+                    shuffle=False,
+                    collate_fn=collate_fn,
+                )
         else:
             cfg["validation_dataset"]["split"] = "validation"
             sampler_validation, dataloader_validation = self._setup_data(
@@ -675,9 +710,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             datasets = []
             for single_cfg_dataset in cfg_dataset["_component_"]:
                 single_cfg_dataset = DictConfig(
-                    convert_to_nested(
-                        deepcopy(single_cfg_dataset)
-                    )
+                    convert_to_nested(deepcopy(single_cfg_dataset))
                 )
 
                 portion = (
