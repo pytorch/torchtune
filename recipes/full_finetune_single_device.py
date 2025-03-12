@@ -259,7 +259,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         f"using the config value: {self.epochs_run}"  # NOTE changed
                     )
                 )
-                self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
