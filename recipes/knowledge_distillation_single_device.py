@@ -562,12 +562,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             drop_last=True,
         )
 
-        if dataloader_state_dict is not None:
-            dataloader.load_state_dict(dataloader_state_dict)
-            # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
-            # we need to force the dataloader to finish the last iteration before it's actually used
-            list(dataloader)
-
         return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
