@@ -17,3 +17,4 @@ def siglip_vision_model() -> SiglipVisionModel:
         intermediate_dim=4304,
         layer_norm_eps=1e-6,
     )
+    
