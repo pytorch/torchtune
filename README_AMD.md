@@ -68,8 +68,6 @@ If you are interested in running on different hardware or with different models,
 |:-:|:-:|:-:|:-:|:-:|
 | Llama 3.1 8B | Full finetune | 1x 4090 | 18.9 GiB | 1650 |
 | Llama 3.1 8B | Full finetune | 1x A6000 | 37.4 GiB |  2579|
-| Llama 3.1 8B | Full finetune | 8x MI300 (TW034) | 11.5 GiB |  2674|
-| Llama 3.1 8B | Full finetune | 1x MI300 (TW034) | 49.7  | 3037  |
 | Llama 3.1 8B | LoRA | 1x 4090 |  16.2 GiB | 3083 |
 | Llama 3.1 8B | LoRA | 1x A6000 | 30.3 GiB  | 4699 |
 | Llama 3.1 8B | QLoRA | 1x 4090 | 7.4 GiB | 2413  |
