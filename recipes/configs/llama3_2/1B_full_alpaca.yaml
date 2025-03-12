@@ -18,7 +18,7 @@
 # best to use 1B_full_single_device.yaml for those cases
 
 
-output_dir: /tmp/torchtune/llama3_2_1B/full # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /workspace/torchtune/llama3_2_1B/full # /tmp may be deleted by your system. Change it to your preference.
 
 # Tokenizer
 tokenizer:
