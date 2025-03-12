@@ -101,8 +101,8 @@ def gemma3(
             kv_cache=None,
             max_seq_len=max_seq_len,
             # QK-norm is required
-            k_norm=QKNorm(head_dim, eps=norm_eps),
-            q_norm=QKNorm(head_dim, eps=norm_eps),
+            k_norm=GemmaRMSNorm(head_dim, eps=norm_eps),
+            q_norm=GemmaRMSNorm(head_dim, eps=norm_eps),
             attn_dropout=attn_dropout,
             # perform global only on the each 6 layer, according to the tech-report
             sliding_window_size=sliding_window_size if (layer_idx % 6) != 0 or layer_idx == 0 else None,
