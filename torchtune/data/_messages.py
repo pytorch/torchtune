@@ -163,13 +163,9 @@ class InputOutputToMessages(Transform):
         | "user prompt"   | "model response" |
 
     Args:
-        masking_strategy (Optional[str]): masking strategy to use for model training.
-            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_assistant".
-            - ``train_on_all``: both user and assistant messages are unmasked
-            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
-            - ``train_on_last``: only the last assistant message is unmasked
-            Note: Multimodal user messages are always masked.
+        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
+            Deprecated parameter and will be removed in a future release.
+            Default is None.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "input"
             and "output" column names to the actual column names in the dataset. Keys should
             be "input" and "output" and values should be the actual column names. Default is None,
@@ -181,9 +177,13 @@ class InputOutputToMessages(Transform):
             was ``"images/1.jpg"``, the final image path that will be loaded is ``"/home/user/dataset/images/1.jpg"``.
             If None, assume images are available in current working directory or are located
             on a remote url. For text-only, leave as None. Default is None.
-        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
-            Deprecated parameter and will be removed in a future release.
-            Default is None.
+        masking_strategy (Optional[str]): masking strategy to use for model training.
+            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
+            Default is "train_on_assistant".
+            - ``train_on_all``: both user and assistant messages are unmasked
+            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+            - ``train_on_last``: only the last assistant message is unmasked
+            Note: Multimodal user messages are always masked.
 
     Raises:
         ValueError:
@@ -194,11 +194,11 @@ class InputOutputToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_assistant",
+        train_on_input: Optional[bool] = None,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
-        train_on_input: Optional[bool] = None,
+        masking_strategy: Optional[str] = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -316,12 +316,9 @@ class ChosenRejectedToMessages(Transform):
     turns of user and assistant messages.
 
     Args:
-        masking_strategy (Optional[str]): masking strategy to use for model training.
-            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_assistant".
-            - ``train_on_all``: both user and assistant messages are unmasked
-            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
-            - ``train_on_last``: only the last assistant message is unmasked
+        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
+            Deprecated parameter and will be removed in a future release.
+            Default is None.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected
             "chosen" and "rejected" column names to the actual column names in the dataset.
             Keys should be "chosen" and "rejected" and values should be the actual column names.
@@ -329,9 +326,12 @@ class ChosenRejectedToMessages(Transform):
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
-            Deprecated parameter and will be removed in a future release.
-            Default is None.
+        masking_strategy (Optional[str]): masking strategy to use for model training.
+            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
+            Default is "train_on_assistant".
+            - ``train_on_all``: both user and assistant messages are unmasked
+            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+            - ``train_on_last``: only the last assistant message is unmasked
 
     Raises:
         ValueError: If ``column_map`` is provided and ``chosen`` not in ``column_map``, or
@@ -340,10 +340,10 @@ class ChosenRejectedToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_assistant",
+        train_on_input: Optional[bool] = None,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
-        train_on_input: Optional[bool] = None,
+        masking_strategy: Optional[str] = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -431,13 +431,9 @@ class ShareGPTToMessages(Transform):
         ]
 
     Args:
-        masking_strategy (Optional[str]): masking strategy to use for model training.
-            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_assistant".
-            - ``train_on_all``: both user and assistant messages are unmasked
-            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
-            - ``train_on_last``: only the last assistant message is unmasked
-            Note: Multimodal user messages are always masked.
+        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
+            Deprecated parameter and will be removed in a future release.
+            Default is None.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. Key should be "conversations" and value should
             be the new column name. If None, keep the default "conversations".
@@ -453,9 +449,13 @@ class ShareGPTToMessages(Transform):
         image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by image
             special tokens. If images are present and this is None, then will prepend image tokens to the first
             user message in the sample by default. If text-only, this field is ignored. Default is ``"<image>"``.
-        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
-            Deprecated parameter and will be removed in a future release.
-            Default is None.
+        masking_strategy (Optional[str]): masking strategy to use for model training.
+            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
+            Default is "train_on_assistant".
+            - ``train_on_all``: both user and assistant messages are unmasked
+            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+            - ``train_on_last``: only the last assistant message is unmasked
+            Note: Multimodal user messages are always masked.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.
@@ -463,12 +463,12 @@ class ShareGPTToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_assistant",
+        train_on_input: Optional[bool] = None,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
         image_tag: Optional[str] = "<image>",
-        train_on_input: Optional[bool] = None,
+        masking_strategy: Optional[str] = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -600,13 +600,9 @@ class OpenAIToMessages(Transform):
         ]
 
     Args:
-        masking_strategy (Optional[str]): masking strategy to use for model training.
-            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
-            Default is "train_on_assistant".
-            - ``train_on_all``: both user and assistant messages are unmasked
-            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
-            - ``train_on_last``: only the last assistant message is unmasked
-            Note: Multimodal user messages are always masked.
+        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
+            Deprecated parameter and will be removed in a future release.
+            Default is None.
         column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("messages")
             to the new column names in the dataset. Key should be "messages" and value should be
             the new column name. If None, keep the default "messages".
@@ -614,9 +610,13 @@ class OpenAIToMessages(Transform):
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
-        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
-            Deprecated parameter and will be removed in a future release.
-            Default is None.
+        masking_strategy (Optional[str]): masking strategy to use for model training.
+            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
+            Default is "train_on_assistant".
+            - ``train_on_all``: both user and assistant messages are unmasked
+            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+            - ``train_on_last``: only the last assistant message is unmasked
+            Note: Multimodal user messages are always masked.
 
     Raises:
         ValueError: If ``column_map`` is provided and ``messages`` not in ``column_map``.
@@ -624,10 +624,10 @@ class OpenAIToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_assistant",
+        train_on_input: Optional[bool] = None,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
-        train_on_input: Optional[bool] = None,
+        masking_strategy: Optional[str] = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -730,18 +730,18 @@ class AlpacaToMessages(Transform):
     due to this custom logic.
 
     Args:
+        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
+            Deprecated parameter and will be removed in a future release.
+            Default is None.
+        column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
+            and "output" column names to the actual column names in the dataset. Default is None,
+            keeping the default column names.
         masking_strategy (Optional[str]): masking strategy to use for model training.
             Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.
             Default is "train_on_all".
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "instruction", "input",
-            and "output" column names to the actual column names in the dataset. Default is None,
-            keeping the default column names.
-        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.
-            Deprecated parameter and will be removed in a future release.
-            Default is None.
 
     Raises:
         ValueError:
@@ -751,9 +751,9 @@ class AlpacaToMessages(Transform):
 
     def __init__(
         self,
-        masking_strategy: Optional[str] = "train_on_all",
-        column_map: Optional[Dict[str, str]] = None,
         train_on_input: Optional[bool] = None,
+        column_map: Optional[Dict[str, str]] = None,
+        masking_strategy: Optional[str] = "train_on_all",
     ):
         if train_on_input is not None:
             warn(
