@@ -17,7 +17,7 @@ from torchtune.modules import (
 
 from torchtune.models.gemma2._attention import Gemma2Attention
 # It is different RMSNorm!
-from torchtune.models.gemma3.rmsnorm import GemmaRMSNorm 
+from torchtune.models.gemma.rms_norm import GemmaRMSNorm 
 from torchtune.modules import TransformerDecoder, TiedLinear
 from torchtune.models.gemma.gemma_norm_embedding import GemmaNormEmbeddings
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
