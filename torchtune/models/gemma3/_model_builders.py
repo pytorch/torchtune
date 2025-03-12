@@ -83,7 +83,7 @@ def lora_gemma3_1b(
         embed_dim=1152,
         intermediate_dim=6912,
         # 1B is exception in terms of max_seq_len
-        max_seq_len=32768,
+        max_seq_len=32_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
         sliding_window_size=512,
@@ -121,7 +121,7 @@ def gemma3_4b() -> TransformerDecoder:
         num_kv_heads=4,
         embed_dim=2560,
         intermediate_dim=10240,
-        max_seq_len=131072,
+        max_seq_len=128_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
         sliding_window_size=1024,
@@ -168,7 +168,7 @@ def lora_gemma3_4b(
         num_kv_heads=4,
         embed_dim=2560,
         intermediate_dim=10240,
-        max_seq_len=131072,
+        max_seq_len=128_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
         # LoRA params
@@ -207,7 +207,7 @@ def gemma3_12b() -> TransformerDecoder:
         num_kv_heads=4,
         embed_dim=3840,
         intermediate_dim=15360, # (embed_dim * 8) // 2
-        max_seq_len=131072,
+        max_seq_len=128_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
         sliding_window_size=1024,
@@ -254,7 +254,7 @@ def lora_gemma3_12b(
         num_kv_heads=4,
         embed_dim=3840,
         intermediate_dim=15360, # (embed_dim * 8) // 2
-        max_seq_len=131072,
+        max_seq_len=128_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
         sliding_window_size=1024,
@@ -292,7 +292,7 @@ def gemma3_27b() -> TransformerDecoder:
         num_kv_heads=16,
         embed_dim=5376,
         intermediate_dim=86016, # (embed_dim * 8) // 2
-        max_seq_len=131072,
+        max_seq_len=128_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
         sliding_window_size=1024,
@@ -339,7 +339,7 @@ def lora_gemma3_1b(
         num_kv_heads=16,
         embed_dim=5376,
         intermediate_dim=86016, # (embed_dim * 8) // 2
-        max_seq_len=131072,
+        max_seq_len=128_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
         sliding_window_size=1024,
