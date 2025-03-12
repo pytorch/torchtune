@@ -110,6 +110,7 @@ These are utilities that are common to and can be used by all modules.
    common_utils.local_kv_cache
    common_utils.disable_kv_cache
    common_utils.delete_kv_caches
+   common_utils.ScalableSoftmax
 
 
 Vision Transforms
