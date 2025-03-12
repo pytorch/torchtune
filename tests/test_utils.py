@@ -79,6 +79,22 @@ MESSAGE_SAMPLE = [
     ),
 ]
 
+MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
+]
+
+MESSAGE_SAMPLE_TRAIN_ON_LAST = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
+]
+
 
 class DummyTokenizer(ModelTokenizer, Transform):
     def __init__(self, max_seq_len: Optional[int] = None):

@@ -14,7 +14,9 @@ from tests.test_utils import (
     assert_dialogue_equal,
     CHAT_SAMPLE,
     MESSAGE_SAMPLE,
+    MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT,
     MESSAGE_SAMPLE_TRAIN_ON_INPUT,
+    MESSAGE_SAMPLE_TRAIN_ON_LAST,
 )
 from torchtune.data._messages import (
     AlpacaToMessages,
@@ -255,6 +257,23 @@ class TestChosenRejectedToMessages:
             ],
         }
 
+    @pytest.fixture
+    def multi_turn_sample(self):
+        return {
+            "maybe_chosen": [
+                {"role": "user", "content": "hello world"},
+                {"role": "assistant", "content": "hello world"},
+                {"role": "user", "content": "hello again world"},
+                {"role": "assistant", "content": "hello again world"},
+            ],
+            "maybe_rejected": [
+                {"role": "user", "content": "hello world"},
+                {"role": "assistant", "content": "bye world"},
+                {"role": "user", "content": "hello again world"},
+                {"role": "assistant", "content": "bye again world"},
+            ],
+        }
+
     def test_call(self, sample):
         transform = ChosenRejectedToMessages(
             column_map={
@@ -345,6 +364,87 @@ class TestChosenRejectedToMessages:
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
 
+    @pytest.mark.parametrize(
+        "masking_strategy, expected_masks",
+        [
+            (
+                "train_on_all",
+                [[False, False, False, False], [False, False, False, False]],
+            ),
+            (
+                "train_on_assistant",
+                [[True, False, True, False], [True, False, True, False]],
+            ),
+            ("train_on_last", [[True, True, True, False], [True, True, True, False]]),
+        ],
+    )
+    def test_call_masking_strategy_multi_turn(
+        self, multi_turn_sample, masking_strategy, expected_masks
+    ):
+        transform = ChosenRejectedToMessages(
+            column_map={
+                "chosen": "maybe_chosen",
+                "rejected": "maybe_rejected",
+            },
+            masking_strategy=masking_strategy,
+        )
+        actual = transform(multi_turn_sample)
+        expected_chosen = [
+            Message(
+                role="user",
+                content="hello world",
+                masked=expected_masks[0][0],
+                eot=True,
+            ),
+            Message(
+                role="assistant",
+                content="hello world",
+                masked=expected_masks[0][1],
+                eot=True,
+            ),
+            Message(
+                role="user",
+                content="hello again world",
+                masked=expected_masks[0][2],
+                eot=True,
+            ),
+            Message(
+                role="assistant",
+                content="hello again world",
+                masked=expected_masks[0][3],
+                eot=True,
+            ),
+        ]
+        assert_dialogue_equal(actual["chosen"], expected_chosen)
+
+        expected_rejected = [
+            Message(
+                role="user",
+                content="hello world",
+                masked=expected_masks[1][0],
+                eot=True,
+            ),
+            Message(
+                role="assistant",
+                content="bye world",
+                masked=expected_masks[1][1],
+                eot=True,
+            ),
+            Message(
+                role="user",
+                content="hello again world",
+                masked=expected_masks[1][2],
+                eot=True,
+            ),
+            Message(
+                role="assistant",
+                content="bye again world",
+                masked=expected_masks[1][3],
+                eot=True,
+            ),
+        ]
+        assert_dialogue_equal(actual["rejected"], expected_rejected)
+
     def test_system_prompt(self, sample):
         transform = ChosenRejectedToMessages(
             column_map={
@@ -398,6 +498,30 @@ class TestShareGPTToMessages:
             },
         ]
     }
+    multi_turn_samples = {
+        "conversations": [
+            {
+                "from": "system",
+                "value": CHAT_SAMPLE["system"],
+            },
+            {
+                "from": "human",
+                "value": CHAT_SAMPLE["user"],
+            },
+            {
+                "from": "gpt",
+                "value": CHAT_SAMPLE["assistant"],
+            },
+            {
+                "from": "human",
+                "value": CHAT_SAMPLE["user"],
+            },
+            {
+                "from": "gpt",
+                "value": CHAT_SAMPLE["assistant"],
+            },
+        ]
+    }
 
     def test_call(self):
         transform = ShareGPTToMessages()
@@ -422,6 +546,18 @@ class TestShareGPTToMessages:
     def test_call_masking_strategy(self, masking_strategy, expected_message):
         transform = ShareGPTToMessages(masking_strategy=masking_strategy)
         converted_messages = transform(self.samples)
+        assert_dialogue_equal(converted_messages["messages"], expected_message)
+
+    @pytest.mark.parametrize(
+        "masking_strategy, expected_message",
+        [
+            ("train_on_assistant", MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT),
+            ("train_on_last", MESSAGE_SAMPLE_TRAIN_ON_LAST),
+        ],
+    )
+    def test_call_masking_strategy_multi_turn(self, masking_strategy, expected_message):
+        transform = ShareGPTToMessages(masking_strategy=masking_strategy)
+        converted_messages = transform(self.multi_turn_samples)
         assert_dialogue_equal(converted_messages["messages"], expected_message)
 
     def test_system_prompt(self):
@@ -502,6 +638,31 @@ class TestOpenAIToMessages:
         ],
     }
 
+    multi_turn_samples = {
+        "messages": [
+            {
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
+            },
+            {
+                "role": "user",
+                "content": CHAT_SAMPLE["user"],
+            },
+            {
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
+            },
+            {
+                "role": "user",
+                "content": CHAT_SAMPLE["user"],
+            },
+            {
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
+            },
+        ],
+    }
+
     def test_call(self):
         transform = OpenAIToMessages()
         converted_messages = transform(self.samples)
@@ -552,6 +713,18 @@ class TestOpenAIToMessages:
         else:
             converted_messages = transform(self.samples)
             assert_dialogue_equal(converted_messages["messages"], expected_message)
+
+    @pytest.mark.parametrize(
+        "masking_strategy, expected_message",
+        [
+            ("train_on_assistant", MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT),
+            ("train_on_last", MESSAGE_SAMPLE_TRAIN_ON_LAST),
+        ],
+    )
+    def test_call_masking_strategy_multi_turn(self, masking_strategy, expected_message):
+        transform = OpenAIToMessages(masking_strategy=masking_strategy)
+        converted_messages = transform(self.multi_turn_samples)
+        assert_dialogue_equal(converted_messages["messages"], expected_message)
 
     def test_system_prompt(self):
         transform = OpenAIToMessages(new_system_prompt="you are a robot")
