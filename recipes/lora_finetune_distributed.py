@@ -700,7 +700,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        # NOTE: added by us - setting intermediate_checkpoint to True always, because we will resume
+        # training from the last checkpoint
+        # intermediate_checkpoint = epoch + 1 < self.total_epochs
+        intermediate_checkpoint = True
 
         utils.log_rank_zero(
             log,

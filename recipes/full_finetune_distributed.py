@@ -136,7 +136,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self.method=cfg.method
+        self.method = cfg.method
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
@@ -256,10 +256,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 warn(
                     message=(
                         "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
+                        f"using the config value: {self.max_steps_per_epoch}"  # NOTE changed
                     )
                 )
-                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
+                # self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
 
             # on mismatch, warn the user but allow the override
             if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
@@ -329,13 +329,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # setup after both of these are initialized
 
         if isinstance(cfg.dataset.get("_component_", None), str):
-            if cfg.dataset.get("_component_", None)[0]=='[' and cfg.dataset.get("_component_", None)[-1]==']':
-                cfg.dataset["_component_"] = OmegaConf.create(cfg.dataset['_component_'])
-
+            if (
+                cfg.dataset.get("_component_", None)[0] == "["
+                and cfg.dataset.get("_component_", None)[-1] == "]"
+            ):
+                cfg.dataset["_component_"] = OmegaConf.create(
+                    cfg.dataset["_component_"]
+                )
 
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        if self.method=="reinforce":
-            collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_reinforce")
+        if self.method == "reinforce":
+            collate_name = cfg.get(
+                "collate_fn", "torchtune.data.padded_collate_reinforce"
+            )
         cfg.dataset["split"] = "train"  # NOTE: added by us
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
@@ -350,7 +356,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._sampler_validation_list = []
         self._dataloader_validation_list = []
         if isinstance(cfg["validation_dataset"]["_component_"], ListConfig):
-            portions = [dataset['portion'] for dataset in cfg["validation_dataset"]["_component_"]]
+            portions = [
+                dataset["portion"]
+                for dataset in cfg["validation_dataset"]["_component_"]
+            ]
             for dataset in cfg["validation_dataset"]["_component_"]:
                 dataset["split"] = "validation"
                 sampler_validation, dataloader_validation = self._setup_data(
@@ -362,18 +371,37 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 self._sampler_validation_list.append(sampler_validation)
                 self._dataloader_validation_list.append(dataloader_validation)
             # downsample the validation using the portion property in the dataset config
-            for i in range(1,len(self._sampler_validation_list)): # hardcoding the first portion to be the training portion
+            for i in range(
+                1, len(self._sampler_validation_list)
+            ):  # hardcoding the first portion to be the training portion
                 if portions[i] == 0:
-                    sample_size = min(1028, int(len(self._dataloader_validation_list[i].dataset))) # hardcoding the default sample size to 1028 if the portion is 0
+                    sample_size = min(
+                        1028, int(len(self._dataloader_validation_list[i].dataset))
+                    )  # hardcoding the default sample size to 1028 if the portion is 0
                 else:
-                    sample_size = int(len(self._dataloader_validation_list[0].dataset) * portions[i] / (1-sum(portions[1:]))) # hardcoding the first portion to be the training portion
-    
+                    sample_size = int(
+                        len(self._dataloader_validation_list[0].dataset)
+                        * portions[i]
+                        / (1 - sum(portions[1:]))
+                    )  # hardcoding the first portion to be the training portion
+
                 if sample_size > len(self._dataloader_validation_list[i].dataset):
                     continue
                 random.seed(42)
-                subset = Subset(self._dataloader_validation_list[i].dataset, random.sample(range(len(self._dataloader_validation_list[i].dataset)), sample_size))
+                subset = Subset(
+                    self._dataloader_validation_list[i].dataset,
+                    random.sample(
+                        range(len(self._dataloader_validation_list[i].dataset)),
+                        sample_size,
+                    ),
+                )
                 collate_fn = _get_component_from_path(collate_name)
-                self._dataloader_validation_list[i] = DataLoader(subset, batch_size=cfg.batch_size,shuffle=False, collate_fn=collate_fn)
+                self._dataloader_validation_list[i] = DataLoader(
+                    subset,
+                    batch_size=cfg.batch_size,
+                    shuffle=False,
+                    collate_fn=collate_fn,
+                )
         else:
             cfg["validation_dataset"]["split"] = "validation"
             sampler_validation, dataloader_validation = self._setup_data(
@@ -734,9 +762,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             datasets = []
             for single_cfg_dataset in cfg_dataset["_component_"]:
                 single_cfg_dataset = DictConfig(
-                    convert_to_nested(
-                        deepcopy(single_cfg_dataset)
-                    )
+                    convert_to_nested(deepcopy(single_cfg_dataset))
                 )
 
                 portion = (
@@ -761,7 +787,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ds = config.instantiate(new_single_cfg_dataset, self._tokenizer)
             packed = new_single_cfg_dataset.get("packed", False)
 
-
         # if isinstance(cfg_dataset, ListConfig):
         #     datasets = [
         #         config.instantiate(single_cfg_dataset, self._tokenizer)
@@ -779,7 +804,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=self.seed
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -833,7 +858,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        # NOTE: added by us - setting intermediate_checkpoint to True always, because we will resume
+        # training from the last checkpoint
+        # intermediate_checkpoint = epoch + 1 < self.total_epochs
+        intermediate_checkpoint = True
 
         utils.log_rank_zero(
             log,
@@ -906,7 +934,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-    # Shape [b, s], needed for the loss not the model
+        # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
@@ -960,14 +988,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        # NOTE: added by us - sample just once at the beginning of the epoch loop
+        self._sampler.set_epoch(0)
+
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
+            # NOTE: removing it from here and putting it before the epoch loop
+            # because our epochs are not the same as the dataloader epochs
             for _sampler_validation in self._sampler_validation_list:
-                _sampler_validation.set_epoch(curr_epoch) # NOTE: added by us
+                _sampler_validation.set_epoch(curr_epoch)  # NOTE: added by us
 
             # NOTE: added by us
             # ------ Validation Step ------ #
@@ -996,10 +1028,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             continue
 
                         utils.batch_to_device(batch, self._device)
-                        # TODO: finish this feature
                         # try:
-                        if self.method=="reinforce":
-                            rewards=batch.pop("reward")
+                        if self.method == "reinforce":
+                            rewards = batch.pop("reward")
                         val_loss = self._loss_step(batch)
                         # except RuntimeError as e:
                         #     log.error(f"Error in validation loss computation: {e}")
@@ -1083,10 +1114,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Shape [b, s], needed for the loss not the model
                 labels = batch.pop("labels")
-                if self.method=="reinforce":
+                if self.method == "reinforce":
                     reward = batch.pop("reward")
                 else:
-                    reward=1
+                    reward = 1
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
@@ -1105,7 +1136,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
 
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens * reward
+                current_loss = (
+                    self._loss_fn(logits, labels) * current_num_tokens * reward
+                )
 
                 # free logits otherwise it peaks backward memory
                 del logits
