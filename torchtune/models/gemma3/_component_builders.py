@@ -46,7 +46,8 @@ def gemma3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
-    rope_base: int = 1_000_000,
+    local_rope_base: int = 10_000,
+    global_rope_base: int = 1_000_000,
     sliding_window_size: int = 1024,
     query_pre_attn_scalar:  Optional[int] = None,
 ) -> TransformerDecoder:
@@ -71,12 +72,14 @@ def gemma3(
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         norm_eps (float): epsilon in RMS norms Default: 1e-6
-        rope_base (int): base for the rotary positional embeddings. Default: 10_000
+        local_rope_base (int): base for the local rotary positional embeddings. Default: 10_000
+        global_rope_base (int): base for the global rotary positional embeddings. Default: 1_000_000
 
     Returns:
         TransformerDecoder: Instantiation of gemma model.
     """
-    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    local_rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=local_rope_base)
+    global_rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=global_rope_base)
     
     layers = torch.nn.ModuleList()
     for layer_idx in range(num_layers):
@@ -92,15 +95,16 @@ def gemma3(
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
-            pos_embeddings=rope,
+            # global rope is scaled
+            pos_embeddings=local_rope if (layer_idx % 6) != 0 or layer_idx == 0 else global_rope,
             kv_cache=None,
             max_seq_len=max_seq_len,
             # QK-norm is required
             k_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
             q_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
             attn_dropout=attn_dropout,
-            # perform sliding window only on the each 6 layer, according to the tech-report
-            sliding_window_size=sliding_window_size if (layer_idx % 6) == 0 and layer_idx != 0 else None,
+            # perform global only on the each 6 layer, according to the tech-report
+            sliding_window_size=sliding_window_size if (layer_idx % 6) != 0 or layer_idx == 0 else None,
             # we don't use softcapping in gemma3
             query_pre_attn_scalar=query_pre_attn_scalar
         )
@@ -146,7 +150,8 @@ def lora_gemma3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
-    rope_base: int = 1_000_000,
+    local_rope_base: int = 10_000,
+    global_rope_base: int = 1_000_000,
     sliding_window_size: int = 1024,
     query_pre_attn_scalar:  Optional[int] = None,
     # LoRA args
@@ -178,7 +183,8 @@ def lora_gemma3(
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         norm_eps (float): epsilon in RMS norms Default: 1e-6
-        rope_base (int): base for the rotary positional embeddings. Default: 10_000
+        local_rope_base (int): base for the local rotary positional embeddings. Default: 10_000
+        global_rope_base (int): base for the global rotary positional embeddings. Default: 1_000_000
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -196,6 +202,9 @@ def lora_gemma3(
     tok_embeddings = GemmaNormEmbeddings(vocab_size, embed_dim)
     output_proj = TiedLinear(tok_embeddings)
     
+    local_rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=local_rope_base)
+    global_rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=global_rope_base)
+    
     layers = nn.ModuleList()
     for layer_idx in range(num_layers):
         if apply_lora_to_mlp:
@@ -211,28 +220,27 @@ def lora_gemma3(
         else:
             mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
             
-        self_att = lora_gemma3_self_attention(
-            lora_modules=lora_attn_modules,
+        self_att = Gemma2Attention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            rope_base=rope_base,
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
+            # global rope is scaled
+            pos_embeddings=local_rope if (layer_idx % 6) != 0 or layer_idx == 0 else global_rope,
+            kv_cache=None,
             max_seq_len=max_seq_len,
-            attn_dropout=attn_dropout,
             # QK-norm is required
             k_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
             q_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-            # perform sliding window only on the each 6 layer, according to the tech-report
-            sliding_window_size=sliding_window_size if (layer_idx % 6) == 0 and layer_idx != 0 else None,
+            attn_dropout=attn_dropout,
+            # perform global only on the each 6 layer, according to the tech-report
+            sliding_window_size=sliding_window_size if (layer_idx % 6) != 0 or layer_idx == 0 else None,
             # we don't use softcapping in gemma3
-            softcapping=None,
-            query_pre_attn_scalar=query_pre_attn_scalar,
-            lora_rank=lora_rank,
-            lora_alpha=lora_alpha,
-            lora_dropout=lora_dropout,
-            use_dora = use_dora,
-            quantize_base = quantize_base,
+            query_pre_attn_scalar=query_pre_attn_scalar
         )
         
         layer = TransformerSelfAttentionLayer(
@@ -277,7 +285,6 @@ def lora_gemma3_self_attention(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
-    rope_base: int = 1_000_000,
     sliding_window_size: Optional[int] = None,
     query_pre_attn_scalar: Optional[int],
     # LoRA args
