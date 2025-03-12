@@ -5,7 +5,7 @@ from torch import nn
 from torchtune.modules import MultiHeadAttention, FeedForward
 
 
-def siglip_attention(embed_dim: int, num_heads: int, head_dim: int) -> :
+def siglip_attention(embed_dim: int, num_heads: int, head_dim: int) -> MultiHeadAttention:
     """
     Builds the attention associated with the siglip model.
 
@@ -149,7 +149,7 @@ class SiglipVisionModel(nn.Module):
     def __init__(
         self,
         input_channels: int,
-        embedding_dim: int,
+        embed_dim: int,
         patch_size: int,
         image_size: int,
         num_hidden_layers: int,
@@ -164,7 +164,7 @@ class SiglipVisionModel(nn.Module):
         # SigLiPFromPatches_0/siglip_encoder/embedding
         self.patch_embedding = nn.Conv2d(
             in_channels=input_channels,
-            out_channels=embedding_dim,
+            out_channels=embed_dim,
             kernel_size=patch_size,
             stride=patch_size,
             padding=0,
@@ -172,7 +172,7 @@ class SiglipVisionModel(nn.Module):
         )
         self.num_patches = (image_size // patch_size) ** 2
         self.num_positions = self.num_patches
-        self.position_embedding = nn.Embedding(self.num_positions, embedding_dim)
+        self.position_embedding = nn.Embedding(self.num_positions, embed_dim)
         self.register_buffer(
             "position_ids",
             torch.arange(self.num_positions).expand((1, -1)),
@@ -181,7 +181,7 @@ class SiglipVisionModel(nn.Module):
 
         self.encoder_blocks = nn.ModuleList(
             SiglipEncoderBlock(
-                embedding_dim=embedding_dim,
+                embed_dim=embed_dim,
                 num_heads=num_heads,
                 head_dim=head_dim,
                 intermediate_dim=intermediate_dim,
@@ -190,7 +190,7 @@ class SiglipVisionModel(nn.Module):
             for _ in range(num_hidden_layers)
         )
 
-        self.final_norm = nn.LayerNorm(embedding_dim, layer_norm_eps)
+        self.final_norm = nn.LayerNorm(embed_dim, layer_norm_eps)
         self.avg_pool = SiglipAveragePooling()
 
     @torch.inference_mode
