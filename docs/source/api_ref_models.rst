@@ -314,10 +314,10 @@ To download the Phi-4 instruct model:
     :toctree: generated/
     :nosignatures:
 
-    phi3.phi4_14b
-    phi3.lora_phi4_14b
-    phi3.qlora_phi4_14b
-    phi3.phi4_tokenizer
+    phi4.phi4_14b
+    phi4.lora_phi4_14b
+    phi4.qlora_phi4_14b
+    phi4.phi4_tokenizer
 
 phi-3
 -----
