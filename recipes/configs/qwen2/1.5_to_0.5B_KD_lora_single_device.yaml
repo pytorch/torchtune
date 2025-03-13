@@ -46,7 +46,7 @@ checkpointer:
 
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
+  checkpoint_dir: /tmp/torchtune/qwen2_1_5B/lora_single_device/epoch_0
   checkpoint_files: [
     model.safetensors
   ]

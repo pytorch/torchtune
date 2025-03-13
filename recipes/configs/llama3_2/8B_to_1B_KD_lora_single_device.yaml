@@ -51,7 +51,7 @@ save_adapter_weights_only: False
 # Teacher checkpoint
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_dir: /tmp/torchtune/llama3_1_8B/lora_single_device/epoch_0
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
