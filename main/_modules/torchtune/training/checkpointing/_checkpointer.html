@@ -979,10 +979,10 @@
             <span class="c1"># delete the state_dict to free up memory; TODO check if this del is needed</span>
             <span class="k">del</span> <span class="n">state_dict</span>
             <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
             <span class="n">log_rank_zero</span><span class="p">(</span>
                 <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
-                <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Converting Phi-3 Mini weights from HF format.&quot;</span>
+                <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Converting Phi weights from HF format.&quot;</span>
                 <span class="s2">&quot;Note that conversion of adapter weights into PEFT format is not supported.&quot;</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">phi3_hf_to_tune</span>
@@ -1110,7 +1110,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># convert the state_dict back to hf format; do this inplace</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
                 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.phi3._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="n">phi3_tune_to_hf</span>
 
                 <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_tune_to_hf</span><span class="p">(</span>
@@ -1266,9 +1266,9 @@
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="s2">&quot;Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead&quot;</span>
+                    <span class="s2">&quot;Saving Phi adapter weights to PEFT format is not supported, saving to torchtune format instead&quot;</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
@@ -1309,9 +1309,9 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="s2">&quot;PEFT integration for Phi-3 Mini is not supported, skipping adapter config save&quot;</span>
+                    <span class="s2">&quot;PEFT integration for Phi is not supported, skipping adapter config save&quot;</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>

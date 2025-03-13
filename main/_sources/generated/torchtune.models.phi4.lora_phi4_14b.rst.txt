@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.models.phi4
+
+
+lora_phi4_14b
+=============
+
+.. autofunction:: lora_phi4_14b

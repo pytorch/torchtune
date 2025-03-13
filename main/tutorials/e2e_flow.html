@@ -491,7 +491,7 @@ from the community seamlessly with torchtune.</p>
 <section id="finetune-your-model">
 <h2>Finetune your model<a class="headerlink" href="#finetune-your-model" title="Permalink to this heading">¶</a></h2>
 <p>First, let’s download a model using the tune CLI. The following command will download the <a class="reference external" href="https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/">Llama3.2 3B Instruct</a>
-model from the Hugging Face Hub and save it the local filesystem. Hugging Face uploaded the original
+model from the Hugging Face Hub and save it to the local filesystem. Hugging Face uploaded the original
 weights (<code class="docutils literal notranslate"><span class="pre">consolidated.00.pth</span></code>) and the weights compatible with the <a class="reference external" href="https://huggingface.co/docs/huggingface_hub/main/en/guides/integrations#frompretrained">from_pretrained()</a> API (<code class="docutils literal notranslate"><span class="pre">*.safetensors</span></code>).
 We don’t need both so we’ll ignore the original weights when downloading.</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ tune download meta-llama/Llama-3.2-3B-Instruct --ignore-patterns &quot;original/consolidated.00.pth&quot;
@@ -619,15 +619,15 @@ There are 3 types of folders:</p>
 <p>Let’s understand the files:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">adapter_model.safetensors</span></code> and <code class="docutils literal notranslate"><span class="pre">adapter_model.pt</span></code> are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">model-{}-of-{}.safetensors</span></code> are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set <code class="docutils literal notranslate"><span class="pre">save_adapter_weights_only=False</span></code>. In that case, we merge the merged base model with trained adapters, making inference easier.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model-{}-of-{}.safetensors</span></code> are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set <code class="docutils literal notranslate"><span class="pre">save_adapter_weights_only=False</span></code>. In that case, we merge the base model with trained adapters, making inference easier.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">adapter_config.json</span></code> is used by Huggingface PEFT when loading an adapter (more on that later);</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">model.safetensors.index.json</span></code> is used by Hugging Face <code class="docutils literal notranslate"><span class="pre">from_pretrained()</span></code> when loading the model weights (more on that later)</p></li>
-<li><p>All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending on .safetensors, .pth, .pt, .bin are ignored, making it lightweight.</p></li>
+<li><p>All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending in .safetensors, .pth, .pt, .bin are ignored, making it lightweight.</p></li>
 </ul>
 </section>
 <section id="evaluate-your-model">
 <h2>Evaluate your model<a class="headerlink" href="#evaluate-your-model" title="Permalink to this heading">¶</a></h2>
-<p>We’ve fine-tuned a model. But how well does this model really do? Let’s determine this through structured evaluation and playing around with it.</p>
+<p>We’ve fine-tuned a model. But how well does this model really do? Let’s determine this through structured evaluation and playing with it.</p>
 <section id="run-evals-using-eleutherai-s-eval-harness">
 <span id="eval-harness-label"></span><h3>Run evals using EleutherAI’s Eval Harness<a class="headerlink" href="#run-evals-using-eleutherai-s-eval-harness" title="Permalink to this heading">¶</a></h3>
 <p>torchtune integrates with
@@ -792,9 +792,8 @@ to those in the previously-linked table.</p>
 </section>
 <section id="use-your-model-in-the-wild">
 <span id="use-model-in-wild"></span><h2>Use your model in the wild<a class="headerlink" href="#use-your-model-in-the-wild" title="Permalink to this heading">¶</a></h2>
-<p>Let’s say we’re happy with how our model is performing at this point - we want to do something with it! Productionize for serving, publish on the Hugging Face Hub, etc.
-As we mentioned above, one of the benefits of handling of the checkpoint conversion is that you can directly work with standard formats. This helps
-with interoperability with other libraries since torchtune doesn’t add yet another format to the mix.</p>
+<p>Let’s say we’re happy with how our model is performing at this point - we want to do something with it! Productionize it for serving, publish on the Hugging Face Hub, etc.
+Since we handle checkpoint conversion, you can directly work with standard formats.</p>
 <section id="use-with-hugging-face-from-pretrained">
 <h3>Use with Hugging Face <code class="docutils literal notranslate"><span class="pre">from_pretrained()</span></code><a class="headerlink" href="#use-with-hugging-face-from-pretrained" title="Permalink to this heading">¶</a></h3>
 <p><strong>Case 1: Hugging Face using base model + trained adapters</strong></p>
@@ -858,8 +857,8 @@ It will look for the files <code class="docutils literal notranslate"><span clas
 <h3>Use with vLLM<a class="headerlink" href="#use-with-vllm" title="Permalink to this heading">¶</a></h3>
 <p><a class="reference external" href="https://docs.vllm.ai/en/latest/">vLLM</a> is a fast and easy-to-use library for LLM inference and serving. They include a lot of awesome features like
 state-of-the-art serving throughput, continuous batching of incoming requests, quantization, and speculative decoding.</p>
-<p>The library will load any .safetensors file. Since here we mixed both the full model weights and adapter weights, we have to delete the
-adapter weights to succesfully load it.</p>
+<p>The library will load any .safetensors file. Since we already merged the full model weights and adapter weights, we can safely delete the
+adapter weights (or move them) so that vLLM doesn’t get confused by those files.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rm</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">torchtune</span><span class="o">/</span><span class="n">llama3_2_3B</span><span class="o">/</span><span class="n">lora_single_device</span><span class="o">/</span><span class="n">base_model</span><span class="o">/</span><span class="n">adapter_model</span><span class="o">.</span><span class="n">safetensors</span>
 </pre></div>
 </div>

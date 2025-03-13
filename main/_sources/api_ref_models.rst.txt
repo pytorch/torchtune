@@ -299,6 +299,26 @@ To download the Qwen2 1.5B model, for example:
     qwen2.lora_qwen2_7b
     qwen2.qwen2_tokenizer
 
+phi-4
+-----
+
+Models from the `Phi-4 family <https://arxiv.org/abs/2412.08905>`_.
+
+To download the Phi-4 instruct model:
+
+.. code-block:: bash
+
+    tune download microsoft/phi-4 --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    phi4.phi4_14b
+    phi4.lora_phi4_14b
+    phi4.qlora_phi4_14b
+    phi4.phi4_tokenizer
+
 phi-3
 -----
 
