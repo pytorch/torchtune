@@ -37,7 +37,7 @@ for token_id in range(100267, 100352):
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
 
 
-class Phi4MiniTokenizer(ModelTokenizer, Transform):
+class Phi4Tokenizer(ModelTokenizer, Transform):
     """
     TikToken tokenizer configured with Phi4 (14B) special tokens.
 
