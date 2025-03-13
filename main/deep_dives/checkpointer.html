@@ -830,6 +830,8 @@ you’ll need to <strong>update</strong> the following fields in your configs:</
 <p>Notice that we do <strong>not</strong> change our checkpoint_dir or output_dir. Since we are resuming from checkpoint, we know
 to look for it in the output_dir.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># [... rest of the config...]</span>
+
 <span class="w">    </span><span class="c1"># checkpoint files. Note that you will need to update this</span>
 <span class="w">    </span><span class="c1"># section of the config with the intermediate checkpoint files</span>
 <span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
@@ -848,6 +850,7 @@ to look for it in the output_dir.</p>
 and <code class="docutils literal notranslate"><span class="pre">adapter_checkpoint</span></code>, which will be loaded from output_dir. We do not have to modify <code class="docutils literal notranslate"><span class="pre">checkpoint_files</span></code>,
 because the base model being loaded is still the same.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># [... rest of the config...]</span>
 
 <span class="w">    </span><span class="c1"># adapter_checkpoint. Note that you will need to update this</span>
 <span class="w">    </span><span class="c1"># section of the config with the intermediate checkpoint files</span>
