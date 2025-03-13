@@ -788,7 +788,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     index = int(filename.split("-")[1])
                     fqn_to_file_index_mapping[fqn] = index
                 storage_writer = _HuggingFaceStorageWriter(
-                    path=self._output_dir,
+                    path=os.path.join(self._output_dir, f"epoch_{epoch}"),
                     fqn_to_index_mapping=fqn_to_file_index_mapping,
                 )
                 save(
@@ -957,7 +957,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             self._checkpoint_dir,
             os.path.join(self._output_dir, f"epoch_{epoch}"),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
-            fs=self._fs,
         )
 
         # If the recipe state needs to be output, first remove the model state dict
