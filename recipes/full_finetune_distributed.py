@@ -161,11 +161,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.parallel_dims = training.ParallelDims(
             dp_replicate=data_replicate,
             dp_shard=data_shard,
-            cp=1,
             tp=self.tensor_parallel_dim,
-            pp=1,
             world_size=self.world_size,
-            enable_loss_parallel=False,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
 
@@ -603,9 +600,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ]
 
             if self.parallel_dims.dp_replicate_enabled:
-                dp_mesh_dim_names = ("dp_replicate", "dp_shard_cp")
+                dp_mesh_dim_names = ("dp_replicate", "dp_shard")
             else:
-                dp_mesh_dim_names = ("dp_shard_cp",)
+                dp_mesh_dim_names = ("dp_shard",)
 
             training.shard_model(
                 model=model,
