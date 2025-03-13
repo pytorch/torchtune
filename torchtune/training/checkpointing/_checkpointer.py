@@ -794,10 +794,22 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     storage_writer=storage_writer,
                 )
             else:
-                (
-                    split_state_dicts,
-                    total_size,
-                ) = self._generate_splits_for_sharded_state_dict(state_dict)
+                # split the state_dict into separate dicts, one for each output checkpoint file
+                # e.g. split_state_dicts= {
+                #       "0001": {"key1": tensor1, "key2": tensor2},
+                #       "0002": {"key3": tensor3}
+                #       }
+                split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
+                total_size = 0
+                for key, weight in state_dict[training.MODEL_KEY].items():
+                    cpt_idx = self._weight_map[key]
+
+                    # initialize dict
+                    if cpt_idx not in split_state_dicts:
+                        split_state_dicts[cpt_idx] = {}
+
+                    split_state_dicts[cpt_idx].update({key: weight})
+                    total_size += weight.numel() * weight.element_size()
 
                 # write the partitioned state dicts to the right checkpoint file
                 # e.g. model-00001-of-00004.safetensors, model-00002-of-00004.safetensors, etc
@@ -807,24 +819,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     # TODO: We should probably use the original shard name and just add a prefix
                     # however, having the SHARD_FNAME standardizes our checkpoints
                     shard_name = SHARD_FNAME.format(
-                        cpt_idx=f"{cpt_idx}".zfill(5),
-                        num_shards=f"{num_shards}".zfill(5),
+                    cpt_idx=f"{cpt_idx}".zfill(5), num_shards=f"{num_shards}".zfill(5)
                     )
                     map_original_name_to_new_name[cpt_idx] = shard_name
                     output_path = os.path.join(
                         self._output_dir, f"epoch_{epoch}", shard_name
                     )
-                    self._fs.mkdir(
-                        os.path.dirname(output_path), parents=True, exist_ok=True
-                    )
+                    self._fs.mkdir(os.path.dirname(output_path), exist_ok=True)
                     if not self._safe_serialization:
-                        output_path = output_path + ".bin"
+                        output_path = output_path = ".bin"
                         torch.save(model_state_dict, output_path)
                     else:
                         output_path = output_path + ".safetensors"
-                        save_file(
-                            model_state_dict, output_path, metadata={"format": "pt"}
-                        )
+                        save_file(model_state_dict, output_path, metadata={"format": "pt"})
 
                     logger.info(
                         "Model checkpoint of size "
@@ -855,7 +862,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "metadata": {"total_size": total_size},
                     "weight_map": weight_map,
                 }
-                with open(index_path, "w") as f:
+                with self._fs.open(index_path, "w") as f:
                     json.dump(index_data, f, indent=2)
 
         if training.ADAPTER_KEY in state_dict:

@@ -1,16 +1,9 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
-
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 from omegaconf import DictConfig
-
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
     set_model_state_dict,
@@ -28,11 +21,11 @@ class TrainingProgress:
     """
     This is training progress metadata.
     """
-
     seed: int
     epochs_run: int
     total_epochs: int
     max_steps_per_epoch: int
+    dataloader_state_dict: Optional[Dict[str, Any]] = None
 
     def state_dict(self) -> Dict[str, object]:
         return {
@@ -40,6 +33,7 @@ class TrainingProgress:
             training.EPOCHS_KEY: self.epochs_run,
             training.TOTAL_EPOCHS_KEY: self.total_epochs,
             training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+            training.DATALOADER_KEY: self.dataloader_state_dict,
         }
 
 
