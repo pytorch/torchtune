@@ -45,7 +45,9 @@ def phi4_tokenizer(
     prompt_template: Optional[_TemplateType] = None,
     truncation_type: str = "right",
 ) -> Phi4Tokenizer:
-    """Phi4 tokenizer.
+    """
+    Phi4 tokenizer.
+
     Args:
         vocab_path (str): Path to vocab.json.
         merges_path (str): Path to merges.txt.
