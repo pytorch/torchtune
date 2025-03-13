@@ -29,7 +29,7 @@ Finetune your model
 -------------------
 
 First, let's download a model using the tune CLI. The following command will download the `Llama3.2 3B Instruct <https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/>`_
-model from the Hugging Face Hub and save it the local filesystem. Hugging Face uploaded the original
+model from the Hugging Face Hub and save it to the local filesystem. Hugging Face uploaded the original
 weights (``consolidated.00.pth``) and the weights compatible with the `from_pretrained() <https://huggingface.co/docs/huggingface_hub/main/en/guides/integrations#frompretrained>`_ API (``*.safetensors``).
 We don't need both so we'll ignore the original weights when downloading.
 
@@ -168,15 +168,15 @@ There are 3 types of folders:
 Let's understand the files:
 
 - ``adapter_model.safetensors`` and ``adapter_model.pt`` are your LoRA trained adapter weights. We save a duplicated .pt version of it to facilitate resuming from checkpoint.
-- ``model-{}-of-{}.safetensors`` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the merged base model with trained adapters, making inference easier.
+- ``model-{}-of-{}.safetensors`` are your trained full model weights (not adapters). When LoRA finetuning, these are only present if we set ``save_adapter_weights_only=False``. In that case, we merge the base model with trained adapters, making inference easier.
 - ``adapter_config.json`` is used by Huggingface PEFT when loading an adapter (more on that later);
 - ``model.safetensors.index.json`` is used by Hugging Face ``from_pretrained()`` when loading the model weights (more on that later)
-- All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending on .safetensors, .pth, .pt, .bin are ignored, making it lightweight.
+- All other files were originally in the checkpoint_dir. They are automatically copied during training. Files over 100MiB and ending in .safetensors, .pth, .pt, .bin are ignored, making it lightweight.
 
 Evaluate your model
 -------------------
 
-We've fine-tuned a model. But how well does this model really do? Let's determine this through structured evaluation and playing around with it.
+We've fine-tuned a model. But how well does this model really do? Let's determine this through structured evaluation and playing with it.
 
 .. _eval_harness_label:
 
@@ -364,9 +364,8 @@ to those in the previously-linked table.
 Use your model in the wild
 --------------------------
 
-Let's say we're happy with how our model is performing at this point - we want to do something with it! Productionize for serving, publish on the Hugging Face Hub, etc.
-As we mentioned above, one of the benefits of handling of the checkpoint conversion is that you can directly work with standard formats. This helps
-with interoperability with other libraries since torchtune doesn't add yet another format to the mix.
+Let's say we're happy with how our model is performing at this point - we want to do something with it! Productionize it for serving, publish on the Hugging Face Hub, etc.
+Since we handle checkpoint conversion, you can directly work with standard formats.
 
 Use with Hugging Face ``from_pretrained()``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -439,8 +438,8 @@ Use with vLLM
 `vLLM <https://docs.vllm.ai/en/latest/>`_ is a fast and easy-to-use library for LLM inference and serving. They include a lot of awesome features like
 state-of-the-art serving throughput, continuous batching of incoming requests, quantization, and speculative decoding.
 
-The library will load any .safetensors file. Since here we mixed both the full model weights and adapter weights, we have to delete the
-adapter weights to succesfully load it.
+The library will load any .safetensors file. Since we already merged the full model weights and adapter weights, we can safely delete the
+adapter weights (or move them) so that vLLM doesn't get confused by those files.
 
 .. code-block:: python
 
