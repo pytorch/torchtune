@@ -1,9 +1,16 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Union
 
 import torch
 from omegaconf import DictConfig
+
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
     set_model_state_dict,
@@ -21,6 +28,7 @@ class TrainingProgress:
     """
     This is training progress metadata.
     """
+
     seed: int
     epochs_run: int
     total_epochs: int
