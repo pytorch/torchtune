@@ -54,7 +54,7 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  _component_: torchtune.datasets.alpaca_dataset
   packed: False  # True increases speed
 seed: null
 shuffle: True
