@@ -16,7 +16,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
-
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -576,10 +576,17 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
+        sampler = StatefulDistributedSampler(
+            ds,
+            num_replicas=1,
+            rank=0,
+            shuffle=shuffle,
+            seed=0,
+        )
         dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
-            shuffle=shuffle,
+            sampler=sampler,
             collate_fn=(
                 partial(
                     collate_fn,
@@ -593,6 +600,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             drop_last=True,
         )
 
+        print(dataloader_state_dict)
+        breakpoint()
+        if dataloader_state_dict is not None:
+            dataloader.load_state_dict(dataloader_state_dict)
+            # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
+            # we need to force the dataloader to finish the last iteration before it's actually used
+            list(dataloader)
         return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
