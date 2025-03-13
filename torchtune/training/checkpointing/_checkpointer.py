@@ -665,25 +665,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         return converted_state_dict
 
-    def _generate_splits_for_sharded_state_dict(state_dict: Dict[str, torch.Tensor]):
-        # split the state_dict into separate dicts, one for each output checkpoint file
-        # e.g. split_state_dicts= {
-        #       "0001": {"key1": tensor1, "key2": tensor2},
-        #       "0002": {"key3": tensor3}
-        #       }
-        split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
-        total_size = 0
-        for key, weight in state_dict[training.MODEL_KEY].items():
-            cpt_idx = self._weight_map[key]
-
-            # initialize dict
-            if cpt_idx not in split_state_dicts:
-                split_state_dicts[cpt_idx] = {}
-
-            split_state_dicts[cpt_idx].update({key: weight})
-            total_size += weight.numel() * weight.element_size()
-        return split_state_dicts, total_size
-
     def save_checkpoint(
         self,
         state_dict: Dict[str, Any],
