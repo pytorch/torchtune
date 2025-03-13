@@ -533,7 +533,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
                 policy_chosen_rejected_outputs = self.concatenated_forward(

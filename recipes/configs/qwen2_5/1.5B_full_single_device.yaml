@@ -2,7 +2,7 @@
 # using a Qwen2.5 1.5B
 #
 # This config assumes that you've run the following command before launching:
-#   tune download Qwen/Qwen2.5-1.5B-Instruct
+#   tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /tmp/Qwen2.5-1.5B-Instruct
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with:
