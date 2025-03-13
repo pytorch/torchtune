@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import gc
 import json
 import os
 import re
@@ -11,8 +12,6 @@ import time
 from concurrent.futures import Future
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Union
-
-import fsspec
 
 import torch
 import torch.distributed as dist
@@ -499,25 +498,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
             )
 
-    def _manually_merge_sharded_state_dicts(self):
-        # merged state_dict contains keys and weights from all the checkpoint files
-        merged_state_dict: Dict[str, torch.Tensor] = {}
-        # _checkpoint_paths are already sorted so simply enumerate to generate the right id
-        for cpt_idx, cpt_path in enumerate(self._checkpoint_paths):
-            state_dict = safe_torch_load(cpt_path)
-            for key, value in state_dict.items():
-                # Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption
-                # will break recipe code
-                if not isinstance(value, torch.Tensor):
-                    raise ValueError(
-                        f"Expected all values in the state dict to be torch.Tensor. "
-                        f"Found {type(value)} instead."
-                    )
-                # idx is written in the 4 digit format (eg: 0001, 0002, etc.)
-                self._weight_map[key] = f"{cpt_idx + 1:04}"
-            merged_state_dict.update(state_dict)
-        return merged_state_dict
-
     def load_checkpoint(self) -> Dict[str, Any]:
         """
         Load HF checkpoint from file.
@@ -538,11 +518,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         self._weight_map = {}
 
+        # merged state_dict contains keys and weights from all the checkpoint files
+        merged_state_dict: Dict[str, torch.Tensor] = {}
+
         # converted_state_dict is the final state_dict passed to the recipe after the
         # keys are converted into the torchtune format. This optionally also contains
         # the recipe state and adapter weights
         converted_state_dict: Dict[str, Dict[str, torch.Tensor]] = {}
-
         if self._enable_dcp:
             # DCP load using the storage reader
             hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
@@ -561,7 +543,23 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
             merged_state_dict = state_dict
         else:
-            merged_state_dict = self._manually_merge_sharded_state_dicts()
+            for cpt_idx, cpt_path in enumerate(self._checkpoint_paths):
+                state_dict = safe_torch_load(cpt_path)
+                for key, value in state_dict.items():
+                    # Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption
+                    # will break recipe code
+                    if not isinstance(value, torch.Tensor):
+                        raise ValueError(
+                        f"Expected all values in the state dict to be torch.Tensor. "
+                        f"Found {type(value)} instead."
+                        )
+                    # idx is written in the 4 digit format (eg: 0001, 0002, etc.)
+                    self._weight_map[key] = f"{cpt_idx + 1:04}"
+                merged_state_dict.update(state_dict)
+
+                # delete the state_dict to free up memory; TODO check if this del is needed
+                del state_dict
+                gc.collect()
 
         if self._model_type == ModelType.PHI3_MINI:
             log_rank_zero(
