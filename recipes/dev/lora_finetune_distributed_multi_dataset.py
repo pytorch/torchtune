@@ -314,6 +314,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_dataloader=cfg.dataloader,
             cfg_datasets=cfg.datasets,
             batch_size=cfg.batch_size,
+            dataloader_state_dict=(
+                checkpoint_dict[training.DATALOADER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -571,6 +576,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_dataloader: DictConfig,
         cfg_datasets: ListConfig,
         batch_size: int,
+        dataloader_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Loader:
         """
         Torchdata related setup happens here. Currently this recipe supports
