@@ -5,7 +5,7 @@
 #  tune download meta-llama/Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Llama-3.2-11B-Vision-Instruct --ignore-patterns "original/consolidated*"
 #
 # To launch, run the following command from root torchtune directory:
-#    tune run dev/generate_v2 --config llama3_2_vision/generation_v2
+#    tune run dev/generate_v2 --config llama3_2_vision/11B_generation_v2
 
 output_dir: ./
 

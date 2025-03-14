@@ -1,23 +1,21 @@
-# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
+# Config for single device LoRA finetuning in lora_finetune_single_device.py
 # using a Phi4 (14B) model
 #
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download microsoft/phi-4 --output-dir /tmp/phi-4 --hf-token <HF_TOKEN>
 #
-# To launch on 2 devices, run the following command from root:
-#   tune run --nproc_per_node 2 lora_finetune_distributed --config phi4/lora
+# To launch on a single device, run the following command from root:
+#   tune run lora_finetune_single_device --config phi4/14B_lora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 2 lora_finetune_distributed --config phi4/lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_single_device --config phi4/14B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# For single device LoRA finetuning please use mini_lora_single_device.yaml
-# or mini_qlora_single_device.yaml
+# This config works only for training on single device.
 
-output_dir: /tmp/torchtune/phi-4/lora # /tmp may be deleted by your system. Change it to your preference.
+output_dir: /tmp/torchtune/phi-4/14B_lora_single_device # /tmp may be deleted by your system. Change it to your preference.
 
 # Model arguments
 model:
@@ -31,7 +29,7 @@ model:
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.phi4.phi4_14b_tokenizer
+  _component_: torchtune.models.phi4.phi4_tokenizer
   vocab_path: /tmp/phi-4/vocab.json
   merges_path: /tmp/phi-4/merges.txt
   max_seq_len: null
@@ -50,7 +48,7 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: PHI3_MINI
+  model_type: PHI4
 resume_from_checkpoint: False
 save_adapter_weights_only: False
 
@@ -82,8 +80,10 @@ compile: False  # torch.compile the model + loss, True increases speed + decreas
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: False  # True reduces memory
+enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
+
+# Reduced precision
 dtype: bf16
 
 # Logging
@@ -93,14 +93,14 @@ metric_logger:
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
-
-# Profiler (disabled)
+# Showcase the usage of PyTorch profiler
+# Set enabled to False as it's only needed for debugging training
 profiler:
   _component_: torchtune.training.setup_torch_profiler
   enabled: False
 
   #Output directory of trace artifacts
-  output_dir: ${output_dir}/profiling_outputs
+  output_dir: /tmp/phi-4/profiling_outputs
 
   #`torch.profiler.ProfilerActivity` types to trace
   cpu: True
@@ -115,6 +115,6 @@ profiler:
   # `torch.profiler.schedule` options:
   # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
   wait_steps: 5
-  warmup_steps: 3
+  warmup_steps: 5
   active_steps: 2
   num_cycles: 1
