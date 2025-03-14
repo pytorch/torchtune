@@ -185,8 +185,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         #  resume from adapter_model ckpt
         self._adapter_checkpoint = get_adapter_checkpoint_path(
             output_dir=self._output_dir,
+            checkpoint_dir=self._checkpoint_dir,
             adapter_checkpoint=adapter_checkpoint,
-            should_load_recipe_state=self._should_load_recipe_state,
             pattern=r"^epoch_(\d+)",
         )
 
@@ -455,8 +455,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         #  resume from adapter_model ckpt
         self._adapter_checkpoint = get_adapter_checkpoint_path(
             output_dir=self._output_dir,
+            checkpoint_dir=self._checkpoint_dir,
             adapter_checkpoint=adapter_checkpoint,
-            should_load_recipe_state=self._should_load_recipe_state,
             pattern=r"^epoch_(\d+)",
         )
 
