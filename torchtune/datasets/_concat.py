@@ -54,11 +54,11 @@ class ConcatDataset(Dataset):
             source: vicgalle/alpaca-gpt4
             split: train
             train_on_input: True
-          - _component_: torchtune.datasets.instruct_dataset
-            source: samsum
-            column_map: {"output": "summary"}
-            split: train
+            packed: True
+          - _component_: torchtune.datasets.grammar_dataset
+            split: train[:1%]
             train_on_input: False
+            packed: True
 
     This class primarily focuses on providing a unified interface to access elements from multiple datasets,
     enhancing the flexibility in handling diverse data sources for training machine learning models.
