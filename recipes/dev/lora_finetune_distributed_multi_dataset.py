@@ -18,10 +18,10 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-
 from torchdata.nodes import Loader, StopCriteria
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
+
 from torchtune.data import padded_collate_packed
 from torchtune.data._utils import get_dataloader, get_multi_dataset, load_hf_dataset
 from torchtune.datasets._sft import SFTTransform
@@ -37,7 +37,6 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -277,6 +276,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
@@ -314,6 +314,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_dataloader=cfg.dataloader,
             cfg_datasets=cfg.datasets,
             batch_size=cfg.batch_size,
+            dataloader_state_dict=(
+                checkpoint_dict[training.DATALOADER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -489,11 +494,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
-                    m.lora_a.to_empty(device=lora_device)
-                    m.lora_b.to_empty(device=lora_device)
                     m.to_empty(device=lora_device)
                     m.initialize_parameters()
-                # RoPE is not covered in state dict
+
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
@@ -506,6 +509,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         for m in model.modules():
             if hasattr(m, "initialize_dora_magnitude"):
                 m.initialize_dora_magnitude()
+
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
@@ -543,6 +547,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             training.load_from_full_optimizer_state_dict(
+                self._model,
                 optimizer,
                 opt_state_dict,
                 self._device,
@@ -571,6 +576,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_dataloader: DictConfig,
         cfg_datasets: ListConfig,
         batch_size: int,
+        dataloader_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Loader:
         """
         Torchdata related setup happens here. Currently this recipe supports
@@ -689,14 +695,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        state_dict = self._model.state_dict()
-        if self._save_adapter_weights_only:
-            state_dict = get_adapter_state_dict(state_dict, device=None)
-
         cpu_state_dict = training.gather_cpu_state_dict(
-            state_dict,
+            self._model,
             self._is_rank_zero,
             device=self._device,
+            adapter_weights_only=self._save_adapter_weights_only,
         )
         utils.log_rank_zero(
             log,
@@ -706,6 +709,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if intermediate_checkpoint:
             utils.log_rank_zero(log, "Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
+                self._model,
                 self._optimizer,
                 self._is_rank_zero,
                 device=self._device,
@@ -748,6 +752,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
@@ -792,12 +797,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -919,8 +918,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
-            if self._is_rank_zero:
-                log.info(f"End of epoch {self.epochs_run}!")
+                if (
+                    (idx + 1) // self._gradient_accumulation_steps
+                ) == self.max_steps_per_epoch:
+                    break
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 

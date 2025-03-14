@@ -402,6 +402,8 @@ to look for it in the output_dir.
 .. code-block:: yaml
 
     checkpointer:
+        # [... rest of the config...]
+
         # checkpoint files. Note that you will need to update this
         # section of the config with the intermediate checkpoint files
         checkpoint_files: [
@@ -423,10 +425,11 @@ because the base model being loaded is still the same.
 .. code-block:: yaml
 
     checkpointer:
+        # [... rest of the config...]
 
         # adapter_checkpoint. Note that you will need to update this
         # section of the config with the intermediate checkpoint files
-        adapter_checkpoint: epoch_{YOUR_EPOCH}/adapter_model.safetensors
+        adapter_checkpoint: epoch_{YOUR_EPOCH}/adapter_model.pt
 
     # set to True if restarting training
     resume_from_checkpoint: True
