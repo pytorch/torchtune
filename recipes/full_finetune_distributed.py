@@ -158,10 +158,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
             )
-        if self.tensor_parallel_dim > 1 and cfg.optimizer.get("fused", False):
-            raise ValueError(
-                "Tensor parallelism is currently incompatible with fused optimizer."
-            )
 
         self.data_parallel_dim = self.world_size // self.tensor_parallel_dim
 
