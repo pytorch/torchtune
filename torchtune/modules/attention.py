@@ -289,10 +289,7 @@ class MultiHeadAttention(nn.Module):
             expand_shape = (b, self.num_kv_heads, q_per_kv, -1, self.head_dim)
             k = k.unsqueeze(2).expand(expand_shape).flatten(1, 2)
             v = v.unsqueeze(2).expand(expand_shape).flatten(1, 2)
-        if mask is not None:
-            import pdb
 
-            pdb.set_trace()
         output = self._attention_call(
             q,
             k,

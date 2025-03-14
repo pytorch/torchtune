@@ -161,6 +161,7 @@ def padded_collate_sft(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+    pad_to_multiple_of: Optional[int] = None,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
@@ -169,6 +170,8 @@ def padded_collate_sft(
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
+        pad_to_multiple_of (Optional[int]): If not None, pad the sequence to a multiple of this number.
+            This is useful for proper sharding with e.g. SequenceParallel.
 
     Returns:
         Dict[str, torch.Tensor]: Collated input and label tensors.
@@ -212,6 +215,20 @@ def padded_collate_sft(
             input_ids,
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
+        )
+
+    # Pad to multiple of N
+    if pad_to_multiple_of is not None:
+
+        input_ids = F.pad(
+            input_ids,
+            (0, pad_to_multiple_of - (input_ids_seq_len % pad_to_multiple_of)),
+            value=padding_idx,
+        )
+        labels = F.pad(
+            labels,
+            (0, pad_to_multiple_of - (labels_seq_len % pad_to_multiple_of)),
+            value=ignore_idx,
         )
     return {"tokens": input_ids.long(), "labels": labels.long()}
 
