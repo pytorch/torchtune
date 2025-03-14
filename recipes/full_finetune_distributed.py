@@ -716,7 +716,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             and collate_fn != "torchtune.data.padded_collate_sft"
             and not packed
         ):
-            raise RuntimeError("TODO: ERROR MESSAGE")
+            raise RuntimeError(
+                "For tensor parallel, use padded_collate_sft or packed dataset"
+            )
 
         collate_args = {}
         if (
