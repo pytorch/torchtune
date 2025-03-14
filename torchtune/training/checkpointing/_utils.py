@@ -404,86 +404,6 @@ def copy_files(
     return
 
 
-def get_recipe_checkpoint_path(
-    output_dir: Path,
-    recipe_checkpoint: Optional[str] = None,
-    should_load_recipe_state: bool = False,
-) -> Optional[Path]:
-    """
-    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.
-    This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
-
-    Args:
-        output_dir (Path): Directory containing the recipe checkpoint.
-        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
-        should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.
-    Returns:
-        Optional[Path]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.
-    Raises:
-        ValueError: If should_load_recipe_state is True and the recipe checkpoint file is missing.
-    """
-    if not should_load_recipe_state:
-        return None
-
-    recipe_checkpoint_path = None
-    if recipe_checkpoint:
-        recipe_checkpoint_path = os.path.join(output_dir, recipe_checkpoint)
-    else:
-        recipe_checkpoint_path = os.path.join(
-            output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
-        )
-
-    # TODO: improve this msg
-    if not recipe_checkpoint_path or not os.path.exists(recipe_checkpoint_path):
-        raise ValueError(
-            "If should_load_recipe_state is True, recipe_checkpoint file must be provided."
-        )
-
-    return Path(recipe_checkpoint_path)
-
-
-def get_adapter_checkpoint_path(
-    output_dir: Path,
-    adapter_checkpoint: Optional[str] = None,
-    should_load_recipe_state: bool = False,
-    pattern: str = r"^epoch_(\d+)",
-) -> Optional[Path]:
-    r"""
-    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.
-    This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
-
-    Args:
-        output_dir (Path): Directory containing the adapter checkpoint.
-        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.
-        should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.
-        pattern (str): Regex pattern to match the epoch folder. Defaults to "epoch_(\d+)".
-
-    Returns:
-        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
-    """
-    if not should_load_recipe_state:
-        return None
-
-    adapter_checkpoint_path = None
-
-    if adapter_checkpoint:
-        adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
-        # TODO: add error if it doesnt exist
-    else:
-        # Look for the latest adapter checkpoint in the output directory
-        largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
-        if largest_iter_folder is None:
-            return None
-
-        tentative_adapter_checkpoint_path = os.path.join(
-            output_dir, largest_iter_folder, "adapter_model.pt"
-        )
-        if os.path.exists(tentative_adapter_checkpoint_path):
-            adapter_checkpoint_path = tentative_adapter_checkpoint_path
-
-    return Path(adapter_checkpoint_path) if adapter_checkpoint_path else None
-
-
 def get_model_checkpoint_path(
     checkpoint_files: Union[List[str], Dict[str, str]],
     checkpoint_dir: Union[str, Path],
@@ -601,6 +521,37 @@ def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
         )
 
     return True
+
+
+def get_most_recent_checkpoint(dir: Path) -> Optional[Path]:
+    """
+    Return the most recent checkpoint in the given directory.
+    The function assumes that the checkpoint files are named in the format "epoch_{epoch_number}" or "step_{step_number}".
+    The function will return None if no checkpoint files are found in the directory.
+
+    Args:
+        dir (Path): The directory containing the checkpoints.
+
+    Returns:
+        Optional[Path]: The path to the most recent checkpoint, or None if no checkpoints are found.
+    """
+    # First, check for epochs
+    checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^epoch_(\d+)")
+
+    # If no epochs found, check for steps
+    if not checkpoints:
+        checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^step_(\d+)")
+
+    # If no steps found, return None
+    if not checkpoints:
+        return None
+
+    # Finally, loop through checkpoints and return the most recent (non-empty) one
+    checkpoints.sort(key=lambda x: int(x.name.split("_")[-1]))
+    while checkpoints:
+        ckpt = checkpoints.pop()
+        if any(ckpt.iterdir()):
+            return ckpt
 
 
 def get_all_checkpoints_in_dir(
