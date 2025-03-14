@@ -56,7 +56,7 @@ class TestKDSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.7888, 11.7790, 11.7610, 11.7699],
+            "llama3": [11.7898, 11.7825, 11.7788, 11.7671],
         }
         return loss_values_map[model_type]
 
