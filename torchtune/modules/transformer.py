@@ -665,6 +665,7 @@ class TransformerDecoder(nn.Module):
         return output
 
     def unembed(self, h):
+        torch.distributed.breakpoint()
         # shape: [b, s, d]
         h = self.norm(h)
 

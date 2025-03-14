@@ -5,18 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-
+import torch.nn.functional as F
 from torch import nn
 
 
 class RMSNorm(nn.Module):
     """
-    Implements Root Mean Square Normalization introduced in
-    https://arxiv.org/abs/1910.07467.
+    Root Mean Square Normalization in fp32.
 
-    Reference implementation (used for correctness verification)
-    can be found here:
-    https://github.com/facebookresearch/llama/blob/main/llama/model.py
+    See: https://pytorch.org/docs/stable/generated/torch.nn.RMSNorm.html
 
     Args:
         dim (int): embedding size
@@ -25,6 +22,7 @@ class RMSNorm(nn.Module):
 
     def __init__(self, dim: int, eps: float = 1e-6) -> None:
         super().__init__()
+        self.normalized_shape = (dim,)
         self.eps = eps
         self.scale = nn.Parameter(torch.ones(dim))
 
