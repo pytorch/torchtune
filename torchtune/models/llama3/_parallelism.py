@@ -6,7 +6,6 @@
 
 from typing import Dict
 
-from torch.distributed._tensor import Replicate
 from torch.distributed.tensor import Replicate, Shard
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
