@@ -18,6 +18,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -546,10 +547,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
+        sampler = StatefulDistributedSampler(
+            ds,
+            num_replicas=1,
+            rank=0,
+            shuffle=shuffle,
+            seed=0,
+        )
         dataloader = StatefulDataLoader(
             dataset=ds,
-            shuffle=shuffle,
             batch_size=batch_size,
+            sampler=sampler,
             collate_fn=(
                 partial(
                     collate_fn,
@@ -562,11 +570,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-        if dataloader_state_dict is not None:
-            dataloader.load_state_dict(dataloader_state_dict)
-            # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
-            # we need to force the dataloader to finish the last iteration before it's actually used
-            list(dataloader)
+
         return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
@@ -675,6 +679,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
                 pbar = tqdm(total=self._steps_per_epoch)
+                self._dataloader.sampler.set_epoch(curr_epoch)
                 for idx, batch in enumerate(self._dataloader):
                     # Start tracking CUDA memory for active steps for just the first epoch
                     if (
