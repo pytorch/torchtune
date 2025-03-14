@@ -160,7 +160,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
         if self.tensor_parallel_dim > 1 and cfg.optimizer.get("fused", False):
             raise ValueError(
-                "2D parallelism is currently incompatible with fused optimizer."
+                "Tensor parallelism is currently incompatible with fused optimizer."
             )
 
         self.data_parallel_dim = self.world_size // self.tensor_parallel_dim
