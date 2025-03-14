@@ -503,11 +503,11 @@
 <span class="sd">            source: vicgalle/alpaca-gpt4</span>
 <span class="sd">            split: train</span>
 <span class="sd">            train_on_input: True</span>
-<span class="sd">          - _component_: torchtune.datasets.instruct_dataset</span>
-<span class="sd">            source: samsum</span>
-<span class="sd">            column_map: {&quot;output&quot;: &quot;summary&quot;}</span>
-<span class="sd">            split: train</span>
+<span class="sd">            packed: True</span>
+<span class="sd">          - _component_: torchtune.datasets.grammar_dataset</span>
+<span class="sd">            split: train[:1%]</span>
 <span class="sd">            train_on_input: False</span>
+<span class="sd">            packed: True</span>
 
 <span class="sd">    This class primarily focuses on providing a unified interface to access elements from multiple datasets,</span>
 <span class="sd">    enhancing the flexibility in handling diverse data sources for training machine learning models.</span>

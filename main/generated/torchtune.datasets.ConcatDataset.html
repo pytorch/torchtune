@@ -495,11 +495,11 @@ derived from <a class="reference external" href="https://pytorch.org/docs/stable
     <span class="n">source</span><span class="p">:</span> <span class="n">vicgalle</span><span class="o">/</span><span class="n">alpaca</span><span class="o">-</span><span class="n">gpt4</span>
     <span class="n">split</span><span class="p">:</span> <span class="n">train</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="kc">True</span>
-  <span class="o">-</span> <span class="n">_component_</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">instruct_dataset</span>
-    <span class="n">source</span><span class="p">:</span> <span class="n">samsum</span>
-    <span class="n">column_map</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;summary&quot;</span><span class="p">}</span>
-    <span class="n">split</span><span class="p">:</span> <span class="n">train</span>
+    <span class="n">packed</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="o">-</span> <span class="n">_component_</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">grammar_dataset</span>
+    <span class="n">split</span><span class="p">:</span> <span class="n">train</span><span class="p">[:</span><span class="mi">1</span><span class="o">%</span><span class="p">]</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="kc">False</span>
+    <span class="n">packed</span><span class="p">:</span> <span class="kc">True</span>
 </pre></div>
 </div>
 <p>This class primarily focuses on providing a unified interface to access elements from multiple datasets,
