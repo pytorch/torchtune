@@ -494,11 +494,14 @@ def padded_collate_packed(
     tokens = torch.stack([x["tokens"] for x in batch])
     labels = torch.stack([x["labels"] for x in batch])
     input_pos = torch.stack([x["input_pos"] for x in batch])
-    seq_lens = [x["seq_lens"] for x in batch]
 
-    block_mask = packed_block_causal_mask(
-        seq_lens=seq_lens,
-    )
+    block_mask = torch.stack([x["mask"] for x in batch])
+
+    # seq_lens = [x["seq_lens"] for x in batch]
+
+    # block_mask = packed_block_causal_mask(
+    #     seq_lens=seq_lens,
+    # )
 
     return {
         "tokens": tokens,

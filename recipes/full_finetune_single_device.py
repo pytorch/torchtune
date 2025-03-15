@@ -321,9 +321,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # by the dataloader, the max_steps_per_epoch param set by the user and the
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
+        self._steps_per_epoch = 1000
+        # self._steps_per_epoch = (
+        #     len(self._dataloader) // self._gradient_accumulation_steps
+        # )
         if (
             self.max_steps_per_epoch is not None
             and self.max_steps_per_epoch < self._steps_per_epoch
@@ -591,6 +592,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
+            prefetch_factor=8,
+            num_workers=8,
+            persistent_workers=True,
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
