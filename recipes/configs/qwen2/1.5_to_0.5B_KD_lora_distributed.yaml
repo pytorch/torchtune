@@ -46,9 +46,9 @@ checkpointer:
 
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
-    hf_model_0001_0.pt
+    model.safetensors
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}

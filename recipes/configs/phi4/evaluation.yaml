@@ -14,17 +14,21 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/phi-4
   checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors
+    model-00001-of-00006.safetensors,
+    model-00002-of-00006.safetensors,
+    model-00003-of-00006.safetensors,
+    model-00004-of-00006.safetensors,
+    model-00005-of-00006.safetensors,
+    model-00006-of-00006.safetensors,
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: PHI3_MINI
+  model_type: PHI4
 resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.phi4.phi4_14b_tokenizer
+  _component_: torchtune.models.phi4.phi4_tokenizer
   vocab_path: /tmp/phi-4/vocab.json
   merges_path: /tmp/phi-4/merges.txt
   max_seq_len: null

@@ -154,7 +154,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
             )
-
+            
         data_shard = cfg.get("dp_shard", self.world_size // self.tensor_parallel_dim)
         data_replicate = cfg.get("dp_replicate", 1)
 
@@ -174,6 +174,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
         else:
             self.dp_degree, self.dp_rank = 1, 0
+            
+        if self.tensor_parallel_dim > 1 and cfg.optimizer.get("fused", False):
+            raise ValueError(
+                "Tensor parallelism is currently incompatible with fused optimizer."
+            )
 
         # Logging attributes
         self._output_dir = cfg.output_dir
@@ -751,11 +756,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-        if dataloader_state_dict is not None:
-            dataloader.load_state_dict(dataloader_state_dict)
-            # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
-            # we need to force the dataloader to finish the last iteration before it's actually used
-            list(dataloader)
+
         return dataloader
 
     def train(self) -> None:
