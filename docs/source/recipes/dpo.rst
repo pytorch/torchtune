@@ -81,6 +81,8 @@ If this is not sufficient and you need to compute additional values from the log
 
 Refer to the TRL library for reference implementations of the desired losses. In particular, you may find useful loss calculations in trainers.
 
+In case, if you don't want to calculate reference values, you can add `is_reference_free: True` to the loss definition in the recipe.
+
 For a deeper understanding of the different levers you can pull when using this recipe,
 see our documentation for the different PEFT training paradigms we support:
 
