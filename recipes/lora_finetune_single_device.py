@@ -297,9 +297,38 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if self._compile:
             self._loss_fn = training.compile_loss(self._loss_fn)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
+        # save the name of the loss class to reuse later
+        self.loss_class_name = (
+            self._loss_fn._orig_mod.__class__.__name__
+            if hasattr(self._loss_fn, "_orig_mod")
+            else self._loss_fn.__class__.__name__
+        )
+
+        if self.loss_class_name == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        elif self.loss_class_name == "LinearCrossEntropy":
+            # LCE doesn't call forward method of the class, but rather multiples embeddings with output weights.
+            # This is why PEFT methods (that use additional weights with custom logic) are not supported in LCE.
+            if isinstance(
+                self._model.output, (modules.peft.LoRALinear, modules.peft.DoRALinear)
+            ):
+                raise ValueError(
+                    "PEFT (LoRA/DoRA) applied to output is not supported with LinearCrossEntropy."
+                )
+
+            # LCE does multiplication of embeddings with output weights by itself in an efficient way.
+            # Thus we need to disable the forward method of the output layer.
+            if isinstance(self._model.output, nn.Linear):
+                self._model.output.forward = lambda x: x
+                self._output_weights = self._model.output.weight
+            elif isinstance(self._model.output, modules.TiedLinear):
+                self._model.output.linear.forward = lambda x, _: x
+                self._output_weights = self._model.output.tied_module.weight
+            else:
+                raise ValueError(
+                    f"`{type(self._model.output)}` for output layer is not supported with LinearCrossEntropy."
+                )
 
         log.info("Loss is initialized.")
 
@@ -653,7 +682,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             labels = labels.reshape(-1)
             logits = logits.reshape(-1, logits.size(-1))
 
-        loss = self._loss_fn(logits, labels)
+        if self.loss_class_name == "LinearCrossEntropy":
+            # LCE doesn't materialize logits in the global memory, but instead multiples embeddings with output weights
+            # in the shared memory and calculates loss. This is done to save memory.
+            # This is why we need to provide embeddings (logits), output weights and labels.
+            logits = logits.type_as(self._output_weights)
+            loss = self._loss_fn(logits, self._output_weights, labels)
+        else:
+            loss = self._loss_fn(logits, labels)
 
         # free logits otherwise it peaks backward memory
         del logits
