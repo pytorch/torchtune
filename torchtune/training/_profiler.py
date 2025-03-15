@@ -103,7 +103,7 @@ def trace_handler(
 
     exporter = tensorboard_trace_handler(
         curr_trace_dir,
-        worker_name=f"r0-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}",
+        worker_name=f"r{rank}-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}",
         use_gzip=True,
     )
     exporter(prof)
