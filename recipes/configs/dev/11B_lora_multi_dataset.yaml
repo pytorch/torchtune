@@ -5,11 +5,11 @@
 #   tune download meta-llama/Llama-3.2-11B-Vision-Instruct --output-dir /tmp/Llama-3.2-11B-Vision-Instruct --ignore-patterns "original/consolidated*"
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nproc_per_node 2 lora_finetune_distributed_multi_dataset --config llama3_2_vision/11B_lora_multi_dataset
+#   tune run --nproc_per_node 2 dev/lora_finetune_distributed_multi_dataset --config dev/11B_lora_multi_dataset
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training:
-#   tune run --nproc_per_node 2 lora_finetune_distributed_multi_dataset --config llama3_2_vision/11B_lora_multi_dataset checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 2 dev/lora_finetune_distributed_multi_dataset --config dev/11B_lora_multi_dataset checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # For single device LoRA finetuning please use 11B_lora_single_device.yaml
@@ -116,7 +116,6 @@ enable_activation_checkpointing: True
 dtype: bf16
 
 # Logging
-output_dir: /tmp/lora-llama3.2-vision-finetune
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}/logs
