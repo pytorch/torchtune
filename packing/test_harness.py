@@ -18,25 +18,27 @@ from torchtune.models.llama3 import llama3_tokenizer
 
 
 def run_packing_strategy(
-    dataset, max_seq_len, padding_idx, buffer_size, strategy_name, num_bins=None
+    max_seq_len, padding_idx, buffer_size, strategy_name, num_bins=None
 ):
     """Run a packing strategy and compute statistics."""
+
     if strategy_name == "Sort Min-Max":
+        dataset = alpaca_dataset(tokenizer=tokenizer, packed=False, split="train[:5%]")
         packed_dataset = SortPackedDataset(
             dataset, max_seq_len, padding_idx, buffer_size
         )
     elif strategy_name == "FIFO with Buffer":
+        dataset = alpaca_dataset(tokenizer=tokenizer, packed=False, split="train[:5%]")
         packed_dataset = FIFOBufferPackedDataset(
             dataset, max_seq_len, padding_idx, buffer_size
         )
     elif strategy_name == "FIFO with Bins":
+        dataset = alpaca_dataset(tokenizer=tokenizer, packed=False, split="train[:5%]")
         packed_dataset = FIFOBinsPackedDataset(
             dataset, max_seq_len, padding_idx, buffer_size, num_bins=num_bins
         )
     elif strategy_name == "Torchtune Packed":
-        packed_dataset = alpaca_dataset(
-            tokenizer=tokenizer, packed=True, split="train[:5%]"
-        )
+        dataset = alpaca_dataset(tokenizer=tokenizer, packed=True, split="train[:5%]")
     elif strategy_name == "Torchtune Not Packed":
         packed_dataset = alpaca_dataset(
             tokenizer=tokenizer, packed=False, split="train[:5%]"
@@ -119,15 +121,7 @@ if __name__ == "__main__":
         for strategy in strategies:
             print(f"\nStrategy: {strategy}")
 
-            # Dataset setup (unpacked for custom strategies)
-            dataset = alpaca_dataset(
-                tokenizer=tokenizer,
-                packed=False,
-                split="train[:5%]",
-            )
-
             stats = run_packing_strategy(
-                dataset,
                 max_seq_len,
                 padding_idx,
                 buffer_size,

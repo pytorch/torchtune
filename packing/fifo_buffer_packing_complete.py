@@ -112,18 +112,19 @@ class EfficientPackedIterator:
             pack["labels"].extend([CROSS_ENTROPY_IGNORE_IDX] * num_padding)
             last_pos = pack["input_pos"][-1] if pack["input_pos"] else -1
             pack["input_pos"].extend(range(last_pos + 1, last_pos + 1 + num_padding))
+            pack["seq_lens"][-1] += num_padding  # Add padding length to seq_lens
 
-    def _create_block_causal_mask(self, seq_lens):
-        """Generate a block diagonal causal mask."""
-        mask = torch.zeros((self.max_seq_len, self.max_seq_len), dtype=torch.bool)
-        start = 0
-        for length in seq_lens:
-            end = start + length
-            mask[start:end, start:end] = torch.tril(
-                torch.ones((length, length), dtype=torch.bool)
-            )
-            start = end
-        return mask
+    # def _create_block_causal_mask(self, seq_lens):
+    #     """Generate a block diagonal causal mask."""
+    #     mask = torch.zeros((self.max_seq_len, self.max_seq_len), dtype=torch.bool)
+    #     start = 0
+    #     for length in seq_lens:
+    #         end = start + length
+    #         mask[start:end, start:end] = torch.tril(
+    #             torch.ones((length, length), dtype=torch.bool)
+    #         )
+    #         start = end
+    #     return mask
 
     def _finalize_pack(self, pack):
         """Pad the pack and convert lists to tensors."""
@@ -132,7 +133,7 @@ class EfficientPackedIterator:
         pack["labels"] = torch.tensor(pack["labels"], dtype=torch.long)
         pack["input_pos"] = torch.tensor(pack["input_pos"], dtype=torch.long)
         pack["seq_lens"] = torch.tensor(pack["seq_lens"], dtype=torch.long)
-        pack["mask"] = self._create_block_causal_mask(pack["seq_lens"])
+        # pack["mask"] = self._create_block_causal_mask(pack["seq_lens"])
         return pack
 
     def _next_without_splitting(self):
@@ -235,11 +236,11 @@ if __name__ == "__main__":
 
     dataset = generate_random_sequences(30, 1, 10)
     packed_dataset = OnTheFlyPackedDataset(
-        dataset, max_seq_len=10, buffer_size=30, split_across_pack=True
+        dataset, max_seq_len=10, buffer_size=30, split_across_pack=False
     )
     iterator = iter(packed_dataset)
     for pack in iterator:
         print(f"Tokens: {pack['tokens'].tolist()}")
-        print(f"Mask:\n {pack['mask']}")
+        print(f"input_pos:\n {pack['input_pos']}")
         print(f"Seq Lens: {pack['seq_lens'].tolist()}")
         print("-" * 50)

@@ -577,6 +577,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
+        import multiprocessing as mp
+
         dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
@@ -592,9 +594,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            prefetch_factor=8,
-            num_workers=8,
-            persistent_workers=True,
+            # prefetch_factor=8,
+            # num_workers=8,
+            # multiprocessing_context=mp.get_context("spawn"),  # Add this line
+            # persistent_workers=True,
         )
         if dataloader_state_dict is not None:
             dataloader.load_state_dict(dataloader_state_dict)
