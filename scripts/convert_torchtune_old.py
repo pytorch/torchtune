@@ -3,17 +3,6 @@ import ast
 import datasets
 
 
-# These constants are expected by torchtune
-INPUT_FIELD = "input"
-OUTPUT_FIELD = "output"
-
-# These constants should match with the system prompt in the config file and with the GRPO constants in Unsloth
-COT_OPENING = "\n<reasoning>"
-COT_CLOSING = "\n</reasoning>"
-LABEL_OPENING = "\n<answer>"
-LABEL_CLOSING = "\n</answer>"
-
-
 def clean_rule(rule):
     # Looking for 1. or 2. etc.
     splits = rule.split(". ", 1)
@@ -77,7 +66,7 @@ def preprocess_dataset(dataset_path, subset=None, split=None, size=None, local=F
                 except Exception as e:
                     print(f"BAD RULE: {rule}")
                     raise e
-                example[INPUT_FIELD] = f'''
+                example['input'] = f'''
 Rule Agent must follow:
 {rule}
 
@@ -106,7 +95,7 @@ Conversation:
                     raise e
                 
                 label = parse_string_list(labels[i])[j]
-                example[OUTPUT_FIELD] = f"{COT_OPENING} {discussion} {explanation} {COT_CLOSING} {LABEL_OPENING} {label} {LABEL_CLOSING}"
+                example['output'] = f"{discussion} {explanation} Compliance output: {label}"
                 examples.append(example)
 
 
@@ -136,15 +125,12 @@ def main(args):
     splits = ["train", "validation", "test"]
     for subset in subsets:
         for split in splits:
-            if split == "validation":
-                preprocess_dataset(huggingface_dataset, subset, split, size=args.val_size)
             preprocess_dataset(huggingface_dataset, subset, split, size=args.train_size)
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_size', type=int, default=2500)
-    parser.add_argument('--val_size', type=int, default=200)
+    parser.add_argument('--train_size', type=int, default=10000)
     return parser.parse_args()
 
 
