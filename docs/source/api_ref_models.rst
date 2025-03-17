@@ -450,3 +450,14 @@ Vision components to support multimodality using `CLIP encoder <https://arxiv.or
     clip.TokenPositionalEmbedding
     clip.TiledTokenPositionalEmbedding
     clip.TilePositionalEmbedding
+
+classifier_model
+-----------------
+
+A generic classifier model builder which can be used to create a classifier model from a base model.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    common.classifier_model
