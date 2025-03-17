@@ -71,6 +71,9 @@ STEPS_KEY = "steps_run"
 # rng state for ensuring correct training resuming in PPO
 RNG_KEY = "rng_state"
 
+# key used for dataloader state
+DATALOADER_KEY = "dataloader"
+
 
 class ModelType(Enum):
     """ModelType is used by the checkpointer to distinguish between different model architectures.
@@ -87,6 +90,7 @@ class ModelType(Enum):
         LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_decoder`
         MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`
         PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`
+        PHI4 (str): Phi-4 family of models. See :func:`~torchtune.models.phi4.phi4`
         REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting
             to a single class for reward modelling.
             See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`
@@ -110,6 +114,7 @@ class ModelType(Enum):
     LLAMA3_VISION: str = "llama3_vision"
     MISTRAL: str = "mistral"
     PHI3_MINI: str = "phi3_mini"
+    PHI4: str = "phi4"
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
     CLIP_TEXT: str = "clip_text"
