@@ -2,7 +2,7 @@
 # using a Qwen2.5 0.5B
 #
 # This config assumes that you've run the following command before launching:
-#   tune download Qwen/Qwen2.5-0.5B-Instruct
+#   tune download Qwen/Qwen2.5-0.5B-Instruct --output-dir /tmp/Qwen2.5-0.5B-Instruct
 #
 # To launch on a single device, run the following command from root:
 #   tune run full_finetune_single_device --config qwen2_5/0.5B_full_single_device

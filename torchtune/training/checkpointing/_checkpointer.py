@@ -530,10 +530,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
-        if self._model_type == ModelType.PHI3_MINI:
+        if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
             log_rank_zero(
                 logger=logger,
-                msg="Converting Phi-3 Mini weights from HF format."
+                msg="Converting Phi weights from HF format."
                 "Note that conversion of adapter weights into PEFT format is not supported.",
             )
             from torchtune.models.phi3._convert_weights import phi3_hf_to_tune
@@ -661,7 +661,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         """
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
-            if self._model_type == ModelType.PHI3_MINI:
+            if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
                 from torchtune.models.phi3._convert_weights import phi3_tune_to_hf
 
                 state_dict[training.MODEL_KEY] = phi3_tune_to_hf(
@@ -817,9 +817,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
 
-            if self._model_type == ModelType.PHI3_MINI:
+            if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
                 logger.warning(
-                    "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                    "Saving Phi adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             elif self._model_type == ModelType.LLAMA3_VISION:
                 logger.warning(
@@ -860,9 +860,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         if training.ADAPTER_CONFIG in state_dict:
-            if self._model_type == ModelType.PHI3_MINI:
+            if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
                 logger.warning(
-                    "PEFT integration for Phi-3 Mini is not supported, skipping adapter config save"
+                    "PEFT integration for Phi is not supported, skipping adapter config save"
                 )
             elif self._model_type == ModelType.LLAMA3_VISION:
                 logger.warning(
