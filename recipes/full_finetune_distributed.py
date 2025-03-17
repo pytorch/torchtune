@@ -366,9 +366,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Setup validation dataloader if validation dataset is provided
         self._val_dataloader = None
         if cfg.get("dataset_validation") is not None:
+            batch_size_validation = cfg.get("batch_size_validation", cfg.batch_size)
             self._val_dataloader = self._setup_data(
                 cfg_dataset=cfg.dataset_validation,
-                batch_size=cfg.batch_size,
+                batch_size=batch_size_validation,
                 collate_fn=collate_name,
                 shuffle=False,
             )
@@ -405,8 +406,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
 
         # Used to ignore labels for loss computation
+        bzs_cache = (
+            cfg.batch_size
+            if self._val_dataloader is None
+            else max(cfg.batch_size, self._val_dataloader.batch_size)
+        )
         self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+            (bzs_cache, 1), self._loss_fn.ignore_index, device=self._device
         )
 
     def _setup_lr_scheduler(
