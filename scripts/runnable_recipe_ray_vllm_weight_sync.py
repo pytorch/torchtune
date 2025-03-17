@@ -355,36 +355,42 @@ class vLLMWorkerWrapper(Worker):
 @ray.remote(num_cpus=8, num_gpus=1)
 class PyTorchActorModel:
     def __init__(self, cfg, environment_variables, replay_buffer):
-        self._device = utils.get_device(device="cuda")
-        self.dtype = training.get_dtype("bf16", device=self._device)
-
         # shared queue to get trajectories + logprobs from vllm
         self.replay_buffer = replay_buffer
 
         self.cfg = cfg
-        # recipe state attributes
-        self.seed = training.set_seed(seed=cfg.seed)
-        self.total_epochs = cfg.epochs
-        self.global_step = 0
-        self._steps_run = 0
-        self._total_steps = 0
-        self._epochs_run = 0
-        # This was only used for generate, so I don't think I need it?
-        # self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
-        # RL params
-        self.grpo_samples = cfg.grpo_samples
-        self._temperature = cfg.temperature
-        self._top_k = cfg.top_k
-        self._max_generated_tokens = cfg.max_generated_tokens
-        self.batch_size = cfg.batch_size
-        self._forward_batch_size = cfg.forward_batch_size
+        import torch
+        self._device = utils.get_device(device=cfg.device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
-        self._ppo_epochs = cfg.ppo_epochs
-        self._save_every_n_epochs = cfg.save_every_n_epochs
-        self._total_steps = cfg.num_steps
+        self._device = utils.get_device(device=cfg.device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
+        device_type = cfg.device
 
-    
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
+
+        # logging attributes
+        self._output_dir = cfg.output_dir
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+
+        # if self._log_peak_memory_stats and self._device.type != "cuda":
+        #     log.info(
+        #         "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+        #     )
+        #     self._log_peak_memory_stats = False
+
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+
+        self.distributed_backend = training.get_distributed_backend(
+            device_type, offload_ops_to_cpu=self.fsdp_cpu_offload
+        )
+
+        # ============= [START] This bit replaces init_process_group =============
         # === Simulate torchrun to set env vars ===
         import os
 
@@ -407,8 +413,54 @@ class PyTorchActorModel:
             "cuda", mesh_shape=(world_size,), mesh_dim_names=["fsdp"]
         )
         print(self.device_mesh)
-        # FIXME: _setup_model takes in compile, etc. but commented these out for now
-        self._model = self._setup_model(self._device, self.dtype)
+        # ============= [END] This bit replaces init_process_group =============
+
+        world_size, rank = utils.get_world_size_and_rank()
+        self.rank = rank
+        self.world_size = world_size
+        self._is_rank_zero = rank == 0
+
+        # Training cfg
+        self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+
+        # activation checkpointing
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+
+        # recipe state attributes
+        self.seed = training.set_seed(seed=cfg.seed)
+        self.total_epochs = cfg.epochs
+        self.global_step = 0
+        self._steps_run = 0
+        self._total_steps = 0
+        self._epochs_run = 0
+        # This was only used for generate, so I don't think I need it?
+        self._rng = torch.Generator(self._device).manual_seed(self.seed)
+
+        # RL params
+        self.grpo_samples = cfg.grpo_samples
+        self._temperature = cfg.temperature
+        self._top_k = cfg.top_k
+        self._max_generated_tokens = cfg.max_generated_tokens
+        self.batch_size = cfg.batch_size
+        self._forward_batch_size = cfg.forward_batch_size
+
+        self._ppo_epochs = cfg.ppo_epochs
+        self._save_every_n_epochs = cfg.save_every_n_epochs
+        self._total_steps = cfg.num_steps
+
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+
+        self._compile = cfg.get("compile", False)
+        self._model = self._setup_model(
+            cfg_model=cfg.model,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            fsdp_cpu_offload=self.fsdp_cpu_offload,
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
+        )
         self._optimizer = self._setup_optimizer(cfg_optimizer=cfg.optimizer)
         self._loss_fn = config.instantiate(cfg.loss)
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
@@ -429,12 +481,10 @@ class PyTorchActorModel:
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         self._steps_before_sync = cfg.steps_before_sync
+        print("done setup")
 
     def forward(self, *args, **kwargs):
         return self._model(*args, **kwargs)
-
-    def get_state_dict(self):
-        return self._model.state_dict()
 
     def init_model_update_group(self, master_address, master_port, rank, world_size):
         self._model_update_group = stateless_init_process_group(
@@ -446,7 +496,54 @@ class PyTorchActorModel:
             torch.device(f"cuda:0"),
         )
 
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the checkpoint state from file and validate. If resume_from_checkpoint
+        is True, this also includes the recipe state.
+        """
+        self._checkpointer = config.instantiate(
+            cfg_checkpointer,
+            resume_from_checkpoint=self._resume_from_checkpoint,
+        )
+        checkpoint_dict = self._checkpointer.load_checkpoint()
+
+        if self._resume_from_checkpoint:
+            self._update_recipe_state(checkpoint_dict)
+        return checkpoint_dict
     
+    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+        """
+        Updates the recipe state from checkpoint.
+        """
+        try:
+            self._epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self._rng.set_state(ckpt_dict[training.RNG_KEY])
+
+            # on mismatch, warn the user and prevent the override
+            if self.seed != ckpt_dict[training.SEED_KEY]:
+                warn(
+                    message=(
+                        "Config value for seed does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
+                    )
+                )
+                self.seed = ckpt_dict[training.SEED_KEY]
+
+            # on mismatch, warn the user but allow the override
+            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for total_epochs does not match the checkpoint value, "
+                        f"using the config value: {self.total_epochs}"
+                    )
+                )
+
+        except KeyError as e:
+            raise KeyError(
+                "Checkpoint does not contain the required keys needed for updating recipe state. "
+                "Are you sure you passed in the right recipe checkpoint?"
+            ) from e
+
     def log_metrics(
         self, trajectory: GRPOTrajectory, grpo_stats: GRPOStats, **extras
     ) -> None:
@@ -478,56 +575,120 @@ class PyTorchActorModel:
         if self._is_rank_zero:
             self._metric_logger.log_dict(log_dict, step=self.global_step)
     
-    def _setup_model(self, device, dtype, compile_model=False, cpu_offload=False):
-        with training.set_default_dtype(dtype), torch.device("meta"):
-            model = qwen2_5.qwen2_5_3b()
+    def _setup_model(
+        self,
+        cfg_model: DictConfig,
+        enable_activation_checkpointing: bool,
+        fsdp_cpu_offload: bool,
+        model_state_dict: Dict[str, Any],
+        # ref_model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
+    ) -> nn.Module:
+        """
+        Model initialization has some important considerations:
+           a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
+        """
+        from torchtune.training import disable_dropout
 
-        if compile_model:
-            training.compile_model(model, verbose=False)
+        # utils.log_rank_zero(
+        #     log,
+        #     "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        # )
+        # init_start = time.perf_counter()
+
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
+            model = config.instantiate(cfg_model)
+            # ref_model = config.instantiate(cfg_model)
+
+        # ref_model.eval()
+        # for p in ref_model.parameters():
+        #     p.requires_grad = False
+
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
+            # training.compile_model(ref_model, verbose=self._is_rank_zero)
+
+        if enable_activation_checkpointing:
+            training.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
 
         # For FSDP sharding
-        fsdp_shard_conditions = [partial(training.get_shard_conditions)]
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
+            )
+        ]
+
+        # Policy doesn't reshard after forward for faster generation.
+        # Reference net reshards after forward because it never calls .backward()
+        # See: https://github.com/pytorch/torchtune/pull/2326/#issuecomment-2654684159
 
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
-            cpu_offload=cpu_offload,
-            reshard_after_forward=True,
-            dp_mesh=self.device_mesh["fsdp"],
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=False,
         )
 
-        with training.set_default_dtype(dtype), device:
+        # training.shard_model(
+        #     model=ref_model,
+        #     shard_conditions=fsdp_shard_conditions,
+        #     cpu_offload=fsdp_cpu_offload,
+        #     reshard_after_forward=True,
+        # )
+
+        with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
-        model_sd = torchtune.training.FullModelHFCheckpointer(
-            checkpoint_dir="/tmp/Qwen2.5-3B",
-            checkpoint_files=[
-                "model-00001-of-00002.safetensors",
-                "model-00002-of-00002.safetensors",
-            ],
-            recipe_checkpoint=None,
-            output_dir="/tmp/torchtune/qwen2_5_3B/ray_vllm_test",
-            model_type="QWEN2",
-        ).load_checkpoint()[training.MODEL_KEY]
+            # for m in ref_model.modules():
+            #     if hasattr(m, "rope_init"):
+            #         m.rope_init()
 
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
         training.load_from_full_model_state_dict(
             model,
-            model_sd,
-            device,
+            model_state_dict,
+            self._device,
             strict=True,
-            cpu_offload=cpu_offload,
+            cpu_offload=fsdp_cpu_offload,
         )
+
+        # training.load_from_full_model_state_dict(
+        #     ref_model,
+        #     ref_model_state_dict,
+        #     self._device,
+        #     strict=True,
+        #     cpu_offload=fsdp_cpu_offload,
+        # )
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
-        training.disable_dropout(model)
-        print("Done setup_model")
-        return model
+        # training.validate_no_params_on_meta_device(ref_model)
+
+        # utils.log_rank_zero(
+        #     log,
+        #     f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        # )
+        if self._is_rank_zero:
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
+
+        disable_dropout(model)
+        # disable_dropout(ref_model)
+
+        # synchronize before training begins
+        torch.distributed.barrier()
+
+        return model# , ref_model
     
     def _setup_optimizer(
         self,
@@ -668,6 +829,7 @@ class PyTorchActorModel:
         batch_size = self.batch_size
         # for curr_epoch in range(self._epochs_run, self.total_epochs):
         for curr_epoch in range(1):
+            print("starting")
             # need way to coordinate when dataloader is done with an epoch between vllm worker and actor
             dataloader_done = False
             while not dataloader_done:
@@ -680,6 +842,7 @@ class PyTorchActorModel:
                         trajectory = None
                     time.sleep(0.1)
                 
+                print(f"{self.rank=} got from queue")
                 # # hacky way of coordinating between vllm and actor that dataloader is done
                 # # since vllm worker now "owns" the dataloader
                 # if len(trajectory) == 1:
