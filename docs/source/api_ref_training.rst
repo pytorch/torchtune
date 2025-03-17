@@ -128,5 +128,4 @@ Miscellaneous
     :nosignatures:
 
     get_unmasked_sequence_lengths
-    disable_dropout
     set_seed
