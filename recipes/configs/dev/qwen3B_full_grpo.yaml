@@ -80,7 +80,7 @@ temperature: 1.0
 
 ppo_epochs: 1
 
-num_steps: 200
+num_steps: 100
 
 clip_grad_norm: 1.0
 
@@ -102,15 +102,23 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True  # True reduces memory
-compile: True  # pytorch compile, set to true for better perf/memory
+compile: False  # pytorch compile, set to true for better perf/memory
 
 # Reduced precision
 dtype: bf16
 
+# number of train_steps after which to do weight sync
+steps_before_sync: 2
+
+vllm:
+  num_workers: 1
+  tp_size: 1
+
+num_fsdp_workers: 4
 
 # Logging
 metric_logger:
-  _component_: torchtune.training.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.WandBLogger
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
