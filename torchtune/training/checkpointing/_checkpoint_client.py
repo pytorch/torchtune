@@ -6,7 +6,7 @@
 
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 
 import torch
 from omegaconf import DictConfig
@@ -33,7 +33,6 @@ class TrainingProgress:
     epochs_run: int
     total_epochs: int
     max_steps_per_epoch: int
-    dataloader_state_dict: Optional[Dict[str, Any]] = None
 
     def state_dict(self) -> Dict[str, object]:
         return {
@@ -41,7 +40,6 @@ class TrainingProgress:
             training.EPOCHS_KEY: self.epochs_run,
             training.TOTAL_EPOCHS_KEY: self.total_epochs,
             training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-            training.DATALOADER_KEY: self.dataloader_state_dict,
         }
 
 

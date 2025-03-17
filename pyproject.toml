@@ -10,8 +10,6 @@ authors = [
 ]
 keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
-    # Stable torchdata (no nightly support)
-    "torchdata",
 
     # Hugging Face integrations
     "datasets",
@@ -35,6 +33,7 @@ dependencies = [
 
     # Multimodal
     "Pillow>=9.4.0",
+
 ]
 dynamic = ["version"]
 

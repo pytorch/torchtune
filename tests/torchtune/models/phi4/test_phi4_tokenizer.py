@@ -10,14 +10,14 @@ import pytest
 
 from tests.common import ASSETS
 from torchtune.data import Message
-from torchtune.models.phi4 import phi4_tokenizer
+from torchtune.models.phi4 import phi4_14b_tokenizer
 
 
-class TestPhi4Tokenizer:
+class TestPhi4MiniTokenizer:
     @pytest.fixture
     def tokenizer(self):
         # GPT2BaseTokenizer
-        return phi4_tokenizer(
+        return phi4_14b_tokenizer(
             vocab_path=(ASSETS / "vocab.json"),
             merges_path=(ASSETS / "merges.txt"),
         )
