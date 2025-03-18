@@ -574,7 +574,7 @@ def recursive_reshard(module: nn.Module):
     This might be useful for memory management when a model isn't automatically resharded after forward.
     """
     for n, m in reversed(list(module.named_modules())):
-        module.reshard()
+        m.reshard()
 
     module.reshard()
 
