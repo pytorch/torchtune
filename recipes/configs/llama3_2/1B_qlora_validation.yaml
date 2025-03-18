@@ -61,7 +61,6 @@ dataset_validation:
   split: train
   packed: False  # True increases speed
 run_val_every_n_steps: 100
-max_validation_batches: -1
 
 # Optimizer and Scheduler
 optimizer:
