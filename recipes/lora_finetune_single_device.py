@@ -696,6 +696,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        # HACK for qwen
+        if self._tokenizer.__class__.__name__ == 'Qwen2Tokenizer':
+            self._tokenizer.eot_id = self._tokenizer.special_tokens["<|im_end|>"]
+            self._tokenizer.start_header_id = self._tokenizer.special_tokens['<|im_start|>']
+
         def do_validation(epoch: int):
             log.info("Running validation...")
             generation_results = wandb.Table(columns=[
