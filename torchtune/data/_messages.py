@@ -209,6 +209,7 @@ class InputOutputToMessages(Transform):
             )
 
         self.image_dir = image_dir
+        self.has_system = "system" in self.column_map
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         is_multimodal = "image" in sample or (
@@ -254,12 +255,21 @@ class InputOutputToMessages(Transform):
                 eot=True,
             ),
         ]
-        if self.new_system_prompt is not None:
+
+        system_prompt = None
+        if self.has_system and self.column_map["system"] in sample and sample[self.column_map["system"]]:
+            system_prompt = sample[self.column_map["system"]]
+
+        elif self.new_system_prompt is not None:
+            system_prompt = self.new_system_prompt 
+
+        if system_prompt is not None:
             messages = [
                 Message(
-                    role="system", content=self.new_system_prompt, masked=True, eot=True
+                    role="system", content=system_prompt, masked=True, eot=True
                 )
             ] + messages
+
         return {"messages": messages}
 
 
