@@ -14,7 +14,7 @@ from torchtune.models.llama3_2_vision._component_builders import (
     llama3_2_vision_encoder,
 )
 from torchtune.modules import delete_kv_caches, disable_kv_cache, local_kv_cache
-from torchtune.modules.common_utils import slice_str_to_array
+from torchtune.modules.common_utils import ScalableSoftmax, slice_str_to_array
 from torchtune.modules.model_fusion import DeepFusionModel
 
 
@@ -217,3 +217,40 @@ class TestSliceStrToArray:
     def test_invalid_slice_format(self):
         with pytest.raises(AssertionError):
             slice_str_to_array("1:2:3:4", 5)
+
+
+class TestScaledSoftmax:
+    def test_ones(self):
+        # instantiate model
+        test = ScalableSoftmax()
+        x = torch.ones(3, 3)
+        # compute output
+        with torch.no_grad():
+            y = test(x)
+
+        # predicted output
+        value = 0.3333
+        expected_results = torch.full((3, 3), value)
+        print(expected_results)
+        assert torch.allclose(y, expected_results, atol=1e-4)
+
+    def test_mixed(self):
+        # instantiate model
+        test = ScalableSoftmax()
+        x = torch.zeros(3, 3)
+        x[:, -1] = 1
+
+        # compute output
+        with torch.no_grad():
+            y = test(x)
+
+        # predicted output
+        expected_results = torch.tensor(
+            [
+                [0.2000, 0.2000, 0.6000],
+                [0.2000, 0.2000, 0.6000],
+                [0.2000, 0.2000, 0.6000],
+            ]
+        )
+
+        assert torch.allclose(y, expected_results, atol=1e-4)
