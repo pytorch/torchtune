@@ -400,7 +400,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Add validation config parameters
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
-        self._max_validation_batches = cfg.get("max_validation_batches", -1)
 
         # Used to ignore labels for loss computation
         self.ignore_labels_cache = torch.full(
@@ -788,12 +787,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with torch.no_grad():
             for batch_idx, batch in enumerate(self._val_dataloader):
-                if (
-                    self._max_validation_batches > 0
-                    and batch_idx >= self._max_validation_batches
-                ):
-                    break
-
                 utils.batch_to_device(batch, self._device)
 
                 # Count tokens excluding padding
