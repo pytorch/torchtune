@@ -113,7 +113,7 @@ def masked_mean(
     Returns:
         torch.Tensor: The mean tensor.
     """
-    return (x * mask).sum(dim=dim) / mask.sum(dim=dim)
+    return (x * mask).sum(dim=dim) / (mask.sum(dim=dim) + 1e-8)
 
 
 def masked_var(
@@ -235,3 +235,22 @@ def estimate_advantages(
         advantages = whiten(advantages)
 
     return advantages, returns
+
+
+
+def masked_sum(
+    x: torch.Tensor, mask: torch.Tensor, dim: Optional[int] = None
+) -> torch.Tensor:
+    """
+    Compute sum of tensor with masked values.
+
+    Args:
+        x (torch.Tensor): The input tensor.
+        mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
+            should participate in the sum calculation.
+        dim (Optional[int]): The axis to calculate the sum over. Default None.
+
+    Returns:
+        torch.Tensor: The sum tensor.
+    """
+    return (x * mask).sum(dim=dim)

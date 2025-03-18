@@ -12,6 +12,7 @@ from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX, PACK_TYPE
 from torchtune.modules.attention_utils import packed_block_causal_mask
 
 
+
 def left_pad_sequence(
     sequences: List[torch.Tensor],
     batch_first: bool = False,
@@ -717,4 +718,27 @@ def padded_collate_reinforce(
             value=padding_idx,
         )
     return {"tokens": input_ids.long(), "labels": labels.long(), "reward": reward}
+
+
+
+
+def padded_collate_grpo(
+    batch: List[Dict[str, List[int]]],
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+) -> Dict[str, torch.Tensor]:
+    
+    mini_batch=batch[0]
+    
+
+    return {
+            "query_responses":mini_batch["query_responses"],
+            "logprobs":mini_batch["logprobs"],
+            "ref_logprobs":mini_batch["ref_logprobs"],
+            "advantages":mini_batch["advantages"],
+            "masks":mini_batch["masks"],
+            "position_ids":mini_batch["position_ids"],
+            "response_padding_masks":mini_batch["response_padding_masks"],
+            "query_len":mini_batch["query_len"],
+        }
 

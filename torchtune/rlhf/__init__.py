@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from ._types import PPOStats, Trajectory
+from ._types import PPOStats, Trajectory, GRPOTrajectory, GRPOStats
 from .rewards import (
     estimate_advantages,
     get_reward_penalty_mask,
@@ -13,12 +13,14 @@ from .rewards import (
     masked_mean,
     masked_var,
     whiten,
+    masked_sum
 )
 from .sequence_processing import (
     get_batch_log_probs,
     logits_to_logprobs,
     truncate_sequence_at_first_stop_token,
     truncate_sequence_for_logprobs,
+    batched_logits_to_logprobs
 )
 
 __all__ = [
@@ -34,4 +36,8 @@ __all__ = [
     "PPOStats",
     "get_batch_log_probs",
     "Trajectory",
+    "GRPOTrajectory",
+    "GRPOStats",
+    "masked_sum",
+    "batched_logits_to_logprobs"
 ]
