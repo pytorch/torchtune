@@ -32,7 +32,7 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
-        name="dev/grpo_lora_finetune_single_device",
+        name="dev/s_finetune_single_device",
         file_path="dev/grpo_lora_finetune_single_device.py",
         configs=[
             Config(name="dev/3B_lora_grpo", file_path="dev/3B_lora_grpo.yaml"),
