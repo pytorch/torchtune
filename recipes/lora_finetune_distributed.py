@@ -785,6 +785,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
+                self._model.train()
                 utils.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
@@ -970,8 +971,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             if total_val_tokens > 0
             else float("inf")
         )
-
-        self._model.train()
         return avg_val_loss
 
     def cleanup(self) -> None:
