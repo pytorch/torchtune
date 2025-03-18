@@ -44,8 +44,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ${base_model_path}
-  adapter_checkpoint: adapter_model.pt # We also want to load SFT LoRA.
+  checkpoint_dir: ${base_model_path} # Base model from SFT includes merged lora. 
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
@@ -60,16 +59,13 @@ save_every_n_epochs: 1
 
 # Fine-tuning arguments
 batch_size: 1
-grpo_samples: 8 # Reduced to fit in single device
+grpo_samples: 12 # Reduced to fit in single device
 forward_batch_size: 1
 max_generated_tokens: 512
 top_k: null
 temperature: 1.0
 
 ppo_epochs: 1
-
-num_steps: 200
-
 clip_grad_norm: 1.0
 
 epochs: 10
@@ -106,7 +102,7 @@ log_peak_memory_stats: True
 # Profiler (disabled)
 profiler:
   _component_: torchtune.training.setup_torch_profiler
-  enabled: True
+  enabled: False
 
   #Output directory of trace artifacts
   output_dir: ${output_dir}/profiling_outputs
