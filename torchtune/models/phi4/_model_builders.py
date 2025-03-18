@@ -77,7 +77,6 @@ def phi4_tokenizer(
         special_tokens=special_tokens,
         max_seq_len=max_seq_len,
         prompt_template=template,
-        truncation_type=truncation_type,
     )
 
 
