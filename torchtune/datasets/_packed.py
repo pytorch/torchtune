@@ -11,6 +11,7 @@ import torch
 from torch.nn import functional as F
 
 from torch.utils.data import Dataset, IterableDataset
+from torchdata.nodes import Stateful
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX, PACK_TYPE
 from tqdm import tqdm
 
@@ -275,7 +276,7 @@ from tqdm import tqdm
 #         return self.packs[idx]
 
 
-class PackedDataset(IterableDataset):
+class PackedDataset(IterableDataset, Stateful):
     def __init__(
         self,
         ds,
@@ -298,6 +299,41 @@ class PackedDataset(IterableDataset):
             self.buffer_size,
             self.split_across_pack,
         )
+
+    def state_dict(self):
+        """Save the current state of the iterator."""
+        state = {
+            "buffer": self.buffer,
+            "exhausted": self.exhausted,
+            "length_counts": dict(self.length_counts),  # Convert defaultdict to dict
+            "smallest_length": self.smallest_length,
+            "remainder_seq": self.remainder_seq,
+        }
+
+        # Optionally include dataset state if it’s stateful
+        if hasattr(self.dataset, "state_dict"):
+            state["dataset_state"] = self.dataset.state_dict()
+        else:
+            raise ValueError("Dataset is not stateful. Cannot save state.")
+        return state
+
+    def load_state_dict(self, state_dict):
+        """Restore the iterator state from a state dictionary."""
+        # Restore dataset state if provided
+        if "dataset_state" in state_dict and hasattr(self.dataset, "load_state_dict"):
+            self.dataset.load_state_dict(state_dict["dataset_state"])
+        else:
+            raise ValueError("Dataset is not stateful. Cannot load state.")
+
+        # Restore iterator-specific state
+        self.buffer = state_dict["buffer"]
+        self.exhausted = state_dict["exhausted"]
+        self.length_counts = defaultdict(int, state_dict["length_counts"])
+        self.smallest_length = state_dict["smallest_length"]
+        self.remainder_seq = state_dict["remainder_seq"]
+
+        # Reinitialize the iterator based on the restored state
+        self.iterator = iter(self.dataset)
 
 
 class EfficientPackedIterator:

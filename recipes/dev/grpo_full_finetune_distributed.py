@@ -883,7 +883,15 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             mask=trajectory.masks,
         )
 
+        # TODO: We only care about the response logits, so we truncate here,
+        # but this could just be a masking.
+        # It assumes that all context length are the same, probabily because we pad left.
+        # Does the model have masking to ignore the padding tokens?
         pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
+
+        # TODO: we do fp32 internally, instead of fusing it with compile.
+        # probably big opportunity here
+        # TODO: why chunk_size==1?
         pi_logprobs = rlhf.batched_logits_to_logprobs(
             pi_logits,
             trajectory.query_responses[:, context_length:],
@@ -891,6 +899,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             chunk_size=1,
         )
 
+        # TODO: is 1.0 the right value, or should it be 0?
         pi_logprobs[trajectory.response_padding_masks] = 1.0
 
         del pi_logits
