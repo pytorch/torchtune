@@ -822,7 +822,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             else float("inf")
         )
 
-        self._model.train()
         return avg_val_loss
 
     def train(self) -> None:
@@ -859,6 +858,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
+
+                self._model.train()
                 utils.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
