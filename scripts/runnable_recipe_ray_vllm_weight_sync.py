@@ -3,23 +3,19 @@ README!! What's going on in this script?
 
 At a high level, this script is grpo_full_finetune_distributed.py but it
 1. Uses vLLM for generation instead of torchtune generate
-2. Uses ray for orchestrating data parallel actors and vllm actors
+2. Uses ray for orchestrating data parallel actors and vllm actors + unsharded ref actor
 3. The dataloader is now owned by the vllm worker (rather than 1 dataloader per FSDP worker)
 4. Uses a ray.util.Queue (this wraps a remote actor with a queue) as a "replay buffer" 
    for the vllm workers to put their generated tokens into, and the FSDP workers to get them from
 5. Of the items in GRPOTrajectory
         a. query_responses: vllm worker computes and puts into queue
         b. logprobs vllm worker puts into queue
-        c. ref_logprobs (I did not use a ref_model and passed logprobs as ref_logprobs). See ** below.
+        c. ref_logprobs: computed by unsharded RefActor which contains torchtune model
         d. rewards: fsdp worker computes
         e. sucecesses: fsdp worker computes
         f. advantages: fsdp worker computes
         g. masks: fsdp worker computes
         h. position_ids: fsdp worker computes
-    ** https://github.com/pytorch/torchtune/blob/8e9645c68d2e889e13607a569a419360d61760d5/torchtune/dev/grpo/loss.py#L187
-    GRPOSimpleLoss actually does not use old_log_probs (generation logprobs) and only ref logprobs.
-    I passed in the vllm log probs as ref_log_probs and completely skipped the ref model in this recipe
-    Maybe this is a bit sus (is it?) but rewards and successes go up :b
 6. In config, we set ``steps_before_sync``. After ``steps_before_sync * num_data_parallel_worker`` steps
    the vllm worker will "sleep" and spin in a while loop until the FSDP workers are done syncing their weights
 7. Weight sync currently blocks the train loop and is done by each fsdp workers .full_tensor (allgather) on each DTensor,
@@ -28,19 +24,15 @@ At a high level, this script is grpo_full_finetune_distributed.py but it
 
 With this script, I can observe successes + rewards increasing over training steps, which is
 a good sign. (See screenshot in Cabernet sprint notes.) But there are several issues with this script:
-1. For some strange reason kl_loss is reproducibly high at step 1, but looks normal after that, I suspect there might be
-   a slight bug with how I mask the logprobs but haven't looked into it.
-2. Peak memory usage for the fsdp worker is significantly higher than the original recipe in a fresh conda environmnet.
+1. Peak memory usage for the fsdp worker is significantly higher than the original recipe in a fresh conda environmnet.
    This could be because 
     a. I turned compile off (it seems to be broken with torch 2.5.1 that vllm requires)
-    b. I turned activation checkpointing off (there wasn't an explcit reason for this it just got omitted accidentally)
-3. I have an assert that num_vllm_workers == 1 and vllm_tp_size == 1 for now. There's no real reason for this,
+    b. [FIXED] I turned activation checkpointing off (there wasn't an explcit reason for this it just got omitted accidentally)
+2. I have an assert that num_vllm_workers == 1 and vllm_tp_size == 1 for now. There's no real reason for this,
    I expect the code to mostly generalize, just need to go over parts where I might have hardcoded this assumption of 1
    vllm worker.
-4. As mentioned above I'm not using ref model and passing vllm_logprobs as ref_logprobs to SimpleGRPOLoss (which only uses
-   ref_logprobs but not generation logprobs). If I added a ref_model I suspect the script in the current state would OOM
-5. Epochs is definitely not handled correctly right now :P
-6. There's many FIXMEs peppered through this script
+3. Epochs is definitely not handled correctly right now :P
+4. There's many FIXMEs peppered through this script
 
 The run command is
 
@@ -108,6 +100,123 @@ def stateless_init_process_group(
     )
     pynccl = PyNcclCommunicator(pg, device=device)
     return pynccl
+
+
+@ray.remote(num_cpus=8, num_gpus=1)
+class RefActor:
+    def __init__(self, *args, **kwargs):
+        assert "rollout_queue" in kwargs, "Must pass queue to vLLMRefActor"
+        assert "actor_queue" in kwargs, "Must pass queue to vLLMRefActor"
+        assert "cfg" in kwargs, "Must pass cfg to vLLMRefActor"
+        self.cfg = kwargs.pop("cfg")
+        self.rollout_replay_buffer = kwargs.pop("rollout_queue")
+        self.actor_replay_buffer = kwargs.pop("actor_queue")
+        # self.llm = LLM(*args, **kwargs)
+        self._device = utils.get_device(device=self.cfg.device)
+        self._dtype = training.get_dtype(self.cfg.dtype, device=self._device)
+        ref_checkpoint_dict = self.load_ref_checkpoint(
+            cfg_ref_checkpointer=self.cfg.ref_checkpointer
+        )
+        self._ref_model = self._setup_model(self.cfg.model, ref_checkpoint_dict[training.MODEL_KEY])
+        self._temperature = self.cfg.temperature
+
+    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the reference checkpoint state from file and validate.
+        """
+        self._ref_checkpointer = config.instantiate(
+            cfg_ref_checkpointer, resume_from_checkpoint=False
+        )
+
+        ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
+
+        return ref_checkpoint_dict
+
+    def _setup_model(self, cfg_model, ref_model_state_dict):
+        from torchtune.training import disable_dropout
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
+            ref_model = config.instantiate(cfg_model)
+
+        with training.set_default_dtype(self._dtype), self._device:
+            for m in ref_model.modules():
+                if hasattr(m, "rope_init"):
+                    m.rope_init()
+        
+        for k, v in ref_model_state_dict.items():
+            ref_model_state_dict[k] = v.to(self._device)
+
+        ref_model.load_state_dict(ref_model_state_dict, assign=True, strict=True)
+
+        ref_model.eval()
+        for p in ref_model.parameters():
+            p.requires_grad = False
+
+        # Ensure no params and buffers are on meta device
+        training.validate_no_params_on_meta_device(ref_model)
+
+        disable_dropout(ref_model)
+        print("done setting up ref model")
+        return ref_model
+
+    def run(self):
+        import time
+        print("running ref actor")
+        idx = 0
+        while True:
+            print(idx)
+            # FIXME: what should be the shutdown condition for this worker?
+            if idx == 400:
+                break
+
+            trajectory = None
+            while trajectory is None:
+                try:
+                    trajectory = self.rollout_replay_buffer.get(timeout=0.5)
+                except Exception:
+                    trajectory = None
+                    time.sleep(0.1)
+        
+            (query_responses,
+             responses,
+             logprobs,
+             query_response_padding_masks,
+             seq_lens,
+             answers) = trajectory
+
+            context_length = query_responses.shape[1] - responses.shape[1]
+
+            masks = generation.get_causal_mask_from_padding_mask(
+                query_response_padding_masks
+            )
+            position_ids = generation.get_position_ids_from_padding_mask(
+                query_response_padding_masks
+            )
+            
+            ref_logits = self._ref_model(
+                query_responses, input_pos=position_ids, mask=masks
+            )
+
+            ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
+            ref_logprobs = rlhf.batched_logits_to_logprobs(
+                ref_logits, responses, self._temperature
+            )
+
+            del ref_logits, position_ids, masks
+            # masking of ref_logprobs is done in grpo_step
+
+            trajectory = (query_responses,
+                           responses,
+                           logprobs,
+                           ref_logprobs,
+                           query_response_padding_masks,
+                           seq_lens,
+                           answers)
+            print("putting trajectory into actor queue")
+            self.actor_replay_buffer.put_nowait(trajectory)
+            torch.cuda.empty_cache()
+
+            idx += 1
+
         
 class vLLMRolloutActor:
     def __init__(self, *args, **kwargs):
@@ -279,6 +388,7 @@ class vLLMRolloutActor:
                     seq_lens]
 
         for idx, batch in enumerate(self._dataloader):
+            print(f"batch {idx}")
             # might want to do so for 0 also if weights are directly broadcasted from dp?
             if idx != 0 and idx % self._steps_before_sync == 0:
                 # === sleep until weight synchronization is complete ===
@@ -355,36 +465,42 @@ class vLLMWorkerWrapper(Worker):
 @ray.remote(num_cpus=8, num_gpus=1)
 class PyTorchActorModel:
     def __init__(self, cfg, environment_variables, replay_buffer):
-        self._device = utils.get_device(device="cuda")
-        self.dtype = training.get_dtype("bf16", device=self._device)
-
         # shared queue to get trajectories + logprobs from vllm
         self.replay_buffer = replay_buffer
 
         self.cfg = cfg
-        # recipe state attributes
-        self.seed = training.set_seed(seed=cfg.seed)
-        self.total_epochs = cfg.epochs
-        self.global_step = 0
-        self._steps_run = 0
-        self._total_steps = 0
-        self._epochs_run = 0
-        # This was only used for generate, so I don't think I need it?
-        # self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
-        # RL params
-        self.grpo_samples = cfg.grpo_samples
-        self._temperature = cfg.temperature
-        self._top_k = cfg.top_k
-        self._max_generated_tokens = cfg.max_generated_tokens
-        self.batch_size = cfg.batch_size
-        self._forward_batch_size = cfg.forward_batch_size
+        import torch
+        self._device = utils.get_device(device=cfg.device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
-        self._ppo_epochs = cfg.ppo_epochs
-        self._save_every_n_epochs = cfg.save_every_n_epochs
-        self._total_steps = cfg.num_steps
+        self._device = utils.get_device(device=cfg.device)
+        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
+        device_type = cfg.device
 
-    
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
+
+        # logging attributes
+        self._output_dir = cfg.output_dir
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+
+        # if self._log_peak_memory_stats and self._device.type != "cuda":
+        #     log.info(
+        #         "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+        #     )
+        #     self._log_peak_memory_stats = False
+
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+
+        self.distributed_backend = training.get_distributed_backend(
+            device_type, offload_ops_to_cpu=self.fsdp_cpu_offload
+        )
+
+        # ============= [START] This bit replaces init_process_group =============
         # === Simulate torchrun to set env vars ===
         import os
 
@@ -407,8 +523,54 @@ class PyTorchActorModel:
             "cuda", mesh_shape=(world_size,), mesh_dim_names=["fsdp"]
         )
         print(self.device_mesh)
-        # FIXME: _setup_model takes in compile, etc. but commented these out for now
-        self._model = self._setup_model(self._device, self.dtype)
+        # ============= [END] This bit replaces init_process_group =============
+
+        world_size, rank = utils.get_world_size_and_rank()
+        self.rank = rank
+        self.world_size = world_size
+        self._is_rank_zero = rank == 0
+
+        # Training cfg
+        self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+
+        # activation checkpointing
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+
+        # recipe state attributes
+        self.seed = training.set_seed(seed=cfg.seed)
+        self.total_epochs = cfg.epochs
+        self.global_step = 0
+        self._steps_run = 0
+        self._total_steps = 0
+        self._epochs_run = 0
+        # This was only used for generate, so I don't think I need it?
+        self._rng = torch.Generator(self._device).manual_seed(self.seed)
+
+        # RL params
+        self.grpo_samples = cfg.grpo_samples
+        self._temperature = cfg.temperature
+        self._top_k = cfg.top_k
+        self._max_generated_tokens = cfg.max_generated_tokens
+        self.batch_size = cfg.batch_size
+        self._forward_batch_size = cfg.forward_batch_size
+
+        self._ppo_epochs = cfg.ppo_epochs
+        self._save_every_n_epochs = cfg.save_every_n_epochs
+        self._total_steps = cfg.num_steps
+
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+
+        self._compile = cfg.get("compile", False)
+        self._model = self._setup_model(
+            cfg_model=cfg.model,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            fsdp_cpu_offload=self.fsdp_cpu_offload,
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
+        )
         self._optimizer = self._setup_optimizer(cfg_optimizer=cfg.optimizer)
         self._loss_fn = config.instantiate(cfg.loss)
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
@@ -429,12 +591,10 @@ class PyTorchActorModel:
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         self._steps_before_sync = cfg.steps_before_sync
+        print("done setup")
 
     def forward(self, *args, **kwargs):
         return self._model(*args, **kwargs)
-
-    def get_state_dict(self):
-        return self._model.state_dict()
 
     def init_model_update_group(self, master_address, master_port, rank, world_size):
         self._model_update_group = stateless_init_process_group(
@@ -446,7 +606,54 @@ class PyTorchActorModel:
             torch.device(f"cuda:0"),
         )
 
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the checkpoint state from file and validate. If resume_from_checkpoint
+        is True, this also includes the recipe state.
+        """
+        self._checkpointer = config.instantiate(
+            cfg_checkpointer,
+            resume_from_checkpoint=self._resume_from_checkpoint,
+        )
+        checkpoint_dict = self._checkpointer.load_checkpoint()
+
+        if self._resume_from_checkpoint:
+            self._update_recipe_state(checkpoint_dict)
+        return checkpoint_dict
     
+    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+        """
+        Updates the recipe state from checkpoint.
+        """
+        try:
+            self._epochs_run = ckpt_dict[training.EPOCHS_KEY]
+            self._rng.set_state(ckpt_dict[training.RNG_KEY])
+
+            # on mismatch, warn the user and prevent the override
+            if self.seed != ckpt_dict[training.SEED_KEY]:
+                warn(
+                    message=(
+                        "Config value for seed does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
+                    )
+                )
+                self.seed = ckpt_dict[training.SEED_KEY]
+
+            # on mismatch, warn the user but allow the override
+            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for total_epochs does not match the checkpoint value, "
+                        f"using the config value: {self.total_epochs}"
+                    )
+                )
+
+        except KeyError as e:
+            raise KeyError(
+                "Checkpoint does not contain the required keys needed for updating recipe state. "
+                "Are you sure you passed in the right recipe checkpoint?"
+            ) from e
+
     def log_metrics(
         self, trajectory: GRPOTrajectory, grpo_stats: GRPOStats, **extras
     ) -> None:
@@ -478,56 +685,120 @@ class PyTorchActorModel:
         if self._is_rank_zero:
             self._metric_logger.log_dict(log_dict, step=self.global_step)
     
-    def _setup_model(self, device, dtype, compile_model=False, cpu_offload=False):
-        with training.set_default_dtype(dtype), torch.device("meta"):
-            model = qwen2_5.qwen2_5_3b()
+    def _setup_model(
+        self,
+        cfg_model: DictConfig,
+        enable_activation_checkpointing: bool,
+        fsdp_cpu_offload: bool,
+        model_state_dict: Dict[str, Any],
+        # ref_model_state_dict: Dict[str, Any],
+        custom_sharded_layers: Optional[List[str]] = None,
+    ) -> nn.Module:
+        """
+        Model initialization has some important considerations:
+           a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
+        """
+        from torchtune.training import disable_dropout
 
-        if compile_model:
-            training.compile_model(model, verbose=False)
+        # utils.log_rank_zero(
+        #     log,
+        #     "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        # )
+        # init_start = time.perf_counter()
+
+        with training.set_default_dtype(self._dtype), torch.device("meta"):
+            model = config.instantiate(cfg_model)
+            # ref_model = config.instantiate(cfg_model)
+
+        # ref_model.eval()
+        # for p in ref_model.parameters():
+        #     p.requires_grad = False
+
+        if self._compile:
+            training.compile_model(model, verbose=self._is_rank_zero)
+            # training.compile_model(ref_model, verbose=self._is_rank_zero)
+
+        if enable_activation_checkpointing:
+            training.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+            )
 
         # For FSDP sharding
-        fsdp_shard_conditions = [partial(training.get_shard_conditions)]
+        fsdp_shard_conditions = [
+            partial(
+                training.get_shard_conditions,
+                names_to_match=custom_sharded_layers,
+            )
+        ]
+
+        # Policy doesn't reshard after forward for faster generation.
+        # Reference net reshards after forward because it never calls .backward()
+        # See: https://github.com/pytorch/torchtune/pull/2326/#issuecomment-2654684159
 
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
-            cpu_offload=cpu_offload,
-            reshard_after_forward=True,
-            dp_mesh=self.device_mesh["fsdp"],
+            cpu_offload=fsdp_cpu_offload,
+            reshard_after_forward=False,
         )
 
-        with training.set_default_dtype(dtype), device:
+        # training.shard_model(
+        #     model=ref_model,
+        #     shard_conditions=fsdp_shard_conditions,
+        #     cpu_offload=fsdp_cpu_offload,
+        #     reshard_after_forward=True,
+        # )
+
+        with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
-        model_sd = torchtune.training.FullModelHFCheckpointer(
-            checkpoint_dir="/tmp/Qwen2.5-3B",
-            checkpoint_files=[
-                "model-00001-of-00002.safetensors",
-                "model-00002-of-00002.safetensors",
-            ],
-            recipe_checkpoint=None,
-            output_dir="/tmp/torchtune/qwen2_5_3B/ray_vllm_test",
-            model_type="QWEN2",
-        ).load_checkpoint()[training.MODEL_KEY]
+            # for m in ref_model.modules():
+            #     if hasattr(m, "rope_init"):
+            #         m.rope_init()
 
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
         training.load_from_full_model_state_dict(
             model,
-            model_sd,
-            device,
+            model_state_dict,
+            self._device,
             strict=True,
-            cpu_offload=cpu_offload,
+            cpu_offload=fsdp_cpu_offload,
         )
+
+        # training.load_from_full_model_state_dict(
+        #     ref_model,
+        #     ref_model_state_dict,
+        #     self._device,
+        #     strict=True,
+        #     cpu_offload=fsdp_cpu_offload,
+        # )
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
-        training.disable_dropout(model)
-        print("Done setup_model")
-        return model
+        # training.validate_no_params_on_meta_device(ref_model)
+
+        # utils.log_rank_zero(
+        #     log,
+        #     f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+        # )
+        if self._is_rank_zero:
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
+
+        disable_dropout(model)
+        # disable_dropout(ref_model)
+
+        # synchronize before training begins
+        torch.distributed.barrier()
+
+        return model# , ref_model
     
     def _setup_optimizer(
         self,
@@ -585,28 +856,15 @@ class PyTorchActorModel:
             chunk_size=1,
         )
 
-
-        #  # ==== added this ====
-        # ref_logits = self._ref_model(
-        #     trajectory.query_responses,
-        #     input_pos=trajectory.position_ids,
-        #     mask=trajectory.masks,
-        # )
-
-        # ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
-        # ref_logprobs = rlhf.batched_logits_to_logprobs(
-        #     ref_logits,
-        #     trajectory.query_responses[:, context_length:],
-        #     self._temperature,
-        #     chunk_size=1,
-        # )
-        # # =====================
-
         pi_logprobs[trajectory.response_padding_masks] = 1.0
-        # ref_logprobs[trajectory.response_padding_masks] = 1.0
+        trajectory.ref_logprobs[trajectory.response_padding_masks] = 1.0
        
         if self._is_rank_zero:
-            print(torch.abs(pi_logprobs - trajectory.logprobs).max())
+            print("ref_logprobs shape", trajectory.ref_logprobs.shape, pi_logprobs.shape)
+            print(torch.abs(pi_logprobs - trajectory.ref_logprobs).max())
+            print(torch.abs(pi_logprobs - trajectory.ref_logprobs).mean())
+            print(pi_logprobs)
+            print(trajectory.ref_logprobs)
 
         del pi_logits
         torch.cuda.empty_cache()
@@ -627,6 +885,8 @@ class PyTorchActorModel:
             approx_policy_kls = (
                 0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
             ).mean()
+        
+        print("done grpo step")
 
         return GRPOStats(
             loss,
@@ -668,6 +928,7 @@ class PyTorchActorModel:
         batch_size = self.batch_size
         # for curr_epoch in range(self._epochs_run, self.total_epochs):
         for curr_epoch in range(1):
+            print("starting")
             # need way to coordinate when dataloader is done with an epoch between vllm worker and actor
             dataloader_done = False
             while not dataloader_done:
@@ -680,6 +941,7 @@ class PyTorchActorModel:
                         trajectory = None
                     time.sleep(0.1)
                 
+                print(f"{self.rank=} got from queue")
                 # # hacky way of coordinating between vllm and actor that dataloader is done
                 # # since vllm worker now "owns" the dataloader
                 # if len(trajectory) == 1:
@@ -695,6 +957,7 @@ class PyTorchActorModel:
                 (query_responses,
                 responses,
                 logprobs,
+                ref_logprobs,
                 # response_padding_masks,
                 query_response_padding_masks,
                 seq_lens,
@@ -731,8 +994,7 @@ class PyTorchActorModel:
                 trajectory = GRPOTrajectory(
                     query_responses=query_responses,
                     logprobs=logprobs,
-                    # FIXME: passed something here because I need to pass something but actually calculated after
-                    ref_logprobs=logprobs,
+                    ref_logprobs=ref_logprobs,
                     rewards=rewards.reshape(batch_size * grpo_size),
                     successes=successes.reshape(batch_size * grpo_size),
                     advantages=advantages,
@@ -837,8 +1099,10 @@ class RayGRPORecipe:
         assert self.vllm_tp_size == 1
         # FIXME: replace with the real deal RayReplayBuffer :)
         # this has a remote actor wrapped inside so no need to rewrap
-        self.replay_buffer = Queue(actor_options={"num_cpus": 10, "num_gpus": 1})
+        self.rollout_replay_buffer = Queue(actor_options={"num_cpus": 10, "num_gpus": 1})
+        self.actor_replay_buffer = Queue(actor_options={"num_cpus": 10, "num_gpus": 1})
         self.rollout_workers = self._create_vllm_workers()
+        self.ref_worker = self._create_ref_worker()
         self.actor_workers = self._create_fsdp_group(worker_cls=PyTorchActorModel, fsdp_world_size=self.num_fsdp_workers)
         self._init_weight_sync_pg()
     
@@ -847,7 +1111,7 @@ class RayGRPORecipe:
         # # + 2 for the SharedActor
         # num_cpus = 32 * total_num_workers + 2
         # num_gpus = total_num_workers + 1
-        ray.init(num_cpus=100, num_gpus=7)
+        ray.init(num_cpus=110, num_gpus=7)
         print(ray.cluster_resources())
     
     def _create_fsdp_group(self, worker_cls, fsdp_world_size: int):
@@ -860,9 +1124,17 @@ class RayGRPORecipe:
                 "MASTER_ADDR": addr,
                 "MASTER_PORT": port,
             }
-            worker = worker_cls.remote(self.cfg, env_vars, self.replay_buffer)
+            worker = worker_cls.remote(self.cfg, env_vars, self.actor_replay_buffer)
             fsdp_workers.append(worker)
         return fsdp_workers
+    
+    def _create_ref_worker(self):
+        worker = RefActor.remote(
+                          rollout_queue=self.rollout_replay_buffer,
+                          actor_queue=self.actor_replay_buffer,
+                          cfg=self.cfg
+        )
+        return worker
 
     def _create_vllm_workers(self):
         # Create placement group (still kinda need to figure out what this does)
@@ -887,7 +1159,7 @@ class RayGRPORecipe:
                 tensor_parallel_size=self.vllm_tp_size,
                 distributed_executor_backend="ray",
                 # pass some additional args to the wrapper
-                queue=self.replay_buffer,
+                queue=self.rollout_replay_buffer,
                 cfg=self.cfg,
             )
             llms.append(llm)
@@ -927,8 +1199,10 @@ class RayGRPORecipe:
         rollout_handles = [worker.rollout.remote() for worker in self.rollout_workers]
         self.rollout_workers[0].print_me.remote("hello vllm worker, it's __main__")
         worker_handles = [worker.train.remote() for worker in self.actor_workers]
+        ref_handles = [self.ref_worker.run.remote()]
         [ray.get(rollout_handle) for rollout_handle in rollout_handles]
         [ray.get(worker_handle) for worker_handle in worker_handles]
+        [ray.get(ref_handle) for ref_handle in ref_handles]
         ray.get(self.actor_workers[0].cleanup.remote())
     
     def stop_ray(self):
