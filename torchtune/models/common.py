@@ -26,7 +26,8 @@ def classifier_model(
         **base_model_kwargs (Dict[str, Any]): Keyword arguments for the base model.
 
     Returns:
-        TransformerDecoder: The base model, with the output layer adapted for the number of classes.
+        Union[TransformerDecoder, DeepFusionModel, nn.Module]: The base model, with
+            the output layer adapted for the number of classes.
 
     Raises:
         ValueError: If the base model does not have a valid output layer to adapt.
