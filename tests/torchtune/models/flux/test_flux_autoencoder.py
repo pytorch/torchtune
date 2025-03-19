@@ -28,7 +28,6 @@ class TestFluxAutoencoder:
     @pytest.fixture
     def model(self):
         model = flux_1_autoencoder(
-            resolution=RESOLUTION,
             ch_in=CH_IN,
             ch_out=3,
             ch_base=32,
