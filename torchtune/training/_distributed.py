@@ -25,7 +25,7 @@ from torch.distributed.checkpoint.state_dict import (
     StateDictOptions,
 )
 from torch.distributed.device_mesh import DeviceMesh
-from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.fsdp import FSDPModule, ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -574,7 +574,8 @@ def recursive_reshard(module: nn.Module):
     This might be useful for memory management when a model isn't automatically resharded after forward.
     """
     for n, m in reversed(list(module.named_modules())):
-        m.reshard()
+        if isinstance(m, FSDPModule):
+            m.reshard()
 
     module.reshard()
 
