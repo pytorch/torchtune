@@ -67,3 +67,11 @@ class TestClassifierModelBuilder:
         expected = torch.tensor(expected)
         assert actual.shape == (bsz, seq_len, n_classes)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-4)
+
+    def test_classifier_builder_mm(self):
+        with torch.device("meta"):
+            model = classifier_model(
+                num_classes=1,
+                base_model_path="torchtune.models.llama3_2_vision.llama3_2_vision_11b",
+            )
+        assert model.output.weight.shape == (1, 4096)
