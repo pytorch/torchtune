@@ -399,6 +399,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             Default is True.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the receipe state from a previous run. Default is False
+        weight_dir (str): Directory containing the weight files. If None, the weight files are assumed to be in the
+            checkpoint_dir. Default is None.
     """
 
     def __init__(
@@ -412,6 +414,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         resume_from_checkpoint: bool = False,
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
+        weight_dir: str = None,
     ) -> None:
 
         self._should_load_recipe_state = should_load_recipe_state
@@ -423,6 +426,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         self._safe_serialization = safe_serialization
         self._checkpoint_dir = Path(checkpoint_dir)
+        self._weight_dir = Path(weight_dir) if weight_dir else self._checkpoint_dir
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         check_outdir_not_in_ckptdir(
@@ -470,7 +474,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # get ckpt paths
         self._checkpoint_paths = get_model_checkpoint_path(
             checkpoint_files=checkpoint_files,
-            checkpoint_dir=self._checkpoint_dir,
+            checkpoint_dir=self._weight_dir,
             output_dir=self._output_dir,
             should_load_recipe_state=self._should_load_recipe_state,
             has_adapter_checkpoint=self._adapter_checkpoint is not None,

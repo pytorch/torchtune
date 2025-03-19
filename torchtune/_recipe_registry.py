@@ -603,6 +603,12 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
+    Recipe(
+        name="federation",
+        file_path="federation.py",
+        supports_distributed=False,
+        configs=[],
+    ),
 ]
 
 
