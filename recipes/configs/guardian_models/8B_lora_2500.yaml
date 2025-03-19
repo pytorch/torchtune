@@ -29,12 +29,12 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /fs/cml-projects/guardian_models/models_xml/Meta-Llama-3.1-8B-Instruct/huggingface_base/original/tokenizer.model
+  path: /fs/cml-projects/guardian_models/models/Meta-Llama-3.1-8B-Instruct/huggingface_base/original/tokenizer.model
   max_seq_len: null
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /fs/cml-projects/guardian_models/models_xml/Meta-Llama-3.1-8B-Instruct/huggingface_base/
+  checkpoint_dir: /fs/cml-projects/guardian_models/models/Meta-Llama-3.1-8B-Instruct/huggingface_base/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
@@ -42,7 +42,7 @@ checkpointer:
     model-00004-of-00004.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /fs/cml-projects/guardian_models/models_xml/Meta-Llama-3.1-8B-Instruct/sft_output/2500/
+  output_dir: /fs/cml-projects/guardian_models/models/Meta-Llama-3.1-8B-Instruct/sft_output/2500/
   model_type: LLAMA3
 resume_from_checkpoint: False
 save_adapter_weights_only: True
