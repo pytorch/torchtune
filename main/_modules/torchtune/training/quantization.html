@@ -456,15 +456,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft.lora</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoRALinear</span><span class="p">,</span> <span class="n">QATLoRALinear</span>
 
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="c1"># torchao 0.7+</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorCoreTiledLayout</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="c1"># torchao 0.6 and before</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorCoreTiledLayoutType</span> <span class="k">as</span> <span class="n">TensorCoreTiledLayout</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorCoreTiledLayout</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">int4_weight_only</span><span class="p">,</span>
@@ -472,28 +465,17 @@
     <span class="n">quantize_</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="c1"># torchao 0.7+</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">,</span>
-        <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat.linear</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">disable_4w_fake_quant</span><span class="p">,</span>
-        <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
-        <span class="n">enable_4w_fake_quant</span><span class="p">,</span>
-        <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
-    <span class="p">)</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="c1"># torchao 0.6 and before</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.prototype.qat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">disable_4w_fake_quant</span><span class="p">,</span>
-        <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
-        <span class="n">enable_4w_fake_quant</span><span class="p">,</span>
-        <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
-        <span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">,</span>
-        <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Int4WeightOnlyQATQuantizer</span><span class="p">,</span>
+    <span class="n">Int8DynActInt4WeightQATQuantizer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization.qat.linear</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">disable_4w_fake_quant</span><span class="p">,</span>
+    <span class="n">disable_8da4w_fake_quant</span><span class="p">,</span>
+    <span class="n">enable_4w_fake_quant</span><span class="p">,</span>
+    <span class="n">enable_8da4w_fake_quant</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft.lora</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoRALinear</span><span class="p">,</span> <span class="n">QATLoRALinear</span>
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
@@ -507,11 +489,10 @@
 <span class="p">]</span>
 
 
-<span class="n">_torchao_0_7_supported</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.quantization</span><span class="w"> </span><span class="kn">import</span> <span class="n">qat</span>  <span class="c1"># noqa: F401</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="n">_torchao_0_7_supported</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need torchao version 0.7.0+&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
 <span class="n">_quantizer_to_mode</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">_quantizer_mode_to_disable_fake_quant</span> <span class="o">=</span> <span class="p">{}</span>
