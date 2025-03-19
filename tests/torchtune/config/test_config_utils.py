@@ -33,6 +33,10 @@ _CONFIG = {
 }
 
 
+def local_test_func():
+    return "hello world"
+
+
 class TestUtils:
     def test_get_component_from_path(self):
         good_paths = [
@@ -51,6 +55,11 @@ class TestUtils:
             InstantiationError, match="Error loading 'torchtune.models.dummy'"
         ):
             _ = _get_component_from_path("torchtune.models.dummy")
+
+        # test that a local function instantiates
+        my_fn = _get_component_from_path("local_test_func")
+        output = my_fn()
+        assert output == "hello world", f"output == {output}, not hello world"
 
     @mock.patch(
         "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
