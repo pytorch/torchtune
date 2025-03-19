@@ -444,8 +444,8 @@ def get_recipe_checkpoint_path(
 
 def get_adapter_checkpoint_path(
     output_dir: Path,
-    checkpoint_dir: Path,
     adapter_checkpoint: Optional[str] = None,
+    should_load_recipe_state: bool = False,
     pattern: str = r"^epoch_(\d+)",
 ) -> Optional[Path]:
     r"""
@@ -461,14 +461,14 @@ def get_adapter_checkpoint_path(
     Returns:
         Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
     """
+    if not should_load_recipe_state:
+        return None
 
     adapter_checkpoint_path = None
 
     if adapter_checkpoint:
-        tentative_adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
+        adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
         # TODO: add error if it doesnt exist
-        if not os.path.exists(tentative_adapter_checkpoint_path):
-            tentative_adapter_checkpoint_path = os.path.join(checkpoint_dir, adapter_checkpoint)
     else:
         # Look for the latest adapter checkpoint in the output directory
         largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
@@ -478,8 +478,8 @@ def get_adapter_checkpoint_path(
         tentative_adapter_checkpoint_path = os.path.join(
             output_dir, largest_iter_folder, "adapter_model.pt"
         )
-    if os.path.exists(tentative_adapter_checkpoint_path):
-        adapter_checkpoint_path = tentative_adapter_checkpoint_path
+        if os.path.exists(tentative_adapter_checkpoint_path):
+            adapter_checkpoint_path = tentative_adapter_checkpoint_path
 
     return Path(adapter_checkpoint_path) if adapter_checkpoint_path else None
 
