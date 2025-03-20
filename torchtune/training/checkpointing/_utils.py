@@ -196,12 +196,12 @@ def get_path(
     Utility to recover and validate the path for a given file within a given directory.
 
     Args:
-        input_dir (Path): Directory containing the file
+        input_dir (Union[Path, str]): Directory containing the file
         filename (str): Name of the file
         missing_ok (bool): Whether to raise an error if the file is missing.
 
     Returns:
-        Path: Path to the file
+        str: Path to the file
 
     Raises:
         ValueError: If the file is missing and missing_ok is False.
@@ -240,22 +240,25 @@ def safe_torch_load(
     try:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
+        fs, _ = url_to_fs(str(checkpoint_path))
         is_safetensors_file = (
             True if str(checkpoint_path).endswith(".safetensors") else False
         )
         if is_safetensors_file:
             result = {}
-            with safe_open(checkpoint_path, framework="pt", device="cpu") as f:
-                for k in f.keys():
-                    result[k] = f.get_tensor(k)
+            with fs.open(checkpoint_path, "rb") as checkpoint_file:
+                with safe_open(checkpoint_file, framework="pt", device="cpu") as f:
+                    for k in f.keys():
+                        result[k] = f.get_tensor(k)
             state_dict = result
         else:
-            state_dict = torch.load(
-                str(checkpoint_path),
-                map_location="cpu",
-                mmap=mmap,
-                weights_only=weights_only,
-            )
+            with fs.open(checkpoint_path, "rb") as checkpoint_file:
+                state_dict = torch.load(
+                    str(checkpoint_file),
+                    map_location="cpu",
+                    mmap=mmap,
+                    weights_only=weights_only,
+                )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
     return state_dict
@@ -420,11 +423,11 @@ def get_recipe_checkpoint_path(
     This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.
 
     Args:
-        output_dir (Path): Directory containing the recipe checkpoint.
+        output_dir (Union[str, Path]): Directory containing the recipe checkpoint.
         recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.
         should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.
     Returns:
-        Optional[Path]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.
+        Optional[str]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.
     Raises:
         ValueError: If should_load_recipe_state is True and the recipe checkpoint file is missing.
     """
@@ -459,13 +462,13 @@ def get_adapter_checkpoint_path(
     This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
 
     Args:
-        output_dir (Path): Directory containing the adapter checkpoint.
+        output_dir (Union[Path, str]): Directory containing the adapter checkpoint.
         adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.
         should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.
         pattern (str): Regex pattern to match the epoch folder. Defaults to "epoch_(\d+)".
 
     Returns:
-        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
+        Optional[str]: Path to the adapter checkpoint file, or None if not applicable.
     """
     if not should_load_recipe_state:
         return None
