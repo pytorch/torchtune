@@ -44,7 +44,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ${base_model_path} # Base model from SFT includes merged lora. 
+  checkpoint_dir: ${base_model_path} # Base model from SFT includes merged lora.
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
@@ -90,7 +90,6 @@ compile: False  # pytorch compile, set to true for better perf/memory
 
 # Reduced precision
 dtype: bf16
-
 
 # Logging
 metric_logger:

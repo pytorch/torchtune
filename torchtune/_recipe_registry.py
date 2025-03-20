@@ -385,7 +385,9 @@ _ALL_RECIPES = [
         name="lora_finetune_distributed",
         file_path="lora_finetune_distributed.py",
         configs=[
-            Config(name="dev/3B_lora_grpo_sft", file_path="dev/3B_lora_sft_for_grpo.yaml"),
+            Config(
+                name="dev/3B_lora_grpo_sft", file_path="dev/3B_lora_sft_for_grpo.yaml"
+            ),
             Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
             Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
             Config(name="llama2/70B_lora", file_path="llama2/70B_lora.yaml"),

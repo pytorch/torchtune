@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-import time
 from functools import partial
 from typing import Any, Dict, List, Optional, Union
 from warnings import warn
@@ -19,6 +18,10 @@ from torchdata.stateful_dataloader import StatefulDataLoader
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
+from torchtune.dev.grpo.generation import generate
+from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
+from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
+from torchtune.modules import local_kv_cache
 from torchtune.modules.peft import (
     disable_adapter,
     get_adapter_params,
@@ -28,10 +31,6 @@ from torchtune.modules.peft import (
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
-from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
-from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
-from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
@@ -243,7 +242,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
                 checkpoint_dict[training.ADAPTER_KEY]
-                if training.ADAPTER_KEY in checkpoint_dict 
+                if training.ADAPTER_KEY in checkpoint_dict
                 else None
             ),
         )
@@ -366,7 +365,9 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
         """
         if cfg_lr_scheduler is None:
-            log.info("No learning rate scheduler configured. Using constant learning rate.")
+            log.info(
+                "No learning rate scheduler configured. Using constant learning rate."
+            )
             return None
 
         optimizer = self._optimizer
@@ -581,7 +582,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
-         # Load base model weights
+        # Load base model weights
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
         )
@@ -589,7 +590,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Get adapter parameters after model is loaded
         self.adapter_params = get_adapter_params(model)
         self._is_dora = any(["magnitude" in k for k in self.adapter_params.keys()])
-        
+
         # Set trainable parameters
         set_trainable_params(model, self.adapter_params)
 
@@ -608,13 +609,13 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Ensure model is on the correct device
         model = model.to(self._device)
-        
+
         # Initialize RoPE and DoRA if needed
         for m in model.modules():
             # RoPE is not covered in state dict
             if hasattr(m, "rope_init"):
                 m.rope_init()
-            # Ensure all buffers are on the correct  TODO: may not be needed, try removing. 
+            # Ensure all buffers are on the correct  TODO: may not be needed, try removing.
             for buffer_name, buffer in m._buffers.items():
                 if buffer is not None and buffer.device != self._device:
                     m._buffers[buffer_name] = buffer.to(self._device)
@@ -630,12 +631,16 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             lora_missing, lora_unexpected = model.load_state_dict(
                 lora_weights_state_dict, strict=False
             )
-            
+
             # Log any issues with loading
             if lora_missing:
-                log.warning(f"Missing keys when loading adapter weights: {lora_missing}")
+                log.warning(
+                    f"Missing keys when loading adapter weights: {lora_missing}"
+                )
             if lora_unexpected:
-                log.warning(f"Unexpected keys when loading adapter weights: {lora_unexpected}")
+                log.warning(
+                    f"Unexpected keys when loading adapter weights: {lora_unexpected}"
+                )
         else:
             lora_missing, lora_unexpected = None, None
 
@@ -698,12 +703,12 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         ):
             # Make sure all tensors are on the correct device
             batch_input_ids = batch_input_ids.to(self._device)
-            
+
             # Use the device-specific stop tokens
             stop_tokens = self._tokenizer.stop_tokens
             if isinstance(stop_tokens, torch.Tensor):
                 stop_tokens = stop_tokens.to(self._device)
-            
+
             query_responses, _ = generate(  # [B x G, L], [B x G, L, V]
                 model=self._model,
                 prompt=batch_input_ids,
@@ -912,6 +917,11 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         grad_norm = None
 
         training_completed = False
+        stop_profiler_idx = (
+            self.profiler_wait_steps
+            + self.profiler_warmup_steps
+            + self.profiler_active_steps
+        )
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self._epochs_run, self.total_epochs):
@@ -969,17 +979,14 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 self.cleanup_after_step(trajectory, grpo_stats)
                 if (
-                        curr_epoch == 0
-                        and self.profiler_profile_memory
-                        and idx
-                        == self.profiler_wait_steps
-                        + self.profiler_warmup_steps
-                        + self.profiler_active_steps
-                        and self._device.type == "cuda"
-                    ):
-                        torch.cuda.memory._record_memory_history(enabled=None)
+                    curr_epoch == 0
+                    and self.profiler_profile_memory
+                    and idx == stop_profiler_idx
+                    and self._device.type == "cuda"
+                ):
+                    torch.cuda.memory._record_memory_history(enabled=None)
 
-                # Step the profiler - TODO move to distributed recipe. 
+                # Step the profiler - TODO move to distributed recipe.
                 self._profiler.step()
                 pbar.update(1)
 
@@ -1014,7 +1021,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))
-        
+
         self._metric_logger.log_dict(log_dict, step=self.global_step)
 
     def cleanup(self) -> None:
