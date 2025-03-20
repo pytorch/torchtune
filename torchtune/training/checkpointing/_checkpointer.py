@@ -19,10 +19,11 @@ from fsspec.core import url_to_fs
 from safetensors.torch import save_file
 
 from torch.distributed.checkpoint import (
+    _HuggingFaceLoadPlanner,
+    _HuggingFaceSavePlanner,
     _HuggingFaceStorageReader,
     _HuggingFaceStorageWriter,
     async_save,
-    DefaultLoadPlanner,
     FileSystemReader,
     FileSystemWriter,
     load,
@@ -114,11 +115,9 @@ class _CheckpointerInterface(Protocol):
 
     """
 
-    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: 
-        ...
+    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: ...
 
-    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: 
-        ...
+    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: ...
 
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
@@ -408,10 +407,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
     def __init__(
         self,
-        checkpoint_dir: str,
+        checkpoint_dir: Union[Path, str],
         checkpoint_files: Union[List[str], Dict[str, str]],
         model_type: str,
-        output_dir: str,
+        output_dir: Union[Path, str],
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
@@ -538,7 +537,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
             self._weight_map = metadata.storage_data
 
-            load(state_dict=state_dict, storage_reader=hf_storage_reader)
+            load(
+                state_dict=state_dict,
+                storage_reader=hf_storage_reader,
+                planner=_HuggingFaceLoadPlanner(),
+            )
+            for key in state_dict.keys():
+                print("shape", state_dict[key].shape)
 
             merged_state_dict = state_dict
         else:
@@ -549,8 +554,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     # will break recipe code
                     if not isinstance(value, torch.Tensor):
                         raise ValueError(
-                        f"Expected all values in the state dict to be torch.Tensor. "
-                        f"Found {type(value)} instead."
+                            f"Expected all values in the state dict to be torch.Tensor. "
+                            f"Found {type(value)} instead."
                         )
                     # idx is written in the 4 digit format (eg: 0001, 0002, etc.)
                     self._weight_map[key] = f"{cpt_idx + 1:04}"
@@ -772,6 +777,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 save(
                     state_dict=state_dict[training.MODEL_KEY],
                     storage_writer=storage_writer,
+                    planner=_HuggingFaceSavePlanner(),
+                    no_dist=True,
                 )
             else:
                 # split the state_dict into separate dicts, one for each output checkpoint file
@@ -799,7 +806,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     # TODO: We should probably use the original shard name and just add a prefix
                     # however, having the SHARD_FNAME standardizes our checkpoints
                     shard_name = SHARD_FNAME.format(
-                    cpt_idx=f"{cpt_idx}".zfill(5), num_shards=f"{num_shards}".zfill(5)
+                        cpt_idx=f"{cpt_idx}".zfill(5),
+                        num_shards=f"{num_shards}".zfill(5),
                     )
                     map_original_name_to_new_name[cpt_idx] = shard_name
                     output_path = os.path.join(
@@ -811,7 +819,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                         torch.save(model_state_dict, output_path)
                     else:
                         output_path = output_path + ".safetensors"
-                        save_file(model_state_dict, output_path, metadata={"format": "pt"})
+                        save_file(
+                            model_state_dict, output_path, metadata={"format": "pt"}
+                        )
 
                     logger.info(
                         "Model checkpoint of size "
