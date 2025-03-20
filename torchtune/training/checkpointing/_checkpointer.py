@@ -442,7 +442,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"Got {self._fs} and {output_fs} instead."
             )
 
-        self._fs.mkdir(output_dir, exist_ok=True)
+        self._fs.mkdirs(output_dir, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -813,7 +813,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     output_path = os.path.join(
                         self._output_dir, f"epoch_{epoch}", shard_name
                     )
-                    self._fs.mkdir(os.path.dirname(output_path), exist_ok=True)
+                    self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
                     if not self._safe_serialization:
                         output_path = output_path = ".bin"
                         torch.save(model_state_dict, output_path)
@@ -865,7 +865,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 os.path.join(self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME)
                 + ".pt"
             )
-            self._fs.mkdir(os.path.dirname(output_path), exist_ok=True)
+            self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
@@ -894,7 +894,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 output_path = os.path.join(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
                 )
-                self._fs.mkdir(os.path.dirname(output_path), exist_ok=True)
+                self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
                 if not self._safe_serialization:
                     output_path = output_path + ".bin"
                     torch.save(state_dict[training.ADAPTER_KEY], output_path)
