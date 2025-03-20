@@ -878,7 +878,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 + ".pt"
             )
             self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
-            torch.save(state_dict[training.ADAPTER_KEY], output_path)
+            with self._fs.open(output_path, "wb") as f:
+                torch.save(state_dict[training.ADAPTER_KEY], f)
             logger.info(
                 "Adapter checkpoint of size "
                 f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
@@ -909,14 +910,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
                 if not self._safe_serialization:
                     output_path = output_path + ".bin"
-                    torch.save(state_dict[training.ADAPTER_KEY], output_path)
+                    with self._fs.open(output_path, "wb") as f:
+                        torch.save(state_dict[training.ADAPTER_KEY], f)
                 else:
                     output_path = output_path + ".safetensors"
-                    save_file(
-                        state_dict[training.ADAPTER_KEY],
-                        output_path,
-                        metadata={"format": "pt"},
-                    )
+                    with self._fs.open(output_path, "wb") as f:
+                        save_file(
+                            state_dict[training.ADAPTER_KEY],
+                            f,
+                            metadata={"format": "pt"},
+                        )
                 logger.info(
                     "Adapter checkpoint of size "
                     f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
