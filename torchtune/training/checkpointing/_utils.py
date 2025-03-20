@@ -254,7 +254,7 @@ def safe_torch_load(
         else:
             with fs.open(checkpoint_path, "rb") as checkpoint_file:
                 state_dict = torch.load(
-                    str(checkpoint_file),
+                    checkpoint_file,
                     map_location="cpu",
                     mmap=mmap,
                     weights_only=weights_only,
@@ -324,8 +324,9 @@ def get_largest_iter_folder(
     iter_folders = []
     regex = re.compile(pattern)
 
+    fs, _ = url_to_fs(dir)
     # Iterate over the directory contents
-    for fname in os.listdir(dir):
+    for fname in fs.listdir(dir):
         match = regex.match(fname)
         if match:
             # Extract the number from the match
