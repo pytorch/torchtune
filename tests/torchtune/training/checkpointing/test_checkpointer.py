@@ -526,7 +526,7 @@ class TestHFLlama2FullModelCheckpointer:
     ):
         """
         Test ``load_checkpoint`` method within the FullModelCheckpointer for multiple
-        checkpoint file.
+        checkpoint files with DCP enabled.
 
         We test:
         * ``load_checkpoint`` loads the right sets of keys
