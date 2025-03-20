@@ -734,15 +734,11 @@ class PyTorchActorModel:
             )
         ]
 
-        # Policy doesn't reshard after forward for faster generation.
-        # Reference net reshards after forward because it never calls .backward()
-        # See: https://github.com/pytorch/torchtune/pull/2326/#issuecomment-2654684159
-
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=False,
+            reshard_after_forward=True,
         )
 
         # training.shard_model(
