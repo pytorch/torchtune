@@ -19,10 +19,6 @@ from fsspec.core import url_to_fs
 from safetensors.torch import save_file
 
 from torch.distributed.checkpoint import (
-    _HuggingFaceLoadPlanner,
-    _HuggingFaceSavePlanner,
-    _HuggingFaceStorageReader,
-    _HuggingFaceStorageWriter,
     async_save,
     FileSystemReader,
     FileSystemWriter,
@@ -533,6 +529,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # the recipe state and adapter weights
         converted_state_dict: Dict[str, Dict[str, torch.Tensor]] = {}
         if self._enable_dcp:
+            from torch.distributed.checkpoint import (
+                _HuggingFaceLoadPlanner,
+                _HuggingFaceStorageReader,
+            )
+
             # DCP load using the storage reader
             hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
             metadata = hf_storage_reader.read_metadata()
@@ -771,6 +772,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
             if self._enable_dcp:
+                from torch.distributed.checkpoint import (
+                    _HuggingFaceSavePlanner,
+                    _HuggingFaceStorageWriter,
+                )
+
                 # DCP save using the storage writer
                 fqn_to_file_index_mapping = {}
                 for fqn, filename in self._weight_map.items():
