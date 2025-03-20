@@ -115,9 +115,11 @@ class _CheckpointerInterface(Protocol):
 
     """
 
-    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: ...
+    def load_checkpoint(self, **kwargs) -> Dict[str, Any]:
+        ...
 
-    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: ...
+    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None:
+        ...
 
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
@@ -403,14 +405,18 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             Default is True.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the receipe state from a previous run. Default is False
+        enable_dcp (bool): If True, the checkpointer will load the checkpoint file using dcp checkpointing apis.
+
+    Raises:
+        ValueError: If ther checkpoint_dir and output_dir are not on the same filesystem
     """
 
     def __init__(
         self,
-        checkpoint_dir: Union[Path, str],
+        checkpoint_dir: str,
         checkpoint_files: Union[List[str], Dict[str, str]],
         model_type: str,
-        output_dir: Union[Path, str],
+        output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
@@ -830,7 +836,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
 
                 # Save the appropriate index file based on serialization format
-                # e.g. {metadata: {total_size: 1234}, weight_map: {"key1": "model_0001.safetensors", "key2": "model_0002.safetensors"}}
+                # e.g. {metadata: {total_size: 1234},
+                # weight_map: {"key1": "model_0001.safetensors", "key2": "model_0002.safetensors"}}
                 if self._safe_serialization:
                     weight_map = {
                         k: map_original_name_to_new_name[cpt_idx] + ".safetensors"
@@ -882,14 +889,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
-                state_dict[training.ADAPTER_KEY] = (
-                    convert_weights.tune_to_peft_adapter_weights(
-                        state_dict[training.ADAPTER_KEY],
-                        num_heads=self._config["num_attention_heads"],
-                        num_kv_heads=self._config["num_key_value_heads"],
-                        dim=self._config["hidden_size"],
-                        head_dim=self._config.get("head_dim", None),
-                    )
+                state_dict[
+                    training.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
+                    state_dict[training.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
                 output_path = os.path.join(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
@@ -925,11 +932,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
             else:
-                state_dict[training.ADAPTER_CONFIG] = (
-                    convert_weights.tune_to_peft_adapter_config(
-                        adapter_config=state_dict[training.ADAPTER_CONFIG],
-                        base_model_name_or_path=self.repo_id,
-                    )
+                state_dict[
+                    training.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    adapter_config=state_dict[training.ADAPTER_CONFIG],
+                    base_model_name_or_path=self.repo_id,
                 )
 
                 output_path = (

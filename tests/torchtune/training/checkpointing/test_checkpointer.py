@@ -673,12 +673,6 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         config_file = Path.joinpath(checkpoint_dir, "config.json")
         with config_file.open("w") as f:
             json.dump(config, f)
-        metadata_file = Path.joinpath(checkpoint_dir, "model.safetensors.index.json")
-        metadata = {"weight_map": {}}
-        for key in state_dict.keys():
-            metadata["weight_map"][key] = key
-        with metadata_file.open("w") as f:
-            json.dump(metadata, f)
 
         return checkpoint_file
 
@@ -824,9 +818,6 @@ class TestHFGemmaFullModelCheckpointer:
         checkpoint_file = checkpoint_dir / "gemma_hf_checkpoint.pt"
 
         torch.save(state_dict, checkpoint_file)
-        safetensors.torch.save_file(
-            state_dict, checkpoint_dir / "model-00001-of-00001.safetensors"
-        )
 
         config = {
             "hidden_size": _DIM,
@@ -839,14 +830,6 @@ class TestHFGemmaFullModelCheckpointer:
         with config_file.open("w") as f:
             json.dump(config, f)
 
-        # metadata file for dcp
-        metadata_file = Path.joinpath(checkpoint_dir, "model.safetensors.index.json")
-        metadata = {"weight_map": {}}
-        for key in state_dict.keys():
-            metadata["weight_map"][key] = "model-00001-of-00001.safetensors"
-        with metadata_file.open("w") as f:
-            json.dump(metadata, f)
-
         return checkpoint_file
 
     @pytest.fixture
@@ -854,8 +837,8 @@ class TestHFGemmaFullModelCheckpointer:
         self, gemma_hf_checkpoint, tmp_path
     ) -> FullModelHFCheckpointer:
         checkpoint_file = gemma_hf_checkpoint
-        checkpoint_dir = Path.joinpath(tmp_path, "checkpoint_dir")
-        output_dir = Path.joinpath(tmp_path, "output_dir")
+        checkpoint_dir = str(Path.joinpath(tmp_path, "checkpoint_dir"))
+        output_dir = str(Path.joinpath(tmp_path, "output_dir"))
         return FullModelHFCheckpointer(
             checkpoint_dir=checkpoint_dir,
             checkpoint_files=[checkpoint_file],
