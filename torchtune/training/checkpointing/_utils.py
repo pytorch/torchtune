@@ -189,7 +189,9 @@ class FormattedCheckpointFiles:
         ]
 
 
-def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
+def get_path(
+    input_dir: Union[Path, str], filename: str, missing_ok: bool = False
+) -> str:
     """
     Utility to recover and validate the path for a given file within a given directory.
 
@@ -204,13 +206,14 @@ def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     Raises:
         ValueError: If the file is missing and missing_ok is False.
     """
-    if not input_dir.is_dir():
+    fs, _ = url_to_fs(input_dir)
+    if not fs.isdir(input_dir):
         raise ValueError(f"{input_dir} is not a valid directory.")
 
-    file_path = Path.joinpath(input_dir, filename)
+    file_path = os.path.join(input_dir, filename)
 
     # If missing_ok is False, raise an error if the path is invalid
-    if not missing_ok and not file_path.is_file():
+    if not missing_ok and not fs.isfile(file_path):
         raise ValueError(f"No file with name: {filename} found in {input_dir}.")
     return file_path
 
