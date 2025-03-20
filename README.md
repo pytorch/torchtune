@@ -1,18 +1,21 @@
 ## System Prompt Compliance Setup
 
-In the system-prompt-compliance repo:
-```bash
-python main.py --output_path output/train_outputs.jsonl
-python convert_torchtune.py
-```
+1. Do data preprocessing:
+   ```
+   python convert_torchtune.py --extra_examples
+   ```
 
-Paste `output/compliance_dataset.json` from that repo into this repo's `data/` directory
+2. Download selected model:
+   ```bash
+   tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /fs/cml-projects/guardian_models/models/Qwen2-1.5B-Instruct/huggingface_base --ignore-patterns='original/consolidated.00.pth'
+   ```
 
-In this repo: (update the directories in `llama3_1/8B_full_single_device.yaml` to match your `path/to/model`)
-```bash
-tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir path/to/model/Meta-Llama-3.1-8B-Instruct --ignore-patterns='original/consolidated.00.pth'
-tune run full_finetune_single_device --config llama3_1/8B_full_single_device
-```
+3. Confirm training config has this path listed correctly in https://github.com/khalidsaifullaah/torchtune/blob/main/recipes/configs/guardian_models/qwen_1B_lora_10000.yaml
+
+4. Run the training:
+   ```bash
+   tune run full_finetune_single_device --config recipes/configs/guardian_models/qwen_1B_lora_10000.yaml
+   ```
 
 
 # torchtune
