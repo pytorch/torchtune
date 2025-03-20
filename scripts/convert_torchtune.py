@@ -13,7 +13,6 @@ COT_CLOSING = "\n</reasoning>"
 LABEL_OPENING = "\n<answer>"
 LABEL_CLOSING = "\n</answer>"
 
-
 def clean_rule(rule):
     # Looking for 1. or 2. etc.
     splits = rule.split(". ", 1)
@@ -46,7 +45,7 @@ def parse_string_list(string_list):
     return native_list
 
 
-def preprocess_dataset(dataset_path, subset=None, split=None, size=None, local=False):
+def preprocess_dataset(dataset_path, subset=None, split=None, size=None, local=False, data_dir="data"):
     if local:
         dataset = datasets.load_dataset('json', data_files=dataset_path)['train']
     else:
@@ -106,7 +105,7 @@ Conversation:
                     raise e
                 
                 label = parse_string_list(labels[i])[j]
-                example[OUTPUT_FIELD] = f"{COT_OPENING} {discussion} {explanation} {COT_CLOSING} {LABEL_OPENING} {label} {LABEL_CLOSING}"
+                example[OUTPUT_FIELD] = f"{discussion} {explanation} {LABEL_DELIMITER} {label}"
                 examples.append(example)
 
 
@@ -117,11 +116,12 @@ Conversation:
         size = len(torchtune_dataset)
     torchtune_dataset = torchtune_dataset.select(range(size))
 
-    file_path = f"data/{subset}_{split}_{size}.jsonl"
+    file_path = f"{data_dir}/{subset}_{split}_{size}.jsonl"
 
     torchtune_dataset.to_json(file_path, orient='records', lines=True, indent=None)
     print(f"Examples in dataset preprocessed for TorchTune: {size}")
     print(f"Saved to {file_path}")
+    return file_path
 
 
 def main(args):
@@ -134,17 +134,34 @@ def main(args):
     # Hard: 1670 train, 313 val, 44 test
     subsets = ["easy", "hard"]
     splits = ["train", "validation", "test"]
+    file_paths = {}
     for subset in subsets:
         for split in splits:
-            if split == "validation":
-                preprocess_dataset(huggingface_dataset, subset, split, size=args.val_size)
-            preprocess_dataset(huggingface_dataset, subset, split, size=args.train_size)
+            file_path = preprocess_dataset(huggingface_dataset, subset, split, size=args.train_size, data_dir=args.data_dir)
+            file_paths[f"{subset}_{split}"] = file_path
+
+    if args.extra_examples:
+        train_file_path = file_paths["easy_train"]
+        val_file_path = file_paths["easy_validation"]
+        
+        train_dataset = datasets.load_dataset("json", data_files={"placeholder": train_file_path})["placeholder"]
+        val_dataset = datasets.load_dataset("json", data_files={"placeholder": val_file_path})["placeholder"]
+        
+        combined_len = len(train_dataset) + len(val_dataset)
+        combined_file_path = f"{args.data_dir}/easy_train_{combined_len}.jsonl"
+        
+        combined_dataset = datasets.concatenate_datasets([train_dataset, val_dataset])
+        combined_dataset = combined_dataset.shuffle(seed=42)
+        combined_dataset.to_json(combined_file_path)
+        print(f"Combined easy train and validation datasets saved to {combined_file_path}")
+        
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_size', type=int, default=2500)
-    parser.add_argument('--val_size', type=int, default=200)
+    parser.add_argument("--data_dir", default="data", type=str)
+    parser.add_argument("--train_size", default=10000, type=int)
+    parser.add_argument("--extra_examples", default=True, action=argparse.BooleanOptionalAction)
     return parser.parse_args()
 
 
