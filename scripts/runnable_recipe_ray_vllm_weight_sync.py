@@ -1348,6 +1348,9 @@ class RayGRPORecipe:
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
 
+    if cfg.get("enable_expandable_segments", True):
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
     recipe = RayGRPORecipe()
     recipe.setup(cfg)
     recipe.train()
