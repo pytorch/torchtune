@@ -566,6 +566,28 @@ class PyTorchActorModel:
             "enable_activation_checkpointing", False
         )
 
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
+
         # recipe state attributes
         self.seed = training.set_seed(seed=cfg.seed)
         self.total_epochs = cfg.epochs
@@ -594,12 +616,22 @@ class PyTorchActorModel:
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
         )
         self._optimizer = self._setup_optimizer(cfg_optimizer=cfg.optimizer)
         self._loss_fn = config.instantiate(cfg.loss)
+
+        if self._compile:
+            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
+
+        # TODO: generalize this to any chunked loss
+        if self._loss_fn.__class__.__name__ == "GRPOWithChunkedOutputLoss":
+            # set num_output_chunks for model
+            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
 
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
@@ -763,6 +795,7 @@ class PyTorchActorModel:
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         model_state_dict: Dict[str, Any],
         # ref_model_state_dict: Dict[str, Any],
@@ -858,6 +891,11 @@ class PyTorchActorModel:
         #     log,
         #     f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         # )
+
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
+        )
+
         if self._is_rank_zero:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
@@ -909,52 +947,66 @@ class PyTorchActorModel:
             print("context_length", context_length)
             print([f.shape for f in trajectory if f is not None])
 
+        # Create an output mask to avoid computing model.output on tokens we won't train on
+        # We don't need to compute logits for the prompt tokens (except the last one which is used for the first prediction)
+        # and we don't need the logit for the last token (as there's no next token to predict)
+        output_mask = torch.zeros_like(
+            trajectory.query_responses, dtype=torch.bool, device=self._device
+        )
+        output_mask[:, context_length - 1 : -1] = True
+
         # estimate logprobs from the policy at the current optimisation step
-        pi_logits = self._model(
-            trajectory.query_responses,
-            input_pos=trajectory.position_ids,
-            mask=trajectory.masks,
-        )
+        with self.activations_handling_ctx:
+            pi_logits = self._model(
+                trajectory.query_responses,
+                input_pos=trajectory.position_ids,
+                mask=trajectory.masks,
+                output_mask=output_mask,
+            )
 
-        pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
-        pi_logprobs = rlhf.batched_logits_to_logprobs(
-            pi_logits,
-            trajectory.query_responses[:, context_length:],
-            self._temperature,
-            chunk_size=1,
-        )
+        # pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, context_length)
+        # pi_logprobs = rlhf.batched_logits_to_logprobs(
+        #     pi_logits,
+        #     trajectory.query_responses[:, context_length:],
+        #     self._temperature,
+        #     chunk_size=1,
+        # )
 
-        pi_logprobs[trajectory.response_padding_masks] = 1.0
-        trajectory.ref_logprobs[trajectory.response_padding_masks] = 1.0
+        # pi_logprobs[trajectory.response_padding_masks] = 1.0
+        # trajectory.ref_logprobs[trajectory.response_padding_masks] = 1.0
 
         if self._is_rank_zero:
-            print(
-                "ref_logprobs shape", trajectory.ref_logprobs.shape, pi_logprobs.shape
-            )
-            print(torch.abs(pi_logprobs - trajectory.ref_logprobs).max())
-            print(torch.abs(pi_logprobs - trajectory.ref_logprobs).mean())
-            print(pi_logprobs)
+            # print(
+            #     "ref_logprobs shape", trajectory.ref_logprobs.shape, pi_logprobs.shape
+            # )
+            # print(torch.abs(pi_logprobs - trajectory.ref_logprobs).max())
+            # print(torch.abs(pi_logprobs - trajectory.ref_logprobs).mean())
+            # print(pi_logprobs)
             print(trajectory.ref_logprobs)
 
-        del pi_logits
         torch.cuda.empty_cache()
 
-        # calculate grpo loss
-        loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
-            trajectory.logprobs,
-            pi_logprobs,
-            trajectory.ref_logprobs,
-            trajectory.advantages,
+        # Extract response targets, aligned with pi_logits
+        targets = trajectory.query_responses[:, context_length:]
+
+        # Compute GRPO loss
+        loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs = self._loss_fn(
+            pi_logits=pi_logits,
+            targets=targets,
+            ref_logprobs=trajectory.ref_logprobs,
+            advantages=trajectory.advantages,
             padding_masks=~trajectory.response_padding_masks,
         )
+        with torch.no_grad():
+            mask = ~trajectory.response_padding_masks  # True for non-padded tokens
+            approx_policy_kls = (
+                0.5 * ((pi_logprobs - trajectory.logprobs)[mask].pow(2)).mean()
+            )
+
+        del pi_logprobs, pi_logits
 
         torch.cuda.empty_cache()
         loss.backward()
-
-        with torch.no_grad():
-            approx_policy_kls = (
-                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
-            ).mean()
 
         print("done grpo step")
 
