@@ -17,9 +17,8 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
-from torchtune import config, modules, training, utils
+from torch.utils.data import DataLoader, DistributedSampler
+from torchtune import config, modules, training, utils, generation
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
@@ -35,6 +34,7 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
+import wandb
 
 log = utils.get_logger("DEBUG")
 
@@ -306,8 +306,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._dataloader = self._setup_data(
+        self._sampler, self._dataloader, self._valid_dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
+            valid_data_files=cfg.valid_data_files,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
@@ -521,6 +522,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
+        valid_data_files: str,
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
@@ -542,6 +544,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
+        cfg_dataset['data_files'] = valid_data_files
+        valid_ds = config.instantiate(cfg_dataset, self._tokenizer)
+
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
             raise RuntimeError("left_pad_sequence collator is only for inference.")
@@ -556,8 +561,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         dataloader = StatefulDataLoader(
             dataset=ds,
-            batch_size=batch_size,
             sampler=sampler,
+            batch_size=batch_size,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=(
                 partial(
                     collate_fn,
@@ -567,11 +574,27 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if not packed
                 else padded_collate_packed
             ),
+        )
+        valid_dataloader = DataLoader(
+            dataset=valid_ds,
+            sampler=None,
+            batch_size=batch_size,
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
+            collate_fn=(
+                partial(
+                    collate_fn,
+                    padding_idx=self._tokenizer.pad_id,
+                    ignore_idx=self._loss_fn.ignore_index,
+                )
+                if not packed
+                else padded_collate_packed
+            ),
         )
 
-        return dataloader
+        log.info("Dataset and Sampler are initialized.")
+
+        return sampler, dataloader, valid_dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -636,13 +659,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: Dict[str, torch.Tensor], return_metrics=False) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
         # run model
         with self.activations_handling_ctx:
             logits = self._model(**batch)
 
+        # self._tokenizer.decode(labels[0].clamp(min=0).tolist())
+        # self._tokenizer.decode(batch['tokens'][0].tolist())
+        
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
         # But this way we dont need to slice the logits. We just add an ignore index to labels.
@@ -655,8 +681,25 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         loss = self._loss_fn(logits, labels)
 
+        if return_metrics:
+            seq_indices, eot_indices = torch.where(labels == self._tokenizer.eot_id)
+            compliance_labels = labels[seq_indices, eot_indices - 1]
+
+            logit_indices = (eot_indices - 1) // logits[0].shape[1]
+            compliance_logit_indices = (eot_indices - 1) % logits[0].shape[1]
+
+            accuracy = torch.zeros_like(compliance_labels, dtype=float)
+            confidence = torch.zeros_like(compliance_labels, dtype=float)
+            for i in range(logit_indices.shape[0]):
+                compliance_logits = logits[logit_indices[i]][i][compliance_logit_indices[i]]
+                accuracy[i] = (compliance_logits.argmax() == compliance_labels[i]).float()
+                confidence[i] = compliance_logits.softmax(dim=-1)[compliance_labels[i]]
+
         # free logits otherwise it peaks backward memory
         del logits
+
+        if return_metrics:
+            return loss, accuracy, confidence
 
         return loss
 
@@ -675,9 +718,113 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        # HACK for qwen
+        if self._tokenizer.__class__.__name__ == 'Qwen2Tokenizer':
+            self._tokenizer.eot_id = self._tokenizer.special_tokens["<|im_end|>"]
+            self._tokenizer.start_header_id = self._tokenizer.special_tokens['<|im_start|>']
+
+        def do_validation(epoch: int):
+            log.info("Running validation...")
+            generation_results = wandb.Table(columns=[
+                'epoch',
+                'example_idx',
+                'input',
+                'model_output',
+                'ground_truth',
+                'classification'
+            ])
+            self._model.eval()
+            with torch.inference_mode():
+                num_samples = 0
+                total_loss = 0
+                total_accuracy = 0
+                total_confidence = 0
+                total_gen_accuracy = 0
+                for idx, batch in enumerate(self._valid_dataloader):
+                    # for now, because inference is slow
+                    if num_samples >= 200:
+                        break
+                    utils.batch_to_device(batch, self._device)
+                    
+                    self._model.set_num_output_chunks(0)
+                    for seq, labels in zip(batch['tokens'], batch['labels']):
+                        # where the first text (system prompt) ends and second (user prompt) begins
+                        start_idx = torch.where(seq == self._tokenizer.eot_id)[0][0]
+                        # the output i.e. where the non-masked part of the labels start
+                        end_idx = torch.where(labels == self._tokenizer.start_header_id)[0]
+                        
+                        generated_tokens, _ = generation.generate(
+                            model=self._model,
+                            prompt=seq[:end_idx],
+                            max_generated_tokens=1000,
+                            pad_id=self._tokenizer.pad_id,
+                            temperature=0.8,
+                            top_k=300,
+                            stop_tokens=self._tokenizer.stop_tokens,
+                            custom_generate_next_token=None,
+                        )
+                        generated_tokens = generated_tokens.tolist()
+
+                        prompt = self._tokenizer.decode(seq[start_idx:end_idx].tolist())
+                        log.info('Input: \n' + prompt)
+                        output = self._tokenizer.decode(generated_tokens[0][end_idx:])
+                        log.info('Output: \n' + output)
+                        ground_truth = self._tokenizer.decode(labels[end_idx:][labels[end_idx:] >= 0].tolist())
+                        log.info('Ground Truth: \n' + ground_truth)
+
+                        pass_text = 'compliance output: pass'
+                        fail_text = 'compliance output: fail'
+
+                        # assuming the ground truth will always have a pass or fail,
+                        # this is the default if the model did not follow the format and specify pass or fail
+                        classification = 'null'
+
+                        if pass_text in output.lower() and pass_text in ground_truth.lower():
+                            classification = 'true_pass'
+                        if pass_text in output.lower() and fail_text in ground_truth.lower():
+                            classification = 'false_pass'
+                        if fail_text in output.lower() and fail_text in ground_truth.lower():
+                            classification = 'true_fail'
+                        if fail_text in output.lower() and pass_text in ground_truth.lower():
+                            classification = 'false_fail'
+
+                        if classification == 'true_pass' or classification == 'true_fail':
+                            total_gen_accuracy += 1
+
+                        generation_results.add_data(epoch, num_samples, prompt, output, ground_truth, classification)
+                        num_samples += 1
+
+                    self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+
+                    loss, accuracy, confidence = self._loss_step(batch, return_metrics=True)
+
+                    total_loss += loss.cpu() * batch['tokens'].shape[0]
+                    total_accuracy += accuracy.sum().cpu()
+                    total_confidence += confidence.sum().cpu()
+
+                log_dict = {
+                    "validation/loss": total_loss / num_samples,
+                    "validation/label_accuracy": total_accuracy / num_samples,
+                    "validation/label_confidence": total_confidence / num_samples,
+                    "validation/generation_accuracy": total_gen_accuracy / num_samples,
+                    f"validation/generation_results_{epoch}": generation_results,
+                }
+                self._metric_logger.log_dict(
+                    log_dict,
+                    step=self.global_step,
+                )
+            self._model.train()
+
+
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
+                # Update the sampler to ensure data is correctly shuffled across epochs
+                # in case shuffle is True
+                self._sampler.set_epoch(curr_epoch)
+
+                do_validation(curr_epoch)
+
                 pbar = tqdm(total=self._steps_per_epoch)
                 self._dataloader.sampler.set_epoch(curr_epoch)
                 for idx, batch in enumerate(self._dataloader):
@@ -775,6 +922,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
+
+                if curr_epoch == self.total_epochs - 1:
+                    do_validation(self.total_epochs)
+
                 start_save_checkpoint = time.perf_counter()
                 log.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)

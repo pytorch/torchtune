@@ -228,6 +228,7 @@ class WandBLogger(MetricLoggerInterface):
         entity: Optional[str] = None,
         group: Optional[str] = None,
         log_dir: Optional[str] = None,
+        name: Optional[str] = "unnamed",
         **kwargs,
     ):
         try:
@@ -252,6 +253,7 @@ class WandBLogger(MetricLoggerInterface):
             # we check if wandb.init got called externally,
             run = self._wandb.init(
                 project=project,
+                name=name,
                 entity=entity,
                 group=group,
                 dir=self.log_dir,

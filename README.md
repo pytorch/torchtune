@@ -1,4 +1,21 @@
+## System Prompt Compliance Setup
 
+1. Do data preprocessing:
+   ```
+   python convert_torchtune.py --extra_examples
+   ```
+
+2. Download selected model:
+   ```bash
+   tune download Qwen/Qwen2.5-1.5B-Instruct --output-dir /fs/cml-projects/guardian_models/models/Qwen2-1.5B-Instruct/huggingface_base --ignore-patterns='original/consolidated.00.pth'
+   ```
+
+3. Confirm training config has this path listed correctly in https://github.com/khalidsaifullaah/torchtune/blob/main/recipes/configs/guardian_models/qwen_1B_lora_10000.yaml
+
+4. Run the training:
+   ```bash
+   tune run full_finetune_single_device --config recipes/configs/guardian_models/qwen_1B_lora_10000.yaml
+   ```
 
 
 # torchtune

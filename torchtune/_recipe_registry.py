@@ -457,6 +457,22 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="lora_generate",
+        file_path="lora_generate.py",
+        configs=[
+            Config(name="lora_generation", file_path="lora_generation.yaml",),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
+        name="validation",
+        file_path="validation.py",
+        configs=[
+            Config(name="validation", file_path="validation.yaml",),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
         name="dev/generate_v2",
         file_path="dev/generate_v2.py",
         configs=[

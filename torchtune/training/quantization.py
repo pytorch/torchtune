@@ -8,7 +8,16 @@ from typing import Callable, Optional
 
 from torch import nn
 
-from torchao.dtypes import TensorCoreTiledLayout
+if _USE_NEW_TENSOR_CORE_TILED_LAYOUT_API:
+    # https://github.com/pytorch/torchtune/issues/1908
+    try:
+        # torchao 0.7+
+        from torchao.dtypes import TensorCoreTiledLayout
+    except ImportError:
+        # torchao 0.6 and before
+        from torchao.dtypes import TensorCoreTiledLayoutType as TensorCoreTiledLayout
+else:
+    from torchao.dtypes import TensorCoreTiledLayoutType as TensorCoreTiledLayout
 
 from torchao.quantization import (
     int4_weight_only,
