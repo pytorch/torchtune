@@ -92,3 +92,29 @@ class TestInstantiate:
 
         tokenizer = instantiate(config.tokenizer)
         assert tokenizer.max_seq_len is None
+
+    def test_nested_instantiation(self) -> None:
+        class Foo:
+            def __init__(self, bar):
+                self.bar = bar
+
+            def __call__(self, x):
+                return self.bar(x)
+
+        class Bar:
+            def __call__(self, x):
+                return x + 1
+
+        s = dedent(
+            """\
+        foo:
+          _component_: foo
+          bar:
+            _component_: bar
+        """
+        )
+        config = OmegaConf.create(s)
+
+        foo = instantiate(config.foo)
+        output = foo(1)
+        assert output == 2, f"Foo should call bar and return 1+1. Got {output} instead."
