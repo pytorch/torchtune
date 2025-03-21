@@ -60,7 +60,7 @@ import torchtune.training as training
 from omegaconf import DictConfig, ListConfig
 from ray.util.placement_group import placement_group
 
-from ray.util.queue import Queue
+from ray.util.queue import Full as QueueFull, Queue
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 from torch.optim import Optimizer
 
@@ -250,7 +250,20 @@ class RefActor:
                 tensor.cpu() if isinstance(tensor, torch.Tensor) else tensor
                 for tensor in trajectory
             ]
-            self.actor_replay_buffer.put(trajectory, timeout=30)
+
+            # Update circular queue
+            while True:
+                try:
+                    print(
+                        f"RefActor queue size before put_nowait: {self.actor_replay_buffer.qsize()}"
+                    )
+                    self.actor_replay_buffer.put_nowait(trajectory)
+                    break
+                except QueueFull:
+                    self.actor_replay_buffer.get()  # Remove the oldest item to make space
+                    print(
+                        f"RefActor queue size after get: {self.actor_replay_buffer.qsize()}"
+                    )
 
             torch.cuda.empty_cache()
 
@@ -363,6 +376,7 @@ class vLLMRolloutActor:
 
     def wake_up(self):
         self.sleeping = False
+        print(f"{self.__class__.__name__} (pid={os.getpid()}) woke up", flush=True)
 
     def is_sleeping(self):
         return self.sleeping
@@ -487,7 +501,18 @@ class vLLMRolloutActor:
                 tensor.cpu() if isinstance(tensor, torch.Tensor) else tensor
                 for tensor in postprocessed_results
             ]
-            self.replay_buffer.put(postprocessed_results, timeout=30)
+
+            # Update circular queue
+            while True:
+                try:
+                    print(
+                        f"vLLM queue size before put_nowait: {self.replay_buffer.qsize()}"
+                    )
+                    self.replay_buffer.put_nowait(postprocessed_results)
+                    break
+                except QueueFull:
+                    self.replay_buffer.get()  # Remove the oldest item to make space
+                    print(f"vLLM queue size after get: {self.replay_buffer.qsize()}")
 
 
 class vLLMWorkerWrapper(Worker):
@@ -1116,7 +1141,7 @@ class PyTorchActorModel:
                         ]
                     except Exception:
                         trajectory = None
-                    time.sleep(0.1)
+                        time.sleep(0.1)
 
                 print(f"{self.rank=} got from queue")
 

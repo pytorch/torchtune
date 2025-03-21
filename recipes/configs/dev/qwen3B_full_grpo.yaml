@@ -117,7 +117,7 @@ vllm:
   num_workers: 5
   tp_size: 1
   batch_size: 1 # TODO: for now, needs to match recipe batch size
-  queue_maxsize: 10 #num workers * steps_before_sync
+  queue_maxsize: 3 #num workers * steps_before_sync
 
 
 # Logging
