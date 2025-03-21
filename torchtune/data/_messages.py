@@ -254,12 +254,23 @@ class InputOutputToMessages(Transform):
                 eot=True,
             ),
         ]
-        if self.new_system_prompt is not None:
+
+        system_column = self.column_map.get("system", "system")
+        system_prompt = None
+
+        if (system_column in sample and sample[system_column] and sample[system_column].strip()):
+            system_prompt = sample[system_column]
+
+        elif self.new_system_prompt is not None:
+            system_prompt = self.new_system_prompt
+
+        if system_prompt is not None:
             messages = [
                 Message(
-                    role="system", content=self.new_system_prompt, masked=True, eot=True
+                    role="system", content=system_prompt, masked=True, eot=True
                 )
             ] + messages
+
         return {"messages": messages}
 
 
