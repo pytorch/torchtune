@@ -7,5 +7,6 @@
 
 from .dpo import DPOLoss, RSOLoss, SimPOLoss, CELoss
 from .ppo import PPOLoss
+from .grpo import GRPOLoss, GRPOCompletionLoss, GRPOSimpleLoss
 
-__all__ = ["DPOLoss", "RSOLoss", "SimPOLoss", "PPOLoss", "CELoss"]
+__all__ = ["DPOLoss", "RSOLoss", "SimPOLoss", "PPOLoss", "CELoss", GRPOLoss, GRPOCompletionLoss, GRPOSimpleLoss]

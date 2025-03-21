@@ -21,6 +21,7 @@ from torchtune.training._distributed import (
     set_torch_num_threads,
     shard_model,
     validate_no_params_on_meta_device,
+    get_distributed_backend
 )
 from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._profiler import (
@@ -70,6 +71,7 @@ from torchtune.training.precision import (
 )
 from torchtune.training.quantization import get_quantizer_mode
 from torchtune.training.seed import set_seed
+from torchtune.training._model_util import disable_dropout
 
 __all__ = [
     "get_act_offloading_ctx_manager",
@@ -129,4 +131,7 @@ __all__ = [
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
+    "get_distributed_backend",
+    "disable_dropout"
+    
 ]
