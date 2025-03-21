@@ -569,6 +569,7 @@ class TransformerDecoder(nn.Module):
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
         input_embeds: Optional[torch.Tensor] = None,
+        output_mask: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
@@ -654,14 +655,18 @@ class TransformerDecoder(nn.Module):
             )
 
         # shape: [b, seq_len, out_dim]
-        output = self.unembed(h)
+        output = self.unembed(h, output_mask=output_mask)
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type
         output = output if not hidden else [*hidden, output]
         return output
 
-    def unembed(self, h):
+    def unembed(self, h, output_mask=None):
+        if output_mask is not None:
+            bsz, seq_len, dim = h.shape
+            h = h[output_mask]
+            h = h.reshape(bsz, -1, dim)
         # shape: [b, s, d]
         h = self.norm(h)
 
