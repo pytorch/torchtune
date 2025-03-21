@@ -1492,7 +1492,7 @@ class RayGRPORecipe:
     def train(self):
         rollout_handles = [worker.rollout.remote() for worker in self.rollout_workers]
         self.rollout_workers[0].print_me.remote("hello vllm worker, it's __main__")
-        ref_handles = [worker.run.remote() for worker in self.ref_workers]  # Now plural
+        ref_handles = [worker.run.remote() for worker in self.ref_workers]
         worker_handles = [worker.train.remote() for worker in self.actor_workers]
         ray.get(rollout_handles + ref_handles + worker_handles)
         ray.get(self.actor_workers[0].cleanup.remote())
