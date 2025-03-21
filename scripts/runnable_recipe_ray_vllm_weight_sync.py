@@ -178,7 +178,22 @@ class RefActor:
             trajectory = None
             while trajectory is None:
                 try:
+                    print(f"Getting from queue RefActor")
+                    print(
+                        "Replay buffer size at start:",
+                        self.rollout_replay_buffer.qsize(),
+                    )
                     trajectory = self.rollout_replay_buffer.get(timeout=0.5)
+
+                    # Move tensors back to GPU
+                    trajectory = [
+                        (
+                            tensor.to(self._device)
+                            if isinstance(tensor, torch.Tensor)
+                            else tensor
+                        )
+                        for tensor in trajectory
+                    ]
                 except Exception:
                     trajectory = None
                     time.sleep(0.1)
@@ -201,9 +216,13 @@ class RefActor:
                 query_response_padding_masks
             )
 
-            ref_logits = self._ref_model(
-                query_responses, input_pos=position_ids, mask=masks
-            )
+            print("query_responses shape", query_responses.shape)
+            print("position_ids shape", position_ids.shape)
+            print("masks shape", masks.shape)
+            with torch.no_grad():
+                ref_logits = self._ref_model(
+                    query_responses, input_pos=position_ids, mask=masks
+                )
 
             ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
             ref_logprobs = rlhf.batched_logits_to_logprobs(
@@ -223,7 +242,16 @@ class RefActor:
                 answers,
             )
             print("putting trajectory into actor queue")
-            self.actor_replay_buffer.put_nowait(trajectory)
+
+            # Move tensors to CPU before putting into the queue
+            trajectory = [
+                tensor.cpu() if isinstance(tensor, torch.Tensor) else tensor
+                for tensor in trajectory
+            ]
+
+            # Put CPU tensors into the queue
+            self.actor_replay_buffer.put(trajectory, timeout=30)
+
             torch.cuda.empty_cache()
 
             idx += 1
@@ -239,7 +267,7 @@ class vLLMRolloutActor:
         self._temperature = self.cfg.temperature
         # FIXME: I don't know what this is for and haven't used this yet
         self._top_k = self.cfg.top_k
-        self.batch_size = self.cfg.batch_size
+        self.batch_size = self.cfg.vllm.batch_size
         self._steps_before_sync = self.cfg.steps_before_sync * self.cfg.num_fsdp_workers
 
         self.replay_buffer = kwargs.pop("queue")
@@ -258,13 +286,17 @@ class vLLMRolloutActor:
         self._dataloader = self._setup_data(
             self.cfg.dataset,
             shuffle=self.cfg.shuffle,
-            batch_size=self.cfg.batch_size,
+            batch_size=self.batch_size,
             collate_fn=collate_name,
         )
 
         # I'm using this to stop the generation until weight sync is done
         # FIXME: Should really use a lock
         self.sleeping = False
+
+    def start_weight_update(self, param_list):
+        for name, dtype, shape in param_list:
+            self.llm.collective_rpc("update_weight", args=(name, dtype, shape))
 
     def llm_collective_rpc(self, *args, **kwargs):
         self.llm.collective_rpc(*args, **kwargs)
@@ -449,7 +481,15 @@ class vLLMRolloutActor:
             # print(self._tokenizer.decode(batch_tokens[0]))
             # print("===")
             # print(self._tokenizer.decode(postprocessed_results[0][0].cpu().numpy().tolist()))
-            self.replay_buffer.put_nowait(postprocessed_results)
+
+            # Move tensors to CPU before putting into the queue
+            postprocessed_results = [
+                tensor.cpu() if isinstance(tensor, torch.Tensor) else tensor
+                for tensor in postprocessed_results
+            ]
+
+            # Put CPU tensors into the queue
+            self.replay_buffer.put(postprocessed_results, timeout=30)
 
 
 class vLLMWorkerWrapper(Worker):
@@ -604,7 +644,7 @@ class PyTorchActorModel:
         self._top_k = cfg.top_k
         self._max_generated_tokens = cfg.max_generated_tokens
         self.batch_size = cfg.batch_size
-        self._forward_batch_size = cfg.forward_batch_size
+        # self._forward_batch_size = cfg.forward_batch_size
 
         self._ppo_epochs = cfg.ppo_epochs
         self._save_every_n_epochs = cfg.save_every_n_epochs
@@ -1063,8 +1103,22 @@ class PyTorchActorModel:
                 trajectory = None
                 while trajectory is None:
                     try:
-                        print(f"{self.rank=} getting from queue")
+                        print(f"{self.rank=} getting from queue PyTorchActorModel")
+                        if self._is_rank_zero:
+                            print(
+                                "Replay buffer size at start:",
+                                self.replay_buffer.qsize(),
+                            )
                         trajectory = self.replay_buffer.get(timeout=0.5)
+                        # Move tensors back to GPU
+                        trajectory = [
+                            (
+                                tensor.to(self._device)
+                                if isinstance(tensor, torch.Tensor)
+                                else tensor
+                            )
+                            for tensor in trajectory
+                        ]
                     except Exception:
                         trajectory = None
                     time.sleep(0.1)
@@ -1192,28 +1246,9 @@ class PyTorchActorModel:
                     torch.cuda.synchronize()
                     if self._is_rank_zero:
                         print(f"done gather in {time.time() - start_gather}")
-                    # FIXME: don't hardcode kwargs here
-                    if self._is_rank_zero:
-                        new_sd = qwen2_tune_to_hf(
-                            new_sd, num_heads=16, num_kv_heads=2, dim=2048
-                        )
-                        # broadcast all parameters
-                        for i, (k, v) in enumerate(new_sd.items()):
-                            for eng in self._vllm_engines:
-                                # have to ray.get() as nccl communicator cannot be used before the broadcast returns
-                                ray.get(
-                                    eng.llm_collective_rpc.remote(
-                                        "update_weight", args=(k, v.dtype, v.shape)
-                                    )
-                                )
 
-                            self._model_update_group.broadcast(
-                                v, 0, stream=torch.cuda.current_stream()
-                            )
-
+                    self.sync_weights(new_sd)
                     del new_sd
-                    torch.distributed.barrier()
-                    print("waking up", flush=True)
 
                     if self._is_rank_zero:
                         self._vllm_engines[0].wake_up.remote()
@@ -1255,6 +1290,38 @@ class PyTorchActorModel:
 
         self._profiler.stop()
 
+    def sync_weights(self, new_sd):
+        if self._is_rank_zero:
+            # Convert to vLLM-compatible format
+            new_sd = qwen2_tune_to_hf(new_sd, num_heads=16, num_kv_heads=2, dim=2048)
+            # Prepare parameter metadata list
+            param_list = [(k, v.dtype, v.shape) for k, v in new_sd.items()]
+
+            # Start weight update on vLLM workers (non-blocking)
+            vllm_update_refs = [
+                eng.start_weight_update.remote(param_list) for eng in self._vllm_engines
+            ]
+
+            # Broadcast each parameter to vLLM workers
+            for k, v in new_sd.items():
+                self._model_update_group.broadcast(
+                    v, 0, stream=torch.cuda.current_stream()
+                )
+
+            # Wait for vLLM workers to finish updating
+            ray.get(vllm_update_refs)
+
+            # Wake up vLLM workers to resume rollouts
+            for eng in self._vllm_engines:
+                eng.wake_up.remote()
+        else:
+            # Non-zero training ranks don’t participate in vLLM weight sync
+            pass
+
+        # Cleanup
+        torch.distributed.barrier()
+        print("waking up", flush=True)
+
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
@@ -1263,31 +1330,36 @@ class PyTorchActorModel:
 class RayGRPORecipe:
     def setup(self, cfg):
         self.cfg = cfg
-        self.num_fsdp_workers = cfg.num_fsdp_workers
-        self.num_vllm_workers = cfg.vllm.num_workers
-        self.vllm_tp_size = cfg.vllm.tp_size
-        # FIXME: remove these and test that below code generalizes
-        assert self.num_vllm_workers == 1
-        assert self.vllm_tp_size == 1
-        # FIXME: replace with the real deal RayReplayBuffer :)
-        # this has a remote actor wrapped inside so no need to rewrap
+        self.num_fsdp_workers = cfg.num_fsdp_workers  # FSDP workers from config
+
+        # Initialize queues
         self.rollout_replay_buffer = Queue(
-            actor_options={"num_cpus": 10, "num_gpus": 1}
+            actor_options={"num_cpus": 10, "num_gpus": 0},
+            maxsize=cfg.vllm.queue_maxsize,
         )
-        self.actor_replay_buffer = Queue(actor_options={"num_cpus": 10, "num_gpus": 1})
+        self.actor_replay_buffer = Queue(
+            actor_options={"num_cpus": 10, "num_gpus": 0},
+            maxsize=cfg.vllm.queue_maxsize,
+        )
+
+        # Create workers using config values directly
         self.rollout_workers = self._create_vllm_workers()
-        self.ref_worker = self._create_ref_worker()
+        self.ref_workers = self._create_ref_workers()
         self.actor_workers = self._create_fsdp_group(
             worker_cls=PyTorchActorModel, fsdp_world_size=self.num_fsdp_workers
         )
         self._init_weight_sync_pg()
 
-    def start_ray(self, num_fsdp_workers, num_vllm_workers):
-        # total_num_workers = num_fsdp_workers + num_vllm_workers
-        # # + 2 for the SharedActor
-        # num_cpus = 32 * total_num_workers + 2
-        # num_gpus = total_num_workers + 1
-        ray.init(num_cpus=110, num_gpus=7)
+    def start_ray(self):
+        total_gpus = (
+            self.cfg.vllm.num_workers * self.cfg.vllm.tp_size
+            + self.cfg.get("num_ref_workers", 2)
+            + self.cfg.num_fsdp_workers
+        )
+        total_cpus = 32 * total_gpus  # Adjust based on your system
+        ray.init(
+            num_cpus=total_cpus, num_gpus=total_gpus
+        )  # Set to 8 if you have 8 GPUs
         print(ray.cluster_resources())
 
     def _create_fsdp_group(self, worker_cls, fsdp_world_size: int):
@@ -1313,31 +1385,34 @@ class RayGRPORecipe:
         return worker
 
     def _create_vllm_workers(self):
-        # Create placement group (still kinda need to figure out what this does)
-        pg_inference = placement_group([{"GPU": 1, "CPU": 10}] * self.vllm_tp_size)
-        ray.get(pg_inference.ready())
-        scheduling_inference = PlacementGroupSchedulingStrategy(
-            placement_group=pg_inference,
-            placement_group_capture_child_tasks=True,
-            # placement_group_bundle_index=0,
-        )
         llms = []
-        # set max_concurrency so rollout method spinning des not
-        for _ in range(self.num_vllm_workers):
+        for i in range(self.cfg.vllm.num_workers):
+            # Define placement group for this worker
+            pg_inference = placement_group(
+                [{"GPU": 1, "CPU": 10}] * self.cfg.vllm.tp_size
+            )
+            ray.get(pg_inference.ready())
+            scheduling_inference = PlacementGroupSchedulingStrategy(
+                placement_group=pg_inference,
+                placement_group_capture_child_tasks=True,
+            )
+
+            # Create the remote actor without specifying resources directly
             llm = (
                 ray.remote(
-                    num_cpus=0,
-                    num_gpus=0,
+                    num_cpus=0,  # No additional CPUs needed outside placement group
+                    num_gpus=0,  # No additional GPUs needed outside placement group
                     scheduling_strategy=scheduling_inference,
                 )(vLLMRolloutActor)
                 .options(max_concurrency=5)
                 .remote(
                     model="Qwen/Qwen2.5-3B",
                     enforce_eager=True,
+                    enable_chunked_prefill=True,
+                    dtype="bfloat16",
                     worker_cls=vLLMWorkerWrapper,
-                    tensor_parallel_size=self.vllm_tp_size,
+                    tensor_parallel_size=self.cfg.vllm.tp_size,
                     distributed_executor_backend="ray",
-                    # pass some additional args to the wrapper
                     queue=self.rollout_replay_buffer,
                     cfg=self.cfg,
                 )
@@ -1345,9 +1420,20 @@ class RayGRPORecipe:
             llms.append(llm)
         return llms
 
+    def _create_ref_workers(self):
+        workers = []
+        for i in range(self.cfg.get("num_ref_workers", 2)):
+            worker = RefActor.remote(
+                rollout_queue=self.rollout_replay_buffer,
+                actor_queue=self.actor_replay_buffer,
+                cfg=self.cfg,
+            )
+            workers.append(worker)
+        return workers
+
     def _init_weight_sync_pg(self):
         addr, weight_update_port = get_ip(), get_open_port()
-        weight_sync_world_size = self.num_vllm_workers * self.vllm_tp_size + 1
+        weight_sync_world_size = self.cfg.vllm.num_workers * self.cfg.vllm.tp_size + 1
 
         # only FSDP rank 0 is in the weight sync process group
         handle = self.actor_workers[0].init_model_update_group.remote(
@@ -1364,7 +1450,7 @@ class RayGRPORecipe:
                 args=(
                     addr,
                     weight_update_port,
-                    i * self.vllm_tp_size + 1,
+                    i * self.cfg.vllm.tp_size + 1,
                     weight_sync_world_size,
                 ),
             )
@@ -1382,11 +1468,11 @@ class RayGRPORecipe:
     def train(self):
         rollout_handles = [worker.rollout.remote() for worker in self.rollout_workers]
         self.rollout_workers[0].print_me.remote("hello vllm worker, it's __main__")
+        ref_handles = [worker.run.remote() for worker in self.ref_workers]  # Now plural
         worker_handles = [worker.train.remote() for worker in self.actor_workers]
-        ref_handles = [self.ref_worker.run.remote()]
-        [ray.get(rollout_handle) for rollout_handle in rollout_handles]
-        [ray.get(worker_handle) for worker_handle in worker_handles]
-        [ray.get(ref_handle) for ref_handle in ref_handles]
+        print("Waiting for tasks to complete")
+        ray.get(rollout_handles + ref_handles + worker_handles)
+        print("All tasks completed")
         ray.get(self.actor_workers[0].cleanup.remote())
 
     def stop_ray(self):
