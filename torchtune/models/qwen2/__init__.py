@@ -12,6 +12,7 @@ from ._model_builders import (
     lora_qwen2_7b,
     qwen2_0_5b,
     qwen2_1_5b,
+    qwen2_3b,
     qwen2_7b,
     qwen2_tokenizer,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "qwen2_7b",
     "qwen2_0_5b",
     "qwen2_1_5b",
+    "qwen2_3b",
     "qwen2_tokenizer",
     "lora_qwen2_7b",
     "lora_qwen2_0_5b",

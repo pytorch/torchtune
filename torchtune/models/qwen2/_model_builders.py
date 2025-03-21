@@ -41,6 +41,27 @@ def qwen2_7b() -> TransformerDecoder:
         rope_base=1000000.0,
     )
 
+def qwen2_3b() -> TransformerDecoder:
+    """
+    Builder for creating a Qwen2 model initialized w/ the default 7B parameter values
+    from https://huggingface.co/Qwen/Qwen2-7B-Instruct
+
+    Returns:
+        TransformerDecoder: Instantiation of Qwen2 7B model
+    """
+    return qwen2(
+        vocab_size=151936,
+        num_layers=36,
+        num_heads=16,
+        num_kv_heads=2,
+        embed_dim=2048,
+        intermediate_dim=11008,
+        max_seq_len=32768,
+        attn_dropout=0.0,
+        norm_eps=1e-06,
+        rope_base=1000000.0,
+        tie_word_embeddings=True,
+    )
 
 def qwen2_0_5b() -> TransformerDecoder:
     """

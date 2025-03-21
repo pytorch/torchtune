@@ -370,7 +370,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
-
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
