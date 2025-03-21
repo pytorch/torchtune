@@ -1,0 +1,191 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/* sphinx-design styles for cards/tabs */
+
+
+:root {
+    --sd-color-info: #ee4c2c;
+    --sd-color-primary: #6c6c6d;
+    --sd-color-primary-highlight: #f3f4f7;
+    --sd-color-card-border-hover: #ee4c2c;
+    --sd-color-card-border: #f3f4f7;
+    --sd-color-card-background: #fff;
+    --sd-color-card-text: inherit;
+    --sd-color-card-header: transparent;
+    --sd-color-card-footer: transparent;
+    --sd-color-tabs-label-active: #ee4c2c;
+    --sd-color-tabs-label-hover: #ee4c2c;
+    --sd-color-tabs-label-inactive: #6c6c6d;
+    --sd-color-tabs-underline-active: #ee4c2c;
+    --sd-color-tabs-underline-hover: #fabdbd;
+    --sd-color-tabs-underline-inactive: transparent;
+    --sd-color-tabs-overline: rgb(222, 222, 222);
+    --sd-color-tabs-underline: rgb(222, 222, 222);
+}
+
+.sd-text-info {
+    color: #ee4c2c;
+}
+
+.sd-card-img-top {
+    background: #ee4c2c;
+    height: 5px !important;
+}
+
+.sd-card {
+    position: relative;
+    background-color: #fff;
+    opacity: 1.0;
+    border-radius: 0px;
+    width: 30%;
+    border: none;
+    padding-bottom: 0px;
+}
+
+
+.sd-card-img:hover {
+    opacity: 1.0;
+    background-color: #f3f4f7;
+}
+
+
+.sd-card:after {
+    display: block;
+    opacity: 1;
+    content: '';
+    border-bottom: solid 1px #ee4c2c;
+    background-color: #fff;
+    transform: scaleX(0);
+    transition: transform .250s ease-in-out;
+    transform-origin:  0% 50%;
+}
+
+.sd-card:hover {
+    background-color: #fff;
+    opacity: 1;
+    border-top: 1px solid #f3f4f7;
+    border-left: 1px solid #f3f4f7;
+    border-right: 1px solid #f3f4f7;
+}
+
+.sd-card:hover:after {
+    transform: scaleX(1);
+}
+
+.card-prerequisites:hover {
+    transition: none;
+    border: none;
+}
+
+.card-prerequisites:hover:after {
+    transition: none;
+    transform: none;
+}
+
+.card-prerequisites:after {
+    display: block;
+    content: '';
+    border-bottom: none;
+    background-color: #fff;
+    transform: none;
+    transition: none;
+    transform-origin: none;
+}
+
+
+details.sd-dropdown {
+    font-weight: 300;
+    width: auto;
+}
+
+details.sd-dropdown:after {
+    border: none;
+    transition: none;
+}
+
+details.sd-dropdown:hover {
+    border: none;
+    transition: none;
+}
+
+details.sd-dropdown .sd-summary-content {
+    font-weight: 300;
+}
+
+details.sd-dropdown .highlight .n {
+    font-weight: normal;
+}
+
+.et-page-column1 {
+  float: left;
+  width: 70%;
+  font-size: 1rem;
+}
+
+.et-page-column2 {
+  float: right;
+  padding-top: 40px;
+  padding-left: 60px;
+  padding-right: 60px;
+  padding-bottom: 60px;
+  width: 30%;
+}
+
+.et-page-column-row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* For screens smaller than 768px (typical mobile devices) */
+@media screen and (max-width: 768px) {
+  .et-page-column1, .et-page-column2 {
+    float: none; /* Remove floats */
+    width: 100%; /* Full width for both columns */
+    padding: 0;
+    font-size: 1rem;
+  }
+
+  .et-page-column2 img {
+    display: none;
+  }
+  .et-page-column-row:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+}
+
+article.pytorch-article .class .method dt {
+    border-top: none;
+}
+
+article.pytorch-article .class .simple dt {
+    border-top: none;
+}
+
+article.pytorch-article .function dt.sig {
+    border-top: none;
+}
+
+/* Fix for Sphinx gallery thumbnails.
+See https://github.com/sphinx-gallery/sphinx-gallery/issues/990
+*/
+article.pytorch-article .sphx-glr-thumbnails .sphx-glr-thumbcontainer {
+    width: unset;
+    margin-right: 0;
+    margin-left: 0;
+}
+article.pytorch-article div.section div.wy-table-responsive tbody td {
+    width: 50%;
+}
+
+.MathJax {
+    font-size: 0.95em !important;
+}

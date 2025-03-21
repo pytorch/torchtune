@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.models.llama3_1
+
+
+llama3_1_405b
+=============
+
+.. autofunction:: llama3_1_405b

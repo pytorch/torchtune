@@ -1,0 +1,1332 @@
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>torchtune.training.checkpointing._utils &mdash; torchtune main documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-T8XT4PS');</script>
+    <!-- End Google Tag Manager -->
+  
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+  <!-- Preload the theme fonts -->
+
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+    <div class="header-container">
+      <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+
+      <div class="main-menu">
+        <ul>
+
+          <li class="main-menu-item">
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Learn
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/get-started">
+                  <span class=dropdown-title>Get Started</span>
+                  <p>Run PyTorch locally or get started quickly with one of the supported cloud platforms</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials">
+                  <span class="dropdown-title">Tutorials</span>
+                  <p>Whats new in PyTorch tutorials</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/basics/intro.html">
+                  <span class="dropdown-title">Learn the Basics</span>
+                  <p>Familiarize yourself with PyTorch concepts and modules</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/recipes/recipes_index.html">
+                  <span class="dropdown-title">PyTorch Recipes</span>
+                  <p>Bite-size, ready-to-deploy PyTorch code examples</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/introyt.html">
+                  <span class="dropdown-title">Intro to PyTorch - YouTube Series</span>
+                  <p>Master PyTorch basics with our engaging YouTube tutorial series</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Ecosystem
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem">
+                  <span class="dropdown-title">Tools</span>
+                  <p>Learn about the tools and frameworks in the PyTorch Ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/#community-module">
+                  <span class=dropdown-title>Community</span>
+                  <p>Join the PyTorch developer community to contribute, learn, and get your questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://discuss.pytorch.org/" target="_blank">
+                  <span class=dropdown-title>Forums</span>
+                  <p>A place to discuss PyTorch code, issues, install, research</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/resources">
+                  <span class=dropdown-title>Developer Resources</span>
+                  <p>Find resources and get questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem/contributor-awards-2023">
+                  <span class="dropdown-title">Contributor Awards - 2023</span>
+                  <p>Award winners announced at this year's PyTorch Conference</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Edge
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/edge">
+                  <span class="dropdown-title">About PyTorch Edge</span>
+                  <p>Build innovative and privacy-aware AI experiences for edge devices</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch-overview">
+                  <span class="dropdown-title">ExecuTorch</span>
+                  <p>End-to-end solution for enabling on-device inference capabilities across mobile and edge devices</p>
+                </a>
+              </div>
+            </div>  
+          </li>
+
+          <li class="main-menu-item">
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Docs
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/docs/stable/index.html">
+                  <span class="dropdown-title">PyTorch</span>
+                  <p>Explore the documentation for comprehensive guidance on how to use PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/pytorch-domains">
+                  <span class="dropdown-title">PyTorch Domains</span>
+                  <p>Read the PyTorch Domains documentation to learn more about domain-specific libraries</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Blogs & News 
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/blog/">
+                  <span class="dropdown-title">PyTorch Blog</span>
+                  <p>Catch up on the latest technical news and happenings</p>
+                </a>
+                 <a class="nav-dropdown-item" href="https://pytorch.org/community-blog">
+                  <span class="dropdown-title">Community Blog</span>
+                  <p>Stories from the PyTorch ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/videos">
+                  <span class="dropdown-title">Videos</span>
+                  <p>Learn about the latest PyTorch tutorials, new, and more </p>
+                <a class="nav-dropdown-item" href="https://pytorch.org/community-stories">
+                  <span class="dropdown-title">Community Stories</span>
+                  <p>Learn how our community solves real, everyday machine learning problems with PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/events">
+                  <span class="dropdown-title">Events</span>
+                  <p>Find events, webinars, and podcasts</p>
+                </a>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                About
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/foundation">
+                  <span class="dropdown-title">PyTorch Foundation</span>
+                  <p>Learn more about the PyTorch Foundation</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
+                  <span class="dropdown-title">Governing Board</span>
+                  <p></p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li class="main-menu-item">
+            <div class="no-dropdown">
+              <a href="https://pytorch.org/join" data-cta="join">
+                Become a Member
+              </a>
+            </div>
+          </li>
+          <li>
+           <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="github-icon">
+             </a>
+           </div>
+          </li>
+          <!--- TODO: This block adds the search icon to the nav bar. We will enable it later. 
+          <li>
+            <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="search-icon">
+             </a>
+            </div>
+          </li>
+          --->
+        </ul>
+      </div>
+
+      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+    </div>
+  </div>
+</div>
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+    <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>main &#x25BC</a>
+      </div>
+    
+
+
+  
+
+
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search Docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tune_cli.html">torchtune CLI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/dpo.html">Direct Preference Optimization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/packing.html">Sample packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/custom_components.html">Custom Components and Recipes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../../../../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../../../index.html">Module code</a> &gt;</li>
+        
+      <li>torchtune.training.checkpointing._utils</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          <!-- Google Tag Manager (noscript) -->
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8XT4PS"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+          <!-- End Google Tag Manager (noscript) -->
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <h1>Source code for torchtune.training.checkpointing._utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">safetensors</span> <span class="kn">import</span> <span class="n">safe_open</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.utils._logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Keys used during checkpoint load and checkpoint save.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># adapter config containing info about LoRA modules, rank, alpha</span>
+<span class="n">ADAPTER_CONFIG</span> <span class="o">=</span> <span class="s2">&quot;adapter_config&quot;</span>
+
+<span class="c1"># default used by huggingface when looking for saved files</span>
+<span class="c1"># https://github.com/huggingface/peft/blob/d13d7a401ccf4808aaaf76480fea09a4cf4ac1f5/src/peft/config.py#L259C21-L259C32</span>
+<span class="n">ADAPTER_CONFIG_FNAME</span> <span class="o">=</span> <span class="s2">&quot;adapter_config&quot;</span>
+<span class="n">ADAPTER_MODEL_FNAME</span> <span class="o">=</span> <span class="s2">&quot;adapter_model&quot;</span>
+<span class="n">SAFETENSOR_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;model.safetensors.index.json&quot;</span>
+<span class="n">TORCH_INDEX_FNAME</span> <span class="o">=</span> <span class="s2">&quot;pytorch_model.bin.index.json&quot;</span>
+
+<span class="c1"># standardize checkpointing</span>
+<span class="n">SHARD_FNAME</span> <span class="o">=</span> <span class="s2">&quot;ft-model-</span><span class="si">{cpt_idx}</span><span class="s2">-of-</span><span class="si">{num_shards}</span><span class="s2">&quot;</span>
+<span class="n">RECIPE_STATE_DIRNAME</span> <span class="o">=</span> <span class="s2">&quot;recipe_state&quot;</span>
+<span class="n">BASE_MODEL_DIRNAME</span> <span class="o">=</span> <span class="s2">&quot;base_model&quot;</span>
+
+<span class="c1"># Needed when setting up output dir in checkpointing</span>
+<span class="n">REPO_ID_FNAME</span> <span class="o">=</span> <span class="s2">&quot;original_repo_id&quot;</span>
+<span class="n">SUFFIXES_TO_NOT_COPY</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;.pt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.pth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.bin&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.safetensors&quot;</span><span class="p">,</span>
+    <span class="n">SAFETENSOR_INDEX_FNAME</span><span class="p">,</span>
+    <span class="n">TORCH_INDEX_FNAME</span><span class="p">,</span>
+    <span class="n">ADAPTER_CONFIG_FNAME</span><span class="p">,</span>
+    <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># key used for adapter weights such as LoRA weights</span>
+<span class="n">ADAPTER_KEY</span> <span class="o">=</span> <span class="s2">&quot;adapter&quot;</span>
+
+<span class="c1"># number of epochs completed thus far</span>
+<span class="n">EPOCHS_KEY</span> <span class="o">=</span> <span class="s2">&quot;epochs_run&quot;</span>
+<span class="n">MAX_STEPS_KEY</span> <span class="o">=</span> <span class="s2">&quot;max_steps_per_epoch&quot;</span>
+<span class="n">MODEL_KEY</span> <span class="o">=</span> <span class="s2">&quot;model&quot;</span>
+<span class="n">OPT_KEY</span> <span class="o">=</span> <span class="s2">&quot;optimizer&quot;</span>
+<span class="n">SEED_KEY</span> <span class="o">=</span> <span class="s2">&quot;seed&quot;</span>
+
+<span class="c1"># total number of epochs for training; resumed training runs for</span>
+<span class="c1"># (total_epochs - epochs_run) number of epochs</span>
+<span class="n">TOTAL_EPOCHS_KEY</span> <span class="o">=</span> <span class="s2">&quot;total_epochs&quot;</span>
+
+<span class="c1"># number of steps completed thus far - for PPO</span>
+<span class="n">STEPS_KEY</span> <span class="o">=</span> <span class="s2">&quot;steps_run&quot;</span>
+
+<span class="c1"># rng state for ensuring correct training resuming in PPO</span>
+<span class="n">RNG_KEY</span> <span class="o">=</span> <span class="s2">&quot;rng_state&quot;</span>
+
+
+<div class="viewcode-block" id="ModelType"><a class="viewcode-back" href="../../../../generated/torchtune.training.ModelType.html#torchtune.training.ModelType">[docs]</a><span class="k">class</span> <span class="nc">ModelType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ModelType is used by the checkpointer to distinguish between different model architectures.</span>
+
+<span class="sd">    If you are adding a new model that follows a different format than those in the repo already,</span>
+<span class="sd">    you can add a new ModelType to gate on weight conversion logic unique to that model.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        GEMMA (str): Gemma family of models. See :func:`~torchtune.models.gemma.gemma`</span>
+<span class="sd">        GEMMA2 (str): Gemma 2 family of models. See :func:`~torchtune.models.gemma2.gemma2`</span>
+<span class="sd">        LLAMA2 (str): Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`</span>
+<span class="sd">        LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`</span>
+<span class="sd">        LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`</span>
+<span class="sd">        LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_decoder`</span>
+<span class="sd">        MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`</span>
+<span class="sd">        PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`</span>
+<span class="sd">        REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting</span>
+<span class="sd">            to a single class for reward modelling.</span>
+<span class="sd">            See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`</span>
+<span class="sd">        QWEN2 (str): Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`</span>
+<span class="sd">        CLIP_TEXT (str): CLIP text encoder. See :func:`~torchtune.models.clip.clip_text_encoder_large`</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; # Usage in a checkpointer class</span>
+<span class="sd">        &gt;&gt;&gt; def load_checkpoint(self, ...):</span>
+<span class="sd">        &gt;&gt;&gt;     ...</span>
+<span class="sd">        &gt;&gt;&gt;     if self._model_type == MY_NEW_MODEL:</span>
+<span class="sd">        &gt;&gt;&gt;         state_dict = my_custom_state_dict_mapping(state_dict)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">GEMMA</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gemma&quot;</span>
+    <span class="n">GEMMA2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gemma2&quot;</span>
+    <span class="n">LLAMA2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama2&quot;</span>
+    <span class="n">LLAMA3</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama3&quot;</span>
+    <span class="n">LLAMA3_2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama3_2&quot;</span>
+    <span class="n">LLAMA3_VISION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llama3_vision&quot;</span>
+    <span class="n">MISTRAL</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mistral&quot;</span>
+    <span class="n">PHI3_MINI</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;phi3_mini&quot;</span>
+    <span class="n">REWARD</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reward&quot;</span>
+    <span class="n">QWEN2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qwen2&quot;</span>
+    <span class="n">CLIP_TEXT</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;clip_text&quot;</span></div>
+
+
+<div class="viewcode-block" id="FormattedCheckpointFiles"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles">[docs]</a><span class="k">class</span> <span class="nc">FormattedCheckpointFiles</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class gives a more concise way to represent a list of filenames of the format ``file_{i}_of_{n_files}.pth``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename_format (str): Format string for the filename. Must have exactly two placeholders, e.g.</span>
+<span class="sd">            ``file_{}_of_{}.pth``.</span>
+<span class="sd">        max_filename (str): Maximum filename in the list. Should be a string representation of an integer,</span>
+<span class="sd">            possibly with leading zeroes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename_format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">max_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span> <span class="o">=</span> <span class="n">filename_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span> <span class="o">=</span> <span class="n">max_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_filename_format</span><span class="p">()</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;FormattedCheckpointFiles&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;filename_format&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">or</span> <span class="s2">&quot;max_filename&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Must pass &#39;filename_format&#39; and &#39;max_filename&#39; keys to generate checkpoint filenames&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;max_filename&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;`max_filename` must be a string, but found </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;max_filename&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">filename_format</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;filename_format&quot;</span><span class="p">],</span>
+            <span class="n">max_filename</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;max_filename&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_filename_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n_format_placeholders</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">Formatter</span><span class="p">()</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_format_placeholders</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Filename format string must have exactly two placeholders, e.g. &#39;file_</span><span class="si">{i}</span><span class="s2">_of_</span><span class="si">{n_files}</span><span class="s2">.pth&#39;&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="FormattedCheckpointFiles.build_checkpoint_filenames"><a class="viewcode-back" href="../../../../generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles.build_checkpoint_filenames">[docs]</a>    <span class="k">def</span> <span class="nf">build_checkpoint_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds a list of checkpoint filenames from the filename format and max filename.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[str]: List of checkpoint filenames.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; # Example usage</span>
+<span class="sd">            &gt;&gt;&gt; f = FormattedCheckpointFiles(filename_format=&quot;file_{}_of_{}.safetensors&quot;, max_filename=&quot;00003&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; f.build_checkpoint_filenames()</span>
+<span class="sd">            &gt;&gt;&gt; [&#39;file_00001_of_00003.safetensors&#39;, &#39;file_00002_of_00003.safetensors&#39;, &#39;file_00003_of_00003.safetensors&#39;]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_files</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">)),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_filename</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_files</span><span class="p">)</span>
+        <span class="p">]</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility to recover and validate the path for a given file within a given directory.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_dir (Path): Directory containing the file</span>
+<span class="sd">        filename (str): Name of the file</span>
+<span class="sd">        missing_ok (bool): Whether to raise an error if the file is missing.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path: Path to the file</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the file is missing and missing_ok is False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">input_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">input_dir</span><span class="si">}</span><span class="s2"> is not a valid directory.&quot;</span><span class="p">)</span>
+
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+    <span class="c1"># If missing_ok is False, raise an error if the path is invalid</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">missing_ok</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No file with name: </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> found in </span><span class="si">{</span><span class="n">input_dir</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">file_path</span>
+
+
+<span class="k">def</span> <span class="nf">safe_torch_load</span><span class="p">(</span>
+    <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility to load a checkpoint file onto CPU in a safe manner. Provides separate handling for</span>
+<span class="sd">    safetensors files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checkpoint_path (Union[Path, str]): Path to the checkpoint file.</span>
+<span class="sd">        weights_only (bool): Whether to load only tensors, primitive types, and dictionaries</span>
+<span class="sd">            (passthrough to torch.load). Default: True</span>
+<span class="sd">        mmap (bool): Whether to mmap from disk into CPU memory. Default: True</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, Any]: State dict from the checkpoint file.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the checkpoint file is not found or cannot be loaded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># convert the path into a string since pathlib Path and mmap don&#39;t work</span>
+        <span class="c1"># well together</span>
+        <span class="n">is_safetensors_file</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">True</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.safetensors&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_safetensors_file</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">with</span> <span class="n">safe_open</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">framework</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="n">state_dict</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">),</span>
+                <span class="n">map_location</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+                <span class="n">mmap</span><span class="o">=</span><span class="n">mmap</span><span class="p">,</span>
+                <span class="n">weights_only</span><span class="o">=</span><span class="n">weights_only</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to load checkpoint from </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">. &quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+    <span class="k">return</span> <span class="n">state_dict</span>
+
+
+<div class="viewcode-block" id="update_state_dict_for_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.training.update_state_dict_for_classifier.html#torchtune.training.update_state_dict_for_classifier">[docs]</a><span class="k">def</span> <span class="nf">update_state_dict_for_classifier</span><span class="p">(</span>
+    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">model_named_parameters</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span>
+    <span class="n">force_override</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validates the state dict for checkpoint loading for a classifier model.</span>
+<span class="sd">    To be used prior to a call to ``model.load_state_dict(state_dict)``.</span>
+<span class="sd">    This function will overwrite the ``output.weight`` in the state-dict</span>
+<span class="sd">    to be loaded with the ``output.weight`` in the model if the shapes</span>
+<span class="sd">    for the ``output.weight`` do not match. You may also wish to override this behaviour,</span>
+<span class="sd">    for example, if ``num_classes`` for your checkpoint and model are the same.</span>
+
+<span class="sd">    Concretely, when fine-tuning a classifier model from the checkpoint of a base language model</span>
+<span class="sd">    which has ``output.weight`` of shape ``[vocab_dim, embed_dim]``, we overwrite</span>
+<span class="sd">    the ``output.weight`` in the state-dict to be loaded with the randomly initialized</span>
+<span class="sd">    ``[num_classes, embed_dim]`` weight in the model. This is done in-place.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        state_dict (Dict[str, torch.Tensor]): state dict to be loaded into the classifier model.</span>
+<span class="sd">        model_named_parameters (Iterable[Tuple[str, torch.nn.Parameter]]): model named parameters</span>
+<span class="sd">            from ``model.named_parameters()``.</span>
+<span class="sd">        force_override (bool): Whether to replace ``output.weight`` in ``state_dict`` with the model&#39;s</span>
+<span class="sd">            ``output.weight``, even if the shapes match.</span>
+<span class="sd">    Notes:</span>
+<span class="sd">        - ``output.bias`` will be ignored if present in ``state_dict``</span>
+<span class="sd">        - This function will always replace the ``output.weight`` in ``state_dict``,</span>
+<span class="sd">            if ``output.weight != model.output.weight``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: if ``state_dict`` does not contain ``output.weight``.</span>
+<span class="sd">        AssertionError: if ``model_named_parameters`` does not contain ``output.weight``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">output_weight</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">model_named_parameters</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output.weight&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;output.weight&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+            <span class="s2">&quot;Expected output.weight in state_dict, but it wasn&#39;t found.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+            <span class="s2">&quot;Expected output.weight in model_named_parameters, but it wasn&#39;t found.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;output.bias&quot;</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+        <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Found output.bias in state dict - this will not be used!&quot;</span><span class="p">)</span>
+        <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;output.bias&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">output_weight</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">force_override</span><span class="p">:</span>
+        <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;output.weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_weight</span></div>
+
+
+<span class="c1"># TODO: add test</span>
+<span class="k">def</span> <span class="nf">get_largest_iter_folder</span><span class="p">(</span>
+    <span class="nb">dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+
+    <span class="n">latest_epoch_folder</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">iter_folders</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+
+    <span class="c1"># Iterate over the directory contents</span>
+    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="c1"># Extract the number from the match</span>
+            <span class="n">iter_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">iter_folders</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">fname</span><span class="p">,</span> <span class="n">iter_number</span><span class="p">))</span>
+
+    <span class="c1"># Find the folder with the largest iter number</span>
+    <span class="k">if</span> <span class="n">iter_folders</span><span class="p">:</span>
+        <span class="n">latest_epoch_folder</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">iter_folders</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">latest_epoch_folder</span>
+
+
+<span class="c1"># TODO: instead of copying, make it a symlink when we start using HF cache</span>
+<span class="k">def</span> <span class="nf">copy_files</span><span class="p">(</span>
+    <span class="n">input_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">ignore_suffixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copies files from the input directory to the output directory, preserving the directory structure.</span>
+
+<span class="sd">    This function will skip copying files that already exist in the output directory or have specific suffixes.</span>
+<span class="sd">    It will also skip folders and files that start with &#39;.&#39;. E.g. &quot;.cache/&quot; and &quot;.git&quot;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_dir (Union[str, Path]): The path to the input directory containing files to be copied.</span>
+<span class="sd">        output_dir (Union[str, Path]): The path to the output directory where files should be copied.</span>
+<span class="sd">        ignore_suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.</span>
+<span class="sd">          Defaults to [&#39;.pt&#39;, &#39;.bin&#39;, &#39;.safetensors&#39;] if not provided.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    Example:</span>
+<span class="sd">    &gt;&gt;&gt; copy_files(&#39;path/to/input_dir&#39;, &#39;path/to/output_dir&#39;)</span>
+
+<span class="sd">    This will copy all files from &#39;path/to/input_dir&#39; to &#39;path/to/output_dir&#39;, except those that</span>
+<span class="sd">    already exist in the destination or have the specified suffixes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
+
+        <span class="c1"># Filter out directories that start with &#39;.&#39;. E.g. &quot;.cache/&quot;</span>
+        <span class="n">dirs</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)]</span>
+
+        <span class="c1"># Construct the corresponding directory in the output</span>
+        <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">input_dir</span><span class="p">)</span>
+        <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+
+        <span class="c1"># Create the directory in the output if it doesn&#39;t exist</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="c1"># Skip files that start with &#39;.&#39;. E.g. &quot;.git&quot;</span>
+            <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Check if the file has one of the specified suffixes</span>
+            <span class="k">if</span> <span class="n">ignore_suffixes</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span> <span class="k">for</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">ignore_suffixes</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">src_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+            <span class="n">dest_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+            <span class="c1"># Copy the file if it doesn&#39;t already exist in the destination</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dest_file</span><span class="p">):</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">src_file</span><span class="p">,</span> <span class="n">dest_file</span><span class="p">)</span>
+
+    <span class="k">return</span>
+
+
+<span class="k">def</span> <span class="nf">get_recipe_checkpoint_path</span><span class="p">(</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.</span>
+<span class="sd">    This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_dir (Path): Directory containing the recipe checkpoint.</span>
+<span class="sd">        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.</span>
+<span class="sd">        should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.</span>
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If should_load_recipe_state is True and the recipe checkpoint file is missing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">should_load_recipe_state</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">recipe_checkpoint</span><span class="p">:</span>
+        <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">recipe_checkpoint</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">recipe_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">output_dir</span><span class="p">,</span> <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># TODO: improve this msg</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">recipe_checkpoint_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;If should_load_recipe_state is True, recipe_checkpoint file must be provided.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_adapter_checkpoint_path</span><span class="p">(</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.</span>
+<span class="sd">    This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_dir (Path): Directory containing the adapter checkpoint.</span>
+<span class="sd">        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.</span>
+<span class="sd">        should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.</span>
+<span class="sd">        pattern (str): Regex pattern to match the epoch folder. Defaults to &quot;epoch_(\d+)&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">should_load_recipe_state</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">adapter_checkpoint</span><span class="p">:</span>
+        <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">adapter_checkpoint</span><span class="p">)</span>
+        <span class="c1"># TODO: add error if it doesnt exist</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Look for the latest adapter checkpoint in the output directory</span>
+        <span class="n">largest_iter_folder</span> <span class="o">=</span> <span class="n">get_largest_iter_folder</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span>
+
+        <span class="n">tentative_adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">output_dir</span><span class="p">,</span> <span class="n">largest_iter_folder</span><span class="p">,</span> <span class="s2">&quot;adapter_model.pt&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tentative_adapter_checkpoint_path</span><span class="p">):</span>
+            <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">tentative_adapter_checkpoint_path</span>
+
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">adapter_checkpoint_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">adapter_checkpoint_path</span> <span class="k">else</span> <span class="kc">None</span>
+
+
+<span class="k">def</span> <span class="nf">get_model_checkpoint_path</span><span class="p">(</span>
+    <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">has_adapter_checkpoint</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns Paths to model checkpoint files, handling resuming from checkpoint, file formating and checking</span>
+<span class="sd">    if the files exists.</span>
+
+<span class="sd">    If resuming from checkpoint, the checkpoint files are loaded from the output directory. Otherwise,</span>
+<span class="sd">    they are loaded from the checkpoint directory.</span>
+
+<span class="sd">    If checkpoint_fiels is a dictionary, it is converted to a list of formatted checkpoint filenames.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checkpoint_files (Union[List[str], Dict[str, str]]): List or dictionary of checkpoint file names.</span>
+<span class="sd">            If a dictionary with keys [&quot;filename_format&quot;, &quot;max_filename&quot;] is provided,</span>
+<span class="sd">            it is converted to a list of formatted checkpoint filenames.</span>
+<span class="sd">        checkpoint_dir (Union[str, Path]): Directory containing the checkpoint files.</span>
+<span class="sd">        output_dir (Union[str, Path]): Directory to use when resuming from a checkpoint.</span>
+<span class="sd">        should_load_recipe_state (bool): Whether to resume from a checkpoint.</span>
+<span class="sd">        has_adapter_checkpoint (bool): Indicates if there is an adapter checkpoint.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        list[Path]: Sorted list of paths to the checkpoint files.</span>
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; checkpoint_files = [&quot;model-00001-of-00002.safetensors&quot;, &quot;model-00002-of-00002.safetensors&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; checkpoint_dir = &quot;/path/to/checkpoints&quot;</span>
+<span class="sd">        &gt;&gt;&gt; output_dir = &quot;/path/to/output&quot;</span>
+<span class="sd">        &gt;&gt;&gt; should_load_recipe_state = True</span>
+<span class="sd">        &gt;&gt;&gt; has_adapter_checkpoint = False</span>
+<span class="sd">        &gt;&gt;&gt; paths = get_model_checkpoint_path(</span>
+<span class="sd">        ...     checkpoint_files,</span>
+<span class="sd">        ...     checkpoint_dir,</span>
+<span class="sd">        ...     output_dir,</span>
+<span class="sd">        ...     should_load_recipe_state,</span>
+<span class="sd">        ...     has_adapter_checkpoint</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; print(paths)</span>
+<span class="sd">        [PosixPath(&#39;/path/to/output/{largest_epoch}/model-00001-of-00002.safetensors&#39;),</span>
+<span class="sd">         PosixPath(&#39;/path/to/output/{largest_epoch}/model-00002-of-00002.safetensors&#39;)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">validate_checkpoint_files</span><span class="p">(</span>
+        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">input_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span>
+        <span class="n">missing_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validates that the checkpoint files exist and sorts based on ID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">checkpoint_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">checkpoint_files</span><span class="p">:</span>
+            <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">)</span>
+            <span class="n">checkpoint_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">checkpoint_paths</span><span class="p">)</span>
+
+    <span class="c1"># load or resume from model weights</span>
+
+    <span class="c1"># e.g.</span>
+    <span class="c1"># checkpoint_files:</span>
+    <span class="c1">#   filename_format: model-{}-of-{}.safetensors</span>
+    <span class="c1">#   max_filename: &quot;00191&quot;</span>
+    <span class="c1"># becomes checkpoint_files = [model-00001-of-00191.safetensors, model-00002-of-00191,..]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+        <span class="c1"># TODO: this can be a function instead of a class</span>
+        <span class="n">formatted_checkpoint_files</span> <span class="o">=</span> <span class="n">FormattedCheckpointFiles</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+            <span class="n">checkpoint_files</span>
+        <span class="p">)</span>
+        <span class="n">checkpoint_files</span> <span class="o">=</span> <span class="n">formatted_checkpoint_files</span><span class="o">.</span><span class="n">build_checkpoint_filenames</span><span class="p">()</span>
+
+    <span class="c1"># Case 1: not loading the recipe state</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">should_load_recipe_state</span><span class="p">:</span>
+        <span class="n">input_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
+
+    <span class="c1"># Case 2: Loading the recipe state, but its full finetuning (no adapter)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">has_adapter_checkpoint</span><span class="p">:</span>
+        <span class="n">input_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
+
+    <span class="c1"># Case 3: Loading the recipe state and has an adapter.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># FIXME</span>
+        <span class="c1"># TODO: if the model has lora + trained weights, e.g. embeddings,</span>
+        <span class="c1"># we will silently not load the trained model, because we load from checkpoint_dir.</span>
+        <span class="c1"># We cannot load from output_dir because we always merge the adapter weights into the model</span>
+        <span class="n">input_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
+
+    <span class="n">checkpoint_paths</span> <span class="o">=</span> <span class="n">validate_checkpoint_files</span><span class="p">(</span>
+        <span class="n">checkpoint_files</span><span class="p">,</span>
+        <span class="n">input_dir</span><span class="o">=</span><span class="n">input_dir</span><span class="p">,</span>
+        <span class="n">missing_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">checkpoint_paths</span>
+</pre></div>
+
+             </article>
+             
+            </div>
+            <footer>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2023-present, torchtune Contributors.
+
+    </p>
+  </div>
+    
+      <div>
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      </div>
+     
+
+</footer>
+
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+         <script src="../../../../_static/jquery.js"></script>
+         <script src="../../../../_static/underscore.js"></script>
+         <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../_static/doctools.js"></script>
+         <script src="../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../_static/copybutton.js"></script>
+         <script src="../../../../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!--  
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script type="text/javascript">
+    var collapsedSections = []
+</script>
+ 
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
+    });
+</script>
+
+
+  <!-- Begin Footer -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/docs/stable/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="https://pytorch.org/tutorials">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="https://pytorch.org/resources">View Resources</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/">PyTorch</a></li>
+            <li><a href="https://pytorch.org/get-started">Get Started</a></li>
+            <li><a href="https://pytorch.org/features">Features</a></li>
+            <li><a href="https://pytorch.org/ecosystem">Ecosystem</a></li>
+            <li><a href="https://pytorch.org/blog/">Blog</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/resources">Resources</a></li>
+            <li><a href="https://pytorch.org/tutorials">Tutorials</a></li>
+            <li><a href="https://pytorch.org/docs/stable/index.html">Docs</a></li>
+            <li><a href="https://discuss.pytorch.org" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/issues" target="_blank">Github Issues</a></li>
+            <li><a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf" target="_blank">Brand Guidelines</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">Stay up to date</li>
+            <li><a href="https://www.facebook.com/pytorch" target="_blank">Facebook</a></li>
+            <li><a href="https://twitter.com/pytorch" target="_blank">Twitter</a></li>
+            <li><a href="https://www.youtube.com/pytorch" target="_blank">YouTube</a></li>
+            <li><a href="https://www.linkedin.com/company/pytorch" target="_blank">LinkedIn</a></li>
+          </ul>  
+          </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">PyTorch Podcasts</li>
+            <li><a href="https://open.spotify.com/show/6UzHKeiy368jKfQMKKvJY5" target="_blank">Spotify</a></li>
+            <li><a href="https://podcasts.apple.com/us/podcast/pytorch-developer-podcast/id1566080008" target="_blank">Apple</a></li>
+            <li><a href="https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9PQjVGa0lsOA%3D%3D" target="_blank">Google</a></li>
+            <li><a href="https://music.amazon.com/podcasts/7a4e6f0e-26c2-49e9-a478-41bd244197d0/PyTorch-Developer-Podcast?" target="_blank">Amazon</a></li>
+          </ul>
+         </div>
+        </div>
+        
+        <div class="privacy-policy">
+          <ul>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/terms/" target="_blank">Terms</a></li>
+            <li class="privacy-policy-links">|</li>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/privacy-policy/" target="_blank">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="copyright">
+        <p>© Copyright The Linux Foundation. The PyTorch Foundation is a project of The Linux Foundation.
+          For web site terms of use, trademark policy and other policies applicable to The PyTorch Foundation please see
+          <a href="https://www.linuxfoundation.org/policies/">www.linuxfoundation.org/policies/</a>. The PyTorch Foundation supports the PyTorch open source
+          project, which has been established as PyTorch Project a Series of LF Projects, LLC. For policies applicable to the PyTorch Project a Series of LF Projects, LLC,
+          please see <a href="https://www.lfprojects.org/policies/">www.lfprojects.org/policies/</a>.</p>
+      </div>
+     </div>
+
+  </footer>
+
+  <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../../../../_static/images/pytorch-x.svg">
+  </div>
+</div>
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+           <li class="resources-mobile-menu-title">
+             <a>Learn</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/get-started">Get Started</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials">Tutorials</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">Learn the Basics</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/recipes/recipes_index.html">PyTorch Recipes</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/introyt.html">Introduction to PyTorch - YouTube Series</a>
+             </li>
+           </ul>
+           <li class="resources-mobile-menu-title">
+             <a>Ecosystem</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/ecosystem">Tools</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/#community-module">Community</a>
+             </li>
+             <li>
+               <a href="https://discuss.pytorch.org/">Forums</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/resources">Developer Resources</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/ecosystem/contributor-awards-2023">Contributor Awards - 2023</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Edge</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/edge">About PyTorch Edge</a>
+             </li>
+             
+             <li>
+               <a href="https://pytorch.org/executorch-overview">ExecuTorch</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Docs</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/pytorch-domains">PyTorch Domains</a>
+            </li>
+          </ul>
+
+          <li class="resources-mobile-menu-title">
+            <a>Blog & News</a>
+          </li>
+            
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/blog/">PyTorch Blog</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/community-blog">Community Blog</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/videos">Videos</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/community-stories">Community Stories</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/events">Events</a>
+            </li>
+          </ul>
+          
+          <li class="resources-mobile-menu-title">
+            <a>About</a>
+          </li>
+
+          <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/foundation">PyTorch Foundation</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/governing-board">Governing Board</a>
+            </li>
+          </ul>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../../../../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+      mainMenuDropdown.bind();
+      filterTags.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+</body>
+</html>

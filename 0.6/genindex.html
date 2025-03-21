@@ -1,0 +1,1834 @@
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Index &mdash; torchtune 0.6 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-T8XT4PS');</script>
+    <!-- End Google Tag Manager -->
+  
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+  <!-- Preload the theme fonts -->
+
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+    <div class="header-container">
+      <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+
+      <div class="main-menu">
+        <ul>
+
+          <li class="main-menu-item">
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Learn
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/get-started">
+                  <span class=dropdown-title>Get Started</span>
+                  <p>Run PyTorch locally or get started quickly with one of the supported cloud platforms</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials">
+                  <span class="dropdown-title">Tutorials</span>
+                  <p>Whats new in PyTorch tutorials</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/basics/intro.html">
+                  <span class="dropdown-title">Learn the Basics</span>
+                  <p>Familiarize yourself with PyTorch concepts and modules</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/recipes/recipes_index.html">
+                  <span class="dropdown-title">PyTorch Recipes</span>
+                  <p>Bite-size, ready-to-deploy PyTorch code examples</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tutorials/beginner/introyt.html">
+                  <span class="dropdown-title">Intro to PyTorch - YouTube Series</span>
+                  <p>Master PyTorch basics with our engaging YouTube tutorial series</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Ecosystem
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem">
+                  <span class="dropdown-title">Tools</span>
+                  <p>Learn about the tools and frameworks in the PyTorch Ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/#community-module">
+                  <span class=dropdown-title>Community</span>
+                  <p>Join the PyTorch developer community to contribute, learn, and get your questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://discuss.pytorch.org/" target="_blank">
+                  <span class=dropdown-title>Forums</span>
+                  <p>A place to discuss PyTorch code, issues, install, research</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/resources">
+                  <span class=dropdown-title>Developer Resources</span>
+                  <p>Find resources and get questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/ecosystem/contributor-awards-2024">
+                  <span class="dropdown-title">Contributor Awards - 2024</span>
+                  <p>Award winners announced at this year's PyTorch Conference</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Edge
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/edge">
+                  <span class="dropdown-title">About PyTorch Edge</span>
+                  <p>Build innovative and privacy-aware AI experiences for edge devices</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch-overview">
+                  <span class="dropdown-title">ExecuTorch</span>
+                  <p>End-to-end solution for enabling on-device inference capabilities across mobile and edge devices</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch/stable/index.html">
+                  <span class="dropdown-title">ExecuTorch Docs</span>
+                </a>
+              </div>
+            </div>  
+          </li>
+
+          <li class="main-menu-item">
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Docs
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/docs/stable/index.html">
+                  <span class="dropdown-title">PyTorch</span>
+                  <p>Explore the documentation for comprehensive guidance on how to use PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/pytorch-domains">
+                  <span class="dropdown-title">PyTorch Domains</span>
+                  <p>Read the PyTorch Domains documentation to learn more about domain-specific libraries</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                Blogs & News 
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/blog/">
+                  <span class="dropdown-title">PyTorch Blog</span>
+                  <p>Catch up on the latest technical news and happenings</p>
+                </a>
+                 <a class="nav-dropdown-item" href="https://pytorch.org/community-blog">
+                  <span class="dropdown-title">Community Blog</span>
+                  <p>Stories from the PyTorch ecosystem</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/videos">
+                  <span class="dropdown-title">Videos</span>
+                  <p>Learn about the latest PyTorch tutorials, new, and more </p>
+                <a class="nav-dropdown-item" href="https://pytorch.org/community-stories">
+                  <span class="dropdown-title">Community Stories</span>
+                  <p>Learn how our community solves real, everyday machine learning problems with PyTorch</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/events">
+                  <span class="dropdown-title">Events</span>
+                  <p>Find events, webinars, and podcasts</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/newsletter">
+                  <span class="dropdown-title">Newsletter</span>
+                  <p>Stay up-to-date with the latest updates</p>
+                </a>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="with-down-arrow">
+                About
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/foundation">
+                  <span class="dropdown-title">PyTorch Foundation</span>
+                  <p>Learn more about the PyTorch Foundation</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/governing-board">
+                  <span class="dropdown-title">Governing Board</span>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/credits">
+                  <span class="dropdown-title">Cloud Credit Program</span>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/tac">
+                  <span class="dropdown-title">Technical Advisory Council</span>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/staff">
+                  <span class="dropdown-title">Staff</span>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/contact-us">
+                  <span class="dropdown-title">Contact Us</span>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li class="main-menu-item">
+            <div class="no-dropdown">
+              <a href="https://pytorch.org/join" data-cta="join">
+                Become a Member
+              </a>
+            </div>
+          </li>
+          <li>
+           <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="github-icon">
+             </a>
+           </div>
+          </li>
+          <!--- TODO: This block adds the search icon to the nav bar. We will enable it later. 
+          <li>
+            <div class="main-menu-item">
+             <a href="https://github.com/pytorch/pytorch" class="search-icon">
+             </a>
+            </div>
+          </li>
+          --->
+        </ul>
+      </div>
+
+      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+    </div>
+  </div>
+</div>
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+    <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>0.6 &#x25BC</a>
+      </div>
+    
+
+
+  
+
+
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search Docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tune_cli.html">torchtune CLI</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes/dpo.html">Direct Preference Optimization</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/packing.html">Sample packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basics/custom_components.html">Custom Components and Recipes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/multinode.html">Multi-node finetuning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_rlhf.html">torchtune.rlhf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_utilities.html">torchtune.utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>Index</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          <!-- Google Tag Manager (noscript) -->
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8XT4PS"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+          <!-- End Google Tag Manager (noscript) -->
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
+ 
+</div>
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule.adapter_params">adapter_params() (torchtune.modules.peft.AdapterModule method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.adapter_params">(torchtune.modules.peft.DoRALinear method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.adapter_params">(torchtune.modules.peft.LoRALinear method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule">AdapterModule (class in torchtune.modules.peft)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.datasets.alpaca_cleaned_dataset.html#torchtune.datasets.alpaca_cleaned_dataset">alpaca_cleaned_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset">alpaca_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.AlpacaToMessages.html#torchtune.data.AlpacaToMessages">AlpacaToMessages (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.training.apply_selective_activation_checkpointing.html#torchtune.training.apply_selective_activation_checkpointing">apply_selective_activation_checkpointing() (in module torchtune.training)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.BaseTokenizer.html#torchtune.modules.transforms.tokenizers.BaseTokenizer">BaseTokenizer (class in torchtune.modules.transforms.tokenizers)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.utils.batch_to_device.html#torchtune.utils.batch_to_device">batch_to_device() (in module torchtune.utils)</a>
+</li>
+      <li><a href="generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles.build_checkpoint_filenames">build_checkpoint_filenames() (torchtune.training.FormattedCheckpointFiles method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_enabled">caches_are_enabled() (torchtune.modules.model_fusion.DeepFusionModel method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_enabled">(torchtune.modules.model_fusion.FusionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.caches_are_enabled">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_enabled">(torchtune.modules.TransformerDecoder method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.caches_are_enabled">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.caches_are_setup">caches_are_setup() (torchtune.modules.model_fusion.DeepFusionModel method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.caches_are_setup">(torchtune.modules.model_fusion.FusionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.caches_are_setup">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.caches_are_setup">(torchtune.modules.TransformerDecoder method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.caches_are_setup">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss">CEWithChunkedOutputLoss (class in torchtune.modules.loss)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset">chat_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate">ChatMLTemplate (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.data.ChosenRejectedToMessages.html#torchtune.data.ChosenRejectedToMessages">ChosenRejectedToMessages (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.chunked_output">chunked_output() (torchtune.modules.TransformerDecoder method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.models.clip.clip_vision_encoder.html#torchtune.models.clip.clip_vision_encoder">clip_vision_encoder() (in module torchtune.models.clip)</a>
+</li>
+      <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.close">close() (torchtune.training.metric_logging.CometLogger method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.close">(torchtune.training.metric_logging.DiskLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.close">(torchtune.training.metric_logging.MLFlowLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.close">(torchtune.training.metric_logging.StdoutLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.close">(torchtune.training.metric_logging.TensorBoardLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.close">(torchtune.training.metric_logging.WandBLogger method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.datasets.cnn_dailymail_articles_dataset.html#torchtune.datasets.cnn_dailymail_articles_dataset">cnn_dailymail_articles_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.code_llama2_13b.html#torchtune.models.code_llama2.code_llama2_13b">code_llama2_13b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.code_llama2_70b.html#torchtune.models.code_llama2.code_llama2_70b">code_llama2_70b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.code_llama2_7b.html#torchtune.models.code_llama2.code_llama2_7b">code_llama2_7b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger">CometLogger (class in torchtune.training.metric_logging)</a>
+</li>
+      <li><a href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy">compute_cross_entropy() (torchtune.modules.loss.CEWithChunkedOutputLoss method)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset">ConcatDataset (class in torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.Message.html#torchtune.data.Message.contains_media">contains_media (torchtune.data.Message property)</a>
+</li>
+      <li><a href="generated/torchtune.training.create_optim_in_bwd_wrapper.html#torchtune.training.create_optim_in_bwd_wrapper">create_optim_in_bwd_wrapper() (in module torchtune.training)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.decode">decode() (torchtune.models.llama3_2_vision.Llama3VisionTransform method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.BaseTokenizer.html#torchtune.modules.transforms.tokenizers.BaseTokenizer.decode">(torchtune.modules.transforms.tokenizers.BaseTokenizer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.decode">(torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.decode">(torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.decode">(torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel">DeepFusionModel (class in torchtune.modules.model_fusion)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.common_utils.delete_kv_caches.html#torchtune.modules.common_utils.delete_kv_caches">delete_kv_caches() (in module torchtune.modules.common_utils)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.disable_adapter.html#torchtune.modules.peft.disable_adapter">disable_adapter() (in module torchtune.modules.peft)</a>
+</li>
+      <li><a href="generated/torchtune.training.disable_dropout.html#torchtune.training.disable_dropout">disable_dropout() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.modules.common_utils.disable_kv_cache.html#torchtune.modules.common_utils.disable_kv_cache">disable_kv_cache() (in module torchtune.modules.common_utils)</a>
+</li>
+      <li><a href="generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger">DiskLogger (class in torchtune.training.metric_logging)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear">DoRALinear (class in torchtune.modules.peft)</a>
+</li>
+      <li><a href="generated/torchtune.rlhf.loss.DPOLoss.html#torchtune.rlhf.loss.DPOLoss">DPOLoss (class in torchtune.rlhf.loss)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.BaseTokenizer.html#torchtune.modules.transforms.tokenizers.BaseTokenizer.encode">encode() (torchtune.modules.transforms.tokenizers.BaseTokenizer method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.encode">(torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.encode">(torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.encode">(torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.rlhf.estimate_advantages.html#torchtune.rlhf.estimate_advantages">estimate_advantages() (in module torchtune.rlhf)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.FeedForward.html#torchtune.modules.FeedForward">FeedForward (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.data.format_content_with_images.html#torchtune.data.format_content_with_images">format_content_with_images() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.training.FormattedCheckpointFiles.html#torchtune.training.FormattedCheckpointFiles">FormattedCheckpointFiles (class in torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding.forward">forward() (torchtune.models.clip.TiledTokenPositionalEmbedding method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding.forward">(torchtune.models.clip.TilePositionalEmbedding method)</a>
+</li>
+        <li><a href="generated/torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding.forward">(torchtune.models.clip.TokenPositionalEmbedding method)</a>
+</li>
+        <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionEncoder.html#torchtune.models.llama3_2_vision.Llama3VisionEncoder.forward">(torchtune.models.llama3_2_vision.Llama3VisionEncoder method)</a>
+</li>
+        <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionProjectionHead.html#torchtune.models.llama3_2_vision.Llama3VisionProjectionHead.forward">(torchtune.models.llama3_2_vision.Llama3VisionProjectionHead method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.FeedForward.html#torchtune.modules.FeedForward.forward">(torchtune.modules.FeedForward method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.Fp32LayerNorm.html#torchtune.modules.Fp32LayerNorm.forward">(torchtune.modules.Fp32LayerNorm method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.LayerDropout.html#torchtune.modules.LayerDropout.forward">(torchtune.modules.LayerDropout method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.forward">(torchtune.modules.loss.CEWithChunkedOutputLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss.forward">(torchtune.modules.loss.ForwardKLLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.forward">(torchtune.modules.loss.ForwardKLWithChunkedOutputLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.forward">(torchtune.modules.model_fusion.DeepFusionModel method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.forward">(torchtune.modules.model_fusion.FusionEmbedding method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.forward">(torchtune.modules.model_fusion.FusionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.forward">(torchtune.modules.MultiHeadAttention method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.forward">(torchtune.modules.peft.DoRALinear method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.forward">(torchtune.modules.peft.LoRALinear method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm.forward">(torchtune.modules.RMSNorm method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">(torchtune.modules.RotaryPositionalEmbeddings method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TanhGate.html#torchtune.modules.TanhGate.forward">(torchtune.modules.TanhGate method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.forward">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">(torchtune.modules.TransformerDecoder method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.forward">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer.forward">(torchtune.modules.VisionTransformer method)</a>
+</li>
+        <li><a href="generated/torchtune.rlhf.loss.DPOLoss.html#torchtune.rlhf.loss.DPOLoss.forward">(torchtune.rlhf.loss.DPOLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.rlhf.loss.PPOLoss.html#torchtune.rlhf.loss.PPOLoss.forward">(torchtune.rlhf.loss.PPOLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.rlhf.loss.RSOLoss.html#torchtune.rlhf.loss.RSOLoss.forward">(torchtune.rlhf.loss.RSOLoss method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss">ForwardKLLoss (class in torchtune.modules.loss)</a>
+</li>
+      <li><a href="generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss">ForwardKLWithChunkedOutputLoss (class in torchtune.modules.loss)</a>
+</li>
+      <li><a href="generated/torchtune.modules.Fp32LayerNorm.html#torchtune.modules.Fp32LayerNorm">Fp32LayerNorm (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.data.Message.html#torchtune.data.Message.from_dict">from_dict() (torchtune.data.Message class method)</a>
+</li>
+      <li><a href="generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer">FullModelHFCheckpointer (class in torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer">FullModelMetaCheckpointer (class in torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer">FullModelTorchTuneCheckpointer (class in torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding.fusion_params">fusion_params() (torchtune.modules.model_fusion.FusionEmbedding method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.fusion_params">(torchtune.modules.model_fusion.FusionLayer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.model_fusion.FusionEmbedding.html#torchtune.modules.model_fusion.FusionEmbedding">FusionEmbedding (class in torchtune.modules.model_fusion)</a>
+</li>
+      <li><a href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer">FusionLayer (class in torchtune.modules.model_fusion)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.gather_cpu_state_dict.html#torchtune.training.gather_cpu_state_dict">gather_cpu_state_dict() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.gemma.html#torchtune.models.gemma.gemma">gemma() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.gemma2.html#torchtune.models.gemma2.gemma2">gemma2() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.gemma2_27b.html#torchtune.models.gemma2.gemma2_27b">gemma2_27b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.gemma2_2b.html#torchtune.models.gemma2.gemma2_2b">gemma2_2b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.gemma2_9b.html#torchtune.models.gemma2.gemma2_9b">gemma2_9b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.gemma_2b.html#torchtune.models.gemma.gemma_2b">gemma_2b() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.gemma_7b.html#torchtune.models.gemma.gemma_7b">gemma_7b() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.gemma_tokenizer.html#torchtune.models.gemma.gemma_tokenizer">gemma_tokenizer() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.generation.generate.html#torchtune.generation.generate">generate() (in module torchtune.generation)</a>
+</li>
+      <li><a href="generated/torchtune.generation.generate_next_token.html#torchtune.generation.generate_next_token">generate_next_token() (in module torchtune.generation)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.get_adapter_params.html#torchtune.modules.peft.get_adapter_params">get_adapter_params() (in module torchtune.modules.peft)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.get_adapter_state_dict.html#torchtune.modules.peft.get_adapter_state_dict">get_adapter_state_dict() (in module torchtune.modules.peft)</a>
+</li>
+      <li><a href="generated/torchtune.generation.get_causal_mask_from_padding_mask.html#torchtune.generation.get_causal_mask_from_padding_mask">get_causal_mask_from_padding_mask() (in module torchtune.generation)</a>
+</li>
+      <li><a href="generated/torchtune.training.get_cosine_schedule_with_warmup.html#torchtune.training.get_cosine_schedule_with_warmup">get_cosine_schedule_with_warmup() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.utils.get_device.html#torchtune.utils.get_device">get_device() (in module torchtune.utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.get_distributed_backend.html#torchtune.training.get_distributed_backend">get_distributed_backend() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.training.get_dtype.html#torchtune.training.get_dtype">get_dtype() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.modules.model_fusion.get_fusion_params.html#torchtune.modules.model_fusion.get_fusion_params">get_fusion_params() (in module torchtune.modules.model_fusion)</a>
+</li>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.get_last_lr">get_last_lr() (torchtune.training.OptimizerInBackwardWrapper method)</a>
+</li>
+      <li><a href="generated/torchtune.utils.get_logger.html#torchtune.utils.get_logger">get_logger() (in module torchtune.utils)</a>
+</li>
+      <li><a href="generated/torchtune.training.get_lr.html#torchtune.training.get_lr">get_lr() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.data.Message.html#torchtune.data.Message.get_media">get_media() (torchtune.data.Message method)</a>
+</li>
+      <li><a href="generated/torchtune.training.get_memory_stats.html#torchtune.training.get_memory_stats">get_memory_stats() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.get_optim_key">get_optim_key() (torchtune.training.OptimizerInBackwardWrapper method)</a>
+</li>
+      <li><a href="generated/torchtune.generation.get_position_ids_from_padding_mask.html#torchtune.generation.get_position_ids_from_padding_mask">get_position_ids_from_padding_mask() (in module torchtune.generation)</a>
+</li>
+      <li><a href="generated/torchtune.training.get_quantizer_mode.html#torchtune.training.get_quantizer_mode">get_quantizer_mode() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.rlhf.get_rewards_ppo.html#torchtune.rlhf.get_rewards_ppo">get_rewards_ppo() (in module torchtune.rlhf)</a>
+</li>
+      <li><a href="generated/torchtune.training.get_unmasked_sequence_lengths.html#torchtune.training.get_unmasked_sequence_lengths">get_unmasked_sequence_lengths() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank">get_world_size_and_rank() (in module torchtune.utils)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.grammar_dataset.html#torchtune.datasets.grammar_dataset">grammar_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.GrammarErrorCorrectionTemplate.html#torchtune.data.GrammarErrorCorrectionTemplate">GrammarErrorCorrectionTemplate (in module torchtune.data)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.datasets.hh_rlhf_helpful_dataset.html#torchtune.datasets.hh_rlhf_helpful_dataset">hh_rlhf_helpful_dataset() (in module torchtune.datasets)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer">HuggingFaceBaseTokenizer (class in torchtune.modules.transforms.tokenizers)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed">init_distributed() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.initialize_dora_magnitude">initialize_dora_magnitude() (torchtune.modules.peft.DoRALinear method)</a>
+</li>
+      <li><a href="generated/torchtune.data.InputOutputToMessages.html#torchtune.data.InputOutputToMessages">InputOutputToMessages (class in torchtune.data)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.config.instantiate.html#torchtune.config.instantiate">instantiate() (in module torchtune.config)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset">instruct_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.training.is_distributed.html#torchtune.training.is_distributed">is_distributed() (in module torchtune.training)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache">KVCache (class in torchtune.modules)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.LayerDropout.html#torchtune.modules.LayerDropout">LayerDropout (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence">left_pad_sequence() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.llama2.html#torchtune.models.llama2.llama2">llama2() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.llama2_13b.html#torchtune.models.llama2.llama2_13b">llama2_13b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.llama2_70b.html#torchtune.models.llama2.llama2_70b">llama2_70b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.llama2_7b.html#torchtune.models.llama2.llama2_7b">llama2_7b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.llama2_reward_7b.html#torchtune.models.llama2.llama2_reward_7b">llama2_reward_7b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">llama2_tokenizer() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.Llama2ChatTemplate.html#torchtune.models.llama2.Llama2ChatTemplate">Llama2ChatTemplate (class in torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.llama3.html#torchtune.models.llama3.llama3">llama3() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.llama3_1.html#torchtune.models.llama3_1.llama3_1">llama3_1() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.llama3_1_405b.html#torchtune.models.llama3_1.llama3_1_405b">llama3_1_405b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.llama3_1_70b.html#torchtune.models.llama3_1.llama3_1_70b">llama3_1_70b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.llama3_1_8b.html#torchtune.models.llama3_1.llama3_1_8b">llama3_1_8b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2.llama3_2_1b.html#torchtune.models.llama3_2.llama3_2_1b">llama3_2_1b() (in module torchtune.models.llama3_2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2.llama3_2_3b.html#torchtune.models.llama3_2.llama3_2_3b">llama3_2_3b() (in module torchtune.models.llama3_2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_11b.html#torchtune.models.llama3_2_vision.llama3_2_vision_11b">llama3_2_vision_11b() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_decoder">llama3_2_vision_decoder() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.llama3_2_vision_encoder">llama3_2_vision_encoder() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.llama3_2_vision_transform.html#torchtune.models.llama3_2_vision.llama3_2_vision_transform">llama3_2_vision_transform() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_3.llama3_3_70b.html#torchtune.models.llama3_3.llama3_3_70b">llama3_3_70b() (in module torchtune.models.llama3_3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.llama3_70b.html#torchtune.models.llama3.llama3_70b">llama3_70b() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b">llama3_8b() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer">llama3_tokenizer() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionEncoder.html#torchtune.models.llama3_2_vision.Llama3VisionEncoder">Llama3VisionEncoder (class in torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionProjectionHead.html#torchtune.models.llama3_2_vision.Llama3VisionProjectionHead">Llama3VisionProjectionHead (class in torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform">Llama3VisionTransform (class in torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.multimodal.llava_instruct_dataset.html#torchtune.datasets.multimodal.llava_instruct_dataset">llava_instruct_dataset() (in module torchtune.datasets.multimodal)</a>
+</li>
+      <li><a href="generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.load_checkpoint">load_checkpoint() (torchtune.training.FullModelHFCheckpointer method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.load_checkpoint">(torchtune.training.FullModelMetaCheckpointer method)</a>
+</li>
+        <li><a href="generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.load_checkpoint">(torchtune.training.FullModelTorchTuneCheckpointer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.data.load_image.html#torchtune.data.load_image">load_image() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.load_state_dict">load_state_dict() (torchtune.training.OptimizerInBackwardWrapper method)</a>
+</li>
+      <li><a href="generated/torchtune.modules.common_utils.local_kv_cache.html#torchtune.modules.common_utils.local_kv_cache">local_kv_cache() (in module torchtune.modules.common_utils)</a>
+</li>
+      <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log">log() (torchtune.training.metric_logging.CometLogger method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log">(torchtune.training.metric_logging.DiskLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.log">(torchtune.training.metric_logging.MLFlowLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log">(torchtune.training.metric_logging.StdoutLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log">(torchtune.training.metric_logging.TensorBoardLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log">(torchtune.training.metric_logging.WandBLogger method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.config.log_config.html#torchtune.config.log_config">log_config() (in module torchtune.config)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log_config">(torchtune.training.metric_logging.CometLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log_config">(torchtune.training.metric_logging.DiskLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.log_config">(torchtune.training.metric_logging.MLFlowLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log_config">(torchtune.training.metric_logging.StdoutLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log_config">(torchtune.training.metric_logging.TensorBoardLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_config">(torchtune.training.metric_logging.WandBLogger method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log_dict">log_dict() (torchtune.training.metric_logging.CometLogger method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.training.metric_logging.DiskLogger.html#torchtune.training.metric_logging.DiskLogger.log_dict">(torchtune.training.metric_logging.DiskLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger.log_dict">(torchtune.training.metric_logging.MLFlowLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger.log_dict">(torchtune.training.metric_logging.StdoutLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger.log_dict">(torchtune.training.metric_logging.TensorBoardLogger method)</a>
+</li>
+        <li><a href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_dict">(torchtune.training.metric_logging.WandBLogger method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.log_memory_stats.html#torchtune.training.log_memory_stats">log_memory_stats() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.lora_code_llama2_13b.html#torchtune.models.code_llama2.lora_code_llama2_13b">lora_code_llama2_13b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.lora_code_llama2_70b.html#torchtune.models.code_llama2.lora_code_llama2_70b">lora_code_llama2_70b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.lora_code_llama2_7b.html#torchtune.models.code_llama2.lora_code_llama2_7b">lora_code_llama2_7b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.lora_gemma.html#torchtune.models.gemma.lora_gemma">lora_gemma() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.lora_gemma2.html#torchtune.models.gemma2.lora_gemma2">lora_gemma2() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.lora_gemma2_27b.html#torchtune.models.gemma2.lora_gemma2_27b">lora_gemma2_27b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.lora_gemma2_2b.html#torchtune.models.gemma2.lora_gemma2_2b">lora_gemma2_2b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.lora_gemma2_9b.html#torchtune.models.gemma2.lora_gemma2_9b">lora_gemma2_9b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.lora_gemma_2b.html#torchtune.models.gemma.lora_gemma_2b">lora_gemma_2b() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.lora_gemma_7b.html#torchtune.models.gemma.lora_gemma_7b">lora_gemma_7b() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.lora_llama2.html#torchtune.models.llama2.lora_llama2">lora_llama2() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.lora_llama2_13b.html#torchtune.models.llama2.lora_llama2_13b">lora_llama2_13b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.lora_llama2_70b.html#torchtune.models.llama2.lora_llama2_70b">lora_llama2_70b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b">lora_llama2_7b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.lora_llama2_reward_7b.html#torchtune.models.llama2.lora_llama2_reward_7b">lora_llama2_reward_7b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.lora_llama3.html#torchtune.models.llama3.lora_llama3">lora_llama3() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.lora_llama3_1.html#torchtune.models.llama3_1.lora_llama3_1">lora_llama3_1() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.lora_llama3_1_405b.html#torchtune.models.llama3_1.lora_llama3_1_405b">lora_llama3_1_405b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.lora_llama3_1_70b.html#torchtune.models.llama3_1.lora_llama3_1_70b">lora_llama3_1_70b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.lora_llama3_1_8b.html#torchtune.models.llama3_1.lora_llama3_1_8b">lora_llama3_1_8b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2.lora_llama3_2_1b.html#torchtune.models.llama3_2.lora_llama3_2_1b">lora_llama3_2_1b() (in module torchtune.models.llama3_2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2.lora_llama3_2_3b.html#torchtune.models.llama3_2.lora_llama3_2_3b">lora_llama3_2_3b() (in module torchtune.models.llama3_2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_11b.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_11b">lora_llama3_2_vision_11b() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_decoder">lora_llama3_2_vision_decoder() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder">lora_llama3_2_vision_encoder() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_3.lora_llama3_3_70b.html#torchtune.models.llama3_3.lora_llama3_3_70b">lora_llama3_3_70b() (in module torchtune.models.llama3_3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.lora_llama3_70b.html#torchtune.models.llama3.lora_llama3_70b">lora_llama3_70b() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.lora_llama3_8b.html#torchtune.models.llama3.lora_llama3_8b">lora_llama3_8b() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.lora_mistral.html#torchtune.models.mistral.lora_mistral">lora_mistral() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.lora_mistral_7b.html#torchtune.models.mistral.lora_mistral_7b">lora_mistral_7b() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.lora_mistral_classifier.html#torchtune.models.mistral.lora_mistral_classifier">lora_mistral_classifier() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.lora_mistral_reward_7b.html#torchtune.models.mistral.lora_mistral_reward_7b">lora_mistral_reward_7b() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi3.lora_phi3.html#torchtune.models.phi3.lora_phi3">lora_phi3() (in module torchtune.models.phi3)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi3.lora_phi3_mini.html#torchtune.models.phi3.lora_phi3_mini">lora_phi3_mini() (in module torchtune.models.phi3)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi4.lora_phi4_14b.html#torchtune.models.phi4.lora_phi4_14b">lora_phi4_14b() (in module torchtune.models.phi4)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.lora_qwen2.html#torchtune.models.qwen2.lora_qwen2">lora_qwen2() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.lora_qwen2_0_5b.html#torchtune.models.qwen2.lora_qwen2_0_5b">lora_qwen2_0_5b() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.lora_qwen2_1_5b.html#torchtune.models.qwen2.lora_qwen2_1_5b">lora_qwen2_1_5b() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_0_5b.html#torchtune.models.qwen2_5.lora_qwen2_5_0_5b">lora_qwen2_5_0_5b() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_14b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_14b_base">lora_qwen2_5_14b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_14b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_14b_instruct">lora_qwen2_5_14b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_1_5b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_1_5b_base">lora_qwen2_5_1_5b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_1_5b_instruct">lora_qwen2_5_1_5b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_32b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_32b_base">lora_qwen2_5_32b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_32b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_32b_instruct">lora_qwen2_5_32b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_3b.html#torchtune.models.qwen2_5.lora_qwen2_5_3b">lora_qwen2_5_3b() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_72b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_72b_base">lora_qwen2_5_72b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_72b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_72b_instruct">lora_qwen2_5_72b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_7b_base.html#torchtune.models.qwen2_5.lora_qwen2_5_7b_base">lora_qwen2_5_7b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.lora_qwen2_5_7b_instruct.html#torchtune.models.qwen2_5.lora_qwen2_5_7b_instruct">lora_qwen2_5_7b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.lora_qwen2_7b.html#torchtune.models.qwen2.lora_qwen2_7b">lora_qwen2_7b() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear">LoRALinear (class in torchtune.modules.peft)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.data.Message.html#torchtune.data.Message">Message (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.mistral.html#torchtune.models.mistral.mistral">mistral() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.mistral_7b.html#torchtune.models.mistral.mistral_7b">mistral_7b() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.mistral_classifier.html#torchtune.models.mistral.mistral_classifier">mistral_classifier() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.mistral_reward_7b.html#torchtune.models.mistral.mistral_reward_7b">mistral_reward_7b() (in module torchtune.models.mistral)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.models.mistral.mistral_tokenizer.html#torchtune.models.mistral.mistral_tokenizer">mistral_tokenizer() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.MistralChatTemplate.html#torchtune.models.mistral.MistralChatTemplate">MistralChatTemplate (class in torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.training.metric_logging.MLFlowLogger.html#torchtune.training.metric_logging.MLFlowLogger">MLFlowLogger (class in torchtune.training.metric_logging)</a>
+</li>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.ModelTokenizer.html#torchtune.modules.transforms.tokenizers.ModelTokenizer">ModelTokenizer (class in torchtune.modules.transforms.tokenizers)</a>
+</li>
+      <li><a href="generated/torchtune.training.ModelType.html#torchtune.training.ModelType">ModelType (class in torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention">MultiHeadAttention (class in torchtune.modules)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.data.OpenAIToMessages.html#torchtune.data.OpenAIToMessages">OpenAIToMessages (class in torchtune.data)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper">OptimizerInBackwardWrapper (class in torchtune.training)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset">PackedDataset (class in torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.padded_collate.html#torchtune.data.padded_collate">padded_collate() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.data.padded_collate_dpo.html#torchtune.data.padded_collate_dpo">padded_collate_dpo() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.data.padded_collate_sft.html#torchtune.data.padded_collate_sft">padded_collate_sft() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.data.padded_collate_tiled_images_and_mask.html#torchtune.data.padded_collate_tiled_images_and_mask">padded_collate_tiled_images_and_mask() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.config.parse.html#torchtune.config.parse">parse() (in module torchtune.config)</a>
+</li>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.parse_hf_tokenizer_json.html#torchtune.modules.transforms.tokenizers.parse_hf_tokenizer_json">parse_hf_tokenizer_json() (in module torchtune.modules.transforms.tokenizers)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi3.phi3.html#torchtune.models.phi3.phi3">phi3() (in module torchtune.models.phi3)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi3.phi3_mini.html#torchtune.models.phi3.phi3_mini">phi3_mini() (in module torchtune.models.phi3)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.models.phi3.phi3_mini_tokenizer.html#torchtune.models.phi3.phi3_mini_tokenizer">phi3_mini_tokenizer() (in module torchtune.models.phi3)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi4.phi4_14b.html#torchtune.models.phi4.phi4_14b">phi4_14b() (in module torchtune.models.phi4)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi4.phi4_tokenizer.html#torchtune.models.phi4.phi4_tokenizer">phi4_tokenizer() (in module torchtune.models.phi4)</a>
+</li>
+      <li><a href="generated/torchtune.rlhf.loss.PPOLoss.html#torchtune.rlhf.loss.PPOLoss">PPOLoss (class in torchtune.rlhf.loss)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.preference_dataset.html#torchtune.datasets.preference_dataset">preference_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset">PreferenceDataset (class in torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.modules.prepare_layer_dropout.html#torchtune.modules.prepare_layer_dropout">prepare_layer_dropout() (in module torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.data.PromptTemplate.html#torchtune.data.PromptTemplate">PromptTemplate (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface">PromptTemplateInterface (class in torchtune.data)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.models.code_llama2.qlora_code_llama2_13b.html#torchtune.models.code_llama2.qlora_code_llama2_13b">qlora_code_llama2_13b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.qlora_code_llama2_70b.html#torchtune.models.code_llama2.qlora_code_llama2_70b">qlora_code_llama2_70b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.code_llama2.qlora_code_llama2_7b.html#torchtune.models.code_llama2.qlora_code_llama2_7b">qlora_code_llama2_7b() (in module torchtune.models.code_llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.qlora_gemma2_27b.html#torchtune.models.gemma2.qlora_gemma2_27b">qlora_gemma2_27b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.qlora_gemma2_2b.html#torchtune.models.gemma2.qlora_gemma2_2b">qlora_gemma2_2b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma2.qlora_gemma2_9b.html#torchtune.models.gemma2.qlora_gemma2_9b">qlora_gemma2_9b() (in module torchtune.models.gemma2)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.qlora_gemma_2b.html#torchtune.models.gemma.qlora_gemma_2b">qlora_gemma_2b() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.gemma.qlora_gemma_7b.html#torchtune.models.gemma.qlora_gemma_7b">qlora_gemma_7b() (in module torchtune.models.gemma)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.qlora_llama2_13b.html#torchtune.models.llama2.qlora_llama2_13b">qlora_llama2_13b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.qlora_llama2_70b.html#torchtune.models.llama2.qlora_llama2_70b">qlora_llama2_70b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.qlora_llama2_7b.html#torchtune.models.llama2.qlora_llama2_7b">qlora_llama2_7b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama2.qlora_llama2_reward_7b.html#torchtune.models.llama2.qlora_llama2_reward_7b">qlora_llama2_reward_7b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.qlora_llama3_1_405b.html#torchtune.models.llama3_1.qlora_llama3_1_405b">qlora_llama3_1_405b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.qlora_llama3_1_70b.html#torchtune.models.llama3_1.qlora_llama3_1_70b">qlora_llama3_1_70b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_1.qlora_llama3_1_8b.html#torchtune.models.llama3_1.qlora_llama3_1_8b">qlora_llama3_1_8b() (in module torchtune.models.llama3_1)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2.qlora_llama3_2_1b.html#torchtune.models.llama3_2.qlora_llama3_2_1b">qlora_llama3_2_1b() (in module torchtune.models.llama3_2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2.qlora_llama3_2_3b.html#torchtune.models.llama3_2.qlora_llama3_2_3b">qlora_llama3_2_3b() (in module torchtune.models.llama3_2)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.qlora_llama3_2_vision_11b.html#torchtune.models.llama3_2_vision.qlora_llama3_2_vision_11b">qlora_llama3_2_vision_11b() (in module torchtune.models.llama3_2_vision)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_3.qlora_llama3_3_70b.html#torchtune.models.llama3_3.qlora_llama3_3_70b">qlora_llama3_3_70b() (in module torchtune.models.llama3_3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.qlora_llama3_70b.html#torchtune.models.llama3.qlora_llama3_70b">qlora_llama3_70b() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3.qlora_llama3_8b.html#torchtune.models.llama3.qlora_llama3_8b">qlora_llama3_8b() (in module torchtune.models.llama3)</a>
+</li>
+      <li><a href="generated/torchtune.models.mistral.qlora_mistral_7b.html#torchtune.models.mistral.qlora_mistral_7b">qlora_mistral_7b() (in module torchtune.models.mistral)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.models.mistral.qlora_mistral_reward_7b.html#torchtune.models.mistral.qlora_mistral_reward_7b">qlora_mistral_reward_7b() (in module torchtune.models.mistral)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi3.qlora_phi3_mini.html#torchtune.models.phi3.qlora_phi3_mini">qlora_phi3_mini() (in module torchtune.models.phi3)</a>
+</li>
+      <li><a href="generated/torchtune.models.phi4.qlora_phi4_14b.html#torchtune.models.phi4.qlora_phi4_14b">qlora_phi4_14b() (in module torchtune.models.phi4)</a>
+</li>
+      <li><a href="generated/torchtune.data.QuestionAnswerTemplate.html#torchtune.data.QuestionAnswerTemplate">QuestionAnswerTemplate (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.qwen2.html#torchtune.models.qwen2.qwen2">qwen2() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.qwen2_0_5b.html#torchtune.models.qwen2.qwen2_0_5b">qwen2_0_5b() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.qwen2_1_5b.html#torchtune.models.qwen2.qwen2_1_5b">qwen2_1_5b() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_0_5b.html#torchtune.models.qwen2_5.qwen2_5_0_5b">qwen2_5_0_5b() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_14b_base.html#torchtune.models.qwen2_5.qwen2_5_14b_base">qwen2_5_14b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_14b_instruct.html#torchtune.models.qwen2_5.qwen2_5_14b_instruct">qwen2_5_14b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_1_5b_base.html#torchtune.models.qwen2_5.qwen2_5_1_5b_base">qwen2_5_1_5b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_1_5b_instruct.html#torchtune.models.qwen2_5.qwen2_5_1_5b_instruct">qwen2_5_1_5b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_32b_base.html#torchtune.models.qwen2_5.qwen2_5_32b_base">qwen2_5_32b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_32b_instruct.html#torchtune.models.qwen2_5.qwen2_5_32b_instruct">qwen2_5_32b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_3b.html#torchtune.models.qwen2_5.qwen2_5_3b">qwen2_5_3b() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_72b_base.html#torchtune.models.qwen2_5.qwen2_5_72b_base">qwen2_5_72b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_72b_instruct.html#torchtune.models.qwen2_5.qwen2_5_72b_instruct">qwen2_5_72b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_7b_base.html#torchtune.models.qwen2_5.qwen2_5_7b_base">qwen2_5_7b_base() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_7b_instruct.html#torchtune.models.qwen2_5.qwen2_5_7b_instruct">qwen2_5_7b_instruct() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2_5.qwen2_5_tokenizer.html#torchtune.models.qwen2_5.qwen2_5_tokenizer">qwen2_5_tokenizer() (in module torchtune.models.qwen2_5)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.qwen2_7b.html#torchtune.models.qwen2.qwen2_7b">qwen2_7b() (in module torchtune.models.qwen2)</a>
+</li>
+      <li><a href="generated/torchtune.models.qwen2.qwen2_tokenizer.html#torchtune.models.qwen2.qwen2_tokenizer">qwen2_tokenizer() (in module torchtune.models.qwen2)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.model_fusion.register_fusion_module.html#torchtune.modules.model_fusion.register_fusion_module">register_fusion_module() (in module torchtune.modules.model_fusion)</a>
+</li>
+      <li><a href="generated/torchtune.training.register_optim_in_bwd_hooks.html#torchtune.training.register_optim_in_bwd_hooks">register_optim_in_bwd_hooks() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">reparametrize_as_dtype_state_dict_post_hook() (in module torchtune.modules.common_utils)</a>
+</li>
+      <li><a href="generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.reset">reset() (torchtune.modules.KVCache method)</a>
+</li>
+      <li><a href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.reset_cache">reset_cache() (torchtune.modules.model_fusion.FusionLayer method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.reset_cache">(torchtune.modules.MultiHeadAttention method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.reset_cache">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.reset_cache">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.reset_caches">reset_caches() (torchtune.modules.model_fusion.DeepFusionModel method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.reset_caches">(torchtune.modules.TransformerDecoder method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm">RMSNorm (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.data.Role.html#torchtune.data.Role">Role (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings">RotaryPositionalEmbeddings (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.rlhf.loss.RSOLoss.html#torchtune.rlhf.loss.RSOLoss">RSOLoss (class in torchtune.rlhf.loss)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.generation.sample.html#torchtune.generation.sample">sample() (in module torchtune.generation)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.samsum_dataset.html#torchtune.datasets.samsum_dataset">samsum_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.save_checkpoint">save_checkpoint() (torchtune.training.FullModelHFCheckpointer method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.save_checkpoint">(torchtune.training.FullModelMetaCheckpointer method)</a>
+</li>
+        <li><a href="generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.save_checkpoint">(torchtune.training.FullModelTorchTuneCheckpointer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer">SentencePieceBaseTokenizer (class in torchtune.modules.transforms.tokenizers)</a>
+</li>
+      <li><a href="generated/torchtune.training.set_activation_checkpointing.html#torchtune.training.set_activation_checkpointing">set_activation_checkpointing() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.training.set_default_dtype.html#torchtune.training.set_default_dtype">set_default_dtype() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.set_lr_scheduler">set_lr_scheduler() (torchtune.training.OptimizerInBackwardWrapper method)</a>
+</li>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.set_num_output_chunks">set_num_output_chunks() (torchtune.modules.model_fusion.DeepFusionModel method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.set_num_output_chunks">(torchtune.modules.TransformerDecoder method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.training.set_seed.html#torchtune.training.set_seed">set_seed() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">set_trainable_params() (in module torchtune.modules.peft)</a>
+</li>
+      <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.setup_cache">setup_cache() (torchtune.modules.MultiHeadAttention method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.setup_caches">setup_caches() (torchtune.modules.model_fusion.DeepFusionModel method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.model_fusion.FusionLayer.html#torchtune.modules.model_fusion.FusionLayer.setup_caches">(torchtune.modules.model_fusion.FusionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer.setup_caches">(torchtune.modules.TransformerCrossAttentionLayer method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.setup_caches">(torchtune.modules.TransformerDecoder method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.setup_caches">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.training.setup_torch_profiler.html#torchtune.training.setup_torch_profiler">setup_torch_profiler() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset">SFTDataset (class in torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages">ShareGPTToMessages (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">slimorca_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.stack_exchange_paired_dataset.html#torchtune.datasets.stack_exchange_paired_dataset">stack_exchange_paired_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.state_dict">state_dict() (torchtune.training.OptimizerInBackwardWrapper method)</a>
+</li>
+      <li><a href="generated/torchtune.training.metric_logging.StdoutLogger.html#torchtune.training.metric_logging.StdoutLogger">StdoutLogger (class in torchtune.training.metric_logging)</a>
+</li>
+      <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.step_lr_scheduler">step_lr_scheduler() (torchtune.training.OptimizerInBackwardWrapper method)</a>
+</li>
+      <li><a href="generated/torchtune.data.SummarizeTemplate.html#torchtune.data.SummarizeTemplate">SummarizeTemplate (in module torchtune.data)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.TanhGate.html#torchtune.modules.TanhGate">TanhGate (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.training.metric_logging.TensorBoardLogger.html#torchtune.training.metric_logging.TensorBoardLogger">TensorBoardLogger (class in torchtune.training.metric_logging)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset">text_completion_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.Message.html#torchtune.data.Message.text_content">text_content (torchtune.data.Message property)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.TextCompletionDataset.html#torchtune.datasets.TextCompletionDataset">TextCompletionDataset (class in torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.multimodal.the_cauldron_dataset.html#torchtune.datasets.multimodal.the_cauldron_dataset">the_cauldron_dataset() (in module torchtune.datasets.multimodal)</a>
+</li>
+      <li><a href="generated/torchtune.modules.TiedLinear.html#torchtune.modules.TiedLinear">TiedLinear (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer">TikTokenBaseTokenizer (class in torchtune.modules.transforms.tokenizers)</a>
+</li>
+      <li><a href="generated/torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding">TiledTokenPositionalEmbedding (class in torchtune.models.clip)</a>
+</li>
+      <li><a href="generated/torchtune.models.clip.TilePositionalEmbedding.html#torchtune.models.clip.TilePositionalEmbedding">TilePositionalEmbedding (class in torchtune.models.clip)</a>
+</li>
+      <li><a href="generated/torchtune.modules.peft.DoRALinear.html#torchtune.modules.peft.DoRALinear.to_empty">to_empty() (torchtune.modules.peft.DoRALinear method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.to_empty">(torchtune.modules.peft.LoRALinear method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_message">tokenize_message() (torchtune.models.llama3_2_vision.Llama3VisionTransform method)</a>
+</li>
+      <li><a href="generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_messages">tokenize_messages() (torchtune.models.llama3_2_vision.Llama3VisionTransform method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.transforms.tokenizers.ModelTokenizer.html#torchtune.modules.transforms.tokenizers.ModelTokenizer.tokenize_messages">(torchtune.modules.transforms.tokenizers.ModelTokenizer method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.transforms.tokenizers.tokenize_messages_no_special_tokens.html#torchtune.modules.transforms.tokenizers.tokenize_messages_no_special_tokens">tokenize_messages_no_special_tokens() (in module torchtune.modules.transforms.tokenizers)</a>
+</li>
+      <li><a href="generated/torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding">TokenPositionalEmbedding (class in torchtune.models.clip)</a>
+</li>
+      <li><a href="generated/torchtune.utils.torch_version_ge.html#torchtune.utils.torch_version_ge">torch_version_ge() (in module torchtune.utils)</a>
+</li>
+      <li><a href="generated/torchtune.modules.transforms.Transform.html#torchtune.modules.transforms.Transform">Transform (class in torchtune.modules.transforms)</a>
+</li>
+      <li><a href="generated/torchtune.modules.TransformerCrossAttentionLayer.html#torchtune.modules.TransformerCrossAttentionLayer">TransformerCrossAttentionLayer (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder">TransformerDecoder (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer">TransformerSelfAttentionLayer (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.data.truncate.html#torchtune.data.truncate">truncate() (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.rlhf.truncate_sequence_at_first_stop_token.html#torchtune.rlhf.truncate_sequence_at_first_stop_token">truncate_sequence_at_first_stop_token() (in module torchtune.rlhf)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">update() (torchtune.modules.KVCache method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.update_state_dict_for_classifier.html#torchtune.training.update_state_dict_for_classifier">update_state_dict_for_classifier() (in module torchtune.training)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.config.validate.html#torchtune.config.validate">validate() (in module torchtune.config)</a>
+</li>
+      <li><a href="generated/torchtune.training.validate_expected_param_dtype.html#torchtune.training.validate_expected_param_dtype">validate_expected_param_dtype() (in module torchtune.training)</a>
+</li>
+      <li><a href="generated/torchtune.data.validate_messages.html#torchtune.data.validate_messages">validate_messages() (in module torchtune.data)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.modules.peft.validate_missing_and_unexpected_for_lora.html#torchtune.modules.peft.validate_missing_and_unexpected_for_lora">validate_missing_and_unexpected_for_lora() (in module torchtune.modules.peft)</a>
+</li>
+      <li><a href="generated/torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask">VisionCrossAttentionMask (class in torchtune.modules.transforms)</a>
+</li>
+      <li><a href="generated/torchtune.modules.VisionTransformer.html#torchtune.modules.VisionTransformer">VisionTransformer (class in torchtune.modules)</a>
+</li>
+      <li><a href="generated/torchtune.datasets.multimodal.vqa_dataset.html#torchtune.datasets.multimodal.vqa_dataset">vqa_dataset() (in module torchtune.datasets.multimodal)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger">WandBLogger (class in torchtune.training.metric_logging)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset">wikitext_dataset() (in module torchtune.datasets)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2023-present, torchtune Contributors.
+
+    </p>
+  </div>
+    
+      <div>
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      </div>
+     
+
+</footer>
+
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+         <script src="_static/jquery.js"></script>
+         <script src="_static/underscore.js"></script>
+         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="_static/doctools.js"></script>
+         <script src="_static/clipboard.min.js"></script>
+         <script src="_static/copybutton.js"></script>
+         <script src="_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!--  
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script type="text/javascript">
+    var collapsedSections = []
+</script>
+ 
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".main-menu-item a[href='https://github.com/pytorch/pytorch']").attr("href", "https://github.com/pytorch/torchtune");
+    });
+</script>
+
+
+  <!-- Begin Footer -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/docs/stable/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="https://pytorch.org/tutorials">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="https://pytorch.org/resources">View Resources</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/">PyTorch</a></li>
+            <li><a href="https://pytorch.org/get-started">Get Started</a></li>
+            <li><a href="https://pytorch.org/features">Features</a></li>
+            <li><a href="https://pytorch.org/ecosystem">Ecosystem</a></li>
+            <li><a href="https://pytorch.org/blog/">Blog</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/resources">Resources</a></li>
+            <li><a href="https://pytorch.org/tutorials">Tutorials</a></li>
+            <li><a href="https://pytorch.org/docs/stable/index.html">Docs</a></li>
+            <li><a href="https://discuss.pytorch.org" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/issues" target="_blank">Github Issues</a></li>
+            <li><a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf" target="_blank">Brand Guidelines</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">Stay up to date</li>
+            <li><a href="https://www.facebook.com/pytorch" target="_blank">Facebook</a></li>
+            <li><a href="https://twitter.com/pytorch" target="_blank">Twitter</a></li>
+            <li><a href="https://www.youtube.com/pytorch" target="_blank">YouTube</a></li>
+            <li><a href="https://www.linkedin.com/company/pytorch" target="_blank">LinkedIn</a></li>
+          </ul>  
+          </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">PyTorch Podcasts</li>
+            <li><a href="https://open.spotify.com/show/6UzHKeiy368jKfQMKKvJY5" target="_blank">Spotify</a></li>
+            <li><a href="https://podcasts.apple.com/us/podcast/pytorch-developer-podcast/id1566080008" target="_blank">Apple</a></li>
+            <li><a href="https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9PQjVGa0lsOA%3D%3D" target="_blank">Google</a></li>
+            <li><a href="https://music.amazon.com/podcasts/7a4e6f0e-26c2-49e9-a478-41bd244197d0/PyTorch-Developer-Podcast?" target="_blank">Amazon</a></li>
+          </ul>
+         </div>
+        </div>
+        
+        <div class="privacy-policy">
+          <ul>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/terms/" target="_blank">Terms</a></li>
+            <li class="privacy-policy-links">|</li>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/privacy-policy/" target="_blank">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="copyright">
+        <p>© Copyright The Linux Foundation. The PyTorch Foundation is a project of The Linux Foundation.
+          For web site terms of use, trademark policy and other policies applicable to The PyTorch Foundation please see
+          <a href="https://www.linuxfoundation.org/policies/">www.linuxfoundation.org/policies/</a>. The PyTorch Foundation supports the PyTorch open source
+          project, which has been established as PyTorch Project a Series of LF Projects, LLC. For policies applicable to the PyTorch Project a Series of LF Projects, LLC,
+          please see <a href="https://www.lfprojects.org/policies/">www.lfprojects.org/policies/</a>.</p>
+      </div>
+     </div>
+
+  </footer>
+
+  <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="_static/images/pytorch-x.svg">
+  </div>
+</div>
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+           <li class="resources-mobile-menu-title">
+             <a>Learn</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/get-started">Get Started</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials">Tutorials</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">Learn the Basics</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/recipes/recipes_index.html">PyTorch Recipes</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/tutorials/beginner/introyt.html">Introduction to PyTorch - YouTube Series</a>
+             </li>
+           </ul>
+           <li class="resources-mobile-menu-title">
+             <a>Ecosystem</a>
+           </li>
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/ecosystem">Tools</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/#community-module">Community</a>
+             </li>
+             <li>
+               <a href="https://discuss.pytorch.org/">Forums</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/resources">Developer Resources</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/ecosystem/contributor-awards-2023">Contributor Awards - 2024</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Edge</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+             <li>
+               <a href="https://pytorch.org/edge">About PyTorch Edge</a>
+             </li>
+             
+             <li>
+               <a href="https://pytorch.org/executorch-overview">ExecuTorch</a>
+             </li>
+             <li>
+               <a href="https://pytorch.org/executorch/stable/index.html">ExecuTorch Documentation</a>
+             </li>
+           </ul>
+
+           <li class="resources-mobile-menu-title">
+             <a>Docs</a>
+           </li>
+
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/pytorch-domains">PyTorch Domains</a>
+            </li>
+          </ul>
+
+          <li class="resources-mobile-menu-title">
+            <a>Blog & News</a>
+          </li>
+            
+           <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/blog/">PyTorch Blog</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/community-blog">Community Blog</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/videos">Videos</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/community-stories">Community Stories</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/events">Events</a>
+            </li>
+            <li>
+               <a href="https://pytorch.org/newsletter">Newsletter</a>
+             </li>
+          </ul>
+          
+          <li class="resources-mobile-menu-title">
+            <a>About</a>
+          </li>
+
+          <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/foundation">PyTorch Foundation</a>
+            </li>
+            <li>
+              <a href="https://pytorch.org/governing-board">Governing Board</a>
+            </li>
+            <li>
+               <a href="https://pytorch.org/credits">Cloud Credit Program</a>
+            </li>
+            <li>
+               <a href="https://pytorch.org/tac">Technical Advisory Council</a>
+            </li>
+            <li>
+               <a href="https://pytorch.org/staff">Staff</a>
+            </li>
+            <li>
+               <a href="https://pytorch.org/contact-us">Contact Us</a>
+            </li>
+          </ul>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+      mainMenuDropdown.bind();
+      filterTags.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+</body>
+</html>
