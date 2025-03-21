@@ -110,12 +110,15 @@ dtype: bf16
 
 # number of train_steps after which to do weight sync
 steps_before_sync: 2
+num_ref_workers: 1
+num_fsdp_workers: 2
 
 vllm:
-  num_workers: 1
+  num_workers: 5
   tp_size: 1
+  batch_size: 1 # TODO: for now, needs to match recipe batch size
+  queue_maxsize: 3 #num workers * steps_before_sync
 
-num_fsdp_workers: 4
 
 # Logging
 metric_logger:
