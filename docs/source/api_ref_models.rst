@@ -65,7 +65,7 @@ To download the Llama-3.2-3B-Instruct model:
 
     The Llama3.2 tokenizer reuses the :class:`~torchtune.models.llama3.llama3_tokenizer` class.
 
-llama3.2 Vision
+llama3.2 vision
 ---------------
 
 Vision-Language Models from the 3.2 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
@@ -406,7 +406,7 @@ To download the Gemma 7B model:
     gemma.gemma_tokenizer
 
 
-gemma2 :
+gemma2
 --------
 
 Models of size 2B, 9B, 27B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
