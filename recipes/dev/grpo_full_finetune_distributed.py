@@ -417,6 +417,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
                 self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
                 self.profiler_active_steps = profiler_cfg["active_steps"]
+                self.profiler_num_cycles = profiler_cfg["num_cycles"]
 
         return profiler
 
@@ -949,6 +950,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
 
@@ -983,6 +985,16 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
+                # Stop tracking CUDA memory now that active steps are complete
+                if (
+                    self._is_rank_zero
+                    and curr_epoch == 0
+                    and self.profiler_profile_memory
+                    and idx == self.profiler_wait_steps + self.profiler_warmup_steps + self.profiler_active_steps
+                    and self._device.type == "cuda"
+                ):
+                    torch.cuda.memory._record_memory_history(enabled=None)
+
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
                     extra_metrics = {}
@@ -997,6 +1009,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     )
 
                 self.cleanup_after_step(trajectory, grpo_stats)
+                self._profiler.step()
+
                 pbar.update(1)
 
                 if self._steps_run == self._total_steps:
@@ -1007,6 +1021,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             if self._epochs_run % self._save_every_n_epochs == 0:
                 self.save_checkpoint(curr_epoch)
             if training_completed:
+                self._profiler.stop()
                 return
 
         self._profiler.stop()
