@@ -70,15 +70,28 @@ from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.models import qwen2_5
 from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
+from torchtune.rlhf import Trajectory
 
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
+from torchrl.data import RayReplayBuffer, LazyStackStorage
+from tensordict import TensorClass
 
 from vllm import LLM, SamplingParams
 from vllm.utils import get_ip, get_open_port
 from vllm.worker.worker import Worker
 
 log = utils.get_logger("DEBUG")
+
+class Trajectory(TensorClass["nocast"]):
+    query_responses: torch.Tensor
+    responses: torch.Tensor
+    logprobs: torch.Tensor
+    ref_logprobs: torch.Tensor
+    query_response_padding_masks: torch.Tensor
+    seq_lens: torch.Tensor
+    answers: torch.Tensor
+    policy_version: Any
 
 
 def stateless_init_process_group(
@@ -109,18 +122,15 @@ def stateless_init_process_group(
 class RefActor:
     def __init__(self, *args, **kwargs):
         assert "rollout_queue" in kwargs, "Must pass queue to vLLMRefActor"
-        assert "actor_queue" in kwargs, "Must pass queue to vLLMRefActor"
+        assert "replay_buffer" in kwargs, "Must pass replay_buffer to vLLMRefActor"
         assert "cfg" in kwargs, "Must pass cfg to vLLMRefActor"
 
-        world_size, rank = utils.get_world_size_and_rank()
-        self.rank = rank
-        self.world_size = world_size
-        self._is_rank_zero = rank == 0
+        self.actor_id = kwargs.pop("actor_id", -1)
+        self._is_actor_zero = self.actor_id == 0
 
         self.cfg = kwargs.pop("cfg")
-        self.rollout_replay_buffer = kwargs.pop("rollout_queue")
-        self.actor_replay_buffer = kwargs.pop("actor_queue")
-        # self.llm = LLM(*args, **kwargs)
+        self.rollout_queue = kwargs.pop("rollout_queue")
+        self.replay_buffer = kwargs.pop("replay_buffer")
         self._device = utils.get_device(device=self.cfg.device)
         self._dtype = training.get_dtype(self.cfg.dtype, device=self._device)
         ref_checkpoint_dict = self.load_ref_checkpoint(
@@ -130,6 +140,26 @@ class RefActor:
             self.cfg.model, ref_checkpoint_dict[training.MODEL_KEY]
         )
         self._temperature = self.cfg.temperature
+
+        self.metric_logger = None  # Placeholder for the logger
+
+        device_type = self.cfg.device
+        self._log_peak_memory_stats = self.cfg.get("log_peak_memory_stats", True)
+        if self._log_peak_memory_stats and device_type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+            )
+            self._log_peak_memory_stats = False
+
+        if self._is_actor_zero:
+            memory_stats = training.get_memory_stats(device=self._device)
+            training.log_memory_stats(memory_stats)
+
+    def set_metric_logger(self, logger):
+        """Store the MetricLoggerActor handle."""
+        if self._is_actor_zero:
+            print(f"setting metric logger {logger} for actor id", self.actor_id)
+            self._metric_logger = logger
 
     def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -170,25 +200,75 @@ class RefActor:
         print("done setting up ref model")
         return ref_model
 
+    def _log_metrics(
+        self,
+        step_idx,
+        time_total_ref_step,
+        time_model_running,
+        time_waiting_buffer,
+        full_queue_data_discard,
+        rollout_queue_length,
+    ):
+        """Log metrics for the RefActor, only on actor zero."""
+        if not self._is_actor_zero:
+            return
+
+        log_dict = {}
+        if self._log_peak_memory_stats:
+            memory_stats = training.get_memory_stats(device=self._device)
+            log_dict.update(
+                {
+                    f"ref_actor_performance/memory/{k}": v
+                    for k, v in memory_stats.items()
+                }
+            )
+
+        pct_time_model_running = (
+            (time_model_running / time_total_ref_step) * 100
+            if time_total_ref_step > 0
+            else 0
+        )
+        pct_time_waiting_buffer = (
+            (time_waiting_buffer / time_total_ref_step) * 100
+            if time_total_ref_step > 0
+            else 0
+        )
+
+        log_dict.update(
+            {
+                "ref_actor_performance/time_total_ref_step (s)": time_total_ref_step,
+                "ref_actor_performance/time_model_running (s)": time_model_running,
+                "ref_actor_performance/pct_time_model_running (%)": pct_time_model_running,
+                "ref_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
+                "ref_actor_performance/pct_time_waiting_buffer (%)": pct_time_waiting_buffer,
+                "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
+                "queues/rollout_queue_length": rollout_queue_length,
+            }
+        )
+
+        ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
+
     def run(self):
         import time
 
         print("running ref actor")
         idx = 0
         while True:
-            print(idx)
+            print(f"{idx=}")
             # FIXME: what should be the shutdown condition for this worker?
             if idx == 400:
                 break
 
+            # Start measuring total step time
+            time_step_start = time.perf_counter()
             trajectory = None
+            if self._is_actor_zero:
+                rollout_queue_length = self.rollout_queue.qsize()
             while trajectory is None:
                 try:
-                    if self._is_rank_zero:
-                        print(
-                            f"Getting from queue RefActor. Replay buffer size at start: {self.rollout_replay_buffer.qsize()}"
-                        )
-                    trajectory = self.rollout_replay_buffer.get(timeout=0.5)
+                    if self._is_actor_zero:
+                        print(f"Getting from rollout_queue queue.")
+                    trajectory = self.rollout_queue.get(timeout=0.5)
 
                     # Move tensors back to GPU
                     trajectory = [
@@ -199,9 +279,11 @@ class RefActor:
                         )
                         for tensor in trajectory
                     ]
-                except Exception:
+                except ray.util.queue.Empty:
                     trajectory = None
                     time.sleep(0.1)
+            time_wait_end = time.perf_counter()
+            time_waiting_buffer = time_wait_end - time_step_start
 
             (
                 query_responses,
@@ -210,6 +292,7 @@ class RefActor:
                 query_response_padding_masks,
                 seq_lens,
                 answers,
+                policy_version,
             ) = trajectory
 
             context_length = query_responses.shape[1] - responses.shape[1]
@@ -221,10 +304,15 @@ class RefActor:
                 query_response_padding_masks
             )
 
+            # Reset GPU memory stats before model_running
+            torch.cuda.reset_peak_memory_stats()
+
+            time_grpo_steps_start = time.perf_counter()
             with torch.no_grad():
                 ref_logits = self._ref_model(
                     query_responses, input_pos=position_ids, mask=masks
                 )
+            time_model_running = time.perf_counter() - time_grpo_steps_start
 
             ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
             ref_logprobs = rlhf.batched_logits_to_logprobs(
@@ -234,7 +322,9 @@ class RefActor:
             del ref_logits, position_ids, masks
             # masking of ref_logprobs is done in grpo_step
 
-            trajectory = (
+            # Repack trajectory with policy_version
+            batch_size = answers.shape[0]
+            trajectory = Trajectory(
                 query_responses,
                 responses,
                 logprobs,
@@ -242,28 +332,31 @@ class RefActor:
                 query_response_padding_masks,
                 seq_lens,
                 answers,
+                policy_version,
+                batch_size=batch_size,
             )
-            print("putting trajectory into actor queue")
+            print(f"putting trajectory {trajectory} into actor queue")
 
             # Move tensors to CPU before putting into the queue
-            trajectory = [
-                tensor.cpu() if isinstance(tensor, torch.Tensor) else tensor
-                for tensor in trajectory
-            ]
+            trajectory = trajectory.cpu()
 
             # Update circular queue
-            while True:
-                try:
-                    print(
-                        f"RefActor queue size before put_nowait: {self.actor_replay_buffer.qsize()}"
-                    )
-                    self.actor_replay_buffer.put_nowait(trajectory)
-                    break
-                except QueueFull:
-                    self.actor_replay_buffer.get()  # Remove the oldest item to make space
-                    print(
-                        f"RefActor queue size after get: {self.actor_replay_buffer.qsize()}"
-                    )
+            self.replay_buffer.extend(trajectory)
+
+            # End of step timing
+            time_total_ref_step = time.perf_counter() - time_step_start
+
+            # log metrics
+            if self._is_actor_zero:
+                self._log_metrics(
+                    step_idx=idx,
+                    time_total_ref_step=time_total_ref_step,
+                    time_model_running=time_model_running,
+                    time_waiting_buffer=time_waiting_buffer,
+                    # TODO: what should we do with this? We can log the total number of elements written in the buffer instead
+                    # full_queue_data_discard=full_queue_data_discard,
+                    rollout_queue_length=rollout_queue_length,
+                )
 
             torch.cuda.empty_cache()
 
@@ -271,10 +364,15 @@ class RefActor:
 
 
 class vLLMRolloutActor:
-    def __init__(self, *args, **kwargs):
-        assert "queue" in kwargs, "Must pass queue to vLLMRolloutActor"
-        assert "cfg" in kwargs, "Must pass cfg to vLLMRolloutActor"
-        self.cfg = kwargs.pop("cfg")
+    def __init__(self, *args, queue, cfg, actor_id=-1, **kwargs):
+        import os
+
+        import torch
+
+        print(f"Actor CUDA_VISIBLE_DEVICES: {os.environ.get('CUDA_VISIBLE_DEVICES')}")
+        print(f"Device count: {torch.cuda.device_count()}")
+
+        self.cfg = cfg
         self._max_generated_tokens = self.cfg.max_generated_tokens
         self.grpo_samples = self.cfg.grpo_samples
         self._temperature = self.cfg.temperature
@@ -283,7 +381,10 @@ class vLLMRolloutActor:
         self.batch_size = self.cfg.vllm.batch_size
         self._steps_before_sync = self.cfg.steps_before_sync * self.cfg.num_fsdp_workers
 
-        self.replay_buffer = kwargs.pop("queue")
+        self.actor_id = actor_id
+        self._is_actor_zero = self.actor_id == 0
+
+        self.rollout_queue = queue
         self.llm = LLM(*args, **kwargs)
         from torchtune import config
 
@@ -307,7 +408,18 @@ class vLLMRolloutActor:
         # FIXME: Should really use a lock
         self.sleeping = False
 
-    def start_weight_update(self, param_list):
+        # Initialize policy version for tracking trajectory age
+        self.policy_version = 0
+
+        self.metric_logger = None  # Placeholder for the logger
+
+    def set_metric_logger(self, logger):
+        """Store the MetricLoggerActor handle."""
+        self._metric_logger = logger
+
+    def start_weight_update(self, param_list, policy_version):
+        # Update the policy version when weights are synchronized
+        self.policy_version = policy_version
         for name, dtype, shape in param_list:
             self.llm.collective_rpc("update_weight", args=(name, dtype, shape))
 
@@ -384,6 +496,47 @@ class vLLMRolloutActor:
     def print_me(self, string):
         print(string, flush=True)
 
+    def _log_metrics(
+        self,
+        step_idx,
+        time_total_rollout,
+        time_generate,
+        total_generated_tokens,
+        full_queue_data_discard,
+        gpu_memory,
+    ):
+        """Log metrics for the vLLMRolloutActor, only on actor zero."""
+        if not self._is_actor_zero:
+            return
+
+        pct_time_model_running = (
+            (time_generate / time_total_rollout) * 100 if time_total_rollout > 0 else 0
+        )
+        tokens_per_second = (
+            total_generated_tokens / time_generate if time_generate > 0 else 0
+        )
+        div_GiB = 1024**3
+
+        log_dict = {
+            "vllm_actor_performance/total_rollout_time (s)": time_total_rollout,
+            "vllm_actor_performance/pct_time_model_running (%)": pct_time_model_running,
+            "vllm_actor_performance/tokens_per_second": tokens_per_second,
+            "vllm_actor_performance/gpu_memory_peak_allocated (GiB)": gpu_memory[
+                "allocated"
+            ]
+            / div_GiB,
+            "vllm_actor_performance/gpu_memory_peak_reserved (GiB)": gpu_memory[
+                "reserved"
+            ]
+            / div_GiB,
+            "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
+            / div_GiB,
+            "queues/vllm_full_queue_data_discard": full_queue_data_discard,
+            "queues/rollout_queue_size": self.rollout_queue.qsize(),
+        }
+
+        ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
+
     def rollout(self):
         sampling_params = SamplingParams(
             # FIXME: can just directly change n to grpo_size instead of repeating prompt grpo_size times
@@ -429,7 +582,10 @@ class vLLMRolloutActor:
             logprobs = torch.tensor(logprobs, dtype=torch.float, device="cuda")
 
             query_responses = torch.empty(
-                bs, len(prompt_tokens) + max_seq_len, dtype=torch.long, device="cuda"
+                bs,
+                len(prompt_tokens) + max_seq_len,
+                dtype=torch.long,
+                device="cuda",
             )
             query_responses[:, : len(prompt_tokens)] = torch.tensor(
                 prompt_tokens, dtype=torch.long
@@ -457,6 +613,8 @@ class vLLMRolloutActor:
             ]
 
         for idx, batch in enumerate(self._dataloader):
+            time_step_start = time.perf_counter()
+
             print(f"batch {idx}")
             # might want to do so for 0 also if weights are directly broadcasted from dp?
             if idx != 0 and idx % self._steps_before_sync == 0:
@@ -483,6 +641,11 @@ class vLLMRolloutActor:
             batch_tokens = batch_tokens.reshape(self.batch_size * self.grpo_samples, -1)
             # A downside is they only seem to take in List[List[int]] and not torch.Tensor :(
             batch_tokens = batch_tokens.numpy().tolist()
+
+            # Reset GPU memory stats before generation
+            torch.cuda.reset_peak_memory_stats(device="cuda:0")
+
+            time_generate_start = time.perf_counter()
             # do the generation
             result = self.llm.generate(
                 prompts=None,
@@ -490,8 +653,24 @@ class vLLMRolloutActor:
                 sampling_params=sampling_params,
                 use_tqdm=False,
             )
+            time_generate = time.perf_counter() - time_generate_start
+
             postprocessed_results = postprocess_vllm_request_output(result)
+
+            # Unpack to compute padded tokens percentage and tokens per second
+            (
+                query_responses,
+                responses,
+                logprobs,
+                query_response_padding_masks,
+                seq_lens,
+            ) = postprocessed_results
+            # Compute total generated tokens for tokens per second
+            total_generated_tokens = seq_lens.sum().item()
+
             postprocessed_results.append(answers)
+            postprocessed_results.append(self.policy_version)
+
             # print(self._tokenizer.decode(batch_tokens[0]))
             # print("===")
             # print(self._tokenizer.decode(postprocessed_results[0][0].cpu().numpy().tolist()))
@@ -502,17 +681,39 @@ class vLLMRolloutActor:
                 for tensor in postprocessed_results
             ]
 
-            # Update circular queue
+            # Update circular queue and count full queue tries
+            full_queue_data_discard = 0
             while True:
                 try:
-                    print(
-                        f"vLLM queue size before put_nowait: {self.replay_buffer.qsize()}"
-                    )
-                    self.replay_buffer.put_nowait(postprocessed_results)
+                    self.rollout_queue.put_nowait(postprocessed_results)
                     break
                 except QueueFull:
-                    self.replay_buffer.get()  # Remove the oldest item to make space
-                    print(f"vLLM queue size after get: {self.replay_buffer.qsize()}")
+                    self.rollout_queue.get()  # Remove the oldest item to make space
+                    full_queue_data_discard += 1
+                    print(f"rollout queue full. Discarding data.")
+
+            if self._is_actor_zero:
+                # End timing the rollout step
+                time_total_rollout = time.perf_counter() - time_step_start
+
+                # TODO: training.get_memory_stats() crashes vLLM
+                # Log metrics
+                gpu_memory = {
+                    "allocated": torch.cuda.max_memory_allocated(device="cuda:0"),
+                    "reserved": torch.cuda.max_memory_reserved(device="cuda:0"),
+                    "active": torch.cuda.memory_stats(device="cuda:0").get(
+                        "active_bytes.all.peak", 0
+                    ),
+                }
+                time_total_rollout = time.perf_counter() - time_step_start
+                self._log_metrics(
+                    step_idx=idx,
+                    time_total_rollout=time_total_rollout,
+                    time_generate=time_generate,
+                    total_generated_tokens=total_generated_tokens,
+                    full_queue_data_discard=full_queue_data_discard,
+                    gpu_memory=gpu_memory,
+                )
 
 
 class vLLMWorkerWrapper(Worker):
@@ -553,20 +754,29 @@ class vLLMWorkerWrapper(Worker):
 
 @ray.remote(num_cpus=8, num_gpus=1)
 class PyTorchActorModel:
-    def __init__(self, cfg, environment_variables, replay_buffer):
+    def __init__(
+        self,
+        cfg,
+        environment_variables,
+        replay_buffer,
+    ):
+        import torch
+
         # shared queue to get trajectories + logprobs from vllm
         self.replay_buffer = replay_buffer
 
         self.cfg = cfg
 
-        import torch
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
-        self._device = utils.get_device(device=cfg.device)
-        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
-        device_type = cfg.device
+        device_type = self.cfg.device
+        self._log_peak_memory_stats = self.cfg.get("log_peak_memory_stats", True)
+        if self._log_peak_memory_stats and device_type != "cuda":
+            log.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+            )
+            self._log_peak_memory_stats = False
 
         if self._dtype == torch.float16:
             raise ValueError(
@@ -705,10 +915,6 @@ class PyTorchActorModel:
         #     num_training_steps=self.total_epochs * self._steps_per_epoch,
         #     last_epoch=self.global_step - 1,
         # )
-
-        if self._is_rank_zero:
-            self._metric_logger = config.instantiate(cfg.metric_logger)
-
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
@@ -717,7 +923,17 @@ class PyTorchActorModel:
 
         self._steps_before_sync = cfg.steps_before_sync
 
+        # Initialize policy version for tracking age of trajectories
+        self.policy_version = 0
+        self.metric_logger = None  # Placeholder for the logger
+
         print("done setup")
+
+    def set_metric_logger(self, logger):
+        """Store the MetricLoggerActor handle."""
+        if self._is_rank_zero:
+            print("setting metric logger {logger} for rank", self.rank)
+            self._metric_logger = logger
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -821,37 +1037,6 @@ class PyTorchActorModel:
                 "Checkpoint does not contain the required keys needed for updating recipe state. "
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
-
-    def log_metrics(
-        self, trajectory: GRPOTrajectory, grpo_stats: GRPOStats, **extras
-    ) -> None:
-        """
-        Log metrics and statistics for the current step to the metric logger.
-        """
-        rewards = trajectory.rewards.mean()
-        torch.distributed.reduce(rewards, dst=0, op=torch.distributed.ReduceOp.AVG)
-
-        successes = trajectory.successes.mean()
-        torch.distributed.reduce(successes, dst=0, op=torch.distributed.ReduceOp.AVG)
-
-        log_dict = {
-            "rewards": rewards,
-            "successes": successes,
-            "num_stop_tokens": trajectory.response_padding_masks.any(-1).sum(),
-            "loss": grpo_stats.loss.mean(),
-            "policy_loss": grpo_stats.policy_loss.mean(),
-            "kl_loss": grpo_stats.kl_loss.mean(),
-            "clipfrac": grpo_stats.clipfrac.mean(),
-            "ratios": grpo_stats.ratios.mean(),
-            "approx_policy_kl": grpo_stats.approx_policy_kls.mean(),
-            "response_lengths": trajectory.seq_lens.float().mean(),
-            **extras,
-        }
-
-        if self._device.type == "cuda" and self._log_peak_memory_stats:
-            log_dict.update(training.get_memory_stats(device=self._device))
-        if self._is_rank_zero:
-            self._metric_logger.log_dict(log_dict, step=self.global_step)
 
     def _setup_model(
         self,
@@ -1098,6 +1283,127 @@ class PyTorchActorModel:
             del g
         del l_grpo_stats
 
+    def _log_metrics(
+        self,
+        step_idx,
+        trajectory,
+        grpo_stats,
+        total_step_time,
+        time_grpo_steps,
+        time_waiting_buffer,
+        time_weight_sync,
+        time_weight_gather,
+        number_of_tokens,
+        padded_tokens_percentage,
+        policy_age,
+        rewards_mean,
+        successes_mean,
+        rewards_mean_per_func,
+        successes_mean_per_func,
+        reward_metada,
+        train_replay_buffer_size,
+    ):
+        """Log metrics for the PyTorchActorModel, only on rank zero after reductions."""
+        # Compute metrics that require all ranks
+        grpo_stats_stacked = GRPOStats(*map(torch.stack, zip(*grpo_stats)))
+
+        # Only log on rank zero
+        if not self._is_rank_zero:
+            return
+
+        log_dict = {}
+        if self._log_peak_memory_stats:
+            memory_stats = training.get_memory_stats(device=self._device)
+            log_dict.update(
+                {
+                    f"train_actor_performance/memory/{k}": v
+                    for k, v in memory_stats.items()
+                }
+            )
+
+        # Training metrics
+        log_dict.update(
+            {
+                "train_actor_training/loss": grpo_stats_stacked.loss.mean().item(),
+                "train_actor_training/policy_loss": grpo_stats_stacked.policy_loss.mean().item(),
+                "train_actor_training/num_stop_tokens": trajectory.response_padding_masks.any(
+                    -1
+                )
+                .sum()
+                .item(),
+                "train_actor_training/kl_loss": grpo_stats_stacked.kl_loss.mean().item(),
+                "train_actor_training/ratios": grpo_stats_stacked.ratios.mean().item(),
+                "train_actor_training/clipfrac": grpo_stats_stacked.clipfrac.mean().item(),
+                "train_actor_training/approx_policy_kls": grpo_stats_stacked.approx_policy_kls.mean().item(),
+                "train_actor_training/response_lengths": trajectory.seq_lens.float()
+                .mean()
+                .item(),
+            }
+        )
+
+        # rewards and successes
+        log_dict.update(
+            {
+                "train_actor_rewards/rewards_mean": rewards_mean.item(),
+                "train_actor_rewards/successes_mean": successes_mean.item(),
+            }
+        )
+
+        # Per-function rewards and successes
+        for func_name, mean in zip(reward_metada["func_names"], rewards_mean_per_func):
+            log_dict[f"train_actor_rewards/rewards_func_{func_name}_mean"] = mean.item()
+        for func_name, mean in zip(
+            reward_metada["func_names"], successes_mean_per_func
+        ):
+            log_dict[f"train_actor_rewards/successes_func_{func_name}_mean"] = (
+                mean.item()
+            )
+
+        # Performance metrics
+        log_dict.update(
+            {
+                "train_actor_performance/total_step_time (s)": total_step_time,
+                "train_actor_performance/time_grpo_steps (s)": time_grpo_steps,
+                "train_actor_performance/pct_time_grpo_steps (%)": (
+                    (time_grpo_steps / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+                "train_actor_performance/tokens_per_second": (
+                    number_of_tokens / total_step_time if total_step_time > 0 else 0
+                ),
+                "train_actor_performance/time_weight_sync (s)": time_weight_sync,
+                "train_actor_performance/pct_time_weight_sync (%)": (
+                    (time_weight_sync / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+                "train_actor_performance/padded_tokens_percentage (%)": padded_tokens_percentage,
+                "train_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
+                "train_actor_performance/pct_time_waiting_buffer (%)": (
+                    (time_waiting_buffer / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+                "train_actor_performance/time_weight_gather (s)": time_weight_gather,
+                "train_actor_performance/pct_time_weight_gather (%)": (
+                    (time_weight_gather / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+            }
+        )
+
+        # Queue metrics
+        log_dict.update(
+            {
+                "queues/train_actor_policy_age_mean": policy_age,
+                "queues/train_replay_buffer_size": train_replay_buffer_size,
+            }
+        )
+
+        ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
+
     def train(self):
         if self._is_rank_zero:
             self._vllm_engines[0].print_me.remote(
@@ -1119,29 +1425,23 @@ class PyTorchActorModel:
         for curr_epoch in range(1):
             print("starting")
 
-            # need way to coordinate when dataloader is done with an epoch between vllm worker and actor
             dataloader_done = False
             while not dataloader_done:
+                time_step_start = time.perf_counter()
+
+                # Measure time waiting for buffer
+                time_waiting_buffer_start = time.perf_counter()
                 trajectory = None
-                while trajectory is None:
-                    try:
-                        if self._is_rank_zero:
-                            print(
-                                f"{self.rank=} getting from queue PyTorchActorModel. Replay buffer size at start: {self.replay_buffer.qsize()}"
-                            )
-                        trajectory = self.replay_buffer.get(timeout=0.5)
-                        # Move tensors back to GPU
-                        trajectory = [
-                            (
-                                tensor.to(self._device)
-                                if isinstance(tensor, torch.Tensor)
-                                else tensor
-                            )
-                            for tensor in trajectory
-                        ]
-                    except Exception:
-                        trajectory = None
-                        time.sleep(0.1)
+                if self._is_rank_zero:
+                    train_replay_buffer_size = self.replay_buffer.write_count
+                while not len(self.replay_buffer):
+                    print('waiting for replay buffer')
+                    time.sleep(1.0)
+                if self._is_rank_zero:
+                    print(f"{self.rank=} Getting from replay_buffer queue.")
+                trajectory = self.replay_buffer.sample((1,))
+                trajectory = trajectory.to(self._device)
+                time_waiting_buffer = time.perf_counter() - time_waiting_buffer_start
 
                 print(f"{self.rank=} got from queue")
 
@@ -1172,20 +1472,30 @@ class PyTorchActorModel:
                     responses,
                     logprobs,
                     ref_logprobs,
-                    # response_padding_masks,
                     query_response_padding_masks,
                     seq_lens,
                     answers,
+                    policy_version,
                 ) = trajectory
 
+                # Compute padded tokens percentage
+                total_tokens = query_responses.numel()
+                padded_tokens = (query_responses == self._tokenizer.pad_id).sum().item()
+                padded_tokens_percentage = (
+                    (padded_tokens / total_tokens) * 100 if total_tokens > 0 else 0
+                )
+                number_of_tokens = seq_lens.sum().item()
+
+                # Reset peak memory stats before GRPO steps
+                torch.cuda.reset_peak_memory_stats()
+
                 # FIXME: move stop token tensor to __init__
-                (
-                    response_padding_masks,
-                    responses,
-                ) = rlhf.truncate_sequence_at_first_stop_token(  # [B x G, L]
-                    responses,
-                    torch.tensor(self._tokenizer.stop_tokens, device=self._device),
-                    self._tokenizer.pad_id,
+                response_padding_masks, responses = (
+                    rlhf.truncate_sequence_at_first_stop_token(  # [B x G, L]
+                        responses,
+                        torch.tensor(self._tokenizer.stop_tokens, device=self._device),
+                        self._tokenizer.pad_id,
+                    )
                 )
 
                 masks = generation.get_causal_mask_from_padding_mask(
@@ -1198,15 +1508,18 @@ class PyTorchActorModel:
 
                 context_length = query_responses.shape[1] - responses.shape[1]
 
+                # compute rewards
                 responses = responses.reshape(batch_size, grpo_size, -1)
-                rewards, successes = batched_rewards(
-                    self._tokenizer, responses, answers
+                rewards_full, successes_full, reward_metadata = batched_rewards(
+                    self._tokenizer, responses, answers, device=self._device
                 )
-                rewards = rewards.to(self._device)
-                successes = successes.to(self._device)
 
-                advantages = (rewards - rewards.mean(1, keepdim=True)) / (
-                    rewards.std(1, keepdim=True) + 1e-4
+                # B, G, num_funcs -> B, G
+                rewards_sum = rewards_full.sum(-1)
+
+                # advantage
+                advantages = (rewards_sum - rewards_sum.mean(1, keepdim=True)) / (
+                    rewards_sum.std(1, keepdim=True) + 1e-4
                 )
                 advantages = advantages.reshape(batch_size * grpo_size)
 
@@ -1214,8 +1527,6 @@ class PyTorchActorModel:
                     query_responses=query_responses,
                     logprobs=logprobs,
                     ref_logprobs=ref_logprobs,
-                    rewards=rewards.reshape(batch_size * grpo_size),
-                    successes=successes.reshape(batch_size * grpo_size),
                     advantages=advantages,
                     masks=masks,
                     position_ids=position_ids,
@@ -1225,12 +1536,29 @@ class PyTorchActorModel:
                     ),
                 )
 
-                del responses
+                # for logging
+                torch.distributed.reduce(
+                    rewards_full, dst=0, op=torch.distributed.ReduceOp.AVG
+                )
+                torch.distributed.reduce(
+                    successes_full, dst=0, op=torch.distributed.ReduceOp.AVG
+                )
+                rewards_mean_per_func = rewards_full.mean(dim=(0, 1)).cpu()
+                successes_mean_per_func = successes_full.mean(dim=(0, 1)).cpu()
+                rewards_mean = rewards_mean_per_func.mean()
+                successes_mean = successes_mean_per_func.mean()
 
+                del rewards_full, successes_full, responses, rewards_sum
+
+                # TODO: do we need a barrier here?
                 torch.distributed.barrier()
 
+                # Measure compute time across all GRPO steps
+                time_grpo_steps = 0
+                time_grpo_steps_start = time.perf_counter()
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
+
                     step_stats = self.grpo_step(trajectory, context_length)
 
                     grpo_stats.append(step_stats)
@@ -1252,35 +1580,60 @@ class PyTorchActorModel:
 
                     print(f"{self.rank=} finished step {self._steps_run}")
 
+                time_grpo_steps = time.perf_counter() - time_grpo_steps_start
                 self._steps_run += 1
 
+                # Compute policy age
+                policy_age = self.policy_version - policy_version
+
+                # Handle weight synchronization
+                time_weight_sync = 0
+                time_weight_gather = 0
                 if self._steps_run % self._steps_before_sync == 0:
-                    torch.distributed.barrier()
-                    start = time.time()
                     print("started weight sync")
+                    torch.distributed.barrier()
+
+                    time_weight_gather_start = time.perf_counter()
                     # gather all parameters
                     new_sd = {}
-                    start_gather = time.time()
                     for k, v in self._model.state_dict().items():
                         new_sd[k] = v.full_tensor()
                     torch.cuda.synchronize()
-                    if self._is_rank_zero:
-                        print(f"done gather in {time.time() - start_gather}")
+                    time_weight_gather = time.perf_counter() - time_weight_gather_start
 
+                    if self._is_rank_zero:
+                        print(f"Done gather in {time_weight_gather}")
+
+                    time_sync_start = time.perf_counter()
                     self.sync_weights(new_sd)
                     del new_sd
+                    time_weight_sync = time.perf_counter() - time_sync_start
 
-                    if self._is_rank_zero:
-                        self._vllm_engines[0].wake_up.remote()
-                        print(f"ended weight sync in {time.time()-start}")
+                # Log metrics
+                total_step_time = time.perf_counter() - time_step_start
+                total_step_time = time.perf_counter() - time_step_start
+                policy_age = self.policy_version - policy_version
 
-                extra_metrics = {}
-                self.log_metrics(
-                    trajectory,
-                    GRPOStats(*map(torch.stack, zip(*grpo_stats))),
-                    **extra_metrics,
-                )
-                print("done logging")
+                if self._is_rank_zero:
+                    self._log_metrics(
+                        step_idx=self.global_step,
+                        trajectory=trajectory,
+                        grpo_stats=grpo_stats,
+                        total_step_time=total_step_time,
+                        time_grpo_steps=time_grpo_steps,
+                        time_waiting_buffer=time_waiting_buffer,
+                        time_weight_sync=time_weight_sync,
+                        time_weight_gather=time_weight_gather,
+                        number_of_tokens=number_of_tokens,
+                        padded_tokens_percentage=padded_tokens_percentage,
+                        policy_age=policy_age,
+                        rewards_mean=rewards_mean,
+                        successes_mean=successes_mean,
+                        rewards_mean_per_func=rewards_mean_per_func,
+                        successes_mean_per_func=successes_mean_per_func,
+                        reward_metada=reward_metadata,
+                        train_replay_buffer_size=train_replay_buffer_size,
+                    )
 
                 # Step profiler
                 # Note that this is called within gradient accumulation block, hence
@@ -1311,6 +1664,9 @@ class PyTorchActorModel:
         self._profiler.stop()
 
     def sync_weights(self, new_sd):
+        # Increment policy version
+        self.policy_version += 1
+
         if self._is_rank_zero:
             # Convert to vLLM-compatible format
             # FIXME: don't hardcode kwargs here
@@ -1320,7 +1676,8 @@ class PyTorchActorModel:
 
             # Start weight update on vLLM workers (non-blocking)
             vllm_update_refs = [
-                eng.start_weight_update.remote(param_list) for eng in self._vllm_engines
+                eng.start_weight_update.remote(param_list, self.policy_version)
+                for eng in self._vllm_engines
             ]
 
             # Broadcast each parameter to vLLM workers
@@ -1339,13 +1696,26 @@ class PyTorchActorModel:
             # Non-zero training ranks don’t participate in vLLM weight sync
             pass
 
-        # Cleanup
         torch.distributed.barrier()
         print("waking up", flush=True)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
+
+
+@ray.remote(num_cpus=1, num_gpus=0)
+class MetricLoggerActor:
+    def __init__(self, cfg):
+        self.logger = config.instantiate(cfg.metric_logger)
+
+    def log_dict(self, log_dict, step=None):
+        # allowing actors to use their own step counters
+        self.logger.log_dict(log_dict, step=step)
+
+    def close(self):
+        if hasattr(self.logger, "close"):
+            self.logger.close()
 
 
 class RayGRPORecipe:
@@ -1359,14 +1729,11 @@ class RayGRPORecipe:
         self.num_fsdp_workers = cfg.num_fsdp_workers
 
         # Initialize queues
-        self.rollout_replay_buffer = Queue(
+        self.rollout_queue = Queue(
             actor_options={"num_cpus": 10, "num_gpus": 0},
             maxsize=cfg.vllm.queue_maxsize,
         )
-        self.actor_replay_buffer = Queue(
-            actor_options={"num_cpus": 10, "num_gpus": 0},
-            maxsize=cfg.vllm.queue_maxsize,
-        )
+        self.replay_buffer = RayReplayBuffer(storage=functools.partial(LazyStackStorage(max_size=1000)))
 
         # Create workers using config values directly
         self.rollout_workers = self._create_vllm_workers()
@@ -1376,6 +1743,10 @@ class RayGRPORecipe:
         )
         self._init_weight_sync_pg()
 
+        # needs to happens after workers are created
+        # or there are conflicts with the placement group
+        self._set_metric_logger_to_actors()
+
     def start_ray(self):
         total_gpus = (
             self.num_vllm_workers * self.vllm_tp_size
@@ -1383,10 +1754,18 @@ class RayGRPORecipe:
             + self.num_fsdp_workers
         )
         total_cpus = 32 * total_gpus + 2
-        ray.init(
-            num_cpus=total_cpus, num_gpus=total_gpus
-        )  # Set to 8 if you have 8 GPUs
-        print(ray.cluster_resources())
+        ray.init(num_cpus=total_cpus, num_gpus=total_gpus)
+        print("Cluster resources:", ray.cluster_resources())
+
+    def _set_metric_logger_to_actors(self):
+        self.metric_logger = MetricLoggerActor.remote(self.cfg)
+        # Pass the logger handle to each worker
+        for worker in self.rollout_workers:
+            worker.set_metric_logger.remote(self.metric_logger)
+        for worker in self.ref_workers:
+            worker.set_metric_logger.remote(self.metric_logger)
+        for worker in self.actor_workers:
+            worker.set_metric_logger.remote(self.metric_logger)
 
     def _create_fsdp_group(self, worker_cls, fsdp_world_size: int):
         addr, port = get_ip(), get_open_port()
@@ -1398,14 +1777,18 @@ class RayGRPORecipe:
                 "MASTER_ADDR": addr,
                 "MASTER_PORT": port,
             }
-            worker = worker_cls.remote(self.cfg, env_vars, self.actor_replay_buffer)
+            worker = worker_cls.remote(
+                self.cfg,
+                env_vars,
+                self.replay_buffer,
+            )
             fsdp_workers.append(worker)
         return fsdp_workers
 
     def _create_ref_worker(self):
         worker = RefActor.remote(
-            rollout_queue=self.rollout_replay_buffer,
-            actor_queue=self.actor_replay_buffer,
+            rollout_queue=self.rollout_queue,
+            replay_buffer=self.replay_buffer,
             cfg=self.cfg,
         )
         return worker
@@ -1416,6 +1799,9 @@ class RayGRPORecipe:
             # Define placement group for this worker
             pg_inference = placement_group([{"GPU": 1, "CPU": 10}] * self.vllm_tp_size)
             ray.get(pg_inference.ready())
+            print(
+                f"Placement group for vLLM worker {i} ready with {self.vllm_tp_size} GPUs"
+            )
             scheduling_inference = PlacementGroupSchedulingStrategy(
                 placement_group=pg_inference,
                 placement_group_capture_child_tasks=True,
@@ -1437,8 +1823,9 @@ class RayGRPORecipe:
                     worker_cls=vLLMWorkerWrapper,
                     tensor_parallel_size=self.vllm_tp_size,
                     distributed_executor_backend="ray",
-                    queue=self.rollout_replay_buffer,
+                    queue=self.rollout_queue,
                     cfg=self.cfg,
+                    actor_id=i,
                 )
             )
             llms.append(llm)
@@ -1448,9 +1835,10 @@ class RayGRPORecipe:
         workers = []
         for i in range(self.num_ref_workers):
             worker = RefActor.remote(
-                rollout_queue=self.rollout_replay_buffer,
-                actor_queue=self.actor_replay_buffer,
+                rollout_queue=self.rollout_queue,
+                replay_buffer=self.replay_buffer,
                 cfg=self.cfg,
+                actor_id=i,
             )
             workers.append(worker)
         return workers
