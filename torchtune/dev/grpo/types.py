@@ -7,6 +7,7 @@
 from typing import NamedTuple
 
 import torch
+
 # from tensordict.tensorclass import TensorClass
 
 
@@ -18,8 +19,6 @@ class GRPOTrajectory(NamedTuple):
         query_responses (torch.Tensor): (query, response) pairs with shape [B x G, P+L].
         logprobs (torch.Tensor): Log probabilities of the generated responses with shape [B x G, L].
         ref_logprobs (torch.Tensor): Log probabilities of the generated responses using the reference policy with shape [B x G, L].
-        rewards (torch.Tensor): Rewards obtained from the environment or reward model with shape [B x G].
-        successes (torch.Tensor): Success indicators for each trajectory.
         advantages (torch.Tensor): Advantage estimates for the generated responses with shape [B x G].
         masks (torch.Tensor): Attention masks for input ids-generated responses pairs with shape [B x G, P+L, P+L].
         position_ids (torch.Tensor): Position IDs for input ids-generated responses pairs with shape [B x G, P+L].
@@ -30,8 +29,6 @@ class GRPOTrajectory(NamedTuple):
     query_responses: torch.Tensor = None  # [B x G, P+L]
     logprobs: torch.Tensor = None  # [B x G, L]
     ref_logprobs: torch.Tensor = None  # [B x G, L]
-    rewards: torch.Tensor = None  # [B x G]
-    successes: torch.Tensor = None
     advantages: torch.Tensor = None  # [B x G]
     masks: torch.Tensor = None  # [B x G, P+L, P+L]
     position_ids: torch.Tensor = None  # [B x G, P+L]

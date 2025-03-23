@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 
 import torch
 from numpy.ma.core import reshape
+
 # from tensordict import TensorDict, TensorDictBase
 # from torchrl.data import Composite, TensorSpec, Unbounded
 # from torchrl.envs import Transform
@@ -59,27 +60,38 @@ def math_response_correct(
 
 
 def batched_rewards(
-    tokenizer: ModelTokenizer, completions: torch.Tensor, answers: List[str]
-) -> Tuple[int, int]:
+    tokenizer: ModelTokenizer,
+    completions: torch.Tensor,
+    answers: List[str],
+    device: torch.device,
+) -> Tuple[torch.Tensor, torch.Tensor, dict]:
+
+    reward_funcs = [
+        at_least_one_space_between_think_tags,
+        math_response_correct,
+    ]
+    num_reward_funcs = len(reward_funcs)
     batch_size, grpo_size, _ = completions.shape
-    rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
-    successes = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
-    # completions :: [B, G, L]
+
+    # TODO: should this be bfloat16?
+    rewards_tensor = torch.zeros(
+        batch_size, grpo_size, num_reward_funcs, dtype=torch.float32, device=device
+    )
+    successes_tensor = torch.zeros(
+        batch_size, grpo_size, num_reward_funcs, dtype=torch.float32, device=device
+    )
+    metadata = {"func_names": [f.__name__ for f in reward_funcs]}
     for b in range(batch_size):
         answer = answers[b]
         for g in range(grpo_size):
-            text_completion = tokenizer.decode(
-                completions[b, g].tolist()
-            )  # skips special tokens, stops at eos
+            text_completion = tokenizer.decode(completions[b, g].tolist())
             cot, potential_answer = extract_tags(f"<think>{text_completion}")
-            for reward_func in [
-                at_least_one_space_between_think_tags,
-                math_response_correct,
-            ]:
+            for rw_idx, reward_func in enumerate(reward_funcs):
                 reward, success = reward_func(cot, answer, potential_answer)
-                rewards[b, g] += reward
-                successes[b, g] += success
-    return rewards, successes
+                rewards_tensor[b, g, rw_idx] += reward
+                successes_tensor[b, g, rw_idx] += success
+
+    return rewards_tensor, successes_tensor, metadata
 
 
 def shaped_correctness_reward(answer: str, completion: str) -> tuple[float, float]:
@@ -143,6 +155,7 @@ def batch_shaped_correctness_reward(
             successes[b, g] = success
 
     return rewards, successes
+
 
 # class ShapedCorrectnessReward(Transform):
 #     def __init__(self, tokenizer):
