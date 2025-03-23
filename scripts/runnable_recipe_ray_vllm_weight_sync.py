@@ -187,6 +187,54 @@ class RefActor:
         print("done setting up ref model")
         return ref_model
 
+    def _log_metrics(
+        self,
+        step_idx,
+        time_total_ref_step,
+        time_model_running,
+        time_waiting_buffer,
+        full_queue_data_discard,
+        rollout_replay_buffer_size,
+    ):
+        """Log metrics for the RefActor, only on actor zero."""
+        if not self._is_actor_zero:
+            return
+
+        log_dict = {}
+        if self._log_peak_memory_stats:
+            memory_stats = training.get_memory_stats(device=self._device)
+            log_dict.update(
+                {
+                    f"ref_actor_performance/memory/{k}": v
+                    for k, v in memory_stats.items()
+                }
+            )
+
+        pct_time_model_running = (
+            (time_model_running / time_total_ref_step) * 100
+            if time_total_ref_step > 0
+            else 0
+        )
+        pct_time_waiting_buffer = (
+            (time_waiting_buffer / time_total_ref_step) * 100
+            if time_total_ref_step > 0
+            else 0
+        )
+
+        log_dict.update(
+            {
+                "ref_actor_performance/time_total_ref_step (s)": time_total_ref_step,
+                "ref_actor_performance/time_model_running (s)": time_model_running,
+                "ref_actor_performance/pct_time_model_running (%)": pct_time_model_running,
+                "ref_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
+                "ref_actor_performance/pct_time_waiting_buffer (%)": pct_time_waiting_buffer,
+                "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
+                "queues/rollout_replay_buffer_size": rollout_replay_buffer_size,
+            }
+        )
+
+        ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
+
     def run(self):
         import time
 
@@ -201,12 +249,12 @@ class RefActor:
             # Start measuring total step time
             time_step_start = time.perf_counter()
             trajectory = None
+            if self._is_actor_zero:
+                rollout_replay_buffer_size = self.rollout_replay_buffer.qsize()
             while trajectory is None:
                 try:
                     if self._is_actor_zero:
-                        print(
-                            f"Getting from queue RefActor. Replay buffer size at start: {self.rollout_replay_buffer.qsize()}"
-                        )
+                        print(f"Getting from rollout_replay_buffer queue.")
                     trajectory = self.rollout_replay_buffer.get(timeout=0.5)
 
                     # Move tensors back to GPU
@@ -284,53 +332,26 @@ class RefActor:
             full_queue_data_discard = 0
             while True:
                 try:
-                    print(
-                        f"RefActor queue size before put_nowait: {self.actor_replay_buffer.qsize()}"
-                    )
                     self.actor_replay_buffer.put_nowait(trajectory)
                     break
                 except QueueFull:
                     self.actor_replay_buffer.get()  # Remove the oldest item to make space
                     full_queue_data_discard += 1
-                    print(
-                        f"RefActor queue size after get: {self.actor_replay_buffer.qsize()}"
-                    )
+                    print(f"actor_replay_buffer queue full. Discarding data.")
 
             # End of step timing
             time_total_ref_step = time.perf_counter() - time_step_start
 
-            # Compute percentage of time model_running
-            pct_time_model_running = (
-                (time_model_running / time_total_ref_step) * 100
-                if time_total_ref_step > 0
-                else 0
-            )
-
-            # Prepare metrics dictionary
+            # log metrics
             if self._is_actor_zero:
-                log_dict = {}
-                if self._log_peak_memory_stats:
-                    memory_stats = training.get_memory_stats(device=self._device)
-                    for k, v in memory_stats.items():
-                        log_dict[f"ref_actor_performance/{k}"] = v
-
-                log_dict.update(
-                    {
-                        "ref_actor_performance/time_total_ref_step (s)": time_total_ref_step,
-                        "ref_actor_performance/time_model_running (s)": time_model_running,
-                        "ref_actor_performance/pct_time_model_running (%)": pct_time_model_running,
-                        "ref_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
-                        "ref_actor_performance/pct_time_waiting_buffer (%)": time_waiting_buffer
-                        * 100
-                        / time_total_ref_step,
-                        "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
-                        "queues/rollout_replay_buffer_size": self.rollout_replay_buffer.qsize(),
-                        "queues/actor_replay_buffer_size": self.actor_replay_buffer.qsize(),
-                    }
+                self._log_metrics(
+                    step_idx=idx,
+                    time_total_ref_step=time_total_ref_step,
+                    time_model_running=time_model_running,
+                    time_waiting_buffer=time_waiting_buffer,
+                    full_queue_data_discard=full_queue_data_discard,
+                    rollout_replay_buffer_size=rollout_replay_buffer_size,
                 )
-
-                # Log metrics
-                ray.get(self._metric_logger.log_dict.remote(log_dict, step=idx))
 
             torch.cuda.empty_cache()
 
@@ -471,6 +492,47 @@ class vLLMRolloutActor:
 
     def print_me(self, string):
         print(string, flush=True)
+
+    def _log_metrics(
+        self,
+        step_idx,
+        time_total_rollout,
+        time_generate,
+        total_generated_tokens,
+        full_queue_data_discard,
+        gpu_memory,
+    ):
+        """Log metrics for the vLLMRolloutActor, only on actor zero."""
+        if not self._is_actor_zero:
+            return
+
+        pct_time_model_running = (
+            (time_generate / time_total_rollout) * 100 if time_total_rollout > 0 else 0
+        )
+        tokens_per_second = (
+            total_generated_tokens / time_generate if time_generate > 0 else 0
+        )
+        div_GiB = 1024**3
+
+        log_dict = {
+            "vllm_actor_performance/total_rollout_time (s)": time_total_rollout,
+            "vllm_actor_performance/pct_time_model_running (%)": pct_time_model_running,
+            "vllm_actor_performance/tokens_per_second": tokens_per_second,
+            "vllm_actor_performance/gpu_memory_peak_allocated (GiB)": gpu_memory[
+                "allocated"
+            ]
+            / div_GiB,
+            "vllm_actor_performance/gpu_memory_peak_reserved (GiB)": gpu_memory[
+                "reserved"
+            ]
+            / div_GiB,
+            "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
+            / div_GiB,
+            "queues/vllm_full_queue_data_discard": full_queue_data_discard,
+            "queues/rollout_replay_buffer_size": self.replay_buffer.qsize(),
+        }
+
+        ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
     def rollout(self):
         sampling_params = SamplingParams(
@@ -617,64 +679,38 @@ class vLLMRolloutActor:
             ]
 
             # Update circular queue and count full queue tries
-            full_queue_retries = 0
+            full_queue_data_discard = 0
             while True:
                 try:
-                    print(
-                        f"vLLM queue size before put_nowait: {self.replay_buffer.qsize()}"
-                    )
                     self.replay_buffer.put_nowait(postprocessed_results)
                     break
                 except QueueFull:
                     self.replay_buffer.get()  # Remove the oldest item to make space
-                    full_queue_retries += 1
-                    print(f"vLLM queue size after get: {self.replay_buffer.qsize()}")
+                    full_queue_data_discard += 1
+                    print(f"rollout queue full. Discarding data.")
 
             if self._is_actor_zero:
                 # End timing the rollout step
                 time_total_rollout = time.perf_counter() - time_step_start
 
-                # Compute additional metrics
-                pct_time_model_running = (
-                    (time_generate / time_total_rollout) * 100
-                    if time_total_rollout > 0
-                    else 0
-                )
-                tokens_per_second = (
-                    total_generated_tokens / time_generate if time_generate > 0 else 0
-                )
-
-                # Capture peak GPU memory usage
                 # TODO: training.get_memory_stats() crashes vLLM
-                gpu_memory_peak_allocated = torch.cuda.max_memory_allocated(
-                    device="cuda:0"
-                )
-                gpu_memory_peak_reserved = torch.cuda.max_memory_reserved(
-                    device="cuda:0"
-                )
-                gpu_memory_peak_active = torch.cuda.memory_stats(device="cuda:0").get(
-                    "active_bytes.all.peak", 0
-                )
-                torch.cuda.reset_peak_memory_stats()
-
-                # Prepare metrics dictionary
-                div_GiB = 1024**3
-                log_dict = {
-                    "vllm_actor_performance/total_rollout_time (s)": time_total_rollout,
-                    "vllm_actor_performance/pct_time_model_running (%)": pct_time_model_running,
-                    "vllm_actor_performance/tokens_per_second": tokens_per_second,
-                    "vllm_actor_performance/gpu_memory_peak_allocated (GiB)": gpu_memory_peak_allocated
-                    / div_GiB,
-                    "vllm_actor_performance/gpu_memory_peak_reserved (GiB)": gpu_memory_peak_reserved
-                    / div_GiB,
-                    "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory_peak_active
-                    / div_GiB,
-                    "queues/vllm_full_queue_data_discard": full_queue_retries,
-                    "queues/rollout_replay_buffer_size": self.replay_buffer.qsize(),
+                # Log metrics
+                gpu_memory = {
+                    "allocated": torch.cuda.max_memory_allocated(device="cuda:0"),
+                    "reserved": torch.cuda.max_memory_reserved(device="cuda:0"),
+                    "active": torch.cuda.memory_stats(device="cuda:0").get(
+                        "active_bytes.all.peak", 0
+                    ),
                 }
-
-                # Log metrics using the metric logger
-                ray.get(self._metric_logger.log_dict.remote(log_dict, step=idx))
+                time_total_rollout = time.perf_counter() - time_step_start
+                self._log_metrics(
+                    step_idx=idx,
+                    time_total_rollout=time_total_rollout,
+                    time_generate=time_generate,
+                    total_generated_tokens=total_generated_tokens,
+                    full_queue_data_discard=full_queue_data_discard,
+                    gpu_memory=gpu_memory,
+                )
 
 
 class vLLMWorkerWrapper(Worker):
@@ -999,97 +1035,6 @@ class PyTorchActorModel:
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
 
-    def log_metrics(
-        self,
-        trajectory: GRPOTrajectory,
-        grpo_stats: GRPOStats,
-        performance_metrics: Optional[Dict[str, float]] = None,
-        **extras,
-    ) -> None:
-        """
-        Log metrics and statistics for the current step to the metric logger.
-        """
-        if performance_metrics is None:
-            performance_metrics = {}
-
-        # Existing reductions for overall metrics
-        rewards_mean = trajectory.rewards.mean()
-        success_rate = trajectory.successes.mean()
-
-        # make sure all ranks get here, to avoid hangs
-        torch.distributed.reduce(rewards_mean, dst=0, op=torch.distributed.ReduceOp.AVG)
-        torch.distributed.reduce(success_rate, dst=0, op=torch.distributed.ReduceOp.AVG)
-
-        log_dict = {
-            # Core training accuracy metrics
-            "train_actor_training/loss": grpo_stats.loss.mean().item(),
-            "train_actor_training/policy_loss": grpo_stats.policy_loss.mean().item(),
-            "train_actor_training/num_stop_tokens": trajectory.response_padding_masks.any(
-                -1
-            )
-            .sum()
-            .item(),  # Verify this is stop tokens, not padding
-            "train_actor_training/kl_loss": grpo_stats.kl_loss.mean().item(),
-            "train_actor_rewards/rewards_mean": rewards_mean.item(),
-            "train_actor_rewards/success_rate": success_rate.item(),
-            "train_actor_training/ratios": grpo_stats.ratios.mean().item(),
-            "train_actor_training/clipfrac": grpo_stats.clipfrac.mean().item(),
-            "train_actor_training/approx_policy_kls": grpo_stats.approx_policy_kls.mean().item(),
-            "train_actor_training/response_lengths": trajectory.seq_lens.float()
-            .mean()
-            .item(),
-        }
-
-        # Collect per-function means into a single tensor
-        mean_reward_per_func = extras.get("mean_reward_per_func", {})
-        mean_success_per_func = extras.get("mean_success_per_func", {})
-
-        # Get function names to preserve order
-        reward_func_names = list(mean_reward_per_func.keys())
-        success_func_names = list(mean_success_per_func.keys())
-
-        # Stack all local means into one tensor
-        all_local_means = [mean_reward_per_func[func] for func in reward_func_names] + [
-            mean_success_per_func[func] for func in success_func_names
-        ]
-        if all_local_means:  # Ensure there's at least one function
-            all_means_tensor = torch.tensor(all_local_means, device=self._device)
-            # Perform a single reduction across ranks
-            torch.distributed.reduce(
-                all_means_tensor, dst=0, op=torch.distributed.ReduceOp.AVG
-            )
-
-            if self._is_rank_zero:
-                # Split the reduced tensor back into rewards and successes
-                num_reward_funcs = len(reward_func_names)
-                global_means = all_means_tensor.tolist()
-                global_reward_means = global_means[:num_reward_funcs]
-                global_success_means = global_means[num_reward_funcs:]
-
-                # Log per-function reward means
-                for func, global_mean in zip(reward_func_names, global_reward_means):
-                    log_dict[f"train_actor_rewards/rewards_{func}_mean"] = global_mean
-                # Log per-function success means
-                for func, global_mean in zip(success_func_names, global_success_means):
-                    log_dict[f"train_actor_rewards/success_{func}_mean"] = global_mean
-
-        # Add performance and queue metrics
-        log_dict.update(
-            {f"train_actor_performance/{k}": v for k, v in performance_metrics.items()}
-        )
-        log_dict["queues/train_actor_policy_age_mean"] = extras.get(
-            "train_actor_policy_age_mean", 0
-        )
-        log_dict["queues/train_actor_replay_buffer_size"] = extras.get(
-            "actor_replay_buffer_size", 0
-        )
-
-        # Log only on rank 0
-        if self._is_rank_zero:
-            ray.get(
-                self._metric_logger.log_dict.remote(log_dict, step=self.global_step)
-            )
-
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -1335,6 +1280,127 @@ class PyTorchActorModel:
             del g
         del l_grpo_stats
 
+    def _log_metrics(
+        self,
+        step_idx,
+        trajectory,
+        grpo_stats,
+        total_step_time,
+        time_grpo_steps,
+        time_waiting_buffer,
+        time_weight_sync,
+        time_weight_gather,
+        number_of_tokens,
+        padded_tokens_percentage,
+        policy_age,
+        rewards_mean,
+        successes_mean,
+        rewards_mean_per_func,
+        successes_mean_per_func,
+        reward_metada,
+        train_replay_buffer_size,
+    ):
+        """Log metrics for the PyTorchActorModel, only on rank zero after reductions."""
+        # Compute metrics that require all ranks
+        grpo_stats_stacked = GRPOStats(*map(torch.stack, zip(*grpo_stats)))
+
+        # Only log on rank zero
+        if not self._is_rank_zero:
+            return
+
+        log_dict = {}
+        if self._log_peak_memory_stats:
+            memory_stats = training.get_memory_stats(device=self._device)
+            log_dict.update(
+                {
+                    f"train_actor_performance/memory/{k}": v
+                    for k, v in memory_stats.items()
+                }
+            )
+
+        # Training metrics
+        log_dict.update(
+            {
+                "train_actor_training/loss": grpo_stats_stacked.loss.mean().item(),
+                "train_actor_training/policy_loss": grpo_stats_stacked.policy_loss.mean().item(),
+                "train_actor_training/num_stop_tokens": trajectory.response_padding_masks.any(
+                    -1
+                )
+                .sum()
+                .item(),
+                "train_actor_training/kl_loss": grpo_stats_stacked.kl_loss.mean().item(),
+                "train_actor_training/ratios": grpo_stats_stacked.ratios.mean().item(),
+                "train_actor_training/clipfrac": grpo_stats_stacked.clipfrac.mean().item(),
+                "train_actor_training/approx_policy_kls": grpo_stats_stacked.approx_policy_kls.mean().item(),
+                "train_actor_training/response_lengths": trajectory.seq_lens.float()
+                .mean()
+                .item(),
+            }
+        )
+
+        # rewards and successes
+        log_dict.update(
+            {
+                "train_actor_rewards/rewards_mean": rewards_mean.item(),
+                "train_actor_rewards/successes_mean": successes_mean.item(),
+            }
+        )
+
+        # Per-function rewards and successes
+        for func_name, mean in zip(reward_metada["func_names"], rewards_mean_per_func):
+            log_dict[f"train_actor_rewards/rewards_func_{func_name}_mean"] = mean.item()
+        for func_name, mean in zip(
+            reward_metada["func_names"], successes_mean_per_func
+        ):
+            log_dict[f"train_actor_rewards/successes_func_{func_name}_mean"] = (
+                mean.item()
+            )
+
+        # Performance metrics
+        log_dict.update(
+            {
+                "train_actor_performance/total_step_time (s)": total_step_time,
+                "train_actor_performance/time_grpo_steps (s)": time_grpo_steps,
+                "train_actor_performance/pct_time_grpo_steps (%)": (
+                    (time_grpo_steps / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+                "train_actor_performance/tokens_per_second": (
+                    number_of_tokens / total_step_time if total_step_time > 0 else 0
+                ),
+                "train_actor_performance/time_weight_sync (s)": time_weight_sync,
+                "train_actor_performance/pct_time_weight_sync (%)": (
+                    (time_weight_sync / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+                "train_actor_performance/padded_tokens_percentage (%)": padded_tokens_percentage,
+                "train_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
+                "train_actor_performance/pct_time_waiting_buffer (%)": (
+                    (time_waiting_buffer / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+                "train_actor_performance/time_weight_gather (s)": time_weight_gather,
+                "train_actor_performance/pct_time_weight_gather (%)": (
+                    (time_weight_gather / total_step_time) * 100
+                    if total_step_time > 0
+                    else 0
+                ),
+            }
+        )
+
+        # Queue metrics
+        log_dict.update(
+            {
+                "queues/train_actor_policy_age_mean": policy_age,
+                "queues/train_actor_replay_buffer_size": train_replay_buffer_size,
+            }
+        )
+
+        ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
+
     def train(self):
         if self._is_rank_zero:
             self._vllm_engines[0].print_me.remote(
@@ -1363,12 +1429,12 @@ class PyTorchActorModel:
                 # Measure time waiting for buffer
                 time_waiting_buffer_start = time.perf_counter()
                 trajectory = None
+                if self._is_rank_zero:
+                    train_replay_buffer_size = self.replay_buffer.qsize()
                 while trajectory is None:
                     try:
                         if self._is_rank_zero:
-                            print(
-                                f"{self.rank=} getting from queue PyTorchActorModel. Replay buffer size at start: {self.replay_buffer.qsize()}"
-                            )
+                            print(f"{self.rank=} Getting from replay_buffer queue.")
                         trajectory = self.replay_buffer.get(timeout=0.5)
                         # Move tensors back to GPU
                         trajectory = [
@@ -1449,15 +1515,18 @@ class PyTorchActorModel:
 
                 context_length = query_responses.shape[1] - responses.shape[1]
 
+                # compute rewards
                 responses = responses.reshape(batch_size, grpo_size, -1)
-                rewards_dict, successes_dict = batched_rewards(
-                    self._tokenizer, responses, answers
+                rewards_full, successes_full, reward_metadata = batched_rewards(
+                    self._tokenizer, responses, answers, device=self._device
                 )
-                rewards = rewards_dict["reward_tensor"].to(self._device)
-                successes = successes_dict["success_tensor"].to(self._device)
 
-                advantages = (rewards - rewards.mean(1, keepdim=True)) / (
-                    rewards.std(1, keepdim=True) + 1e-4
+                # B, G, num_funcs -> B, G
+                rewards_sum = rewards_full.sum(-1)
+
+                # advantage
+                advantages = (rewards_sum - rewards_sum.mean(1, keepdim=True)) / (
+                    rewards_sum.std(1, keepdim=True) + 1e-4
                 )
                 advantages = advantages.reshape(batch_size * grpo_size)
 
@@ -1465,8 +1534,6 @@ class PyTorchActorModel:
                     query_responses=query_responses,
                     logprobs=logprobs,
                     ref_logprobs=ref_logprobs,
-                    rewards=rewards.reshape(batch_size * grpo_size),
-                    successes=successes.reshape(batch_size * grpo_size),
                     advantages=advantages,
                     masks=masks,
                     position_ids=position_ids,
@@ -1476,8 +1543,21 @@ class PyTorchActorModel:
                     ),
                 )
 
-                del responses
+                # for logging
+                torch.distributed.reduce(
+                    rewards_full, dst=0, op=torch.distributed.ReduceOp.AVG
+                )
+                torch.distributed.reduce(
+                    successes_full, dst=0, op=torch.distributed.ReduceOp.AVG
+                )
+                rewards_mean_per_func = rewards_full.mean(dim=(0, 1)).cpu()
+                successes_mean_per_func = successes_full.mean(dim=(0, 1)).cpu()
+                rewards_mean = rewards_mean_per_func.mean()
+                successes_mean = successes_mean_per_func.mean()
 
+                del rewards_full, successes_full, responses, rewards_sum
+
+                # TODO: do we need a barrier here?
                 torch.distributed.barrier()
 
                 # Measure compute time across all GRPO steps
@@ -1536,61 +1616,32 @@ class PyTorchActorModel:
                     del new_sd
                     time_weight_sync = time.perf_counter() - time_sync_start
 
-                # Compute total step time
+                # Log metrics
                 total_step_time = time.perf_counter() - time_step_start
+                total_step_time = time.perf_counter() - time_step_start
+                policy_age = self.policy_version - policy_version
 
-                performance_metrics = {}
-                if self._log_peak_memory_stats:
-                    performance_metrics.update(
-                        training.get_memory_stats(device=self._device)
+                if self._is_rank_zero:
+                    self._log_metrics(
+                        step_idx=self.global_step,
+                        trajectory=trajectory,
+                        grpo_stats=grpo_stats,
+                        total_step_time=total_step_time,
+                        time_grpo_steps=time_grpo_steps,
+                        time_waiting_buffer=time_waiting_buffer,
+                        time_weight_sync=time_weight_sync,
+                        time_weight_gather=time_weight_gather,
+                        number_of_tokens=number_of_tokens,
+                        padded_tokens_percentage=padded_tokens_percentage,
+                        policy_age=policy_age,
+                        rewards_mean=rewards_mean,
+                        successes_mean=successes_mean,
+                        rewards_mean_per_func=rewards_mean_per_func,
+                        successes_mean_per_func=successes_mean_per_func,
+                        reward_metada=reward_metadata,
+                        train_replay_buffer_size=train_replay_buffer_size,
                     )
 
-                # Compile performance metrics
-                performance_metrics.update(
-                    {
-                        "total_step_time (s)": total_step_time,
-                        "time_grpo_steps (s)": time_grpo_steps,
-                        "pct_time_grpo_steps (%)": (
-                            (time_grpo_steps / total_step_time) * 100
-                            if total_step_time > 0
-                            else 0
-                        ),
-                        "tokens_per_second": (
-                            number_of_tokens / total_step_time
-                            if total_step_time > 0
-                            else 0
-                        ),
-                        "time_weight_sync (s)": time_weight_sync,
-                        "pct_time_weight_sync (%)": time_weight_sync
-                        * 100
-                        / total_step_time,
-                        "padded_tokens_percentage (%)": padded_tokens_percentage,
-                        "time_waiting_buffer (s)": time_waiting_buffer,
-                        "pct_time_waiting_buffer (%)": time_waiting_buffer
-                        * 100
-                        / total_step_time,
-                        "time_weight_gather (s)": time_weight_gather,
-                        "pct_time_weight_gather (%)": time_weight_gather
-                        * 100
-                        / total_step_time,
-                    }
-                )
-
-                # Compile extra metrics
-                extra_metrics = {
-                    "train_actor_policy_age_mean": policy_age,
-                    "actor_replay_buffer_size": self.replay_buffer.qsize(),
-                    "mean_reward_per_func": rewards_dict["mean_reward_per_func"],
-                    "mean_success_per_func": successes_dict["mean_success_per_func"],
-                }
-
-                # Log metrics
-                self.log_metrics(
-                    trajectory,
-                    GRPOStats(*map(torch.stack, zip(*grpo_stats))),
-                    performance_metrics=performance_metrics,
-                    **extra_metrics,
-                )
                 # Step profiler
                 # Note that this is called within gradient accumulation block, hence
                 # will include multiple forward / backward passes if gradient accumulation > 1
