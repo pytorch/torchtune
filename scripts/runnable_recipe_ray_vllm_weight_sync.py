@@ -645,6 +645,7 @@ class vLLMRolloutActor:
                 )
 
                 # Capture peak GPU memory usage
+                # TODO: training.get_memory_stats() crashes vLLM
                 gpu_memory_peak_allocated = torch.cuda.max_memory_allocated(
                     device="cuda:0"
                 )
