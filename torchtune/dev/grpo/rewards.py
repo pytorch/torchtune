@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 
 import torch
 from numpy.ma.core import reshape
+
 # from tensordict import TensorDict, TensorDictBase
 # from torchrl.data import Composite, TensorSpec, Unbounded
 # from torchrl.envs import Transform
@@ -60,25 +61,42 @@ def math_response_correct(
 
 def batched_rewards(
     tokenizer: ModelTokenizer, completions: torch.Tensor, answers: List[str]
-) -> Tuple[int, int]:
+) -> Tuple[dict, dict]:
     batch_size, grpo_size, _ = completions.shape
-    rewards = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
-    successes = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
-    # completions :: [B, G, L]
+    rewards_tensor = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    successes_tensor = torch.zeros(batch_size, grpo_size, dtype=torch.float32)
+    reward_funcs = [
+        at_least_one_space_between_think_tags,
+        math_response_correct,
+    ]
+    reward_per_func = {func.__name__: 0.0 for func in reward_funcs}
+    success_per_func = {func.__name__: 0.0 for func in reward_funcs}
+
     for b in range(batch_size):
         answer = answers[b]
         for g in range(grpo_size):
-            text_completion = tokenizer.decode(
-                completions[b, g].tolist()
-            )  # skips special tokens, stops at eos
+            text_completion = tokenizer.decode(completions[b, g].tolist())
             cot, potential_answer = extract_tags(f"<think>{text_completion}")
-            for reward_func in [
-                at_least_one_space_between_think_tags,
-                math_response_correct,
-            ]:
+            for reward_func in reward_funcs:
                 reward, success = reward_func(cot, answer, potential_answer)
-                rewards[b, g] += reward
-                successes[b, g] += success
+                reward_per_func[reward_func.__name__] += float(reward)
+                success_per_func[reward_func.__name__] += float(success)
+                rewards_tensor[b, g] += reward
+                successes_tensor[b, g] += success
+
+    total_samples = batch_size * grpo_size
+    for func_name in reward_per_func:
+        reward_per_func[func_name] /= total_samples
+        success_per_func[func_name] /= total_samples
+
+    rewards = {
+        "reward_tensor": rewards_tensor,
+        "mean_reward_per_func": reward_per_func,
+    }
+    successes = {
+        "success_tensor": successes_tensor,
+        "mean_success_per_func": success_per_func,
+    }
     return rewards, successes
 
 
@@ -143,6 +161,7 @@ def batch_shaped_correctness_reward(
             successes[b, g] = success
 
     return rewards, successes
+
 
 # class ShapedCorrectnessReward(Transform):
 #     def __init__(self, tokenizer):
