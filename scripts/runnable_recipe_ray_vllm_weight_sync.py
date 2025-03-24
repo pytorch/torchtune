@@ -341,8 +341,7 @@ class RefActor:
             trajectory = trajectory.cpu()
 
             # Update circular queue
-            assert batch_size, "call add"
-            self.replay_buffer.extend(trajectory)
+            self.replay_buffer.add(trajectory)
 
             # End of step timing
             time_total_ref_step = time.perf_counter() - time_step_start
