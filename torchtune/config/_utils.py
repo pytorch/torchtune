@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import sys
+import inspect
 from argparse import Namespace
 from importlib import import_module
 from typing import Any, Dict, List, Optional, Union
@@ -73,18 +73,25 @@ def _get_component_from_path(
             f"Invalid dotstring. Relative imports are not supported. Got {path=}."
         )
 
-    search_globals = caller_globals or sys.modules["__main__"].__dict__
-
     if len(parts) == 1:
         name = parts[0]
         try:
             return import_module(name)
         except ImportError:
+            # Only search globals if caller_globals is provided or explicitly requested
+            search_globals = caller_globals if caller_globals is not None else {}
+            if caller_globals is None:
+                # Optionally use caller's globals
+                current_frame = inspect.currentframe()
+                if current_frame and current_frame.f_back:
+                    search_globals = current_frame.f_back.f_globals
+
             if name in search_globals:
                 return search_globals[name]
-            raise InstantiationError(
-                f"Could not resolve '{name}': not a module and not found in globals."
-            ) from None
+            else:
+                raise InstantiationError(
+                    f"Could not resolve '{name}': not a module and not found in caller's globals."
+                ) from None
 
     module_path = ".".join(parts[:-1])
     try:

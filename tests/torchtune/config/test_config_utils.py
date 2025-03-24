@@ -81,22 +81,25 @@ class TestUtils:
                 _get_component_from_path(path)
 
         # Test non-existent components
-        nonexistent_paths = [
-            "os.nonexistent.attr",
-            "os.path.nonexistent",
-        ]
-        for path in nonexistent_paths:
-            with pytest.raises(
-                InstantiationError, match=f"Module '{path}' has no attribute '.*'"
-            ):
-                _get_component_from_path(path)
-
-        # Test non-existent module
-        path = "nonexistent"
+        # Single-part path not found
         with pytest.raises(
-            InstantiationError, match=f"Module '{path}' has no attribute '.*'"
+            InstantiationError,
+            match=r"Could not resolve 'nonexistent': not a module and not found in globals\.",
         ):
-            _get_component_from_path(path)
+            _get_component_from_path("nonexistent")
+
+        # Multi-part path with import failure
+        with pytest.raises(
+            InstantiationError, match=r"Could not import module 'os\.nonexistent': .*"
+        ):
+            _get_component_from_path("os.nonexistent.attr")
+
+        # Multi-part path with attribute error
+        with pytest.raises(
+            InstantiationError,
+            match=r"Module 'os\.path' has no attribute 'nonexistent'",
+        ):
+            _get_component_from_path("os.path.nonexistent")
 
     @mock.patch(
         "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
