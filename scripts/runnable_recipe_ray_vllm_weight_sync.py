@@ -1467,28 +1467,15 @@ class PyTorchActorModel:
                 #     return
 
                 # print(f"{self.rank=} got trajectory, {len(trajectory)}, {trajectory[0].device}")
-                if is_tensorclass(trajectory):
-                    # we should be here
-                    query_responses = trajectory.query_responses
-                    responses = trajectory.responses
-                    logprobs = trajectory.logprobs
-                    ref_logprobs = trajectory.ref_logprobs
-                    query_response_padding_masks = trajectory.query_response_padding_masks
-                    seq_lens = trajectory.seq_lens
-                    answers = trajectory.answers
-                    policy_version = trajectory.policy_version
-                else:
-                    # FIXME: I don't think we end up here anymore
-                    # we should not be here
-                    query_responses = trajectory["query_responses"]
-                    responses = trajectory["responses"]
-                    logprobs = trajectory["logprobs"]
-                    ref_logprobs = trajectory["ref_logprobs"]
-                    query_response_padding_masks = trajectory["query_response_padding_masks"]
-                    seq_lens = trajectory["seq_lens"]
-                    answers = trajectory["answers"]
-                    policy_version = trajectory["policy_version"]
-                    print(f'expected a tensorclass but got a tensordict on rank {self.rank}')
+                # we should be here
+                query_responses = trajectory.query_responses
+                responses = trajectory.responses
+                logprobs = trajectory.logprobs
+                ref_logprobs = trajectory.ref_logprobs
+                query_response_padding_masks = trajectory.query_response_padding_masks
+                seq_lens = trajectory.seq_lens
+                answers = trajectory.answers
+                policy_version = trajectory.policy_version
 
                 # Compute padded tokens percentage
                 total_tokens = query_responses.numel()
