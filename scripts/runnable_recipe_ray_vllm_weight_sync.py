@@ -1478,6 +1478,7 @@ class PyTorchActorModel:
                     answers = trajectory.answers
                     policy_version = trajectory.policy_version
                 else:
+                    # FIXME: I don't think we end up here anymore
                     # we should not be here
                     query_responses = trajectory["query_responses"]
                     responses = trajectory["responses"]
