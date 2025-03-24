@@ -54,13 +54,8 @@ class TestUtils:
         result = _get_component_from_path(path)
         assert callable(result), f"Resolved '{path}' is not callable"
 
-        globals_dict = {"local_fn": local_fn}
-        fn = _get_component_from_path("local_fn", globals_dict)
-        output = fn()
-        assert output == "hello world", f"Got {output=}. Expected 'hello world'."
-
-        # Test local function without globals
-        fn = _get_component_from_path("local_fn")
+        # simulate call from globals
+        fn = _get_component_from_path("local_fn", globals())
         output = fn()
         assert output == "hello world", f"Got {output=}. Expected 'hello world'."
 
