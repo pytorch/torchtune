@@ -33,6 +33,11 @@ _CONFIG = {
 }
 
 
+# Test local function
+def local_fn():
+    return "hello world"
+
+
 class TestUtils:
     def test_get_component_from_path(self):
         # Test valid paths with three components
@@ -48,10 +53,6 @@ class TestUtils:
         path = "torchtune.models.llama2.llama2_7b"
         result = _get_component_from_path(path)
         assert callable(result), f"Resolved '{path}' is not callable"
-
-        # Test local function
-        def local_fn():
-            return "hello world"
 
         globals_dict = {"local_fn": local_fn}
         fn = _get_component_from_path("local_fn", globals_dict)
