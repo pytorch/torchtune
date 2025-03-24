@@ -1439,11 +1439,11 @@ class PyTorchActorModel:
                     time.sleep(1.0)
                 if self._is_rank_zero:
                     print(f"{self.rank=} Getting from replay_buffer queue.")
-                trajectory = self.replay_buffer.sample(batch_size=batch_size)
+                trajectory = self.replay_buffer.sample(batch_size=batch_size)[0]
                 trajectory = trajectory.to(self._device)
                 time_waiting_buffer = time.perf_counter() - time_waiting_buffer_start
 
-                print(f"{self.rank=} got from queue")
+                print(f"{self.rank=} got from queue traj {trajectory}")
 
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
