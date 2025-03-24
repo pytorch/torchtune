@@ -11,7 +11,7 @@ authors = [
 keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
     # Stable torchdata (no nightly support)
-    "torchdata",
+    "torchdata==0.11.0",
 
     # Hugging Face integrations
     "datasets",
