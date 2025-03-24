@@ -55,7 +55,7 @@ class TestUtils:
         assert callable(result), f"Resolved '{path}' is not callable"
 
         # simulate call from globals
-        fn = _get_component_from_path("local_fn", globals())
+        fn = _get_component_from_path("local_fn")
         output = fn()
         assert output == "hello world", f"Got {output=}. Expected 'hello world'."
 
