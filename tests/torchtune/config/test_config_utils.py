@@ -39,12 +39,15 @@ class TestUtils:
         valid_paths = [
             "torchtune",
             "os.path.join",
-            "torchtune.models.llama2.llama2_7b",
         ]
         for path in valid_paths:
             result = _get_component_from_path(path)
             assert result is not None, f"Failed to resolve valid path '{path}'"
-            assert callable(result), f"Resolved '{path}' is not callable"
+
+        # test callable
+        path = "torchtune.models.llama2.llama2_7b"
+        result = _get_component_from_path(path)
+        assert callable(result), f"Resolved '{path}' is not callable"
 
         # Test local function
         def local_fn():
