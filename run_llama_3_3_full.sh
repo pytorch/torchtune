@@ -4,7 +4,7 @@
 # sample usage: COMPILE=False MAX_STEPS=10 EPOCHS=1 SAVE_WEIGHTS=False bash aramco.sh
 # compile is currently known to be broken in our environment.
 
-CONFIG="${CONFIG:-/workspace/torchtune/recipes/configs/llama3_3/70B_full_alpaca.yaml}"
+CONFIG="${CONFIG:-/workspace/torchtune/recipes/configs/llama3_3/70B_full.yaml}"
 MODEL_DIR="${MODEL_DIR:-./models/Llama-3.3-70B-Instruct}"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-./checkpoints}"
 
@@ -37,7 +37,7 @@ fi
 if [ ! -d $MODEL_DIR ]; then
     echo "70B model not found in $MODEL_DIR" >&2
     echo "Download with: "
-    echo "  huggingface-cli download meta-llama/Llama-3.1-70B-Instruct --local-dir $MODEL_DIR --exclude 'original/*.pth'"
+    echo "  huggingface-cli download meta-llama/Llama-3.3-70B-Instruct --local-dir $MODEL_DIR --exclude 'original/*.pth'"
     exit 1
 fi
 
