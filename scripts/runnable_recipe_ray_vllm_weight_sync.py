@@ -91,7 +91,7 @@ class Trajectory(TensorClass["nocast"]):
     query_response_padding_masks: torch.Tensor
     seq_lens: torch.Tensor
     answers: torch.Tensor
-    policy_version: Any
+    policy_version: int
 
 
 def stateless_init_process_group(
@@ -206,8 +206,8 @@ class RefActor:
         time_total_ref_step,
         time_model_running,
         time_waiting_buffer,
-        full_queue_data_discard,
-        rollout_queue_length,
+        #full_queue_data_discard,
+        #rollout_queue_length,
     ):
         """Log metrics for the RefActor, only on actor zero."""
         if not self._is_actor_zero:
@@ -241,8 +241,8 @@ class RefActor:
                 "ref_actor_performance/pct_time_model_running (%)": pct_time_model_running,
                 "ref_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
                 "ref_actor_performance/pct_time_waiting_buffer (%)": pct_time_waiting_buffer,
-                "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
-                "queues/rollout_queue_length": rollout_queue_length,
+                # "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
+                # "queues/rollout_queue_length": rollout_queue_length,
             }
         )
 
@@ -323,17 +323,17 @@ class RefActor:
             # masking of ref_logprobs is done in grpo_step
 
             # Repack trajectory with policy_version
-            batch_size = answers.shape[0]
+            batch_size = logprobs.shape[:1] if logprobs.ndim > 1 else ()
             trajectory = Trajectory(
-                query_responses,
-                responses,
-                logprobs,
-                ref_logprobs,
-                query_response_padding_masks,
-                seq_lens,
-                answers,
-                policy_version,
-                batch_size=batch_size,
+                query_responses=query_responses,
+                responses=responses,
+                logprobs=logprobs,
+                ref_logprobs=ref_logprobs,
+                query_response_padding_masks=query_response_padding_masks,
+                seq_lens=seq_lens,
+                answers=answers,
+                policy_version=policy_version,
+                batch_size = batch_size
             )
             print(f"putting trajectory {trajectory} into actor queue")
 
@@ -341,6 +341,7 @@ class RefActor:
             trajectory = trajectory.cpu()
 
             # Update circular queue
+            assert batch_size, "call add"
             self.replay_buffer.extend(trajectory)
 
             # End of step timing
@@ -355,7 +356,7 @@ class RefActor:
                     time_waiting_buffer=time_waiting_buffer,
                     # TODO: what should we do with this? We can log the total number of elements written in the buffer instead
                     # full_queue_data_discard=full_queue_data_discard,
-                    rollout_queue_length=rollout_queue_length,
+                    # rollout_queue_length=rollout_queue_length,
                 )
 
             torch.cuda.empty_cache()
@@ -502,7 +503,7 @@ class vLLMRolloutActor:
         time_total_rollout,
         time_generate,
         total_generated_tokens,
-        full_queue_data_discard,
+        # full_queue_data_discard,
         gpu_memory,
     ):
         """Log metrics for the vLLMRolloutActor, only on actor zero."""
@@ -531,8 +532,8 @@ class vLLMRolloutActor:
             / div_GiB,
             "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
             / div_GiB,
-            "queues/vllm_full_queue_data_discard": full_queue_data_discard,
-            "queues/rollout_queue_size": self.rollout_queue.qsize(),
+            # "queues/vllm_full_queue_data_discard": full_queue_data_discard,
+            # "queues/rollout_queue_size": self.rollout_queue.qsize(),
         }
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
@@ -682,14 +683,14 @@ class vLLMRolloutActor:
             ]
 
             # Update circular queue and count full queue tries
-            full_queue_data_discard = 0
+            # full_queue_data_discard = 0
             while True:
                 try:
                     self.rollout_queue.put_nowait(postprocessed_results)
                     break
                 except QueueFull:
                     self.rollout_queue.get()  # Remove the oldest item to make space
-                    full_queue_data_discard += 1
+                    # full_queue_data_discard += 1
                     print(f"rollout queue full. Discarding data.")
 
             if self._is_actor_zero:
@@ -711,7 +712,7 @@ class vLLMRolloutActor:
                     time_total_rollout=time_total_rollout,
                     time_generate=time_generate,
                     total_generated_tokens=total_generated_tokens,
-                    full_queue_data_discard=full_queue_data_discard,
+                    # full_queue_data_discard=full_queue_data_discard,
                     gpu_memory=gpu_memory,
                 )
 
@@ -1439,7 +1440,7 @@ class PyTorchActorModel:
                     time.sleep(1.0)
                 if self._is_rank_zero:
                     print(f"{self.rank=} Getting from replay_buffer queue.")
-                trajectory = self.replay_buffer.sample()
+                trajectory = self.replay_buffer.sample(batch_size=batch_size)[0]
                 trajectory = trajectory.to(self._device)
                 time_waiting_buffer = time.perf_counter() - time_waiting_buffer_start
 
@@ -1467,16 +1468,14 @@ class PyTorchActorModel:
                 #     return
 
                 # print(f"{self.rank=} got trajectory, {len(trajectory)}, {trajectory[0].device}")
-                (
-                    query_responses,
-                    responses,
-                    logprobs,
-                    ref_logprobs,
-                    query_response_padding_masks,
-                    seq_lens,
-                    answers,
-                    policy_version,
-                ) = trajectory
+                query_responses = trajectory.get("query_responses")
+                responses = trajectory.get("responses")
+                logprobs = trajectory.get("logprobs")
+                ref_logprobs = trajectory.get("ref_logprobs")
+                query_response_padding_masks = trajectory.get("query_response_padding_masks")
+                seq_lens = trajectory.get("seq_lens")
+                answers = trajectory.get("answers")
+                policy_version = trajectory.get("policy_version")
 
                 # Compute padded tokens percentage
                 total_tokens = query_responses.numel()
@@ -1733,7 +1732,7 @@ class RayGRPORecipe:
             actor_options={"num_cpus": 10, "num_gpus": 0},
             maxsize=cfg.vllm.queue_maxsize,
         )
-        self.replay_buffer = RayReplayBuffer(storage=functools.partial(LazyStackStorage, max_size=1000), batch_size=1)
+        self.replay_buffer = RayReplayBuffer(storage=functools.partial(LazyStackStorage, max_size=1000), batch_size=1, remote_config={"num_cpus": 10, "num_gpus": 0})
 
         # Create workers using config values directly
         self.rollout_workers = self._create_vllm_workers()
