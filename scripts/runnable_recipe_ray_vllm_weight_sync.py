@@ -332,7 +332,7 @@ class RefActor:
                 policy_version=policy_version,
                 batch_size = batch_size
             )
-            print("putting trajectory into actor queue")
+            print(f"putting trajectory {trajectory} into actor queue")
 
             # Move tensors to CPU before putting into the queue
             trajectory = [
