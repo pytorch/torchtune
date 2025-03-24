@@ -75,7 +75,7 @@ from torchtune.rlhf import Trajectory
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from torchrl.data import RayReplayBuffer, LazyStackStorage
-from tensordict import TensorClass
+from tensordict import TensorClass, is_tensorclass
 
 from vllm import LLM, SamplingParams
 from vllm.utils import get_ip, get_open_port
@@ -1467,14 +1467,27 @@ class PyTorchActorModel:
                 #     return
 
                 # print(f"{self.rank=} got trajectory, {len(trajectory)}, {trajectory[0].device}")
-                query_responses = trajectory["query_responses"]
-                responses = trajectory["responses"]
-                logprobs = trajectory["logprobs"]
-                ref_logprobs = trajectory["ref_logprobs"]
-                query_response_padding_masks = trajectory["query_response_padding_masks"]
-                seq_lens = trajectory["seq_lens"]
-                answers = trajectory["answers"]
-                policy_version = trajectory["policy_version"]
+                if is_tensorclass(trajectory):
+                    # we should be here
+                    query_responses = trajectory.query_responses
+                    responses = trajectory.responses
+                    logprobs = trajectory.logprobs
+                    ref_logprobs = trajectory.ref_logprobs
+                    query_response_padding_masks = trajectory.query_response_padding_masks
+                    seq_lens = trajectory.seq_lens
+                    answers = trajectory.answers
+                    policy_version = trajectory.policy_version
+                else:
+                    # we should not be here
+                    query_responses = trajectory["query_responses"]
+                    responses = trajectory["responses"]
+                    logprobs = trajectory["logprobs"]
+                    ref_logprobs = trajectory["ref_logprobs"]
+                    query_response_padding_masks = trajectory["query_response_padding_masks"]
+                    seq_lens = trajectory["seq_lens"]
+                    answers = trajectory["answers"]
+                    policy_version = trajectory["policy_version"]
+                    print(f'expected a tensorclass but got a tensordict on rank {self.rank}')
 
                 # Compute padded tokens percentage
                 total_tokens = query_responses.numel()
