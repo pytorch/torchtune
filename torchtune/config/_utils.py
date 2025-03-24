@@ -52,41 +52,38 @@ def _get_component_from_path(
         Any: The resolved object (module, class, function, etc.).
 
     Raises:
-        InstantiationError: If the path is empty or not a string or if the module or attribute cannot be found.
+        InstantiationError: If the path is empty, not a string, or if the module/attribute cannot be resolved.
+        ValueError: If the path contains invalid dotstrings (e.g., relative imports like ".test" or "test..path").
 
     Examples:
-        >>> # Importing a class from a module
         >>> _get_component_from_path("torch.nn.Linear")
         <class 'torch.nn.modules.linear.Linear'>
-
         >>> _get_component_from_path("torch")
         <module 'torch' from '...'>
-
-        >>> # Assuming FooBar is defined in caller's globals
+        >>> # Assuming FooBar is in caller's globals
         >>> _get_component_from_path("FooBar", globals())
-        <class 'SetupDataset'>
-
-        If globals() is not provided, it will default to __main__ globals.
-
-
+        <class 'FooBar'>
     """
     if not path or not isinstance(path, str):
         raise InstantiationError(f"Invalid path: '{path}'")
 
     parts = path.split(".")
+    if any(not part for part in parts):
+        raise ValueError(
+            f"Invalid dotstring. Relative imports are not supported. Got {path=}."
+        )
+
     search_globals = caller_globals or sys.modules["__main__"].__dict__
 
     if len(parts) == 1:
         name = parts[0]
-        # Try as a module first
         try:
             return import_module(name)
         except ImportError:
-            # Fall back to globals
             if name in search_globals:
                 return search_globals[name]
             raise InstantiationError(
-                f"Could not resolve '{name}': not a module and not found in globals"
+                f"Could not resolve '{name}': not a module and not found in globals."
             ) from None
 
     module_path = ".".join(parts[:-1])
@@ -96,12 +93,12 @@ def _get_component_from_path(
         return component
     except ImportError as e:
         raise InstantiationError(
-            f"Could not import module '{module_path}': {str(e)}"
+            f"Could not import module '{module_path}': {str(e)}."
         ) from e
-    except AttributeError:
+    except AttributeError as e:
         raise InstantiationError(
-            f"Module '{module_path}' has no attribute '{parts[-1]}'"
-        ) from None
+            f"Module '{module_path}' has no attribute '{parts[-1]}'."
+        ) from e
 
 
 def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictConfig:

@@ -33,33 +33,71 @@ _CONFIG = {
 }
 
 
-def local_test_func():
-    return "hello world"
-
-
 class TestUtils:
     def test_get_component_from_path(self):
-        good_paths = [
-            "torchtune",  # Test single module without dot
-            "torchtune.models",  # Test dotpath for a module
-            "torchtune.models.llama2.llama2_7b",  # Test dotpath for an object
+        # Test valid paths with three components
+        valid_paths = [
+            "torchtune",
+            "os.path.join",
+            "torchtune.models.llama2.llama2_7b",
         ]
-        for path in good_paths:
-            _ = _get_component_from_path(path)
+        for path in valid_paths:
+            result = _get_component_from_path(path)
+            assert result is not None, f"Failed to resolve valid path '{path}'"
+            assert callable(result), f"Resolved '{path}' is not callable"
 
-        # Test that a relative path fails
-        with pytest.raises(ValueError, match="Relative imports are not supported"):
-            _ = _get_component_from_path(".test")
-        # Test that a non-existent path fails
+        # Test local function
+        def local_fn():
+            return "hello world"
+
+        globals_dict = {"local_fn": local_fn}
+        fn = _get_component_from_path("local_fn", globals_dict)
+        output = fn()
+        assert output == "hello world", f"Got {output=}. Expected 'hello world'."
+
+        # Test local function without globals
+        fn = _get_component_from_path("local_fn")
+        output = fn()
+        assert output == "hello world", f"Got {output=}. Expected 'hello world'."
+
+        # Test empty path
+        with pytest.raises(InstantiationError, match="Invalid path: ''"):
+            _get_component_from_path("")
+
+        # Test non-string path
+        with pytest.raises(InstantiationError, match="Invalid path: '123'"):
+            _get_component_from_path(123)
+
+        # Test relative imports
+        relative_paths = [
+            ".test.module",  # Leading dot
+            "test.module.",  # Trailing dot
+            "test..module",  # Consecutive dots
+        ]
+        for path in relative_paths:
+            with pytest.raises(
+                ValueError,
+                match="Invalid dotstring. Relative imports are not supported.",
+            ):
+                _get_component_from_path(path)
+
+        # Test non-existent components
+        nonexistent_paths = [
+            "os.nonexistent.attr",
+            "os.path.nonexistent",
+        ]
+        for path in nonexistent_paths:
+            with pytest.raises(
+                InstantiationError, match=f"Module '{path}' has no attribute '.*'"
+            ):
+                _get_component_from_path(path)
+
+        # Test non-existent module
+        path = "nonexistent"
         with pytest.raises(
-            InstantiationError, match="Error loading 'torchtune.models.dummy'"
+            InstantiationError, match=f"Module '{path}' has no attribute '.*'"
         ):
-            _ = _get_component_from_path("torchtune.models.dummy")
-
-        # test that a local function instantiates
-        my_fn = _get_component_from_path("local_test_func")
-        output = my_fn()
-        assert output == "hello world", f"output == {output}, not hello world"
+            _get_component_from_path(path)
 
     @mock.patch(
         "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
