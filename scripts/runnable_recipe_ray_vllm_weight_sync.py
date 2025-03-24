@@ -1468,14 +1468,14 @@ class PyTorchActorModel:
                 #     return
 
                 # print(f"{self.rank=} got trajectory, {len(trajectory)}, {trajectory[0].device}")
-                query_responses = trajectory.get("query_responses")
-                responses = trajectory.get("responses")
-                logprobs = trajectory.get("logprobs")
-                ref_logprobs = trajectory.get("ref_logprobs")
-                query_response_padding_masks = trajectory.get("query_response_padding_masks")
-                seq_lens = trajectory.get("seq_lens")
-                answers = trajectory.get("answers")
-                policy_version = trajectory.get("policy_version")
+                query_responses = trajectory["query_responses"]
+                responses = trajectory["responses"]
+                logprobs = trajectory["logprobs"]
+                ref_logprobs = trajectory["ref_logprobs"]
+                query_response_padding_masks = trajectory["query_response_padding_masks"]
+                seq_lens = trajectory["seq_lens"]
+                answers = trajectory["answers"]
+                policy_version = trajectory["policy_version"]
 
                 # Compute padded tokens percentage
                 total_tokens = query_responses.numel()
