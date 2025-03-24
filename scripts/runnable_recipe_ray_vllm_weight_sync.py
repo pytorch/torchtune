@@ -5,7 +5,7 @@ At a high level, this script is grpo_full_finetune_distributed.py but it
 1. Uses vLLM for generation instead of torchtune generate
 2. Uses ray for orchestrating data parallel actors and vllm actors + unsharded ref actor
 3. The dataloader is now owned by the vllm worker (rather than 1 dataloader per FSDP worker)
-4. Uses a ray.util.Queue (this wraps a remote actor with a queue) as a "replay buffer" 
+4. Uses a ray.util.Queue (this wraps a remote actor with a queue) as a "replay buffer"
    for the vllm workers to put their generated tokens into, and the FSDP workers to get them from
 5. Of the items in GRPOTrajectory
         a. query_responses: vllm worker computes and puts into queue
@@ -25,7 +25,7 @@ At a high level, this script is grpo_full_finetune_distributed.py but it
 With this script, I can observe successes + rewards increasing over training steps, which is
 a good sign. (See screenshot in Cabernet sprint notes.) But there are several issues with this script:
 1. Peak memory usage for the fsdp worker is significantly higher than the original recipe in a fresh conda environmnet.
-   This could be because 
+   This could be because
     a. I turned compile off (it seems to be broken with torch 2.5.1 that vllm requires)
     b. [FIXED] I turned activation checkpointing off (there wasn't an explcit reason for this it just got omitted accidentally)
 2. I have an assert that num_vllm_workers == 1 and vllm_tp_size == 1 for now. There's no real reason for this,
@@ -79,6 +79,16 @@ from vllm.utils import get_ip, get_open_port
 from vllm.worker.worker import Worker
 
 log = utils.get_logger("DEBUG")
+
+class Trajectory(TensorClass["nocast"]):
+    query_responses: torch.Tensor
+    responses: torch.Tensor
+    logprobs: torch.Tensor
+    ref_logprobs: torch.Tensor
+    query_response_padding_masks: torch.Tensor
+    seq_lens: torch.Tensor
+    answers: torch.Tensor
+    policy_version: int
 
 
 def stateless_init_process_group(
@@ -193,8 +203,8 @@ class RefActor:
         time_total_ref_step,
         time_model_running,
         time_waiting_buffer,
-        full_queue_data_discard,
-        rollout_replay_buffer_size,
+        #full_queue_data_discard,
+        #rollout_queue_length,
     ):
         """Log metrics for the RefActor, only on actor zero."""
         if not self._is_actor_zero:
@@ -228,8 +238,8 @@ class RefActor:
                 "ref_actor_performance/pct_time_model_running (%)": pct_time_model_running,
                 "ref_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
                 "ref_actor_performance/pct_time_waiting_buffer (%)": pct_time_waiting_buffer,
-                "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
-                "queues/rollout_replay_buffer_size": rollout_replay_buffer_size,
+                # "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
+                # "queues/rollout_replay_buffer_size": rollout_replay_buffer_size,
             }
         )
 
@@ -310,15 +320,17 @@ class RefActor:
             # masking of ref_logprobs is done in grpo_step
 
             # Repack trajectory with policy_version
-            trajectory = (
-                query_responses,
-                responses,
-                logprobs,
-                ref_logprobs,
-                query_response_padding_masks,
-                seq_lens,
-                answers,
-                policy_version,
+            batch_size = logprobs.shape[:1] if logprobs.ndim > 1 else ()
+            trajectory = Trajectory(
+                query_responses=query_responses,
+                responses=responses,
+                logprobs=logprobs,
+                ref_logprobs=ref_logprobs,
+                query_response_padding_masks=query_response_padding_masks,
+                seq_lens=seq_lens,
+                answers=answers,
+                policy_version=policy_version,
+                batch_size = batch_size
             )
             print("putting trajectory into actor queue")
 
@@ -329,15 +341,7 @@ class RefActor:
             ]
 
             # Update circular queue
-            full_queue_data_discard = 0
-            while True:
-                try:
-                    self.actor_replay_buffer.put_nowait(trajectory)
-                    break
-                except QueueFull:
-                    self.actor_replay_buffer.get()  # Remove the oldest item to make space
-                    full_queue_data_discard += 1
-                    print(f"actor_replay_buffer queue full. Discarding data.")
+            self.replay_buffer.extend(trajectory)
 
             # End of step timing
             time_total_ref_step = time.perf_counter() - time_step_start
@@ -349,8 +353,9 @@ class RefActor:
                     time_total_ref_step=time_total_ref_step,
                     time_model_running=time_model_running,
                     time_waiting_buffer=time_waiting_buffer,
-                    full_queue_data_discard=full_queue_data_discard,
-                    rollout_replay_buffer_size=rollout_replay_buffer_size,
+                    # TODO: what should we do with this? We can log the total number of elements written in the buffer instead
+                    # full_queue_data_discard=full_queue_data_discard,
+                    # rollout_queue_length=rollout_queue_length,
                 )
 
             torch.cuda.empty_cache()
@@ -499,7 +504,7 @@ class vLLMRolloutActor:
         time_total_rollout,
         time_generate,
         total_generated_tokens,
-        full_queue_data_discard,
+        # full_queue_data_discard,
         gpu_memory,
     ):
         """Log metrics for the vLLMRolloutActor, only on actor zero."""
@@ -528,8 +533,8 @@ class vLLMRolloutActor:
             / div_GiB,
             "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
             / div_GiB,
-            "queues/vllm_full_queue_data_discard": full_queue_data_discard,
-            "queues/rollout_replay_buffer_size": self.replay_buffer.qsize(),
+            # "queues/vllm_full_queue_data_discard": full_queue_data_discard,
+            # "queues/rollout_replay_buffer_size": self.replay_buffer.qsize(),
         }
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
@@ -679,14 +684,14 @@ class vLLMRolloutActor:
             ]
 
             # Update circular queue and count full queue tries
-            full_queue_data_discard = 0
+            # full_queue_data_discard = 0
             while True:
                 try:
                     self.replay_buffer.put_nowait(postprocessed_results)
                     break
                 except QueueFull:
                     self.replay_buffer.get()  # Remove the oldest item to make space
-                    full_queue_data_discard += 1
+                    # full_queue_data_discard += 1
                     print(f"rollout queue full. Discarding data.")
 
             if self._is_actor_zero:
@@ -708,7 +713,7 @@ class vLLMRolloutActor:
                     time_total_rollout=time_total_rollout,
                     time_generate=time_generate,
                     total_generated_tokens=total_generated_tokens,
-                    full_queue_data_discard=full_queue_data_discard,
+                    # full_queue_data_discard=full_queue_data_discard,
                     gpu_memory=gpu_memory,
                 )
 
@@ -1430,24 +1435,14 @@ class PyTorchActorModel:
                 time_waiting_buffer_start = time.perf_counter()
                 trajectory = None
                 if self._is_rank_zero:
-                    train_replay_buffer_size = self.replay_buffer.qsize()
-                while trajectory is None:
-                    try:
-                        if self._is_rank_zero:
-                            print(f"{self.rank=} Getting from replay_buffer queue.")
-                        trajectory = self.replay_buffer.get(timeout=0.5)
-                        # Move tensors back to GPU
-                        trajectory = [
-                            (
-                                tensor.to(self._device)
-                                if isinstance(tensor, torch.Tensor)
-                                else tensor
-                            )
-                            for tensor in trajectory
-                        ]
-                    except ray.util.queue.Empty:
-                        trajectory = None
-                        time.sleep(0.1)
+                    train_replay_buffer_size = self.replay_buffer.write_count
+                while not len(self.replay_buffer):
+                    print('waiting for replay buffer')
+                    time.sleep(1.0)
+                if self._is_rank_zero:
+                    print(f"{self.rank=} Getting from replay_buffer queue.")
+                trajectory = self.replay_buffer.sample(batch_size=batch_size)[0]
+                trajectory = trajectory.to(self._device)
                 time_waiting_buffer = time.perf_counter() - time_waiting_buffer_start
 
                 print(f"{self.rank=} got from queue")
@@ -1474,16 +1469,14 @@ class PyTorchActorModel:
                 #     return
 
                 # print(f"{self.rank=} got trajectory, {len(trajectory)}, {trajectory[0].device}")
-                (
-                    query_responses,
-                    responses,
-                    logprobs,
-                    ref_logprobs,
-                    query_response_padding_masks,
-                    seq_lens,
-                    answers,
-                    policy_version,
-                ) = trajectory
+                query_responses = trajectory.get("query_responses")
+                responses = trajectory.get("responses")
+                logprobs = trajectory.get("logprobs")
+                ref_logprobs = trajectory.get("ref_logprobs")
+                query_response_padding_masks = trajectory.get("query_response_padding_masks")
+                seq_lens = trajectory.get("seq_lens")
+                answers = trajectory.get("answers")
+                policy_version = trajectory.get("policy_version")
 
                 # Compute padded tokens percentage
                 total_tokens = query_responses.numel()
@@ -1740,10 +1733,7 @@ class RayGRPORecipe:
             actor_options={"num_cpus": 10, "num_gpus": 0},
             maxsize=cfg.vllm.queue_maxsize,
         )
-        self.actor_replay_buffer = Queue(
-            actor_options={"num_cpus": 10, "num_gpus": 0},
-            maxsize=cfg.vllm.queue_maxsize,
-        )
+        self.replay_buffer = RayReplayBuffer(storage=functools.partial(LazyStackStorage, max_size=1000), batch_size=1, remote_config={"num_cpus": 10, "num_gpus": 0})
 
         # Create workers using config values directly
         self.rollout_workers = self._create_vllm_workers()
