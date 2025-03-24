@@ -1,0 +1,49 @@
+# Config for EleutherEvalRecipe in eleuther_eval.py
+#
+# To launch, run the following command:
+#    tune run eleuther_eval --config phi4/evaluation
+
+output_dir: ./ # Not needed
+
+# Model Arguments
+model:
+  _component_: torchtune.models.phi4.phi4_14b
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/phi-4
+  checkpoint_files: [
+    model-00001-of-00006.safetensors,
+    model-00002-of-00006.safetensors,
+    model-00003-of-00006.safetensors,
+    model-00004-of-00006.safetensors,
+    model-00005-of-00006.safetensors,
+    model-00006-of-00006.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: PHI4
+resume_from_checkpoint: False
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.phi4.phi4_tokenizer
+  vocab_path: /tmp/phi-4/vocab.json
+  merges_path: /tmp/phi-4/merges.txt
+  max_seq_len: null
+
+# Environment
+device: cuda
+dtype: bf16
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
+
+# EleutherAI specific eval args
+tasks: ["truthfulqa_mc2"]
+limit: null
+max_seq_length: 4096
+batch_size: 8
+enable_kv_cache: True
+
+# Quantization specific args
+quantizer: null

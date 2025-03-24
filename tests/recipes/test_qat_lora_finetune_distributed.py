@@ -35,7 +35,6 @@ from torchtune.training.checkpointing._utils import (
     safe_torch_load,
     SHARD_FNAME,
 )
-from torchtune.training.quantization import _torchao_0_7_supported
 
 
 class TestQATLoRAFinetuneDistributedRecipe:
@@ -63,7 +62,6 @@ class TestQATLoRAFinetuneDistributedRecipe:
         "micro_batch_size, gradient_accumulation_steps, should_compile",
         [(4, 1, True), (1, 4, False)],
     )
-    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
     def test_loss(
         self,
         micro_batch_size,
@@ -116,7 +114,6 @@ class TestQATLoRAFinetuneDistributedRecipe:
             ("llama3/8B_qat_lora", "llama3", "tune", False),
         ],
     )
-    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
     def test_training_state_on_resume(
         self,
         config,
@@ -217,7 +214,6 @@ class TestQATLoRAFinetuneDistributedRecipe:
         ],
     )
     @gpu_test(gpu_count=2)
-    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
     def test_save_and_load_merged_weights(
         self, recipe_config, model_type, ckpt_type, tmpdir, monkeypatch
     ):

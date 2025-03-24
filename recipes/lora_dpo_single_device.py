@@ -30,6 +30,7 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.rlhf import ChosenRejectedOutputs
 
 from tqdm import tqdm
 
@@ -129,7 +130,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -470,7 +473,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> ChosenRejectedOutputs:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
@@ -479,7 +482,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
 
         Returns:
-            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
+            Dataclass of chosen log probs, rejected log probs, chosen logits, rejected logits.
         """
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
@@ -499,7 +502,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
 
-        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+        return ChosenRejectedOutputs(
+            chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits
+        )
 
     def train(self) -> None:
         """
@@ -528,34 +533,32 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
-                (
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    policy_chosen_logits,
-                    policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                policy_chosen_rejected_outputs = self.concatenated_forward(
+                    self._model, batch
+                )
 
-                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
-                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+                policy_chosen_logits_mean = (
+                    policy_chosen_rejected_outputs.chosen_logits.detach().mean()
+                )
+                policy_rejected_logits_mean = (
+                    policy_chosen_rejected_outputs.rejected_logits.detach().mean()
+                )
 
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
-                del policy_chosen_logits, policy_rejected_logits
+                del (
+                    policy_chosen_rejected_outputs.chosen_logits,
+                    policy_chosen_rejected_outputs.rejected_logits,
+                )
 
                 with torch.no_grad(), disable_adapter(self._model):
-                    (
-                        reference_chosen_log_probs,
-                        reference_rejected_log_probs,
-                        _,
-                        _,
-                    ) = self.concatenated_forward(self._model, batch)
+                    reference_chosen_rejected_outputs = self.concatenated_forward(
+                        self._model, batch
+                    )
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    reference_chosen_log_probs,
-                    reference_rejected_log_probs,
+                    policy_chosen_rejected_outputs,
+                    reference_chosen_rejected_outputs,
                 )
 
                 loss = loss.mean()
@@ -594,10 +597,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             "rewards/margins": (chosen_rewards - rejected_rewards)
                             .mean()
                             .cpu(),
-                            "log_probs/rejected": policy_rejected_log_probs.detach()
+                            "log_probs/rejected": policy_chosen_rejected_outputs.rejected_logps.detach()
                             .mean()
                             .cpu(),
-                            "log_probs/chosen": policy_chosen_log_probs.detach()
+                            "log_probs/chosen": policy_chosen_rejected_outputs.chosen_logps.detach()
                             .mean()
                             .cpu(),
                             "logits/rejected": policy_rejected_logits_mean.cpu(),
