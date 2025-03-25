@@ -1167,7 +1167,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                         training_completed = True
                         break
 
-            # End of epoch operations
             self.epochs_run += 1
             if self.epochs_run % self._save_every_n_epochs == 0:
                 self.save_checkpoint(curr_epoch)
