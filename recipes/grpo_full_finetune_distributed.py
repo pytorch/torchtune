@@ -950,7 +950,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         trajectory: GRPOTrajectory,
     ) -> GRPOStats:
-        self._temperature = 0.8
         # estimate logprobs from the policy at the current optimisation step
         torch.cuda.empty_cache()
 
