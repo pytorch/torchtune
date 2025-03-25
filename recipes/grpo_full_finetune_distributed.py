@@ -217,10 +217,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             cfg.batch_size * cfg.gradient_accumulation_steps * world_size
         )
 
-        # self.max_steps_per_epoch = int(
-        #     cfg.get("samples_per_epoch") / effective_batch_size
-        # )
-        self.max_steps_per_epoch=200
+        self.max_steps_per_epoch = int(
+            cfg.get("samples_per_epoch") / effective_batch_size
+        )
         if self._is_rank_zero:
             log.info(
                 f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
