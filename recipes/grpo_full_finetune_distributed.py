@@ -20,7 +20,7 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data import DataLoader, DistributedSampler, Subset
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -31,6 +31,7 @@ from torchtune.training.activations import apply_selective_activation_checkpoint
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.rlhf import GRPOTrajectory, GRPOStats
 from tqdm import tqdm
+import random
 
 log = utils.get_logger("DEBUG")
 
@@ -215,16 +216,19 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         effective_batch_size = (
             cfg.batch_size * cfg.gradient_accumulation_steps * world_size
         )
+
+        torch.distributed.breakpoint()
         # self.max_steps_per_epoch = int(
         #     cfg.get("samples_per_epoch") / effective_batch_size
         # )
+        self.max_steps_per_epoch=200
         if self._is_rank_zero:
             log.info(
                 f"Setting max validation steps to {self._max_validation_steps} (samples_per_validation_steps / batch_size)"
             )
-            # log.info(
-            #     f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
-            # )
+            log.info(
+                f"Setting max steps per epoch to {self.max_steps_per_epoch} (samples_per_epoch / effective_batch_size)"
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -252,13 +256,27 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
 
         return ref_checkpoint_dict
+        
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
         try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
+
+            if self.epochs_run != ckpt_dict[training.EPOCHS_KEY]:
+
+                warn(
+
+                    message=(
+
+                        "Config value for epochs_run does not match the checkpoint value, "
+
+                        f"using the config value: {self.epochs_run}"  # NOTE changed
+
+                    )
+
+                )
 
             # on mismatch, warn the user and prevent the override
             if self.seed != ckpt_dict[training.SEED_KEY]:
@@ -411,15 +429,15 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # by the dataloader, the max_steps_per_epoch param set by the user and the
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
-        # self._steps_per_epoch = (
-        #     len(self._dataloader) // self._gradient_accumulation_steps
-        # )
-        # if (
-        #     self.max_steps_per_epoch is not None
-        #     and self.max_steps_per_epoch < self._steps_per_epoch
-        # ):
-        #     self._steps_per_epoch = self.max_steps_per_epoch
-        # self.global_step = self.epochs_run * self._steps_per_epoch
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
+        if (
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
+        ):
+            self._steps_per_epoch = self.max_steps_per_epoch
+        self.global_step = self.epochs_run * self._steps_per_epoch
 
         self._steps_per_epoch = len(self._dataloader)
         self.global_step = self.epochs_run * self._steps_per_epoch
@@ -814,7 +832,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
+        # intermediate_checkpoint = epoch + 1 < self.total_epochs
+        intermediate_checkpoint = True
 
         utils.log_rank_zero(
             log,
@@ -873,7 +892,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                         training.SEED_KEY: self.seed,
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        # training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
 
@@ -1054,136 +1073,25 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         """
         The core training loop with validation.
         """
-        # --- Setup Phase ---
-        # Clean up before training begins
+        # Setup phase
         training.cleanup_before_training()
-        
         world_size, rank = training.get_world_size_and_rank()
-        
-        # Zero out the gradients before starting training
         self._optimizer.zero_grad()
-        
-        # Initialize variables
-        grad_norm = None
         training_completed = False
-        max_len_samples = 0
-        
-        # Start profiler
         self._profiler.start()
-        
-        # --- Training Loop ---
+
+        # Training loop
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            # Set sampler epoch for both training and validation
             self._sampler.set_epoch(curr_epoch)
-            for _sampler_validation in self._sampler_validation_list:
-                _sampler_validation.set_epoch(curr_epoch)
-            
-            # --- Validation Step ---
-            if hasattr(self, '_dataloader_validation_list') and self._dataloader_validation_list:
-                self._model.eval()
-                
-                with torch.no_grad():
-                    for i, dataloader_validation in enumerate(self._dataloader_validation_list):
-                        cum_val_stats = []
-                        max_len_val_samples = 0
-                        
-                        num_eval_steps = (
-                            min(self._max_validation_steps, len(dataloader_validation))
-                            if self._max_validation_steps is not None
-                            else len(dataloader_validation)
-                        )
-                        
-                        pbar_val = tqdm(total=num_eval_steps, desc="Validation")
-                        idx = 0
-                        
-                        for _, batch in enumerate(dataloader_validation):
-                            # Process validation trajectory
-                            try:
-                                trajectory = GRPOTrajectory(
-                                    query_responses=batch["query_responses"],
-                                    logprobs=batch["logprobs"],
-                                    ref_logprobs=batch["ref_logprobs"],
-                                    advantages=batch["advantages"],
-                                    masks=batch["masks"],
-                                    position_ids=batch["position_ids"],
-                                    response_padding_masks=batch["response_padding_masks"],
-                                    query_len=batch["query_len"],
-                                )
-                                
-                                val_stats = self.grpo_validation_step(trajectory)
-                                cum_val_stats.append(val_stats)
-                                
-                                # Update progress bar with current validation loss
-                                current_loss = val_stats.loss.mean().item()
-                                pbar_val.set_description(
-                                    f"{curr_epoch + 1}|Validation Loss: {current_loss:.4f}"
-                                )
-                                
-                                # Cleanup
-                                for v in trajectory:
-                                    del v
-                                del trajectory
-                                
-                            except RuntimeError as e:
-                                log.error(f"Error in validation step: {e}")
-                                max_len_val_samples += 1
-                                continue
-                            
-                            pbar_val.update(1)
-                            idx += 1
-                            
-                            if self._max_validation_steps is not None and idx >= self._max_validation_steps:
-                                break
-                        
-                        # Calculate and log mean validation metrics
-                        if cum_val_stats:
-                            val_grpo_stats = GRPOStats(*map(torch.stack, zip(*cum_val_stats)))
-                            val_loss = val_grpo_stats.loss.mean()
-                            
-                            # Gather validation loss from all processes
-                            gathered_val_loss = [torch.zeros_like(val_loss) for _ in range(world_size)]
-                            torch.distributed.all_gather(gathered_val_loss, val_loss)
-                            mean_val_loss = torch.stack(gathered_val_loss).mean().cpu()
-                            
-                            if self._is_rank_zero:
-                                val_log_dict = {
-                                    "val_loss": mean_val_loss,
-                                    "val_policy_loss": val_grpo_stats.policy_loss.mean(),
-                                    "val_kl_loss": val_grpo_stats.kl_loss.mean(),
-                                    "val_clipfrac": val_grpo_stats.clipfrac.mean(),
-                                    "val_approx_policy_kl": val_grpo_stats.approx_policy_kls.mean(),
-                                }
-                                self._metric_logger.log_dict(
-                                    val_log_dict,
-                                    step=self.global_step,
-                                )
-                            
-                            # Log samples that were too long
-                            utils.log_rank_zero(
-                                log, f"Number of validation samples that were too long: {max_len_val_samples}"
-                            )
-                        
-                        pbar_val.close()
-                        
-                        # Clean up validation stats
-                        for stats in cum_val_stats:
-                            for v in stats:
-                                del v
-                            del stats
-                        del cum_val_stats
-            
-            # --- Training Step ---
             self._model.train()
-            
-            # Setup progress bar for training
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             grpo_stats = []
-            
-            # Process each training batch
+
+            # Batch loop
             for idx, batch in enumerate(self._dataloader):
-                if idx >= self._steps_per_epoch:
+                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
                     break
-                    
+
                 # Start tracking CUDA memory if configured
                 if (
                     self._is_rank_zero
@@ -1192,7 +1100,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
                 ):
                     torch.cuda.memory._record_memory_history()
-                
+
                 # Process trajectory
                 trajectory = GRPOTrajectory(
                     query_responses=batch["query_responses"],
@@ -1204,74 +1112,71 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     response_padding_masks=batch["response_padding_masks"],
                     query_len=batch["query_len"],
                 )
-                
+
                 step_stats = self.grpo_step(trajectory)
                 grpo_stats.append(step_stats)
-                
+
                 # Update progress bar with current loss
                 current_loss = step_stats.loss.mean().item()
                 pbar.set_description(
                     f"{curr_epoch + 1}|{self.global_step}|Loss: {current_loss:.4f}"
                 )
-                
+
                 # Optimization step (based on gradient accumulation)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Apply gradient clipping if configured
+                    grad_norm = None
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
                             max_norm=float(self._clip_grad_norm),
                         )
-                    
+
                     # Optimization step
                     torch.distributed.barrier()
                     self._optimizer.step()
-                    
-                    # Call lr_scheduler.step() right after optimizer.step()
-                    if self._lr_scheduler is not None:
-                        self._lr_scheduler.step()
-                        
                     self._optimizer.zero_grad(set_to_none=True)
-                    torch.distributed.barrier()
-                    
+
                     # Update global step
                     self.global_step += 1
-                
-                self._steps_run += 1
-                
-                # Logging (at configured intervals)
-                if self._steps_run % self._log_every_n_steps == 0:
-                    extra_metrics = {}
-                    extra_metrics["lr"] = get_lr(self._optimizer)
-                    if grad_norm is not None:
-                        extra_metrics["grad_norm"] = grad_norm
-                    
-                    if grpo_stats:
-                        combined_stats = GRPOStats(*map(torch.stack, zip(*grpo_stats)))
-                        self.log_metrics(
-                            trajectory,
-                            combined_stats,
-                            **extra_metrics,
-                        )
-                
-                # Cleanup after step
-                self.cleanup_after_step(trajectory, grpo_stats)
-                grpo_stats = []  # Reset stats after logging
-                pbar.update(1)
-                
-                # Check if training is complete
-                if self._steps_run >= self._total_steps:
-                    training_completed = True
-                    break
-            
+
+                    # Learning rate scheduler step
+                    if self._lr_scheduler is not None:
+                        self._lr_scheduler.step()
+
+                    # Logging
+                    if self.global_step % self._log_every_n_steps == 0:
+                        extra_metrics = {"lr": get_lr(self._optimizer)}
+                        if grad_norm is not None:
+                            extra_metrics["grad_norm"] = grad_norm
+
+                        if grpo_stats:
+                            combined_stats = GRPOStats(*map(torch.stack, zip(*grpo_stats)))
+                            self.log_metrics(
+                                trajectory,
+                                combined_stats,
+                                **extra_metrics,
+                            )
+
+                    # Cleanup after step
+                    self.cleanup_after_step(trajectory, grpo_stats)
+                    grpo_stats = []
+                    pbar.update(1)
+
+                    # Check if training is complete
+                    if ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch:
+                        training_completed = True
+                        break
+            torch.distributed.breakpoint()
+
             # End of epoch operations
             self.epochs_run += 1
             if self.epochs_run % self._save_every_n_epochs == 0:
                 self.save_checkpoint(curr_epoch)
-                
+
             if training_completed:
                 break
-        
+
         # Finalize training
         self._profiler.stop()
 

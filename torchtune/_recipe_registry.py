@@ -322,7 +322,7 @@ _ALL_RECIPES = [
         name="grpo_full_finetune_distributed",
         file_path="grpo_full_finetune_distributed.py",
         configs=[
-            Config(name="llama3_1/8B_grpo_full_finetune_distributed", file_path="llama3_1/8B_full_grpo."),
+            Config(name="llama3_1/8B_grpo_full_finetune_distributed", file_path="llama3_1/8B_full_grpo.yaml"),
         ],
         supports_distributed=True,
 
