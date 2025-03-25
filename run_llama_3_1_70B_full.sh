@@ -4,8 +4,8 @@
 # sample usage: COMPILE=False MAX_STEPS=10 EPOCHS=1 SAVE_WEIGHTS=False bash aramco.sh
 # compile is currently known to be broken in our environment.
 
-CONFIG="${CONFIG:-/workspace/torchtune/recipes/configs/llama3_3/70B_full_alpaca.yaml}"
-MODEL_DIR="${MODEL_DIR:-./models/Llama-3.3-70B-Instruct}"
+CONFIG="${CONFIG:-/workspace/torchtune/recipes/configs/llama3_1/70B_full.yaml}"
+MODEL_DIR="${MODEL_DIR:-./models/Llama-3.1-70B-Instruct}"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-./checkpoints}"
 
 PACKED="${PACKED:-False}"
