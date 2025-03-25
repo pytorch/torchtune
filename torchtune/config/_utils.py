@@ -89,10 +89,14 @@ def _get_component_from_path(
             if name in search_globals:
                 return search_globals[name]
             else:
+                scope = (
+                    "the provided globals"
+                    if caller_globals is not None
+                    else "the caller's globals"
+                )
                 raise InstantiationError(
-                    f"Could not resolve '{name}': not a module and not found in caller's globals."
+                    f"Could not resolve '{name}': not a module and not found in {scope}."
                 ) from None
-
     module_path = ".".join(parts[:-1])
     try:
         module = import_module(module_path)

@@ -84,7 +84,7 @@ class TestUtils:
         # Single-part path not found
         with pytest.raises(
             InstantiationError,
-            match=r"Could not resolve 'nonexistent': not a module and not found in globals\.",
+            match=r"Could not resolve 'nonexistent': not a module and not found in caller's globals\.",
         ):
             _get_component_from_path("nonexistent")
 
