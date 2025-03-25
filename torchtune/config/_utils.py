@@ -61,34 +61,38 @@ def _get_component_from_path(
         >>> _get_component_from_path("torch")
         <module 'torch' from '...'>
         >>> # Assuming FooBar is in caller's globals
-        >>> _get_component_from_path("FooBar", globals())
+        >>> _get_component_from_path("FooBar")
         <class 'FooBar'>
     """
     if not path or not isinstance(path, str):
         raise InstantiationError(f"Invalid path: '{path}'")
 
+    # Check for ".test", "test..path", "test..", etc.
     parts = path.split(".")
     if any(not part for part in parts):
         raise ValueError(
             f"Invalid dotstring. Relative imports are not supported. Got {path=}."
         )
 
+    # single part, e.g. "torch" or "my_local_fn"
     if len(parts) == 1:
         name = parts[0]
         try:
+            # try to import as a module, e.g. "torch"
             return import_module(name)
         except ImportError:
-            # Only search globals if caller_globals is provided or explicitly requested
+            # if caller_globals is None, collect __main__ globals of the caller
             search_globals = caller_globals if caller_globals is not None else {}
             if caller_globals is None:
-                # Optionally use caller's globals
                 current_frame = inspect.currentframe()
                 if current_frame and current_frame.f_back:
                     search_globals = current_frame.f_back.f_globals
 
+            # check if local_fn is in caller_globals, e.g. "my_local_fn"
             if name in search_globals:
                 return search_globals[name]
             else:
+                # scope to differentiate between provided globals and caller's globals in error message
                 scope = (
                     "the provided globals"
                     if caller_globals is not None
@@ -97,6 +101,8 @@ def _get_component_from_path(
                 raise InstantiationError(
                     f"Could not resolve '{name}': not a module and not found in {scope}."
                 ) from None
+
+    # multiple parts, e.g. "torch.nn.Linear"
     module_path = ".".join(parts[:-1])
     try:
         module = import_module(module_path)
