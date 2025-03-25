@@ -24,13 +24,14 @@ from torchtune.modules.attention_utils import _SUPPORTS_FLEX_ATTENTION
 
 
 class TestPaddedCollateSFT:
-    def test_batch_pad_sequence(self):
-        """
-        Tests that shorter input, label sequences are padded to the max seq len.
-        """
-        padding_idx = -8
-        ignore_idx = -9
-        token_pairs = [
+    # Shared test constants
+    padding_idx = -8
+    ignore_idx = -9
+
+    # Common test batch data
+    @pytest.fixture
+    def test_batch(self):
+        return [
             {
                 "tokens": [1, 2, 3],
                 "labels": [4, 5, 6],
@@ -40,19 +41,75 @@ class TestPaddedCollateSFT:
                 "labels": [10],
             },
         ]
-        padded = padded_collate_sft(
-            batch=token_pairs,
-            padding_idx=padding_idx,
-            ignore_idx=ignore_idx,
+
+    def test_batch_pad_sequence(self, test_batch):
+        """
+        Tests that shorter input, label sequences are padded to the max seq len.
+        """
+        # Apply padding via the collate function
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
         )
-        padded_input = padded["tokens"][1]
-        padded_label = padded["labels"][1]
+
+        # Extract the padded sequences for the second item (shorter sequence)
+        padded_tokens = padded_result["tokens"][1]
+        padded_labels = padded_result["labels"][1]
+
+        # Verify padding was applied correctly
         torch.testing.assert_close(
-            padded_input, torch.tensor([7, padding_idx, padding_idx])
+            padded_tokens, torch.tensor([7, self.padding_idx, self.padding_idx])
         )
         torch.testing.assert_close(
-            padded_label, torch.tensor([10, ignore_idx, ignore_idx])
+            padded_labels, torch.tensor([10, self.ignore_idx, self.ignore_idx])
         )
+
+    def test_batch_pad_sequence_to_multiple_of(self, test_batch):
+        """Test that padding to a multiple of X works as expected."""
+        # Apply padding with multiple-of-5 requirement
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
+            pad_to_multiple_of=5,
+        )
+
+        # Expected padded tokens (padded to length 5)
+        expected_tokens = torch.stack(
+            (
+                torch.tensor([1, 2, 3, self.padding_idx, self.padding_idx]),
+                torch.tensor(
+                    [
+                        7,
+                        self.padding_idx,
+                        self.padding_idx,
+                        self.padding_idx,
+                        self.padding_idx,
+                    ]
+                ),
+            )
+        )
+
+        # Expected padded labels (padded to length 5)
+        expected_labels = torch.stack(
+            (
+                torch.tensor([4, 5, 6, self.ignore_idx, self.ignore_idx]),
+                torch.tensor(
+                    [
+                        10,
+                        self.ignore_idx,
+                        self.ignore_idx,
+                        self.ignore_idx,
+                        self.ignore_idx,
+                    ]
+                ),
+            )
+        )
+
+        # Verify padding was applied correctly
+        torch.testing.assert_close(padded_result["tokens"], expected_tokens)
+        torch.testing.assert_close(padded_result["labels"], expected_labels)
 
 
 class TestPaddedCollateTiledImagesAndMask:

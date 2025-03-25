@@ -22,9 +22,7 @@ BASE_LLAMA_TP_PLAN = {
         input_layouts=Replicate(), output_layouts=Shard(1)
     ),
     "norm": SequenceParallel(),
-    "output": ColwiseParallel(
-        input_layouts=Shard(1), output_layouts=Replicate(), use_local_output=True
-    ),
+    "output": ColwiseParallel(input_layouts=Shard(1), output_layouts=Replicate()),
     "layers.*.attn": PrepareModuleInput(
         input_layouts=(Shard(1), None),
         desired_input_layouts=(Replicate(), None),
