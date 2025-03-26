@@ -66,7 +66,7 @@ you can also install the package locally with the following command.
     pip install -e .
 
     # or for a developer installation
-    pip install -e .["dev"]
+    pip install -e ".[dev]"
 
 |
 
