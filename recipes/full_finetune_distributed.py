@@ -727,12 +727,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    # Pad the collate function to a multiple of TP dim if using tensor parallelism
-                    pad_to_multiple_of=(
-                        self.tensor_parallel_dim
-                        if self.tensor_parallel_dim > 1
-                        else None
-                    ),
+                    pad_to_multiple_of=self.tensor_parallel_dim,
                 )
                 if not packed
                 else padded_collate_packed
