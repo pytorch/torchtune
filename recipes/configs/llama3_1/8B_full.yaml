@@ -18,13 +18,12 @@
 # best to use 8B_full_single_device.yaml for those cases
 
 
-
 output_dir: /tmp/torchtune/llama3_1_8B/full # /tmp may be deleted by your system. Change it to your preference.
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /home/ankitageorge/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B-Instruct/blobs/82e9d31979e92ab929cd544440f129d9ecd797b69e327f80f17e1c50d5551b55
+  path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
@@ -37,15 +36,19 @@ shuffle: True
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_1.llama3_1_8b
-# temp changes for testing locally
+
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: hf://meta-llama/Llama-3.1-8B-Instruct/
-  checkpoint_files: []
+  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
+  ]
   recipe_checkpoint: null
-  output_dir: hf://ankitageorge/Llama-testing/
+  output_dir: ${output_dir}
   model_type: LLAMA3
-  enable_dcp: True
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
