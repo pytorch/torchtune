@@ -80,7 +80,7 @@ temperature: 1.0
 
 ppo_epochs: 1
 
-num_steps: 100
+num_steps: 400
 
 clip_grad_norm: 1.0
 
