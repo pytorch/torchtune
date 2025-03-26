@@ -548,6 +548,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Apply tensor parallelism to the model
         if self.tensor_parallel_dim > 1:
+            assert (
+                not fsdp_cpu_offload
+            ), "Tensor parallelism is not supported with CPU offload"
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
             model = training.prepare_mha_for_tp(model, device_mesh["tp"])
             parallelize_module(
