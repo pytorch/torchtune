@@ -713,24 +713,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
             raise RuntimeError("left_pad_sequence collator is only for inference.")
-
-        # TODO: this is super hacky, just trying to get things to work
-        if (
-            self.tensor_parallel_dim > 1
-            and collate_fn != "torchtune.data.padded_collate_sft"
-            and not packed
-        ):
-            raise RuntimeError(
-                "For tensor parallel, use padded_collate_sft or packed dataset"
-            )
-
-        collate_args = {}
-        if (
-            self.tensor_parallel_dim > 1
-            and collate_fn == "torchtune.data.padded_collate_sft"
-        ):
-            collate_args = {"pad_to_multiple_of": self.tensor_parallel_dim}
-
         collate_fn = _get_component_from_path(collate_fn)
 
         sampler = StatefulDistributedSampler(
@@ -745,7 +727,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    **collate_args,
+                    # Pad the collate function to a multiple of TP dim if using tensor parallelism
+                    pad_to_multiple_of=(
+                        self.tensor_parallel_dim
+                        if self.tensor_parallel_dim > 1
+                        else None
+                    ),
                 )
                 if not packed
                 else padded_collate_packed
