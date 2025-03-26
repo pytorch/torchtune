@@ -458,7 +458,7 @@
 tokenization and preparing it for the model.</p>
 <section id="configuring-message-transforms">
 <h2>Configuring message transforms<a class="headerlink" href="#configuring-message-transforms" title="Permalink to this heading">¶</a></h2>
-<p>Most of our built-in message transforms contain parameters for controlling input masking (<code class="docutils literal notranslate"><span class="pre">train_on_input</span></code>),
+<p>Most of our built-in message transforms contain parameters for controlling input masking (<code class="docutils literal notranslate"><span class="pre">masking_strategy</span></code>),
 adding a system prompt (<code class="docutils literal notranslate"><span class="pre">new_system_prompt</span></code>), and changing the expected column names (<code class="docutils literal notranslate"><span class="pre">column_map</span></code>).
 These are exposed in our dataset builders <a class="reference internal" href="../generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset" title="torchtune.datasets.instruct_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">instruct_dataset()</span></code></a> and <a class="reference internal" href="../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">chat_dataset()</span></code></a>
 so you don’t have to worry about the message transform itself and can configure this directly from the config.

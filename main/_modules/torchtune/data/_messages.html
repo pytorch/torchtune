@@ -453,8 +453,10 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_content_with_images</span><span class="p">,</span> <span class="n">load_image</span>
 
@@ -467,6 +469,12 @@
     <span class="s2">&quot;ipython&quot;</span><span class="p">,</span>  <span class="c1"># Origin is return from a tool call</span>
     <span class="s2">&quot;tool&quot;</span><span class="p">,</span>  <span class="c1"># Origin is return from a tool call</span>
 <span class="p">]</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MaskingStrategy</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">TRAIN_ON_ALL</span> <span class="o">=</span> <span class="s2">&quot;train_on_all&quot;</span>
+    <span class="n">TRAIN_ON_ASSISTANT</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span>
+    <span class="n">TRAIN_ON_LAST</span> <span class="o">=</span> <span class="s2">&quot;train_on_last&quot;</span>
 
 
 <div class="viewcode-block" id="Message"><a class="viewcode-back" href="../../../generated/torchtune.data.Message.html#torchtune.data.Message">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Message</span><span class="p">:</span>
@@ -604,8 +612,9 @@
 <span class="sd">        | &quot;user prompt&quot;   | &quot;model response&quot; |</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
-<span class="sd">            Default is False.</span>
+<span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
+<span class="sd">            Deprecated parameter and will be removed in a future release.</span>
+<span class="sd">            Default is None.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;input&quot;</span>
 <span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Keys should</span>
 <span class="sd">            be &quot;input&quot; and &quot;output&quot; and values should be the actual column names. Default is None,</span>
@@ -617,6 +626,15 @@
 <span class="sd">            was ``&quot;images/1.jpg&quot;``, the final image path that will be loaded is ``&quot;/home/user/dataset/images/1.jpg&quot;``.</span>
 <span class="sd">            If None, assume images are available in current working directory or are located</span>
 <span class="sd">            on a remote url. For text-only, leave as None. Default is None.</span>
+<span class="sd">        masking_strategy (Optional[str]): masking strategy to use for model training.</span>
+<span class="sd">            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.</span>
+<span class="sd">            Default is &quot;train_on_assistant&quot;.</span>
+
+<span class="sd">            - ``train_on_all``: both user and assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_last``: only the last assistant message is unmasked</span>
+
+<span class="sd">            Note: Multimodal user messages are always masked.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError:</span>
@@ -627,31 +645,45 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="k">if</span> <span class="n">train_on_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;train_on_input is deprecated and will be removed in a future release. &quot;</span>
+                <span class="s2">&quot;Please use masking_strategy instead.&quot;</span>
+                <span class="s2">&quot;You should replace train_on_input=True with masking_strategy=&#39;train_on_all&#39;, and &quot;</span>
+                <span class="s2">&quot;train_on_input=False with masking_strategy=&#39;train_on_assistant&#39;.&quot;</span>
+                <span class="s2">&quot;For backwards compatibility, if you pass both train_on_input and masking_strategy, &quot;</span>
+                <span class="s2">&quot;the value of masking_strategy will be ignored until torchtune 0.7. &quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">masking_strategy</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;train_on_all&quot;</span> <span class="k">if</span> <span class="n">train_on_input</span> <span class="k">else</span> <span class="s2">&quot;train_on_assistant&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span> <span class="o">=</span> <span class="n">masking_strategy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="o">=</span> <span class="n">new_system_prompt</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s2">&quot;input&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;input&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;input&#39; in column_map but found </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;input&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">&quot;output&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;output&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;output&#39; in column_map but found </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;output&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">}</span>
 
         <span class="c1"># Ensure that if a user seems to want to construct a multimodal transform, they provide</span>
         <span class="c1"># a proper column_mapping</span>
-        <span class="k">if</span> <span class="s2">&quot;image&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">image_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;image&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">image_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;image_dir is specified as </span><span class="si">{</span><span class="n">image_dir</span><span class="si">}</span><span class="s2"> but &#39;image&#39; is not in column_map. &quot;</span>
                 <span class="s2">&quot;Please specify an &#39;image&#39; key in column_map.&quot;</span>
@@ -661,11 +693,11 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">is_multimodal</span> <span class="o">=</span> <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">or</span> <span class="p">(</span>
-            <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">sample</span>
+            <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">sample</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">is_multimodal</span><span class="p">:</span>
-            <span class="n">image_path</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]]</span>
+            <span class="n">image_path</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]]</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="c1"># Convert image_path to Path obj</span>
                 <span class="n">image_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
@@ -680,26 +712,24 @@
                 <span class="n">pil_image</span> <span class="o">=</span> <span class="n">image_path</span>
             <span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">pil_image</span><span class="p">},</span>
-                <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]]},</span>
+                <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]]},</span>
             <span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">content</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]]}]</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]]}]</span>
 
         <span class="n">output_content</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">column_map</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]]}</span>
+            <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]]}</span>
         <span class="p">]</span>
 
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Message</span><span class="p">(</span>
                 <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
                 <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
-                <span class="n">masked</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">,</span>
                 <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">),</span>
             <span class="n">Message</span><span class="p">(</span>
                 <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
                 <span class="n">content</span><span class="o">=</span><span class="n">output_content</span><span class="p">,</span>
-                <span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">]</span>
@@ -709,6 +739,7 @@
                     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eot</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
             <span class="p">]</span> <span class="o">+</span> <span class="n">messages</span>
+        <span class="n">mask_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
 
 
@@ -739,8 +770,9 @@
 <span class="sd">    turns of user and assistant messages.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
-<span class="sd">            Default is False.</span>
+<span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
+<span class="sd">            Deprecated parameter and will be removed in a future release.</span>
+<span class="sd">            Default is None.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected</span>
 <span class="sd">            &quot;chosen&quot; and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
 <span class="sd">            Keys should be &quot;chosen&quot; and &quot;rejected&quot; and values should be the actual column names.</span>
@@ -748,6 +780,13 @@
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
 <span class="sd">            messages already present in the dataset. Default is None.</span>
+<span class="sd">        masking_strategy (Optional[str]): masking strategy to use for model training.</span>
+<span class="sd">            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.</span>
+<span class="sd">            Default is &quot;train_on_assistant&quot;.</span>
+
+<span class="sd">            - ``train_on_all``: both user and assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_last``: only the last assistant message is unmasked</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``column_map`` is provided and ``chosen`` not in ``column_map``, or</span>
@@ -756,11 +795,26 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="k">if</span> <span class="n">train_on_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;train_on_input is deprecated and will be removed in a future release. &quot;</span>
+                <span class="s2">&quot;Please use masking_strategy instead.&quot;</span>
+                <span class="s2">&quot;You should replace train_on_input=True with masking_strategy=&#39;train_on_all&#39;, and &quot;</span>
+                <span class="s2">&quot;train_on_input=False with masking_strategy=&#39;train_on_assistant&#39;.&quot;</span>
+                <span class="s2">&quot;For backwards compatibility, if you pass both train_on_input and masking_strategy, &quot;</span>
+                <span class="s2">&quot;the value of masking_strategy will be ignored until torchtune 0.7. &quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">masking_strategy</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;train_on_all&quot;</span> <span class="k">if</span> <span class="n">train_on_input</span> <span class="k">else</span> <span class="s2">&quot;train_on_assistant&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span> <span class="o">=</span> <span class="n">masking_strategy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="o">=</span> <span class="n">new_system_prompt</span>
         <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;chosen&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
@@ -780,18 +834,12 @@
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;chosen&quot;</span><span class="p">]]:</span>
             <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
-            <span class="p">)</span>
             <span class="n">chosen_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
 
         <span class="n">rejected_messages</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;rejected&quot;</span><span class="p">]]:</span>
             <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span>
-            <span class="p">)</span>
             <span class="n">rejected_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -805,7 +853,8 @@
                     <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eot</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
             <span class="p">]</span> <span class="o">+</span> <span class="n">rejected_messages</span>
-
+        <span class="n">mask_messages</span><span class="p">(</span><span class="n">chosen_messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span><span class="p">)</span>
+        <span class="n">mask_messages</span><span class="p">(</span><span class="n">rejected_messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="n">chosen_messages</span><span class="p">,</span> <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="n">rejected_messages</span><span class="p">}</span></div>
 
 
@@ -840,8 +889,9 @@
 <span class="sd">        ]</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. For multimodal datasets, ``train_on_input``</span>
-<span class="sd">            is always False and this value is ignored. Default: False</span>
+<span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
+<span class="sd">            Deprecated parameter and will be removed in a future release.</span>
+<span class="sd">            Default is None.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
 <span class="sd">            to the new column names in the dataset. Key should be &quot;conversations&quot; and value should</span>
 <span class="sd">            be the new column name. If None, keep the default &quot;conversations&quot;.</span>
@@ -857,6 +907,15 @@
 <span class="sd">        image_tag (Optional[str]): placeholder tags in the text content of each message to be replaced by image</span>
 <span class="sd">            special tokens. If images are present and this is None, then will prepend image tokens to the first</span>
 <span class="sd">            user message in the sample by default. If text-only, this field is ignored. Default is ``&quot;&lt;image&gt;&quot;``.</span>
+<span class="sd">        masking_strategy (Optional[str]): masking strategy to use for model training.</span>
+<span class="sd">            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.</span>
+<span class="sd">            Default is &quot;train_on_assistant&quot;.</span>
+
+<span class="sd">            - ``train_on_all``: both user and assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_last``: only the last assistant message is unmasked</span>
+
+<span class="sd">            Note: Multimodal user messages are always masked.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``column_map`` is provided and ``conversations`` not in ``column_map``.</span>
@@ -864,13 +923,28 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;image&gt;&quot;</span><span class="p">,</span>
+        <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="k">if</span> <span class="n">train_on_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;train_on_input is deprecated and will be removed in a future release. &quot;</span>
+                <span class="s2">&quot;Please use masking_strategy instead.&quot;</span>
+                <span class="s2">&quot;You should replace train_on_input=True with masking_strategy=&#39;train_on_all&#39;, and &quot;</span>
+                <span class="s2">&quot;train_on_input=False with masking_strategy=&#39;train_on_assistant&#39;.&quot;</span>
+                <span class="s2">&quot;For backwards compatibility, if you pass both train_on_input and masking_strategy, &quot;</span>
+                <span class="s2">&quot;the value of masking_strategy will be ignored until torchtune 0.7. &quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">masking_strategy</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;train_on_all&quot;</span> <span class="k">if</span> <span class="n">train_on_input</span> <span class="k">else</span> <span class="s2">&quot;train_on_assistant&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span> <span class="o">=</span> <span class="n">masking_strategy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="o">=</span> <span class="n">new_system_prompt</span>
         <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;conversations&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
@@ -933,14 +1007,8 @@
                             <span class="n">images</span><span class="o">=</span><span class="p">[</span><span class="n">pil_image</span><span class="p">],</span>
                         <span class="p">)</span>
                     <span class="n">image_loaded</span> <span class="o">=</span> <span class="kc">True</span>
-
-            <span class="c1"># If multimodal and user message, always mask</span>
-            <span class="c1"># Otherwise, if user message, mask if train_on_input is False</span>
-            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="ow">or</span> <span class="n">is_multimodal</span>
-            <span class="p">)</span>
-            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">))</span>
-
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">))</span>
+        <span class="n">mask_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
 
 
@@ -995,7 +1063,9 @@
 <span class="sd">        ]</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
+<span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
+<span class="sd">            Deprecated parameter and will be removed in a future release.</span>
+<span class="sd">            Default is None.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;messages&quot;)</span>
 <span class="sd">            to the new column names in the dataset. Key should be &quot;messages&quot; and value should be</span>
 <span class="sd">            the new column name. If None, keep the default &quot;messages&quot;.</span>
@@ -1003,6 +1073,15 @@
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
 <span class="sd">            serve as instructions to guide the model response. Setting this will OVERRIDE any system</span>
 <span class="sd">            messages already present in the dataset. Default is None.</span>
+<span class="sd">        masking_strategy (Optional[str]): masking strategy to use for model training.</span>
+<span class="sd">            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.</span>
+<span class="sd">            Default is &quot;train_on_assistant&quot;.</span>
+
+<span class="sd">            - ``train_on_all``: both user and assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_last``: only the last assistant message is unmasked</span>
+
+<span class="sd">            Note: Multimodal user messages are always masked.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``column_map`` is provided and ``messages`` not in ``column_map``.</span>
@@ -1010,11 +1089,26 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="k">if</span> <span class="n">train_on_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;train_on_input is deprecated and will be removed in a future release. &quot;</span>
+                <span class="s2">&quot;Please use masking_strategy instead.&quot;</span>
+                <span class="s2">&quot;You should replace train_on_input=True with masking_strategy=&#39;train_on_all&#39;, and &quot;</span>
+                <span class="s2">&quot;train_on_input=False with masking_strategy=&#39;train_on_assistant&#39;.&quot;</span>
+                <span class="s2">&quot;For backwards compatibility, if you pass both train_on_input and masking_strategy, &quot;</span>
+                <span class="s2">&quot;the value of masking_strategy will be ignored until torchtune 0.7. &quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">masking_strategy</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;train_on_all&quot;</span> <span class="k">if</span> <span class="n">train_on_input</span> <span class="k">else</span> <span class="s2">&quot;train_on_assistant&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span> <span class="o">=</span> <span class="n">masking_strategy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="o">=</span> <span class="n">new_system_prompt</span>
         <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;messages&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
@@ -1066,7 +1160,6 @@
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
                 <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_from_openai_content</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">])</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
@@ -1088,12 +1181,120 @@
                 <span class="n">Message</span><span class="p">(</span>
                     <span class="n">role</span><span class="o">=</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">],</span>
                     <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
-                    <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
                     <span class="n">eot</span><span class="o">=</span><span class="n">eot</span><span class="p">,</span>
                 <span class="p">),</span>
             <span class="p">)</span>
-
+        <span class="n">mask_messages</span><span class="p">(</span><span class="n">updated_messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">updated_messages</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="AlpacaToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.AlpacaToMessages.html#torchtune.data.AlpacaToMessages">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">AlpacaToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Message transform class for Alpaca-style datasets with &quot;instruction&quot;, &quot;input&quot;, and &quot;output&quot;</span>
+<span class="sd">    (or equivalent fields specified in column_map) columns. User messages are formed from the</span>
+<span class="sd">    instruction + input columns and assistant messages are formed from the output column. Prompt</span>
+<span class="sd">    templating is conditional on the presence of the &quot;input&quot; column, and thus is handled directly</span>
+<span class="sd">    in this transform class instead of a dedicated :class:`~torchtune.data.PromptTemplate` class</span>
+<span class="sd">    due to this custom logic.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
+<span class="sd">            Deprecated parameter and will be removed in a future release.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;instruction&quot;, &quot;input&quot;,</span>
+<span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Default is None,</span>
+<span class="sd">            keeping the default column names.</span>
+<span class="sd">        masking_strategy (Optional[str]): masking strategy to use for model training.</span>
+<span class="sd">            Must be one of: `train_on_all`, `train_on_assistant`, `train_on_last`.</span>
+<span class="sd">            Default is &quot;train_on_all&quot;.</span>
+
+<span class="sd">            - ``train_on_all``: both user and assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_last``: only the last assistant message is unmasked</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError:</span>
+<span class="sd">            If ``column_map`` is provided and ``instruction`` not in ``column_map``, or</span>
+<span class="sd">                ``output`` not in ``column_map``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_all&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">train_on_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;train_on_input is deprecated and will be removed in a future release. &quot;</span>
+                <span class="s2">&quot;Please use masking_strategy instead.&quot;</span>
+                <span class="s2">&quot;You should replace train_on_input=True with masking_strategy=&#39;train_on_all&#39;, and &quot;</span>
+                <span class="s2">&quot;train_on_input=False with masking_strategy=&#39;train_on_assistant&#39;.&quot;</span>
+                <span class="s2">&quot;For backwards compatibility, if you pass both train_on_input and masking_strategy, &quot;</span>
+                <span class="s2">&quot;the value of masking_strategy will be ignored until torchtune 0.7. &quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">masking_strategy</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;train_on_all&quot;</span> <span class="k">if</span> <span class="n">train_on_input</span> <span class="k">else</span> <span class="s2">&quot;train_on_assistant&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span> <span class="o">=</span> <span class="n">masking_strategy</span>
+        <span class="k">if</span> <span class="n">column_map</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;instruction&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;instruction&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># input is optional</span>
+            <span class="k">if</span> <span class="s2">&quot;output&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">column_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected a key of &#39;output&#39; in column_map but found </span><span class="si">{</span><span class="n">column_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;instruction&quot;</span><span class="p">:</span> <span class="s2">&quot;instruction&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;prompt_input&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
+                <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;prompt_no_input&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="s2">&quot;Below is an instruction that describes a task. &quot;</span>
+                <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">),</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">key_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key_input</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_input</span><span class="p">]:</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="s2">&quot;prompt_input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">instruction</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;instruction&quot;</span><span class="p">]],</span>
+                <span class="nb">input</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_input</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="s2">&quot;prompt_no_input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">instruction</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;instruction&quot;</span><span class="p">]]</span>
+            <span class="p">)</span>
+
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Message</span><span class="p">(</span>
+                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+                <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+                <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">Message</span><span class="p">(</span>
+                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
+                <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]],</span>
+                <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">mask_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">masking_strategy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="validate_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.validate_messages.html#torchtune.data.validate_messages">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">validate_messages</span><span class="p">(</span>
@@ -1146,71 +1347,37 @@
         <span class="n">last_message</span> <span class="o">=</span> <span class="n">message</span></div>
 
 
-<div class="viewcode-block" id="AlpacaToMessages"><a class="viewcode-back" href="../../../generated/torchtune.data.AlpacaToMessages.html#torchtune.data.AlpacaToMessages">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">AlpacaToMessages</span><span class="p">(</span><span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="mask_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.mask_messages.html#torchtune.data.mask_messages">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">mask_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">MaskingStrategy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Message transform class for Alpaca-style datasets with &quot;instruction&quot;, &quot;input&quot;, and &quot;output&quot;</span>
-<span class="sd">    (or equivalent fields specified in column_map) columns. User messages are formed from the</span>
-<span class="sd">    instruction + input columns and assistant messages are formed from the output column. Prompt</span>
-<span class="sd">    templating is conditional on the presence of the &quot;input&quot; column, and thus is handled directly</span>
-<span class="sd">    in this transform class instead of a dedicated :class:`~torchtune.data.PromptTemplate` class</span>
-<span class="sd">    due to this custom logic.</span>
+<span class="sd">    Set the masked attribute for each message in the list based on the specified masking strategy.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
-<span class="sd">            Default is True.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;instruction&quot;, &quot;input&quot;,</span>
-<span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Default is None,</span>
-<span class="sd">            keeping the default column names.</span>
+<span class="sd">        messages (List[Message]): a list of messages to mask.</span>
+<span class="sd">        masking_strategy (MaskingStrategy): masking strategy to use.</span>
+<span class="sd">            Must be one of `train_on_all`, `train_on_assistant`, `train_on_last`.</span>
+
+<span class="sd">            - ``train_on_all``: both user and assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked</span>
+<span class="sd">            - ``train_on_last``: only the last assistant message is unmasked</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="o">=</span> <span class="n">column_map</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;prompt_input&quot;</span><span class="p">:</span> <span class="p">(</span>
-                <span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
-                <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="p">),</span>
-            <span class="s2">&quot;prompt_no_input&quot;</span><span class="p">:</span> <span class="p">(</span>
-                <span class="s2">&quot;Below is an instruction that describes a task. &quot;</span>
-                <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="p">),</span>
-        <span class="p">}</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">column_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_map</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">key_input</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">)</span>
-        <span class="n">key_instruction</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span> <span class="s2">&quot;instruction&quot;</span><span class="p">)</span>
-        <span class="n">key_output</span> <span class="o">=</span> <span class="n">column_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">key_input</span> <span class="ow">in</span> <span class="n">sample</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">[</span><span class="n">key_input</span><span class="p">]:</span>
-            <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="s2">&quot;prompt_input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">instruction</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_instruction</span><span class="p">],</span> <span class="nb">input</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_input</span><span class="p">]</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">[</span><span class="s2">&quot;prompt_no_input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">instruction</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_instruction</span><span class="p">]</span>
-            <span class="p">)</span>
-
-        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">Message</span><span class="p">(</span>
-                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
-                <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
-                <span class="n">masked</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">,</span>
-                <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">Message</span><span class="p">(</span>
-                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
-                <span class="n">content</span><span class="o">=</span><span class="n">sample</span><span class="p">[</span><span class="n">key_output</span><span class="p">],</span>
-                <span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">eot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">),</span>
-        <span class="p">]</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="n">messages</span><span class="p">}</span></div>
+    <span class="n">masking_strategy</span> <span class="o">=</span> <span class="n">MaskingStrategy</span><span class="p">(</span><span class="n">masking_strategy</span><span class="p">)</span>
+    <span class="n">marked_last_assistant_message</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
+        <span class="c1"># System messages are always masked</span>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span><span class="p">:</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">masked</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">masking_strategy</span> <span class="o">==</span> <span class="n">MaskingStrategy</span><span class="o">.</span><span class="n">TRAIN_ON_LAST</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">marked_last_assistant_message</span><span class="p">:</span>
+                <span class="n">message</span><span class="o">.</span><span class="n">masked</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">marked_last_assistant_message</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">message</span><span class="o">.</span><span class="n">masked</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Multimodal user messages are always masked</span>
+        <span class="k">elif</span> <span class="n">masking_strategy</span> <span class="o">==</span> <span class="n">MaskingStrategy</span><span class="o">.</span><span class="n">TRAIN_ON_ALL</span><span class="p">:</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">masked</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span> <span class="ow">and</span> <span class="n">message</span><span class="o">.</span><span class="n">contains_media</span>
+        <span class="k">elif</span> <span class="n">masking_strategy</span> <span class="o">==</span> <span class="n">MaskingStrategy</span><span class="o">.</span><span class="n">TRAIN_ON_ASSISTANT</span><span class="p">:</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">masked</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span></div>
 </pre></div>
 
              </article>

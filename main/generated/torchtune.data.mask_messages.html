@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>format_content_with_images &mdash; torchtune main documentation</title>
+  <title>mask_messages &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="mask_messages" href="torchtune.data.mask_messages.html" />
-    <link rel="prev" title="load_image" href="torchtune.data.load_image.html" />
+    <link rel="next" title="torchtune.datasets" href="../api_ref_datasets.html" />
+    <link rel="prev" title="format_content_with_images" href="torchtune.data.format_content_with_images.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -417,13 +417,13 @@
         
           <li><a href="../api_ref_data.html">torchtune.data</a> &gt;</li>
         
-      <li>format_content_with_images</li>
+      <li>mask_messages</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.data.format_content_with_images.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.data.mask_messages.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -453,60 +453,25 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="format-content-with-images">
-<h1>format_content_with_images<a class="headerlink" href="#format-content-with-images" title="Permalink to this heading">¶</a></h1>
+  <section id="mask-messages">
+<h1>mask_messages<a class="headerlink" href="#mask-messages" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.data.format_content_with_images">
-<span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">format_content_with_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image" title="(in Pillow (PIL Fork) v11.1.0)"><span class="pre">PIL.Image.Image</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/data/_utils.html#format_content_with_images"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.format_content_with_images" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a raw text string, split by the specified <code class="docutils literal notranslate"><span class="pre">image_tag</span></code>
-and form into list of dictionaries to be used in the <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> content
-field:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
-    <span class="p">{</span>
-        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span> <span class="o">|</span> <span class="s2">&quot;user&quot;</span> <span class="o">|</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;content&quot;</span><span class="p">:</span>
-            <span class="p">[</span>
-                <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">},</span>
-                <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;This is a sample image.&quot;</span><span class="p">},</span>
-            <span class="p">],</span>
-    <span class="p">},</span>
-    <span class="o">...</span>
-<span class="p">]</span>
-</pre></div>
-</div>
+<dt class="sig sig-object py" id="torchtune.data.mask_messages">
+<span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">mask_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._messages.Message"><span class="pre">Message</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masking_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MaskingStrategy</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/data/_messages.html#mask_messages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.mask_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the masked attribute for each message in the list based on the specified masking strategy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>content</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – raw message text</p></li>
-<li><p><strong>image_tag</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – string to split the text by</p></li>
-<li><p><strong>images</strong> (<em>List</em><em>[</em><em>&quot;PIL.Image.Image&quot;</em><em>]</em>) – list of images to be used in the content</p></li>
+<li><p><strong>messages</strong> (<em>List</em><em>[</em><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><em>Message</em></a><em>]</em>) – a list of messages to mask.</p></li>
+<li><p><strong>masking_strategy</strong> (<em>MaskingStrategy</em>) – <p>masking strategy to use.
+Must be one of <cite>train_on_all</cite>, <cite>train_on_assistant</cite>, <cite>train_on_last</cite>.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">train_on_all</span></code>: both user and assistant messages are unmasked</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">train_on_assistant</span></code>: user messages are masked, only assistant messages are unmasked</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">train_on_last</span></code>: only the last assistant message is unmasked</p></li>
 </ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the number of images does not match the number of image tags in the content</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">content</span> <span class="o">=</span> <span class="n">format_content_with_images</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;&lt;|image|&gt;hello &lt;|image|&gt;world&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">image_tag</span><span class="o">=</span><span class="s2">&quot;&lt;|image|&gt;&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">images</span><span class="o">=</span><span class="p">[</span><span class="o">&lt;</span><span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">]</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
-<span class="go">[</span>
-<span class="go">    {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: &lt;PIL.Image.Image&gt;},</span>
-<span class="go">    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;hello &quot;},</span>
-<span class="go">    {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: &lt;PIL.Image.Image&gt;},</span>
-<span class="go">    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;world&quot;}</span>
-<span class="go">]</span>
-</pre></div>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of dictionaries to be used in the <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> content field</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>List[Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, Any]]</p>
+</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -521,10 +486,10 @@ field:</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.data.mask_messages.html" class="btn btn-neutral float-right" title="mask_messages" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../api_ref_datasets.html" class="btn btn-neutral float-right" title="torchtune.datasets" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.data.load_image.html" class="btn btn-neutral" title="load_image" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.data.format_content_with_images.html" class="btn btn-neutral" title="format_content_with_images" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -556,7 +521,7 @@ field:</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">format_content_with_images</a></li>
+<li><a class="reference internal" href="#">mask_messages</a></li>
 </ul>
 
             </div>
