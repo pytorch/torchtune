@@ -37,15 +37,10 @@ checkpointer:
 resume_from_checkpoint: False
 save_adapter_weights_only: True # Set to false to save the whole model + adapter merged
 
-# Dataset and Sampler
-# Dataset and Sampler
+# Dataset
 dataset:
-  _component_: torchtune.datasets.text_completion_dataset
+  _component_: torchtune.datasets.wikitext_dataset
   packed: False  # True increases speed
-  source: json
-  data_files: /workspace/torchtune/wikitext_train.json
-  column: input
-  split: train
 seed: null
 shuffle: False
 
