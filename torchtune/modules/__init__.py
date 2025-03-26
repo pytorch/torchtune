@@ -58,4 +58,5 @@ __all__ = [
     "disable_kv_cache",
     "LayerDropout",
     "prepare_layer_dropout",
+    "classifier_model",
 ]

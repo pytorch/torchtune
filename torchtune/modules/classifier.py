@@ -8,13 +8,12 @@ from typing import Any, Dict, Union
 
 import torch.nn as nn
 from torchtune.config._utils import _get_component_from_path
-from torchtune.models.llama3_2_vision._model_builders import DeepFusionModel
 from torchtune.modules.transformer import TransformerDecoder
 
 
 def classifier_model(
     num_classes: int, base_model_path: str, **base_model_kwargs: Dict[str, Any]
-) -> Union[TransformerDecoder, DeepFusionModel, nn.Module]:
+) -> Union[TransformerDecoder, nn.Module]:
     """
     Create a classifier model from a base model by adapting the output layer.
 
@@ -26,7 +25,7 @@ def classifier_model(
         **base_model_kwargs (Dict[str, Any]): Keyword arguments for the base model.
 
     Returns:
-        Union[TransformerDecoder, DeepFusionModel, nn.Module]: The base model, with
+        Union[TransformerDecoder, nn.Module]: The base model, with
             the output layer adapted for the number of classes.
 
     Raises:
