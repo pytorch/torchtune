@@ -55,14 +55,17 @@ MESSAGE_SAMPLE_TRAIN_ON_INPUT = [
     Message(
         role="system",
         content=CHAT_SAMPLE["system"],
+        masked=True,
     ),
     Message(
         role="user",
         content=CHAT_SAMPLE["user"],
+        masked=False,
     ),
     Message(
         role="assistant",
         content=CHAT_SAMPLE["assistant"],
+        masked=False,
     ),
 ]
 
@@ -72,7 +75,24 @@ MESSAGE_SAMPLE = [
     Message(
         role="assistant",
         content=CHAT_SAMPLE["assistant"],
+        masked=False,
     ),
+]
+
+MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
+]
+
+MESSAGE_SAMPLE_TRAIN_ON_LAST = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
 ]
 
 
