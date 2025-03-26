@@ -205,14 +205,17 @@ class InputOutputToMessages(Transform):
         if train_on_input is not None:
             warn(
                 "train_on_input is deprecated and will be removed in a future release. "
-                "Please use masking_strategy instead.",
+                "Please use masking_strategy instead."
+                "You should replace train_on_input=True with masking_strategy='train_on_all', and "
+                "train_on_input=False with masking_strategy='train_on_assistant'."
+                "For backwards compatibility, if you pass both train_on_input and masking_strategy, "
+                "the value of masking_strategy will be ignored until torchtune 0.7. ",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            if masking_strategy is None:
-                masking_strategy = (
-                    "train_on_all" if train_on_input else "train_on_assistant"
-                )
+            masking_strategy = (
+                "train_on_all" if train_on_input else "train_on_assistant"
+            )
         self.masking_strategy = masking_strategy
         self.new_system_prompt = new_system_prompt
 
@@ -351,14 +354,17 @@ class ChosenRejectedToMessages(Transform):
         if train_on_input is not None:
             warn(
                 "train_on_input is deprecated and will be removed in a future release. "
-                "Please use masking_strategy instead.",
+                "Please use masking_strategy instead."
+                "You should replace train_on_input=True with masking_strategy='train_on_all', and "
+                "train_on_input=False with masking_strategy='train_on_assistant'."
+                "For backwards compatibility, if you pass both train_on_input and masking_strategy, "
+                "the value of masking_strategy will be ignored until torchtune 0.7. ",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            if masking_strategy is None:
-                masking_strategy = (
-                    "train_on_all" if train_on_input else "train_on_assistant"
-                )
+            masking_strategy = (
+                "train_on_all" if train_on_input else "train_on_assistant"
+            )
         self.masking_strategy = masking_strategy
         self.new_system_prompt = new_system_prompt
         if column_map:
@@ -478,14 +484,17 @@ class ShareGPTToMessages(Transform):
         if train_on_input is not None:
             warn(
                 "train_on_input is deprecated and will be removed in a future release. "
-                "Please use masking_strategy instead.",
+                "Please use masking_strategy instead."
+                "You should replace train_on_input=True with masking_strategy='train_on_all', and "
+                "train_on_input=False with masking_strategy='train_on_assistant'."
+                "For backwards compatibility, if you pass both train_on_input and masking_strategy, "
+                "the value of masking_strategy will be ignored until torchtune 0.7. ",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            if masking_strategy is None:
-                masking_strategy = (
-                    "train_on_all" if train_on_input else "train_on_assistant"
-                )
+            masking_strategy = (
+                "train_on_all" if train_on_input else "train_on_assistant"
+            )
         self.masking_strategy = masking_strategy
         self.new_system_prompt = new_system_prompt
         if column_map:
@@ -639,14 +648,17 @@ class OpenAIToMessages(Transform):
         if train_on_input is not None:
             warn(
                 "train_on_input is deprecated and will be removed in a future release. "
-                "Please use masking_strategy instead.",
+                "Please use masking_strategy instead."
+                "You should replace train_on_input=True with masking_strategy='train_on_all', and "
+                "train_on_input=False with masking_strategy='train_on_assistant'."
+                "For backwards compatibility, if you pass both train_on_input and masking_strategy, "
+                "the value of masking_strategy will be ignored until torchtune 0.7. ",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            if masking_strategy is None:
-                masking_strategy = (
-                    "train_on_all" if train_on_input else "train_on_assistant"
-                )
+            masking_strategy = (
+                "train_on_all" if train_on_input else "train_on_assistant"
+            )
         self.masking_strategy = masking_strategy
         self.new_system_prompt = new_system_prompt
         if column_map:
@@ -766,14 +778,17 @@ class AlpacaToMessages(Transform):
         if train_on_input is not None:
             warn(
                 "train_on_input is deprecated and will be removed in a future release. "
-                "Please use masking_strategy instead.",
+                "Please use masking_strategy instead."
+                "You should replace train_on_input=True with masking_strategy='train_on_all', and "
+                "train_on_input=False with masking_strategy='train_on_assistant'."
+                "For backwards compatibility, if you pass both train_on_input and masking_strategy, "
+                "the value of masking_strategy will be ignored until torchtune 0.7. ",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            if masking_strategy is None:
-                masking_strategy = (
-                    "train_on_all" if train_on_input else "train_on_assistant"
-                )
+            masking_strategy = (
+                "train_on_all" if train_on_input else "train_on_assistant"
+            )
         self.masking_strategy = masking_strategy
         if column_map:
             if "instruction" not in column_map:
