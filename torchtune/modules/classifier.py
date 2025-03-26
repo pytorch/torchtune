@@ -16,6 +16,7 @@ def classifier_model(
 ) -> Union[TransformerDecoder, nn.Module]:
     """
     Create a classifier model from a base model by adapting the output layer.
+    This builder does not support models which apply PEFT to the output layer.
 
     Args:
         num_classes (int): The number of classes for the classifier.
