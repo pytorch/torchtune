@@ -1024,7 +1024,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             if self._epochs_run % self._save_every_n_epochs == 0:
                 self.save_checkpoint(curr_epoch)
             if training_completed:
-                self._profiler.stop()
                 return
 
         self._profiler.stop()
