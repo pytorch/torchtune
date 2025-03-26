@@ -74,4 +74,4 @@ class TestClassifierModelBuilder:
                 num_classes=1,
                 base_model_path="torchtune.models.llama3_2_vision.llama3_2_vision_11b",
             )
-        assert model.output.weight.shape == (1, 4096)
+        assert model.decoder.output.weight.shape == (1, 4096)

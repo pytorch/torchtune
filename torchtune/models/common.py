@@ -43,13 +43,14 @@ def classifier_model(
 
     if hasattr(model, "output"):
         del model.output
-        head_dim = model.head_dim
-        num_heads = model.num_heads
+        model.output = nn.Linear(
+            model.head_dim * model.num_heads, num_classes, bias=False
+        )
     elif hasattr(model, "decoder") and hasattr(model.decoder, "output"):
         del model.decoder.output
-        head_dim = model.decoder.head_dim
-        num_heads = model.decoder.num_heads
+        model.decoder.output = nn.Linear(
+            model.decoder.head_dim * model.decoder.num_heads, num_classes, bias=False
+        )
     else:
         raise ValueError("Could not find a valid output layer to adapt.")
-    model.output = nn.Linear(head_dim * num_heads, num_classes, bias=False)
     return model
