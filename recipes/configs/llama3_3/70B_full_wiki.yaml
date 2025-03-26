@@ -26,12 +26,8 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.text_completion_dataset
+  _component_: torchtune.datasets.wikitext_dataset 
   packed: False  # True increases speed
-  source: json
-  data_files: /workspace/torchtune/wikitext_train.json
-  column: input
-  split: train
 seed: null
 shuffle: False
 
