@@ -158,10 +158,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
             )
-        if self.tensor_parallel_dim > 1 and cfg.optimizer.get("fused", False):
-            raise ValueError(
-                "Tensor parallelism is currently incompatible with fused optimizer."
-            )
 
         self.data_parallel_dim = self.world_size // self.tensor_parallel_dim
 
@@ -552,6 +548,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Apply tensor parallelism to the model
         if self.tensor_parallel_dim > 1:
+            if self.data_parallel_dim == 1 and self.fsdp_cpu_offload:
+                raise ValueError(
+                    "Tensor parallelism is not supported with FSDP CPU offloading when data parallelism is disabled."
+                )
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
             model = training.prepare_mha_for_tp(model, device_mesh["tp"])
             parallelize_module(
@@ -727,6 +727,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
+                    pad_to_multiple_of=self.tensor_parallel_dim,
                 )
                 if not packed
                 else padded_collate_packed
@@ -785,7 +786,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
-
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
                 # But this way we dont need to slice the logits. We just add an ignore index to labels.
@@ -813,7 +813,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
 
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    current_loss = current_loss * (self.world_size / num_tokens)
+                    current_loss = current_loss * (self.dp_size / num_tokens)
 
                 current_loss.backward()
 
@@ -826,7 +826,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         # We multiply by world_size to undo FSDP2 gradient normalization.
-                        training.scale_grads(self._model, self.world_size / num_tokens)
+                        training.scale_grads(self._model, self.dp_size / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
