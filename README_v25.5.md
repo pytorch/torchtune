@@ -19,7 +19,7 @@ torchtune is a PyTorch library for easily authoring, post-training, and experime
 &nbsp;
 
 # Finetuning
-This section describes finetuning llama-3.1-70b using wikitext dataset on a single node using [Torchtune](https://pytorch.org/torchtune/stable/index.html) utility.
+This section describes finetuning llama-3.3-70B using wikitext dataset on a single node using [Torchtune](https://pytorch.org/torchtune/stable/index.html) utility.
 
 ### Environment setup
 
