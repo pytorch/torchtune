@@ -38,12 +38,17 @@ resume_from_checkpoint: False
 save_adapter_weights_only: True # Set to false to save the whole model + adapter merged
 
 # Dataset and Sampler
+# Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.text_completion_dataset
   packed: False  # True increases speed
+  source: json
+  data_files: /workspace/torchtune/wikitext_train.json
+  column: input
+  split: train
 seed: null
-shuffle: True
-batch_size: 2
+shuffle: False
+
 
 # Optimizer and Scheduler
 optimizer:
@@ -59,6 +64,7 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
+batch_size: 2
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
