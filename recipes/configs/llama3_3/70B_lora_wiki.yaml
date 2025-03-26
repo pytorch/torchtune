@@ -48,14 +48,6 @@ dataset:
 seed: null
 shuffle: False
 
-# Dataset and Sampler
-dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: False  # True increases speed
-seed: null
-shuffle: True
-batch_size: 2
-
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
@@ -70,6 +62,7 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 
 # Training
+batch_size: 2
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
