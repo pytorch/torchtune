@@ -33,7 +33,7 @@ def classifier_model(
         ValueError: If the base model does not have a valid output layer to adapt.
 
     Example:
-        >>> from torchtune.models.common import classifier_model
+        >>> from torchtune.modules.classifier import classifier_model
         >>> model = classifier_model(num_classes=1, base_model_path="torchtune.models.llama3_2.llama3_2_1b")
         >>> model.output.weight.shape
         torch.Size([1, 4096])

@@ -46,7 +46,7 @@ policy_model:
 # we need to manually build the mistral classifier model
 # because our reward model checkpoint has a larger vocabulary size (due to an added padding token)
 reward_and_value_model:
-  _component_: torchtune.models.common.classifier_model
+  _component_: torchtune.modules.classifier.classifier_model
   base_model_path: torchtune.models.mistral.mistral_7b
   num_classes: 1
   vocab_size: 32001
