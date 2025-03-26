@@ -1020,6 +1020,12 @@ class PyTorchActorModel:
         """
         from torchtune.training import disable_dropout
 
+        utils.log_rank_zero(
+            log,
+            "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+        )
+        time_setup_start = time.perf_counter()
+
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
@@ -1055,6 +1061,11 @@ class PyTorchActorModel:
             self._device,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
+        )
+
+        utils.log_rank_zero(
+            log,
+            f"Instantiating model and loading checkpoint took {time.perf_counter() - time_setup_start:.2f} secs",
         )
 
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
