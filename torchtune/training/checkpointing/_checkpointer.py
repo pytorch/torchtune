@@ -24,6 +24,7 @@ from torch.distributed.checkpoint import (
     load,
     save,
 )
+from torch.distributed.checkpoint.state_dict_loader import _load_state_dict_from_keys
 
 from torchtune import training
 from torchtune.models import convert_weights
@@ -157,11 +158,14 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
+        enable_dcp: bool = False,
     ) -> None:
 
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
-        if len(checkpoint_files) != 1:
+        if len(checkpoint_files) != 1 and (
+            len(checkpoint_files) == 0 and not enable_dcp
+        ):
             raise ValueError(
                 "Currently we only support reading from a single checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
@@ -208,7 +212,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         )
 
         # we currently accept only a single file
-        self._checkpoint_path = self._checkpoint_paths[0]
+        if len(self._checkpoint_paths) == 0:
+            self._checkpoint_path = self._checkpoint_dir / "__0_0.distcp"
+        else:
+            self._checkpoint_path = self._checkpoint_paths[0]
 
         if self._should_load_recipe_state:
             logger.info(
@@ -217,6 +224,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 f"\n\trecipe_checkpoint: {self._recipe_checkpoint}"
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
             )
+
+        self._enable_dcp = enable_dcp
 
     def load_checkpoint(self, weights_only: bool = True) -> Dict[str, Any]:
         """
@@ -242,9 +251,19 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             Dict[str, Any]: state_dict from the input checkpoint
         """
         state_dict: Dict[str:Any] = {}
-        state_dict[training.MODEL_KEY] = safe_torch_load(
-            self._checkpoint_path, weights_only=weights_only
-        )
+        if (
+            self._enable_dcp
+            and weights_only
+            and self._checkpoint_path.parent / ".metadata"
+            in self._checkpoint_path.parent.iterdir()
+        ):
+            state_dict[training.MODEL_KEY] = _load_state_dict_from_keys(
+                checkpoint_id=self._checkpoint_path.parent
+            )
+        else:
+            state_dict[training.MODEL_KEY] = safe_torch_load(
+                self._checkpoint_path, weights_only=weights_only
+            )
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -295,19 +314,26 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
         # Output file is always a .bin file with the epoch number in the name
         if not adapter_only:
-            shard_name = SHARD_FNAME.format(
-                cpt_idx="1".zfill(5), num_shards="1".zfill(5)
-            )
-            output_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", shard_name
-            ).with_suffix(".bin")
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            torch.save(state_dict[training.MODEL_KEY], output_path)
-            logger.info(
-                "Model checkpoint of size "
-                f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
-                f"saved to {output_path}"
-            )
+            if self._enable_dcp:
+                save(
+                    state_dict=state_dict[training.MODEL_KEY],
+                    checkpoint_id=Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+                )
+            else:
+                shard_name = SHARD_FNAME.format(
+                    cpt_idx="1".zfill(5), num_shards="1".zfill(5)
+                )
+                output_path = Path.joinpath(
+                    self._output_dir, f"epoch_{epoch}", shard_name
+                ).with_suffix(".bin")
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                torch.save(state_dict[training.MODEL_KEY], output_path)
+
+                logger.info(
+                    "Model checkpoint of size "
+                    f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+                    f"saved to {output_path}"
+                )
 
         if training.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
@@ -1042,11 +1068,14 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
+        enable_dcp: bool = False,
     ) -> None:
 
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
-        if len(checkpoint_files) != 1:
+        if len(checkpoint_files) != 1 and (
+            len(checkpoint_files) == 0 and not enable_dcp
+        ):
             raise ValueError(
                 "Currently we only support reading from a single checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
@@ -1090,8 +1119,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             has_adapter_checkpoint=self._adapter_checkpoint is not None,
         )
 
-        # we currently accept only a single file
-        self._checkpoint_path = self._checkpoint_paths[0]
+        if len(self._checkpoint_paths) == 0:
+            self._checkpoint_path = self._checkpoint_dir / "__0_0.distcp"
+        else:
+            self._checkpoint_path = self._checkpoint_paths[0]
 
         if self._should_load_recipe_state:
             logger.info(
@@ -1101,12 +1132,23 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
             )
 
+        self._enable_dcp = enable_dcp
+
     def load_checkpoint(self) -> Dict[str, Any]:
         """
         Load Meta checkpoint from file. Currently only loading from a single file is supported.
         """
         state_dict: Dict[str:Any] = {}
-        model_state_dict = safe_torch_load(self._checkpoint_path)
+        if (
+            self._enable_dcp
+            and self._checkpoint_path.parent / ".metadata"
+            in self._checkpoint_path.parent.iterdir()
+        ):
+            model_state_dict = _load_state_dict_from_keys(
+                checkpoint_id=self._checkpoint_path.parent
+            )
+        else:
+            model_state_dict = safe_torch_load(self._checkpoint_path)
         if self._model_type == ModelType.LLAMA3_VISION:
             from torchtune.models.llama3_2_vision._convert_weights import (
                 llama3_vision_meta_to_tune,
@@ -1194,12 +1236,18 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             ).with_suffix(".bin")
             checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
 
-            torch.save(state_dict[training.MODEL_KEY], checkpoint_file)
-            logger.info(
-                "Model checkpoint of size "
-                f"{os.path.getsize(checkpoint_file) / 1024**3:.2f} GiB "
-                f"saved to {checkpoint_file}"
-            )
+            if self._enable_dcp:
+                save(
+                    state_dict=state_dict[training.MODEL_KEY],
+                    checkpoint_id=self._output_dir,
+                )
+            else:
+                torch.save(state_dict[training.MODEL_KEY], checkpoint_file)
+                logger.info(
+                    "Model checkpoint of size "
+                    f"{os.path.getsize(checkpoint_file) / 1024**3:.2f} GiB "
+                    f"saved to {checkpoint_file}"
+                )
 
         if training.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(

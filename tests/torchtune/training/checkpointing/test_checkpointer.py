@@ -6,6 +6,9 @@
 
 import json
 
+import os
+import shutil
+
 from pathlib import Path
 from typing import Tuple
 
@@ -14,6 +17,7 @@ import pytest
 import safetensors
 import torch
 from torch import randn
+from torchtune import training
 
 from torchtune.models import gemma, llama2, mistral
 from torchtune.modules.peft import (
@@ -22,7 +26,11 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 
-from torchtune.training.checkpointing import FullModelHFCheckpointer
+from torchtune.training.checkpointing import (
+    FullModelHFCheckpointer,
+    FullModelMetaCheckpointer,
+    FullModelTorchTuneCheckpointer,
+)
 
 from torchtune.training.checkpointing._utils import (
     ADAPTER_CONFIG,
@@ -913,3 +921,157 @@ class TestHFGemmaFullModelCheckpointer:
         output_state_dict = safe_torch_load(output_file)
 
         assert len(output_state_dict.keys()) == len(orig_state_dict.keys())
+
+
+class TestFullModelTorchTuneCheckpointer:
+    @pytest.fixture
+    def weight_dtype(self):
+        return torch.float16
+
+    @pytest.fixture
+    def state_dict(self, weight_dtype):
+        """
+        State dict
+        """
+        state_dict = {
+            "model.embed_tokens.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
+            "model.layers.0.input_layernorm.weight": randn(_DIM, dtype=weight_dtype),
+            "model.layers.0.self_attn.q_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.k_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.v_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.o_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.post_attention_layernorm.weight": randn(
+                _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.rotary_emb.inv_freq": randn(
+                _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.gate_proj.weight": randn(
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.down_proj.weight": randn(
+                _DIM, _HIDDEN_DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.up_proj.weight": randn(
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.norm.weight": randn(_DIM, dtype=weight_dtype),
+            "lm_head.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
+        }
+
+        return {training.MODEL_KEY: state_dict}
+
+    @pytest.fixture
+    def checkpointer(self, tmp_path) -> FullModelTorchTuneCheckpointer:
+        checkpoint_dir = Path.joinpath(tmp_path, "checkpoint_dir")
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        return FullModelTorchTuneCheckpointer(
+            checkpoint_dir=str(checkpoint_dir),
+            output_dir=tmp_path,
+            checkpoint_files=[],
+            model_type="LLAMA2",
+            enable_dcp=True,
+        )
+
+    def test_save_load_checkpoint_with_dcp(self, checkpointer, state_dict):
+        """
+        Test ``load_checkpoint`` method within the FullModelTorchTuneCheckpointer
+        with dcp enabled.
+
+        We test:
+        * ``load_checkpoint`` loads the right sets of keys
+        * Internal state of the checkpointer is correctly updated.
+        """
+
+        checkpointer.save_checkpoint(state_dict=state_dict, epoch=1)
+
+        checkpoint_path = Path.joinpath(
+            checkpointer._output_dir,
+            "epoch_1/__0_0.distcp",
+        )
+
+        assert os.path.exists(checkpoint_path)
+        shutil.copy(checkpoint_path, checkpointer._checkpoint_dir)
+        shutil.copy(checkpoint_path.parent / ".metadata", checkpointer._checkpoint_dir)
+
+        loaded_state_dict = checkpointer.load_checkpoint()
+
+        for key in state_dict[training.MODEL_KEY].keys():
+            saved = state_dict[training.MODEL_KEY][key]
+            loaded = loaded_state_dict[training.MODEL_KEY][key]
+            assert torch.equal(
+                saved,
+                loaded,
+            )
+
+
+class TestFullModelMetaCheckpointer:
+    @pytest.fixture
+    def weight_dtype(self):
+        return torch.float16
+
+    @pytest.fixture
+    def state_dict(self, weight_dtype):
+        """
+        State dict
+        """
+
+        state_dict = {
+            "tok_embeddings.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
+            "output.weight": randn(_DIM, _NUM_HEADS * _HEAD_DIM, dtype=weight_dtype),
+        }
+
+        return {training.MODEL_KEY: state_dict}
+
+    @pytest.fixture
+    def checkpointer(self, tmp_path) -> FullModelMetaCheckpointer:
+        checkpoint_dir = Path.joinpath(tmp_path, "checkpoint_dir")
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        return FullModelMetaCheckpointer(
+            checkpoint_dir=str(checkpoint_dir),
+            output_dir=tmp_path,
+            checkpoint_files=[],
+            model_type="LLAMA2",
+            enable_dcp=True,
+        )
+
+    def test_save_load_checkpoint_with_dcp(self, checkpointer, state_dict):
+        """
+        Test ``load_checkpoint`` method within the FullModelTorchTuneCheckpointer
+        with dcp enabled.
+
+        We test:
+        * ``load_checkpoint`` loads the right sets of keys
+        * Internal state of the checkpointer is correctly updated.
+        """
+
+        checkpointer.save_checkpoint(state_dict=state_dict, epoch=1)
+
+        checkpoint_path = Path.joinpath(
+            checkpointer._output_dir,
+            "__0_0.distcp",
+        )
+
+        assert os.path.exists(checkpoint_path)
+        shutil.copy(checkpoint_path, checkpointer._checkpoint_dir)
+        shutil.copy(checkpoint_path.parent / ".metadata", checkpointer._checkpoint_dir)
+
+        loaded_state_dict = checkpointer.load_checkpoint()
+
+        for key in state_dict[training.MODEL_KEY].keys():
+            saved = state_dict[training.MODEL_KEY][key]
+            loaded = loaded_state_dict[training.MODEL_KEY][key]
+            assert torch.equal(
+                saved,
+                loaded,
+            )

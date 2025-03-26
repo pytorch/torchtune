@@ -43,6 +43,7 @@ RECIPE_STATE_DIRNAME = "recipe_state"
 # Needed when setting up output dir in checkpointing
 REPO_ID_FNAME = "original_repo_id"
 SUFFIXES_TO_NOT_COPY = [
+    ".distcp",
     ".pt",
     ".pth",
     ".bin",
