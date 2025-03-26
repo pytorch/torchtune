@@ -508,6 +508,7 @@
     <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">keys_to_pad</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
+    <span class="n">pad_to_multiple_of</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A generic padding collation function which pads ``keys_to_pad`` entries in a</span>
@@ -528,6 +529,7 @@
 <span class="sd">        padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all</span>
 <span class="sd">            ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key</span>
 <span class="sd">            padding values.</span>
+<span class="sd">        pad_to_multiple_of (int): If &gt; 1, pad the sequence to a multiple of this number.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor: The padded tensor of input ids with shape ``[batch_size, max_seq_len]``.</span>
@@ -538,6 +540,7 @@
 <span class="sd">            if ``keys_to_pad`` is empty, or is not a list, **or**</span>
 <span class="sd">            if ``keys_to_pad`` is not a subset of keys in the batch, **or**</span>
 <span class="sd">            if ``padding_idx`` is provided as a dictionary, but the keys are not identical to ``keys_to_pad``</span>
+<span class="sd">            if ``pad_direction`` is &quot;left&quot; and ``pad_to_multiple_of`` is &gt; 1</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; a = [1, 2, 3]</span>
@@ -564,6 +567,11 @@
     <span class="k">if</span> <span class="n">pad_direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;pad_direction should be one of &#39;left&#39; or &#39;right&#39; but found </span><span class="si">{</span><span class="n">pad_direction</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span> <span class="ow">and</span> <span class="n">pad_to_multiple_of</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;pad_to_multiple_of=</span><span class="si">{</span><span class="n">pad_to_multiple_of</span><span class="si">}</span><span class="s2"> is not supported for pad_direction=&#39;left&#39;&quot;</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys_to_pad</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">keys_to_pad</span><span class="p">:</span>
@@ -596,13 +604,27 @@
         <span class="k">else</span> <span class="n">left_pad_sequence</span>
     <span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys_to_pad</span><span class="p">:</span>
-        <span class="n">output_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad_fn</span><span class="p">(</span>
+        <span class="n">padded_tensor</span> <span class="o">=</span> <span class="n">pad_fn</span><span class="p">(</span>
             <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
             <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">padding_value</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">padding_idx</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">padding_idx</span>
             <span class="p">),</span>
         <span class="p">)</span>
+        <span class="c1"># Pad to multiple of N if specified</span>
+        <span class="k">if</span> <span class="n">pad_to_multiple_of</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">seq_len</span> <span class="o">=</span> <span class="n">padded_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">remainder</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">%</span> <span class="n">pad_to_multiple_of</span>
+            <span class="k">if</span> <span class="n">remainder</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">padding_size</span> <span class="o">=</span> <span class="n">pad_to_multiple_of</span> <span class="o">-</span> <span class="n">remainder</span>
+                <span class="n">padded_tensor</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                    <span class="n">padded_tensor</span><span class="p">,</span>
+                    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">padding_size</span><span class="p">),</span>
+                    <span class="n">value</span><span class="o">=</span><span class="p">(</span>
+                        <span class="n">padding_idx</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">padding_idx</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">padding_idx</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+        <span class="n">output_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">padded_tensor</span>
     <span class="k">return</span> <span class="n">output_dict</span></div>
 
 
@@ -610,6 +632,7 @@
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+    <span class="n">pad_to_multiple_of</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences to the longest sequence length in the batch, and</span>
 <span class="sd">    convert integer lists to tensors.</span>
@@ -618,6 +641,8 @@
 <span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.</span>
 <span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
 <span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
+<span class="sd">        pad_to_multiple_of (int): If &gt; 1, pad the sequence to a multiple of this number.</span>
+<span class="sd">            This is useful for proper sharding with e.g. SequenceParallel.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, torch.Tensor]: Collated input and label tensors.</span>
@@ -662,6 +687,19 @@
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">labels_seq_len</span> <span class="o">-</span> <span class="n">input_ids_seq_len</span><span class="p">),</span>
             <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
+
+    <span class="c1"># Pad to multiple of N</span>
+    <span class="k">if</span> <span class="n">pad_to_multiple_of</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">input_ids</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">input_ids</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_to_multiple_of</span> <span class="o">-</span> <span class="p">(</span><span class="n">input_ids_seq_len</span> <span class="o">%</span> <span class="n">pad_to_multiple_of</span><span class="p">)),</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">labels</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_to_multiple_of</span> <span class="o">-</span> <span class="p">(</span><span class="n">labels_seq_len</span> <span class="o">%</span> <span class="n">pad_to_multiple_of</span><span class="p">)),</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">ignore_idx</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span></div>
 
 
@@ -674,6 +712,7 @@
     <span class="n">pad_direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
     <span class="n">pad_max_tiles</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">pad_max_images</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pad_to_multiple_of</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of text sequences, tiled image tensors, aspect ratios,</span>
 <span class="sd">    and cross attention masks. This can be used for both training and inference.</span>
@@ -714,6 +753,7 @@
 <span class="sd">            in the batch. Defaults to None.</span>
 <span class="sd">        pad_max_images (Optional[int]): Maximum number of images to pad to. If None, will pad to the largest number of images</span>
 <span class="sd">            in the batch. Defaults to None.</span>
+<span class="sd">        pad_to_multiple_of (int): If &gt; 1, pad the sequence to a multiple of this number.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.</span>
@@ -726,7 +766,9 @@
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError:</span>
 <span class="sd">            If ``pad_direction`` is not one of &quot;left&quot; or &quot;right&quot;, **or**</span>
-<span class="sd">            if pad_max_tiles is set to a value less than the largest number of tiles in an image.</span>
+<span class="sd">            if pad_max_tiles is set to a value less than the largest number of tiles in an image, **or**</span>
+<span class="sd">            if ``pad_direction`` is &quot;left&quot; and ``pad_to_multiple_of`` is not None.</span>
+
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; image_id = 1</span>
@@ -786,9 +828,15 @@
         <span class="n">text_only</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]}</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span>
         <span class="p">]</span>
-        <span class="n">collated_text</span> <span class="o">=</span> <span class="n">padded_collate_sft</span><span class="p">(</span><span class="n">text_only</span><span class="p">,</span> <span class="n">padding_idx</span><span class="p">,</span> <span class="n">ignore_idx</span><span class="p">)</span>
+        <span class="n">collated_text</span> <span class="o">=</span> <span class="n">padded_collate_sft</span><span class="p">(</span>
+            <span class="n">text_only</span><span class="p">,</span> <span class="n">padding_idx</span><span class="p">,</span> <span class="n">ignore_idx</span><span class="p">,</span> <span class="n">pad_to_multiple_of</span><span class="o">=</span><span class="n">pad_to_multiple_of</span>
+        <span class="p">)</span>
     <span class="c1"># For inference, we don&#39;t need to handle labels</span>
     <span class="k">elif</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pad_to_multiple_of</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;pad_to_multiple_of=</span><span class="si">{</span><span class="n">pad_to_multiple_of</span><span class="si">}</span><span class="s2"> is not supported for pad_direction=&#39;left&#39;&quot;</span>
+            <span class="p">)</span>
         <span class="n">collated_text</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">left_pad_sequence</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
@@ -961,6 +1009,7 @@
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+    <span class="n">pad_to_multiple_of</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences for Direct Preference Optimization (DPO).</span>
 
@@ -974,6 +1023,7 @@
 <span class="sd">            &#39;chosen_labels&#39;, &#39;rejected_input_ids&#39;, and &#39;rejected_labels&#39; are required.</span>
 <span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
 <span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
+<span class="sd">        pad_to_multiple_of (int): If &gt; 1, pad the sequence to a multiple of this number.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded</span>
@@ -1010,6 +1060,26 @@
     <span class="n">concatenated_labels</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
         <span class="n">to_pad_labels</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">ignore_idx</span>
     <span class="p">)</span>
+
+    <span class="c1"># Pad to multiple of N</span>
+    <span class="k">if</span> <span class="n">pad_to_multiple_of</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">concatenated_input_ids</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">concatenated_input_ids</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="n">pad_to_multiple_of</span>
+                <span class="o">-</span> <span class="p">(</span><span class="n">concatenated_input_ids</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">pad_to_multiple_of</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">concatenated_labels</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">concatenated_labels</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="n">pad_to_multiple_of</span> <span class="o">-</span> <span class="p">(</span><span class="n">concatenated_labels</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">pad_to_multiple_of</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">ignore_idx</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span></div>
 </pre></div>
