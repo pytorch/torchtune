@@ -15,7 +15,8 @@ from warnings import warn
 
 import torch
 from fsspec.core import url_to_fs
-from safetensors import safe_open
+from huggingface_hub import HfFileSystem
+from safetensors.torch import load
 
 from torchtune.utils._logging import get_logger
 
@@ -245,16 +246,22 @@ def safe_torch_load(
             True if str(checkpoint_path).endswith(".safetensors") else False
         )
         if is_safetensors_file:
-            result = {}
             with fs.open(checkpoint_path, "rb") as checkpoint_file:
-                with safe_open(checkpoint_file, framework="pt", device="cpu") as f:
-                    for k in f.keys():
-                        result[k] = f.get_tensor(k)
-            state_dict = result
+                state_dict = load(checkpoint_file.read())
         else:
-            with fs.open(checkpoint_path, "rb") as checkpoint_file:
+            if isinstance(fs, HfFileSystem):
+                # HfFileSystem does not support mmap
+                mmap = False
+                with fs.open(checkpoint_path, "rb") as checkpoint_file:
+                    state_dict = torch.load(
+                        checkpoint_file,
+                        map_location="cpu",
+                        mmap=mmap,
+                        weights_only=weights_only,
+                    )
+            else:
                 state_dict = torch.load(
-                    checkpoint_file,
+                    checkpoint_path,
                     map_location="cpu",
                     mmap=mmap,
                     weights_only=weights_only,
