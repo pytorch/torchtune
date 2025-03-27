@@ -108,13 +108,15 @@ class TestInstantiate:
         s = dedent(
             """\
         foo:
-          _component_: foo
+          _component_: Foo
           bar:
-            _component_: bar
+            _component_: Bar
         """
         )
         config = OmegaConf.create(s)
 
         foo = instantiate(config.foo)
         output = foo(1)
-        assert output == 2, f"Foo should call bar and return 1+1. Got {output} instead."
+        assert (
+            output == 2
+        ), f"Foo should call bar and return 1+1. Got {output} instead for config {s}."
