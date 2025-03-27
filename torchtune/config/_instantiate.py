@@ -26,8 +26,8 @@ def _create_component(
 
 def _instantiate_node(
     config_dict: Dict[str, Any],
-    caller_globals: Optional[Dict[str, Any]] = None,
     *args: Any,
+    caller_globals: Optional[Dict[str, Any]] = None,
 ) -> Any:
     """
     Instantiate a component from a config dictionary.
@@ -37,8 +37,8 @@ def _instantiate_node(
 
     Args:
         config_dict (Dict[str, Any]): Config dictionary with '_component_' and arguments.
-        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
         *args (Any): Positional arguments for the component.
+        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
 
     Returns:
         Any: The instantiated object.
