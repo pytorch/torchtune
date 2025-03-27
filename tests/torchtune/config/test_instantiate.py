@@ -19,6 +19,19 @@ from torchtune.config._utils import _has_component
 from torchtune.modules import RMSNorm
 
 
+class Foo:
+    def __init__(self, bar):
+        self.bar = bar
+
+    def __call__(self, x):
+        return self.bar(x)
+
+
+class Bar:
+    def __call__(self, x):
+        return x + 1
+
+
 class TestInstantiate:
     @pytest.fixture
     def config(self):
@@ -94,17 +107,6 @@ class TestInstantiate:
         assert tokenizer.max_seq_len is None
 
     def test_nested_instantiation(self) -> None:
-        class Foo:
-            def __init__(self, bar):
-                self.bar = bar
-
-            def __call__(self, x):
-                return self.bar(x)
-
-        class Bar:
-            def __call__(self, x):
-                return x + 1
-
         s = dedent(
             """\
         foo:
