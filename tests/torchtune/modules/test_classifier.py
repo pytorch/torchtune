@@ -23,7 +23,7 @@ def random():
     set_seed(16)
 
 
-class TestClassifierModelBuilder:
+class TestZClassifierModelBuilder:
     @pytest.mark.parametrize(
         "base_model_path",
         [
