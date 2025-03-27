@@ -44,21 +44,22 @@ def _instantiate_node(
     Returns:
         Any: Instantiated object or processed structure.
     """
-    if isinstance(obj, dict) and "_component_" in obj:
-        _component_ = _get_component_from_path(
-            obj["_component_"], caller_globals=caller_globals
-        )
-        kwargs = {
-            k: _instantiate_node(v, caller_globals=caller_globals)
-            for k, v in obj.items()
-            if k != "_component_"
-        }
-        return _create_component(_component_, args, kwargs)
-    elif isinstance(obj, dict):
-        return {
-            k: _instantiate_node(v, caller_globals=caller_globals)
-            for k, v in obj.items()
-        }
+    if isinstance(obj, dict) or isinstance(obj, DictConfig):
+        if "_component_" not in obj:
+            return {
+                k: _instantiate_node(v, caller_globals=caller_globals)
+                for k, v in obj.items()
+            }
+        else:
+            _component_ = _get_component_from_path(
+                obj["_component_"], caller_globals=caller_globals
+            )
+            kwargs = {
+                k: _instantiate_node(v, caller_globals=caller_globals)
+                for k, v in obj.items()
+                if k != "_component_"
+            }
+            return _create_component(_component_, args, kwargs)
     elif isinstance(obj, list):
         return [_instantiate_node(item, caller_globals=caller_globals) for item in obj]
     else:
