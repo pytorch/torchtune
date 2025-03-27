@@ -120,17 +120,18 @@ def instantiate(
 
     # Convert plain dict to DictConfig if necessary
     if isinstance(config, dict):
-        if "_component_" not in config:
-            raise InstantiationError(
-                "Cannot instantiate specified object."
-                + "\nMake sure you've specified a _component_ field with a valid dotpath."
-                + f"\nGot {config=}."
-            )
         config = OmegaConf.create(config)
 
     elif not OmegaConf.is_dict(config):
         raise ValueError(
             f"instantiate only supports DictConfigs or dicts, got {type(config)}"
+        )
+
+    if "_component_" not in config:
+        raise InstantiationError(
+            "Cannot instantiate specified object."
+            + "\nMake sure you've specified a _component_ field with a valid dotpath."
+            + f"\nGot {config=}."
         )
 
     # Ensure local imports are able to be instantiated
