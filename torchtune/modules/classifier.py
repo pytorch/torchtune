@@ -8,12 +8,12 @@ from typing import Any, Dict, Union
 
 import torch.nn as nn
 from torchtune.config._utils import _get_component_from_path
-from torchtune.modules.transformer import TransformerDecoder
+# from torchtune.modules.transformer import TransformerDecoder
 
 
 def classifier_model(
     num_classes: int, base_model_path: str, **base_model_kwargs: Dict[str, Any]
-) -> Union[TransformerDecoder, nn.Module]:
+) -> nn.Module:
     """
     Create a classifier model from a base model by adapting the output layer.
     This builder does not support models which apply PEFT to the output layer.
