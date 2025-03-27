@@ -57,6 +57,7 @@ def compile_model(
             m.compile(backend=backend)
 
 
+# @deprecate
 def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     """
     Utility to compile and return loss function. If the loss function is chunked cross-entropy,
@@ -73,6 +74,8 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if verbose:
         log.info("Compiling loss with torch.compile...")
+
+    # TODO: Delete all of this loss specific code for next release
     if isinstance(loss, CEWithChunkedOutputLoss):
         loss.compute_cross_entropy = torch.compile(
             loss.compute_cross_entropy, backend=backend

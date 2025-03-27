@@ -389,6 +389,7 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.num_output_chunks = 0
+        self.skip_unembedding = False
 
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
@@ -477,6 +478,10 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             layer.reset_cache()
+
+    def set_skip_unembedding(self, skip: bool) -> None:
+        """Set whether to skip unembedding and return hidden states."""
+        self.skip_unembedding = skip
 
     @torch.compiler.disable
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
@@ -667,11 +672,13 @@ class TransformerDecoder(nn.Module):
     def unembed(self, h):
         # shape: [b, s, d]
         h = self.norm(h)
-
-        if self.num_output_chunks > 0:
-            output = self.chunked_output(h)
+        if self.skip_unembedding:
+            output = h
         else:
-            # shape: [b, seq_len, out_dim]
-            output = self.output(h).float()
+            if self.num_output_chunks > 0:
+                output = self.chunked_output(h)
+            else:
+                # shape: [b, seq_len, out_dim]
+                output = self.output(h).float()
 
         return output

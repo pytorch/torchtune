@@ -301,9 +301,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # skip final projection, since the loss takes hidden input instead of logits
+        self.skip_unembedding = cfg.get("loss_takes_embeddings", False)
+        self._model.set_skip_unembedding(self.skip_unembedding)
+
         utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -787,7 +788,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 labels = batch.pop("labels")
 
                 with self.activations_handling_ctx:
-                    logits = self._model(**batch)
+                    outputs = self._model(**batch)
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -795,17 +796,40 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 labels = torch.hstack(
                     (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
                 )
-                if not isinstance(logits, list):
-                    labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1))
 
-                # Compute loss
+                # TODO: move to utils
+                def get_model_proj_weight(model) -> tuple[torch.Tensor]:
+                    """Extract weight and bias from the model’s output module."""
+                    if hasattr(model, "output"):
+                        output = model.output
+                    elif hasattr(model, "decoder"):
+                        output = model.decoder.output
+                    else:
+                        raise ValueError("Could not find output module in model.")
+
+                    if isinstance(output, nn.Linear):
+                        return output.weight
+                    elif isinstance(output, modules.TiedLinear):
+                        return output.tied_module.weight
+                    else:
+                        raise ValueError(
+                            f"Unsupported output module type: {type(output)}"
+                        )
+
+                if self.skip_unembedding:
+                    weight = get_model_proj_weight(self._model)
+                    current_loss = self._loss_fn(weight, outputs, labels)
+                else:
+                    labels = labels.reshape(-1)
+                    outputs = outputs.reshape(-1, outputs.size(-1))
+                    current_loss = self._loss_fn(outputs, labels)
+
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = current_loss * current_num_tokens
 
-                # free logits otherwise it peaks backward memory
-                del logits
+                # free outputs otherwise it peaks backward memory
+                del outputs
 
                 running_loss += current_loss
                 current_loss.backward()
