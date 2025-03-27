@@ -1,0 +1,135 @@
+<<<<<<<< RUNNING FROM MAIN >>>>>>>>>>
+batch_size: 6
+vllm.batch_size: 6
+grpo_samples: 5
+replay buffer size: 3
+
+
+(RefActor pid=2893594) putting trajectory Trajectory(
+(RefActor pid=2893594)     answers=NonTensorData(data=['15', '10', '48', '160', '5', '36'], batch_size=torch.Size([30]), device=None),
+(RefActor pid=2893594)     policy_version=NonTensorData(data=10, batch_size=torch.Size([30]), device=None),
+(RefActor pid=2893594)     batch_size=torch.Size([30]),
+(RefActor pid=2893594)     device=None,
+(RefActor pid=2893594)     is_shared=False) into actor queue
+
+
+(PyTorchActorModel pid=2964067) PyTorchActor reading: Trajectory(
+(PyTorchActorModel pid=2964067)     answers=NonTensorData(data=['10', '5', '42', '624', '35', '48'], batch_size=torch.Size([30]), device=cuda:0),
+(PyTorchActorModel pid=2964067)     policy_version=NonTensorData(data=0, batch_size=torch.Size([30]), device=cuda:0),
+(PyTorchActorModel pid=2964067)     batch_size=torch.Size([30]),
+(PyTorchActorModel pid=2964067)     device=cuda:0,
+(PyTorchActorModel pid=2964067)     is_shared=True)
+
+<<<<<<<< RUNNING FROM MY PR 1>>>>>>>>>>
+batch_size: 6
+vllm.batch_size: 6
+grpo_samples: 5
+replay buffer size: 3
+
+(RefActor pid=3067547) RefActor PUTS: Trajectory(
+(RefActor pid=3067547)     advantages=Tensor(shape=torch.Size([30]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3067547)     answers=NonTensorData(data=['500' '99' '60' '300' '99' '1920'], batch_size=torch.Size([30]), device=None),
+(RefActor pid=3067547)     logprobs=Tensor(shape=torch.Size([30, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3067547)     policy_version=NonTensorData(data=9, batch_size=torch.Size([30]), device=None),
+(RefActor pid=3067547)     query_response_padding_masks=Tensor(shape=torch.Size([30, 685]), device=cuda:0, dtype=torch.bool, is_shared=True),
+(RefActor pid=3067547)     query_responses=Tensor(shape=torch.Size([30, 685]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(RefActor pid=3067547)     ref_logprobs=Tensor(shape=torch.Size([30, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3067547)     responses=Tensor(shape=torch.Size([30, 512]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(RefActor pid=3067547)     reward_metadata=NonTensorData(data={'func_names': ['at_least_one_space_between_think_tags', 'math_response_correct']}, batch_size=torch.Size([30]), device=None),
+(RefActor pid=3067547)     rewards=Tensor(shape=torch.Size([30, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3067547)     seq_lens=Tensor(shape=torch.Size([30]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(RefActor pid=3067547)     successes=Tensor(shape=torch.Size([30, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3067547)     batch_size=torch.Size([30]),
+(RefActor pid=3067547)     device=None,
+(RefActor pid=3067547)     is_shared=False)
+
+
+(PyTorchActorModel pid=3067529) self.rank=0 got from queue traj Trajectory(
+(PyTorchActorModel pid=3067529)     advantages=Tensor(shape=torch.Size([30]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3067529)     answers=NonTensorData(data=['500' '99' '60' '300' '99' '1920'], batch_size=torch.Size([30]), device=cuda:0),
+(PyTorchActorModel pid=3067529)     logprobs=Tensor(shape=torch.Size([30, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3067529)     policy_version=NonTensorData(data=8, batch_size=torch.Size([30]), device=cuda:0),
+(PyTorchActorModel pid=3067529)     query_response_padding_masks=Tensor(shape=torch.Size([30, 685]), device=cuda:0, dtype=torch.bool, is_shared=True),
+(PyTorchActorModel pid=3067529)     query_responses=Tensor(shape=torch.Size([30, 685]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(PyTorchActorModel pid=3067529)     ref_logprobs=Tensor(shape=torch.Size([30, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3067529)     responses=Tensor(shape=torch.Size([30, 512]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(PyTorchActorModel pid=3067529)     reward_metadata=NonTensorData(data={'func_names': ['at_least_one_space_between_think_tags', 'math_response_correct']}, batch_size=torch.Size([30]), device=cuda:0),
+(PyTorchActorModel pid=3067529)     rewards=Tensor(shape=torch.Size([30, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3067529)     seq_lens=Tensor(shape=torch.Size([30]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(PyTorchActorModel pid=3067529)     successes=Tensor(shape=torch.Size([30, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3067529)     batch_size=torch.Size([30]),
+(PyTorchActorModel pid=3067529)     device=cuda:0,
+(PyTorchActorModel pid=3067529)     is_shared=True)
+
+<<<<<<<< RUNNING FROM MY PR 1>>>>>>>>>>
+batch_size: 6
+vllm.batch_size: 8
+grpo_samples: 5
+replay buffer size: 3
+
+(RefActor pid=3149803) RefActor PUTS: Trajectory(
+(RefActor pid=3149803)     advantages=Tensor(shape=torch.Size([40]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3149803)     answers=NonTensorData(data=['10' '5' '42' '624' '35' '48' '16' '41'], batch_size=torch.Size([40]), device=None),
+(RefActor pid=3149803)     logprobs=Tensor(shape=torch.Size([40, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3149803)     policy_version=NonTensorData(data=0, batch_size=torch.Size([40]), device=None),
+(RefActor pid=3149803)     query_response_padding_masks=Tensor(shape=torch.Size([40, 711]), device=cuda:0, dtype=torch.bool, is_shared=True),
+(RefActor pid=3149803)     query_responses=Tensor(shape=torch.Size([40, 711]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(RefActor pid=3149803)     ref_logprobs=Tensor(shape=torch.Size([40, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3149803)     responses=Tensor(shape=torch.Size([40, 512]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(RefActor pid=3149803)     reward_metadata=NonTensorData(data={'func_names': ['at_least_one_space_between_think_tags', 'math_response_correct']}, batch_size=torch.Size([40]), device=None),
+(RefActor pid=3149803)     rewards=Tensor(shape=torch.Size([40, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3149803)     seq_lens=Tensor(shape=torch.Size([40]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(RefActor pid=3149803)     successes=Tensor(shape=torch.Size([40, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(RefActor pid=3149803)     batch_size=torch.Size([40]),
+(RefActor pid=3149803)     device=None,
+(RefActor pid=3149803)     is_shared=False)
+
+(PyTorchActorModel pid=3149826) self.rank=0 got from queue traj Trajectory(
+(PyTorchActorModel pid=3149826)     advantages=Tensor(shape=torch.Size([40]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3149826)     answers=NonTensorData(data=['10' '5' '42' '624' '35' '48' '16' '41'], batch_size=torch.Size([40]), device=cuda:0),
+(PyTorchActorModel pid=3149826)     logprobs=Tensor(shape=torch.Size([40, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3149826)     policy_version=NonTensorData(data=0, batch_size=torch.Size([40]), device=cuda:0),
+(PyTorchActorModel pid=3149826)     query_response_padding_masks=Tensor(shape=torch.Size([40, 711]), device=cuda:0, dtype=torch.bool, is_shared=True),
+(PyTorchActorModel pid=3149826)     query_responses=Tensor(shape=torch.Size([40, 711]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(PyTorchActorModel pid=3149826)     ref_logprobs=Tensor(shape=torch.Size([40, 512]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3149826)     responses=Tensor(shape=torch.Size([40, 512]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(PyTorchActorModel pid=3149826)     reward_metadata=NonTensorData(data={'func_names': ['at_least_one_space_between_think_tags', 'math_response_correct']}, batch_size=torch.Size([40]), device=cuda:0),
+(PyTorchActorModel pid=3149826)     rewards=Tensor(shape=torch.Size([40, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3149826)     seq_lens=Tensor(shape=torch.Size([40]), device=cuda:0, dtype=torch.int64, is_shared=True),
+(PyTorchActorModel pid=3149826)     successes=Tensor(shape=torch.Size([40, 2]), device=cuda:0, dtype=torch.float32, is_shared=True),
+(PyTorchActorModel pid=3149826)     batch_size=torch.Size([40]),
+(PyTorchActorModel pid=3149826)     device=cuda:0,
+(PyTorchActorModel pid=3149826)     is_shared=True)
+
+
+(ReplayBuffer( pid=3149797) /home/davidet/rl/torchrl/data/replay_buffers/replay_buffers.py:796: UserWarning: Got conflicting batch_sizes in constructor (1) and `sample` (6). Refer to the ReplayBuffer documentation for a proper usage of the batch-size arguments. The batch-size provided to the sample method will prevail.
+(ReplayBuffer( pid=3149797)   warnings.warn(
+(PyTorchActorModel pid=3149826) PyTorchActor samples: LazyStackedTensorDict(
+(PyTorchActorModel pid=3149826)     fields={
+(PyTorchActorModel pid=3149826)         advantages: Tensor(shape=torch.Size([6, 40]), device=cpu, dtype=torch.float32, is_shared=False),
+(PyTorchActorModel pid=3149826)         answers: NonTensorStack(
+(PyTorchActorModel pid=3149826)             [[array(['10', '5', '42', '624', '35', '48', '16',...,
+(PyTorchActorModel pid=3149826)             batch_size=torch.Size([6, 40]),
+(PyTorchActorModel pid=3149826)             device=cpu),
+(PyTorchActorModel pid=3149826)         logprobs: Tensor(shape=torch.Size([6, 40, 512]), device=cpu, dtype=torch.float32, is_shared=False),
+(PyTorchActorModel pid=3149826)         policy_version: NonTensorStack(
+(PyTorchActorModel pid=3149826)             [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...,
+(PyTorchActorModel pid=3149826)             batch_size=torch.Size([6, 40]),
+(PyTorchActorModel pid=3149826)             device=cpu),
+(PyTorchActorModel pid=3149826)         query_response_padding_masks: Tensor(shape=torch.Size([6, 40, 711]), device=cpu, dtype=torch.bool, is_shared=False),
+(PyTorchActorModel pid=3149826)         query_responses: Tensor(shape=torch.Size([6, 40, 711]), device=cpu, dtype=torch.int64, is_shared=False),
+(PyTorchActorModel pid=3149826)         ref_logprobs: Tensor(shape=torch.Size([6, 40, 512]), device=cpu, dtype=torch.float32, is_shared=False),
+(PyTorchActorModel pid=3149826)         responses: Tensor(shape=torch.Size([6, 40, 512]), device=cpu, dtype=torch.int64, is_shared=False),
+(PyTorchActorModel pid=3149826)         reward_metadata: NonTensorStack(
+(PyTorchActorModel pid=3149826)             [[{'func_names': ['at_least_one_space_between_thin...,
+(PyTorchActorModel pid=3149826)             batch_size=torch.Size([6, 40]),
+(PyTorchActorModel pid=3149826)             device=cpu),
+(PyTorchActorModel pid=3149826)         rewards: Tensor(shape=torch.Size([6, 40, 2]), device=cpu, dtype=torch.float32, is_shared=False),
+(PyTorchActorModel pid=3149826)         seq_lens: Tensor(shape=torch.Size([6, 40]), device=cpu, dtype=torch.int64, is_shared=False),
+(PyTorchActorModel pid=3149826)         successes: Tensor(shape=torch.Size([6, 40, 2]), device=cpu, dtype=torch.float32, is_shared=False)},
+(PyTorchActorModel pid=3149826)     exclusive_fields={
+(PyTorchActorModel pid=3149826)     },
+(PyTorchActorModel pid=3149826)     batch_size=torch.Size([6, 40]),
+(PyTorchActorModel pid=3149826)     device=cpu,
+(PyTorchActorModel pid=3149826)     is_shared=False,
+(PyTorchActorModel pid=3149826)     stack_dim=0)
