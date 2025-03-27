@@ -22,6 +22,7 @@ from torchtune.modules import (
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
+from torchtune.utils._logging import deprecated
 
 """
 Component builders for the Llama2 model and popular variants such as LoRA.
@@ -288,7 +289,9 @@ def lora_llama2(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model
 
@@ -477,6 +480,11 @@ def lora_llama2_mlp(
 # ------------------ Llama2 Classifier ------------------
 
 
+@deprecated(
+    msg="Model-specific classifier builders are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.llama2.llama2` instead."
+)
 def llama2_classifier(
     num_classes: int,
     *,
@@ -521,7 +529,7 @@ def llama2_classifier(
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    
+
     layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = MultiHeadAttention(
@@ -560,6 +568,13 @@ def llama2_classifier(
     )
 
 
+@deprecated(
+    msg="Model-specific classifier builders, and PEFT-based classifier builders with `apply_lora_to_output=True` "
+    " are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.llama2.lora_llama2` and "
+    "`apply_lora_to_output=False` instead."
+)
 def lora_llama2_classifier(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
@@ -696,6 +711,8 @@ def lora_llama2_classifier(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model
