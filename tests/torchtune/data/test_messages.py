@@ -181,7 +181,7 @@ class TestInputOutputToMessages:
     def test_call_train_on_input(self, sample):
         transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"},
-            train_on_input=True,
+            masking_strategy="train_on_all",
         )
         actual = transform(sample)
         expected = [
@@ -300,7 +300,7 @@ class TestChosenRejectedToMessages:
                 "chosen": "maybe_chosen",
                 "rejected": "maybe_rejected",
             },
-            train_on_input=True,
+            masking_strategy="train_on_all",
         )
         actual = transform(sample)
         expected_chosen = [
@@ -529,7 +529,7 @@ class TestShareGPTToMessages:
         assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
 
     def test_call_train_on_input(self):
-        transform = ShareGPTToMessages(train_on_input=True)
+        transform = ShareGPTToMessages(masking_strategy="train_on_all")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
@@ -669,7 +669,7 @@ class TestOpenAIToMessages:
         assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
 
     def test_call_train_on_input(self):
-        transform = OpenAIToMessages(train_on_input=True)
+        transform = OpenAIToMessages(masking_strategy="train_on_all")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
@@ -944,7 +944,7 @@ class TestAlpacaToMessages:
                 "input": "maybe_input",
                 "output": "maybe_output",
             },
-            train_on_input=True,
+            masking_strategy="train_on_all",
         )
         actual = transform(sample_with_no_input)
         expected = [

@@ -70,8 +70,8 @@ Example chat dataset
         split="train",
         conversation_column="conversations",
         conversation_style="sharegpt",
-        # By default, user prompt is ignored in loss. Set to True to include it
-        train_on_input=True,
+        # By default, user prompt is ignored in loss. Set to train_on_all to include it
+        masking_strategy="train_on_all",
         new_system_prompt=None,
     )
     tokenized_dict = ds[0]
@@ -97,7 +97,7 @@ Example chat dataset
       split: train
       conversation_column: conversations
       conversation_style: sharegpt
-      train_on_input: True
+      masking_strategy: train_on_all
       new_system_prompt: null
 
 Chat dataset format

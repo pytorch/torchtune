@@ -148,7 +148,7 @@ class TestStackExchangePairedToMessages:
                 "chosen": "maybe_chosen",
                 "rejected": "maybe_rejected",
             },
-            train_on_input=True,
+            masking_strategy="train_on_all",
         )
         actual = transform(sample)
         expected_chosen = [

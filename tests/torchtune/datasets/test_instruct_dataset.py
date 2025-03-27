@@ -18,8 +18,8 @@ def dummy_transform(sample):
 
 
 class TestInstructDataset:
-    @pytest.mark.parametrize("train_on_input", [True, False])
-    def test_get_item(self, train_on_input):
+    @pytest.mark.parametrize("masking_strategy", ["train_on_all", "train_on_assistant"])
+    def test_get_item(self, masking_strategy):
         expected_tokenized_prompts = [
             [0, 6, 4, 6, 4, 4, 2, 2, 2, 7, 2, 2, 5, 2, 2, 6, -1],
             [0, 6, 4, 6, 2, 2, 8, 2, 15, 8, 3, 15, 3, 4, 9, 3, 15, -1],
@@ -36,7 +36,7 @@ class TestInstructDataset:
         dataset = instruct_dataset(
             tokenizer=DummyTokenizer(),
             source="json",
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
             data_files=str(ASSETS / "instruct_tiny.json"),
             column_map={"input": "instruction", "output": "response"},
             split="train",
@@ -49,7 +49,7 @@ class TestInstructDataset:
         for i in range(len(dataset)):
             prompt, label = dataset[i]["tokens"], dataset[i]["labels"]
             assert prompt == expected_tokenized_prompts[i]
-            if train_on_input:
+            if masking_strategy == "train_on_all":
                 assert (
                     label[system_prompt_offset:]
                     == expected_tokenized_prompts[i][system_prompt_offset:]

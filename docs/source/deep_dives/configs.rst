@@ -62,10 +62,10 @@ arguments:
 
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: False
+      masking_strategy: train_on_assistant
 
-Here, we are changing the default value for :code:`train_on_input` from :code:`True`
-to :code:`False`.
+Here, we are changing the default value for :code:`masking_strategy` from :code:`"train_on_all"`
+to :code:`"train_on_assistant"`.
 
 Once you've specified the :code:`_component_` in your config, you can create an
 instance of the specified object in your recipe's setup like so:
@@ -117,7 +117,7 @@ keyword arguments not specified in the config if we'd like:
     # and any optional keyword arguments
     def alpaca_dataset(
         tokenizer: ModelTokenizer,
-        train_on_input: bool = True,
+        masking_strategy: str = "train_on_all",
         max_seq_len: int = 512,
     ) -> SFTDataset:
 
@@ -131,7 +131,7 @@ keyword arguments not specified in the config if we'd like:
     dataset = config.instantiate(
         cfg.dataset,
         tokenizer,
-        train_on_input=False,
+        masking_strategy="train_on_assistant",
     )
 
 Note that additional keyword arguments will overwrite any duplicated keys in the
@@ -239,9 +239,9 @@ name directly. Any nested fields in the components can be overridden with dot no
 
 .. code-block:: bash
 
-    # Change to slimorca_dataset and set train_on_input to True
+    # Change to slimorca_dataset and set masking_strategy to train_on_all
     tune run lora_finetune_single_device --config my_config.yaml \
-    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=True
+    dataset=torchtune.datasets.slimorca_dataset dataset.masking_strategy=train_on_all
 
 Removing config fields
 ^^^^^^^^^^^^^^^^^^^^^^

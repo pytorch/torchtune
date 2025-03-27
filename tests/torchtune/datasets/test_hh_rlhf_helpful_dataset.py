@@ -115,6 +115,6 @@ class TestHHRLHFHelpfulDataset:
         ):
             hh_rlhf_helpful_dataset(
                 tokenizer=DummyTokenizer(),
-                train_on_input=True,
+                masking_strategy="train_on_all",
                 packed=True,
             )

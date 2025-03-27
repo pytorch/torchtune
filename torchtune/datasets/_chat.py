@@ -18,7 +18,8 @@ def chat_dataset(
     source: str,
     conversation_column: str,
     conversation_style: str,
-    train_on_input: bool = False,
+    masking_strategy: str = "train_on_assistant",
+    train_on_input: Optional[bool] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
@@ -61,12 +62,12 @@ def chat_dataset(
     If your column names are different, use the ``conversation_column`` parameter to point
     towards the column with the conversations.
 
-    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
-    set to ``False`` by default.
-
-    - If ``train_on_input`` is True, the prompt is used during training and
-      contributes to the loss.
-    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).
+    Masking of the prompt during training is controlled by the ``masking_strategy`` parameter which is
+    set to ``train_on_assistant`` by default.
+    
+    - ``train_on_all``: both user and assistant messages are unmasked
+    - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+    - ``train_on_last``: only the last assistant message is unmasked
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -79,7 +80,10 @@ def chat_dataset(
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the :class:`~torchtune.data.Message` structure.
             Supported styles are: "sharegpt", "openai"
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        masking_strategy (str): Masking strategy to use for model training.
+            Must be one of: ``train_on_all``, ``train_on_assistant``, ``train_on_last``.
+            Default is "train_on_assistant".
+        train_on_input (bool): Deprecated. Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
             serve as instructions to guide the model response. Default is None.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
@@ -126,7 +130,7 @@ def chat_dataset(
         ...     data_files="my_dataset.json",
         ...     conversation_column="conversations",
         ...     conversation_style="sharegpt",
-        ...     train_on_input=False,
+        ...     masking_strategy="train_on_assistant",
         ...     packed=False,
         ...     split="train",
         ... )
@@ -144,7 +148,7 @@ def chat_dataset(
           data_files: my_dataset.json
           conversation_column: conversations
           conversation_style: sharegpt
-          train_on_input: False
+          masking_strategy: train_on_assistant
           packed: False
           split: train
 
@@ -155,17 +159,20 @@ def chat_dataset(
     Raises:
         ValueError: if the conversation format is not supported
     """
+    
     if conversation_style == "sharegpt":
         message_transform = ShareGPTToMessages(
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
             column_map={"conversations": conversation_column},
             new_system_prompt=new_system_prompt,
+            train_on_input=train_on_input,
         )
     elif conversation_style == "openai":
         message_transform = OpenAIToMessages(
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
             column_map={"messages": conversation_column},
             new_system_prompt=new_system_prompt,
+            train_on_input=train_on_input,
         )
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")
