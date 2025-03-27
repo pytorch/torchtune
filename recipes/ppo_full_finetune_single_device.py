@@ -17,7 +17,8 @@ import torch
 from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
@@ -223,7 +224,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # sampler and dataloader depends on the tokenizer and should be set
         # setup after it is initialized
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -643,7 +644,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def _setup_data(
         self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here.
         """
@@ -656,14 +657,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
+        sampler = StatefulDistributedSampler(
             ds,
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
@@ -676,7 +676,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self, epoch: int, is_intermediate_checkpoint: bool = False
@@ -698,6 +698,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.MAX_STEPS_KEY: self._total_steps,
                     training.STEPS_KEY: self._steps_run,
                     training.RNG_KEY: self._rng.get_state(),
+                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
             if not self._optimizer_in_bwd:
@@ -919,8 +920,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for curr_epoch in range(self._epochs_run, self._total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
