@@ -10,13 +10,15 @@ import torch.nn as nn
 from torchtune.config._utils import _get_component_from_path
 from torchtune.modules.transformer import TransformerDecoder
 
-
+# TODO (SalmanMohammadi) - add a tutorial for fine-tuning classifiers
 def classifier_model(
     num_classes: int, base_model_path: str, **base_model_kwargs: Dict[str, Any]
 ) -> Union[TransformerDecoder, nn.Module]:
     """
     Create a classifier model from a base model by adapting the output layer.
-    This builder does not support models which apply PEFT to the output layer.
+
+    Note:
+        This builder does not support models which apply PEFT to the output layer.
 
     Args:
         num_classes (int): The number of classes for the classifier.
@@ -26,8 +28,7 @@ def classifier_model(
         **base_model_kwargs (Dict[str, Any]): Keyword arguments for the base model.
 
     Returns:
-        Union[TransformerDecoder, nn.Module]: The base model, with
-            the output layer adapted for the number of classes.
+        Union[TransformerDecoder, nn.Module]: The base model, with the output layer adapted for the number of classes.
 
     Raises:
         ValueError: If the base model does not have a valid output layer to adapt.
