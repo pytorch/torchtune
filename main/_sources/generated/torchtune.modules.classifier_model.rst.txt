@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.modules
+
+
+classifier_model
+================
+
+.. autofunction:: classifier_model
