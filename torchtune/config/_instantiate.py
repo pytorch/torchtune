@@ -4,9 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
+
+import inspect
 import os
 import sys
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from omegaconf import DictConfig, OmegaConf
 from torchtune.config._errors import InstantiationError
@@ -22,7 +24,11 @@ def _create_component(
     return _component_(*args, **kwargs)
 
 
-def _instantiate_node(config_dict: Dict[str, Any], *args: Any) -> Any:
+def _instantiate_node(
+    config_dict: Dict[str, Any],
+    caller_globals: Optional[Dict[str, Any]] = None,
+    *args: Any,
+) -> Any:
     """
     Instantiate a component from a config dictionary.
 
@@ -31,6 +37,7 @@ def _instantiate_node(config_dict: Dict[str, Any], *args: Any) -> Any:
 
     Args:
         config_dict (Dict[str, Any]): Config dictionary with '_component_' and arguments.
+        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
         *args (Any): Positional arguments for the component.
 
     Returns:
@@ -54,9 +61,11 @@ def _instantiate_node(config_dict: Dict[str, Any], *args: Any) -> Any:
         InstantiationError: If '_component_' is missing.
     """
     if "_component_" in config_dict:
-        _component_ = _get_component_from_path(config_dict["_component_"])
+        _component_ = _get_component_from_path(
+            config_dict["_component_"], caller_globals=caller_globals
+        )
         kwargs = {
-            k: _instantiate_nested(v)
+            k: _instantiate_nested(v, caller_globals)
             for k, v in config_dict.items()
             if k != "_component_"
         }
@@ -68,12 +77,15 @@ def _instantiate_node(config_dict: Dict[str, Any], *args: Any) -> Any:
     )
 
 
-def _instantiate_nested(obj: Any) -> Any:
+def _instantiate_nested(
+    obj: Any, caller_globals: Optional[Dict[str, Any]] = None
+) -> Any:
     """
     Processes dictionaries and lists to recursively instantiate any nested '_component_' fields.
 
     Args:
         obj (Any): Object to process (dict, list, or other).
+        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
 
     Returns:
         Any: Object with nested components instantiated.
@@ -81,10 +93,10 @@ def _instantiate_nested(obj: Any) -> Any:
     if isinstance(obj, dict):
         if "_component_" in obj:
             config = OmegaConf.create(obj)
-            return instantiate(config)
-        return {k: _instantiate_nested(v) for k, v in obj.items()}
+            return instantiate(config, caller_globals=caller_globals)
+        return {k: _instantiate_nested(v, caller_globals) for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [_instantiate_nested(item) for item in obj]
+        return [_instantiate_nested(item, caller_globals) for item in obj]
     return obj
 
 
@@ -160,4 +172,16 @@ def instantiate(
     # Resolve all interpolations, or references to other fields within the same config
     OmegaConf.resolve(config)
 
-    return _instantiate_node(OmegaConf.to_container(config, resolve=True), *args)
+    # Where this is called → instantiate → _instantiate_node → _get_component_from_path
+    # if the user is instantiating a local object, we have to step back (f_back) and get these globals
+    # so that `_get_component_from_path`` can use it.
+    caller_globals = None
+    current_frame = inspect.currentframe()
+    if current_frame and current_frame.f_back:
+        caller_globals = current_frame.f_back.f_globals
+
+    return _instantiate_node(
+        OmegaConf.to_container(config, resolve=True),
+        caller_globals=caller_globals,
+        *args,
+    )
