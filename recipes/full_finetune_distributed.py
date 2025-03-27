@@ -11,7 +11,7 @@ import time
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
-
+import re
 import torch
 from omegaconf import DictConfig, ListConfig
 
@@ -29,6 +29,9 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
 from omegaconf import OmegaConf
+import pprint
+import os
+import re
 
 import random
 from tqdm import tqdm
@@ -136,9 +139,32 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
+        # extract information from output_dir
+        path_parts = self._output_dir.split('/')        
         self.method = cfg.method
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        # Look for the date_run pattern in all path segments
+        date_run_pattern = None
+        for part in path_parts:
+            match = re.search(r'(\d{8}_\d{6})_(.*)', part)
+            if match:
+                date_run_pattern = match
+                break          
+        if not date_run_pattern:
+            # Fallback if pattern not found
+            log.warning(f"Could not extract date_run pattern from path: {self._output_dir}")
+            date_part = "unknown_date"
+            run_name_part = "unknown_run"
+        else:
+            date_part = date_run_pattern.group(1)
+            run_name_part = date_run_pattern.group(2)
+        
+        # Extract epoch and seed
+        epoch_match = re.search(r'epoch_(\d+)', path_parts[-2])
+        self.epoch = int(epoch_match.group(1) if epoch_match else "0")
+        # Construct run_id using date, run_name, epoch and seed
+        self.run_id = f"{date_part}_{run_name_part}"
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
@@ -288,11 +314,28 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         model, tokenizer, loss, optimizer, lr scheduler, sampler, and dataloader.
         """
         if self._is_rank_zero:
-            self._metric_logger = config.instantiate(cfg.metric_logger)
-
+            wandb_kwargs = {
+                'epoch': self.epoch,  # Not resuming but creating new run with constructed ID
+                'run_id': self.run_id,
+                'project': cfg.get("wandb_project", None),
+                'log_dir': cfg.metric_logger.get("log_dir", None),
+                'seed' : self.seed
+            }
+            self._metric_logger = config.instantiate(cfg.metric_logger, **wandb_kwargs)
+            
+            # Check if wandb is being used in the logger
+            wandb_logger = None
+            if hasattr(self._metric_logger, '_wandb') and self._metric_logger._wandb.run:
+                # Direct WandBLogger
+                wandb_logger = self._metric_logger
+            elif hasattr(self._metric_logger, 'loggers'):
+                # HybridLogger - check if any of the contained loggers is a WandBLogger
+                for logger in self._metric_logger.loggers:
+                    if hasattr(logger, '_wandb') and logger._wandb.run:
+                        wandb_logger = logger
+                        break
             # log config with parameter override
             self._metric_logger.log_config(cfg)
-
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._compile = cfg.get("compile", False)
@@ -434,8 +477,30 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.global_step = self.epochs_run * self._steps_per_epoch
-
+        # If we have a wandb logger, try to get the last step from its history
+        if self._is_rank_zero and wandb_logger is not None:
+            try:
+                # Get the current run
+                run = wandb_logger._wandb.run
+                
+                # Try to get the latest global_step by querying the summary
+                last_step = run.step
+                log.info(f"Found last step in wandb summary: {last_step}")
+                if last_step > 0:
+                    self.global_step = last_step
+                    log.info(f"Setting global_step to last wandb step: {self.global_step}")
+                else:
+                    log.info("No step information found in wandb run summary")
+            except Exception as e:
+                log.info(f"Failed to get last step from wandb run: {e}")
+        else: 
+            if self._is_rank_zero:
+                self.global_step = self.epoch * self._steps_per_epoch
+        # Broadcast global_step from rank 0 to all other ranks to ensure consistency
+        if torch.distributed.is_initialized():
+            global_step_tensor = torch.tensor([self.global_step], device=self._device)
+            torch.distributed.broadcast(global_step_tensor, src=0)
+            self.global_step = int(global_step_tensor.item())
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
