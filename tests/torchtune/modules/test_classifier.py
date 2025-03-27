@@ -7,7 +7,7 @@
 import pytest
 import torch
 from tests.test_utils import fixed_init_model
-from torchtune.modules import classifier_model
+from torchtune.modules.classifier import classifier_model
 from torchtune.training.seed import set_seed
 
 NUM_LAYERS = 4

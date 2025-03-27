@@ -34,7 +34,7 @@ from .transformer import (  # noqa
 from .vision_transformer import VisionTransformer
 from .vq_embeddings import VectorQuantizedEmbeddings
 
-from .classifier import classifier_model
+# from .classifier import classifier_model
 __all__ = [
     "MultiHeadAttention",
     "TanhGate",
@@ -59,5 +59,5 @@ __all__ = [
     "disable_kv_cache",
     "LayerDropout",
     "prepare_layer_dropout",
-    "classifier_model",
+    # "classifier_model",
 ]
