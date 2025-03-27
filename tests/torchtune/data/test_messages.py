@@ -178,7 +178,7 @@ class TestInputOutputToMessages:
         ]
         assert_dialogue_equal(actual["messages"], expected)
 
-    def test_call_train_on_input(self, sample):
+    def test_masking_strategy_train_on_all(self, sample):
         transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"},
             masking_strategy="train_on_all",
@@ -294,7 +294,7 @@ class TestChosenRejectedToMessages:
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
 
-    def test_call_train_on_input(self, sample):
+    def test_masking_strategy_train_on_all(self, sample):
         transform = ChosenRejectedToMessages(
             column_map={
                 "chosen": "maybe_chosen",
@@ -528,7 +528,7 @@ class TestShareGPTToMessages:
         converted_messages = transform(self.samples)
         assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
 
-    def test_call_train_on_input(self):
+    def test_masking_strategy_train_on_all(self):
         transform = ShareGPTToMessages(masking_strategy="train_on_all")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
@@ -668,7 +668,7 @@ class TestOpenAIToMessages:
         converted_messages = transform(self.samples)
         assert_dialogue_equal(converted_messages["messages"], MESSAGE_SAMPLE)
 
-    def test_call_train_on_input(self):
+    def test_masking_strategy_train_on_all(self):
         transform = OpenAIToMessages(masking_strategy="train_on_all")
         converted_messages = transform(self.samples)
         assert_dialogue_equal(
@@ -937,7 +937,7 @@ class TestAlpacaToMessages:
         ]
         assert_dialogue_equal(actual["messages"], expected)
 
-    def test_call_train_on_input(self, sample_with_no_input):
+    def test_masking_strategy_train_on_all(self, sample_with_no_input):
         transform = AlpacaToMessages(
             column_map={
                 "instruction": "maybe_instruction",

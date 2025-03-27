@@ -21,8 +21,8 @@ from torchtune.datasets._stack_exchange_paired import (
 
 class TestStackExchangePairedDataset:
     @patch("torchtune.datasets._preference.load_dataset")
-    @pytest.mark.parametrize("train_on_input", [True, False])
-    def test_dataset_get_item(self, mock_load_dataset, train_on_input):
+    @pytest.mark.parametrize("masking_strategy", ["train_on_all", "train_on_assistant"])
+    def test_dataset_get_item(self, mock_load_dataset, masking_strategy):
         # Truncated sample data from stack exchange paired dataset
         mock_load_dataset.return_value = Dataset.from_list(
             [
@@ -44,7 +44,7 @@ class TestStackExchangePairedDataset:
         )
         ds = stack_exchange_paired_dataset(
             tokenizer=DummyTokenizer(),
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
         )
         # Generate the input and labels
         sample = ds[0]
@@ -70,7 +70,7 @@ class TestStackExchangePairedDataset:
             -1: 1,
         }
         assert Counter(sample["chosen_input_ids"]) == expected_chosen_counts
-        if train_on_input:
+        if masking_strategy == "train_on_all":
             assert Counter(sample["chosen_labels"]) == expected_chosen_counts
         else:
             # Check that the input is masked
@@ -94,7 +94,7 @@ class TestStackExchangePairedDataset:
             -1: 1,
         }
         assert Counter(sample["rejected_input_ids"]) == expected_rejected_counts
-        if train_on_input:
+        if masking_strategy == "train_on_all":
             assert Counter(sample["rejected_labels"]) == expected_rejected_counts
         else:
             # Check that the input is masked
@@ -141,7 +141,7 @@ class TestStackExchangePairedToMessages:
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
 
-    def test_call_train_on_input(self, sample):
+    def test_masking_strategy_train_on_all(self, sample):
         transform = StackExchangePairedToMessages(
             column_map={
                 "prompt": "maybe_prompt",
