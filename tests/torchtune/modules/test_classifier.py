@@ -7,7 +7,7 @@
 import pytest
 import torch
 from tests.test_utils import fixed_init_model
-from torchtune.modules.classifier import classifier_model
+from torchtune.modules import classifier_model
 from torchtune.training.seed import set_seed
 
 NUM_LAYERS = 4
@@ -18,12 +18,12 @@ MAX_SEQ_LEN = 2048
 INTERMEDIATE_DIM = 512
 
 
-class TestZClassifierModelBuilder:
+@pytest.fixture(autouse=True, scope="class")
+def random():
+    set_seed(16)
 
-    @pytest.fixture(autouse=True)
-    def random():
-        set_seed(16)
 
+class TestClassifierModelBuilder:
     @pytest.mark.parametrize(
         "base_model_path",
         [
