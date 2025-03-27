@@ -102,6 +102,7 @@ def _instantiate_nested(
 def instantiate(
     config: Union[Dict[str, Any], DictConfig],
     *args: Any,
+    caller_globals: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
 ) -> Any:
     """
@@ -117,6 +118,7 @@ def instantiate(
     Args:
         config (Union[Dict[str, Any], DictConfig]): Configuration with '_component_' and optional arguments.
         *args (Any): Positional arguments for the component.
+        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
         **kwargs (Any): Keyword arguments to override or add to the config.
 
     Returns:
@@ -179,10 +181,10 @@ def instantiate(
     # Where this is called → instantiate → _instantiate_node → _get_component_from_path
     # if the user is instantiating a local object, we have to step back (f_back) and get these globals
     # so that `_get_component_from_path`` can use it.
-    caller_globals = None
-    current_frame = inspect.currentframe()
-    if current_frame and current_frame.f_back:
-        caller_globals = current_frame.f_back.f_globals
+    if caller_globals is None:
+        current_frame = inspect.currentframe()
+        if current_frame and current_frame.f_back:
+            caller_globals = current_frame.f_back.f_globals
 
     return _instantiate_node(
         OmegaConf.to_container(config, resolve=True),
