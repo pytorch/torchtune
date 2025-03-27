@@ -18,12 +18,12 @@ MAX_SEQ_LEN = 2048
 INTERMEDIATE_DIM = 512
 
 
-@pytest.fixture(autouse=True)
-def random():
-    set_seed(16)
-
-
 class TestZClassifierModelBuilder:
+
+    @pytest.fixture(autouse=True)
+    def random():
+        set_seed(16)
+
     @pytest.mark.parametrize(
         "base_model_path",
         [
