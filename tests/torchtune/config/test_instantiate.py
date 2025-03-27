@@ -83,11 +83,6 @@ class TestInstantiate:
         actual = instantiate(config.test, eps=1e-4)
         assert actual.eps == expected.eps
 
-        # Test passing in positional args
-        del config.test.dim
-        actual = instantiate(config.test, 3)
-        assert self.get_dim(actual) == 3
-
         # should raise error if _component_ is not specified
         with pytest.raises(
             InstantiationError, match="Cannot instantiate specified object"
@@ -98,6 +93,11 @@ class TestInstantiate:
             InstantiationError, match="Cannot instantiate specified object"
         ):
             _ = instantiate(config.a)
+
+        # Test passing in positional args
+        del config.test.dim
+        actual = instantiate(config.test, 3)
+        assert self.get_dim(actual) == 3
 
     def test_tokenizer_config_with_null(self):
         assets = Path(__file__).parent.parent.parent / "assets"
