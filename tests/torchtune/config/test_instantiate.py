@@ -90,7 +90,7 @@ class TestInstantiate:
             _ = instantiate(config)
 
         with pytest.raises(
-            InstantiationError,
+            ValueError,
             match="instantiate only supports DictConfigs or dicts, got <class 'str'>",
         ):
             _ = instantiate(config.a)
