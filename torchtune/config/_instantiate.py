@@ -8,7 +8,7 @@ import copy
 import inspect
 import os
 import sys
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 from omegaconf import DictConfig, OmegaConf
 from torchtune.config._errors import InstantiationError
@@ -92,8 +92,7 @@ def _instantiate_nested(
     """
     if isinstance(obj, dict):
         if "_component_" in obj:
-            config = OmegaConf.create(obj)
-            return instantiate(config, caller_globals=caller_globals)
+            return instantiate(obj, caller_globals=caller_globals)
         return {k: _instantiate_nested(v, caller_globals) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [_instantiate_nested(item, caller_globals) for item in obj]
@@ -101,14 +100,14 @@ def _instantiate_nested(
 
 
 def instantiate(
-    config: DictConfig,
+    config: Union[Dict[str, Any], DictConfig],
     *args: Any,
     **kwargs: Any,
 ) -> Any:
     """
     Instantiate a component from a configuration, recursively handling nested components.
 
-    Given a DictConfig with a '_component_' field specifying the object to instantiate and
+    Given a dict with a '_component_' field specifying the object to instantiate and
     additional fields as keyword arguments, create an instance of the specified object.
     Positional and keyword arguments passed in the call are merged with the config, with
     keyword arguments taking precedence.
@@ -116,7 +115,7 @@ def instantiate(
     Based on Hydra's `instantiate` utility.
 
     Args:
-        config (DictConfig): Configuration with '_component_' and optional arguments.
+        config (Union[Dict[str, Any], DictConfig]): Configuration with '_component_' and optional arguments.
         *args (Any): Positional arguments for the component.
         **kwargs (Any): Keyword arguments to override or add to the config.
 
@@ -151,8 +150,13 @@ def instantiate(
     if config is None:
         return None
 
-    if not OmegaConf.is_dict(config):
-        raise ValueError(f"instantiate only supports DictConfigs, got {type(config)}")
+    # Convert plain dict to DictConfig if necessary
+    if isinstance(config, dict):
+        config = OmegaConf.create(config)
+    elif not OmegaConf.is_dict(config):
+        raise ValueError(
+            f"instantiate only supports DictConfigs or dicts, got {type(config)}"
+        )
 
     # Ensure local imports are able to be instantiated
     if os.getcwd() not in sys.path:
