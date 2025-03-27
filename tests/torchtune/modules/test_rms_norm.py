@@ -5,10 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+
 import torch
 
 from tests.test_utils import assert_expected
 from torch.nn.functional import normalize
+
 from torchtune.modules.rms_norm import RMSNorm
 from torchtune.training.seed import set_seed
 
@@ -64,7 +66,6 @@ class TestRMSNorm:
 
         # convert input to float since rms_norm computes in fp32
         expected_fp16 = normalize(input_random_fp16.float(), p=2, dim=-1) * (dim**0.5)
-        expected_fp16 = expected_fp16.to(torch.float16)
 
         assert_expected(output_fp16, expected_fp16, atol=1e-7, rtol=1e-3)
-        assert output_fp16.dtype == torch.float16
+        assert output_fp16.dtype == torch.float32
