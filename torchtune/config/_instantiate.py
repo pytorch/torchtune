@@ -178,9 +178,10 @@ def instantiate(
     # Resolve all interpolations, or references to other fields within the same config
     OmegaConf.resolve(config)
 
-    # Where this is called → instantiate → _instantiate_node → _get_component_from_path
-    # if the user is instantiating a local object, we have to step back (f_back) and get these globals
-    # so that `_get_component_from_path`` can use it.
+    # caller → instantiate → _instantiate_node → _get_component_from_path
+    # To get the caller's globals, in case the the user is trying to instantiate some object from it,
+    # we step back (f_back) and get it, so `_get_component_from_path`` can use it.
+    # For nested instantiation, this will NOT be None anymore, meaning that we preserve the caller's globals
     if caller_globals is None:
         current_frame = inspect.currentframe()
         if current_frame and current_frame.f_back:
