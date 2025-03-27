@@ -8,6 +8,7 @@ import copy
 import inspect
 import os
 import sys
+from functools import partial
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 from omegaconf import DictConfig, OmegaConf
@@ -20,8 +21,30 @@ def _create_component(
     args: Tuple[Any, ...],
     kwargs: Dict[str, Any],
 ) -> Any:
-    """Create an instance of a component with given arguments."""
-    return _component_(*args, **kwargs)
+    """
+    Create an instance of a class or a partial function with given arguments.
+
+    If the component is a class, instantiate it with the provided positional and keyword arguments.
+    If the component is a callable (e.g., a function), return a partial function with the arguments
+    pre-applied using functools.partial.
+
+    Args:
+        _component_ (Callable[..., Any]): The component (class or function) to process.
+        args (Tuple[Any, ...]): Positional arguments for the component.
+        kwargs (Dict[str, Any]): Keyword arguments for the component.
+
+    Returns:
+        Any: An instance of the class or a partial function.
+
+    Raises:
+        InstantiationError: If the component is not callable.
+    """
+    if inspect.isclass(_component_):
+        return _component_(*args, **kwargs)
+    elif callable(_component_):
+        return partial(_component_, *args, **kwargs)
+    else:
+        raise InstantiationError(f"Cannot process non-callable {_component_}")
 
 
 def _instantiate_node(
@@ -30,11 +53,11 @@ def _instantiate_node(
     caller_globals: Optional[Dict[str, Any]] = None,
 ) -> Any:
     """
-    Instantiate a component from an object, recursively processing nested structures.
+    Create an instance or a partial function from an object, recursively processing nested structures.
 
-    If the object is a dictionary with a '_component_' key, instantiate the component,
-    processing its arguments recursively. If it's a dictionary without '_component_' or a list,
-    process each item recursively. Otherwise, return the object unchanged.
+    If the object is a dictionary with a '_component_' key, create the specified component (class instance
+    or partial function), processing its arguments recursively. If it's a dictionary without '_component_'
+    or a list, process each item recursively. Otherwise, return the object unchanged.
 
     Args:
         obj (Any): Object to process (dict, list, or other).
@@ -42,7 +65,7 @@ def _instantiate_node(
         caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
 
     Returns:
-        Any: Instantiated object or processed structure.
+        Any: Instantiated object, partial function, or processed structure.
     """
     if isinstance(obj, dict) or isinstance(obj, DictConfig):
         if "_component_" not in obj:
@@ -73,12 +96,12 @@ def instantiate(
     **kwargs: Any,
 ) -> Any:
     """
-    Instantiate a component from a configuration, recursively handling nested components.
+    Create an instance of a class or a partial function from a configuration, recursively handling nested components.
 
-    Given a dict with a '_component_' field specifying the object to instantiate and
-    additional fields as keyword arguments, create an instance of the specified object.
-    Positional and keyword arguments passed in the call are merged with the config, with
-    keyword arguments taking precedence.
+    Given a dict with a '_component_' field specifying the class or callable to use and additional fields
+    as arguments, create an instance if it's a class or a partial function if it's a callable (e.g., a function).
+    Positional and keyword arguments passed in the call are merged with the config, with keyword arguments
+    taking precedence.
 
     Based on Hydra's `instantiate` utility.
 
@@ -89,7 +112,7 @@ def instantiate(
         **kwargs (Any): Keyword arguments to override or add to the config.
 
     Returns:
-        Any: The instantiated object, or None if config is None.
+        Any: The created object (class instance or partial function), or None if config is None.
 
     Examples:
         >>> class Spice:
@@ -110,10 +133,19 @@ def instantiate(
         >>> new_spice = {'_component_': 'Spice', 'heat_level': 10}
         >>> food = instantiate(config, ingredient=new_spice)
         >>> print(food.ingredient.heat_level)  # 10
+        >>>
+        >>> # Example with a function
+        >>> config = {'_component_': 'torch.nn.functional.cross_entropy', 'ignore_index': 999}
+        >>> loss = instantiate(config)
+        >>> # loss is a partial function: partial(cross_entropy, ignore_index=999)
+        >>> # Call it with remaining arguments:
+        >>> input = ...  # torch tensor
+        >>> target = ...  # torch tensor
+        >>> result = loss(input, target)  # Computes cross_entropy(input, target, ignore_index=999)
 
     Raises:
-        ValueError: If config is not a DictConfig.
-        InstantiationError: If the object to instantiate misses the '_component_' key.
+        ValueError: If config is not a DictConfig or dict.
+        InstantiationError: If the object to instantiate misses the '_component_' key or cannot be resolved.
     """
     if config is None:
         return None
@@ -154,7 +186,7 @@ def instantiate(
 
     # caller → instantiate → _instantiate_node → _get_component_from_path
     # To get the caller's globals, in case the the user is trying to instantiate some object from it,
-    # we step back (f_back) and get it, so `_get_component_from_path`` can use it.
+    # we step back (f_back) and get it, so `_get_component_from_path` can use it.
     if caller_globals is None:
         current_frame = inspect.currentframe()
         if current_frame and current_frame.f_back:

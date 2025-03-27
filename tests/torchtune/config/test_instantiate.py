@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from functools import partial
 from pathlib import Path
 from textwrap import dedent
 
@@ -32,6 +33,24 @@ class Food:
     def __init__(self, seed, ingredient):
         self.seed = seed
         self.ingredient = ingredient
+
+
+def dummy_loss(input, target, ignore_index=None):
+    """A dummy loss function that returns its arguments as a dictionary."""
+    return {"input": input, "target": target, "ignore_index": ignore_index}
+
+
+class LossWrapper:
+    """A class that wraps a loss function and computes with it."""
+
+    def __init__(self, loss_fn):
+        self.loss_fn = loss_fn
+
+    def compute(self, input, target):
+        return self.loss_fn(input, target)
+
+
+non_callable = "some_string"
 
 
 class TestInstantiate:
@@ -144,3 +163,74 @@ class TestInstantiate:
             config.food, ingredient={"_component_": "Spice", "heat_level": 10}
         )
         assert food.ingredient.heat_level == 10
+
+    def test_instantiate_function(self):
+        """Test instantiating a function with keyword arguments as a partial."""
+        config = OmegaConf.create({"_component_": "dummy_loss", "ignore_index": 999})
+        loss = instantiate(config)
+        assert isinstance(loss, partial), "Should return a partial function"
+        assert loss.func == dummy_loss, "Partial should wrap dummy_loss"
+        assert loss.keywords["ignore_index"] == 999, "Keyword argument should be set"
+
+        input_data = [1, 2]
+        target_data = [3, 4]
+        result = loss(input_data, target_data)
+        assert result == {
+            "input": input_data,
+            "target": target_data,
+            "ignore_index": 999,
+        }
+
+    def test_instantiate_function_with_positional(self):
+        """Test instantiating a function with positional arguments."""
+        config = OmegaConf.create({"_component_": "dummy_loss"})
+        loss = instantiate(config, [1, 2])  # Passing input as positional
+        assert isinstance(loss, partial), "Should return a partial function"
+        assert loss.args == ([1, 2],), "Positional argument should be stored"
+        target_data = [3, 4]
+        result = loss(target_data)
+        assert result == {"input": [1, 2], "target": target_data, "ignore_index": None}
+
+    def test_instantiate_function_override(self):
+        """Test overriding config keyword arguments with instantiate kwargs."""
+        config = OmegaConf.create({"_component_": "dummy_loss", "ignore_index": 100})
+        loss = instantiate(config, ignore_index=999)
+        assert loss.keywords["ignore_index"] == 999, "Override should take precedence"
+        input_data = [1, 2]
+        target_data = [3, 4]
+        result = loss(input_data, target_data)
+        assert result == {
+            "input": input_data,
+            "target": target_data,
+            "ignore_index": 999,
+        }
+
+    def test_nested_instantiation_with_function(self):
+        """Test nested instantiation where a class takes a partial function."""
+        config = OmegaConf.create(
+            {
+                "_component_": "LossWrapper",
+                "loss_fn": {"_component_": "dummy_loss", "ignore_index": 999},
+            }
+        )
+        wrapper = instantiate(config)
+        assert isinstance(wrapper, LossWrapper), "Should instantiate LossWrapper"
+        assert isinstance(wrapper.loss_fn, partial), "loss_fn should be a partial"
+        assert wrapper.loss_fn.func == dummy_loss, "Partial should wrap dummy_loss"
+        assert wrapper.loss_fn.keywords["ignore_index"] == 999
+
+        input_data = [1, 2]
+        target_data = [3, 4]
+        result = wrapper.compute(input_data, target_data)
+        assert result == {
+            "input": input_data,
+            "target": target_data,
+            "ignore_index": 999,
+        }
+
+    def test_instantiate_non_callable(self):
+        """Test that instantiating a non-callable raises an error."""
+
+        config = OmegaConf.create({"_component_": "non_callable"})
+        with pytest.raises(InstantiationError, match="Cannot process non-callable"):
+            instantiate(config)
