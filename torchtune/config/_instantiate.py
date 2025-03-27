@@ -61,7 +61,11 @@ def _instantiate_node(config_dict: Dict[str, Any], *args: Any) -> Any:
             if k != "_component_"
         }
         return _create_component(_component_, args, kwargs)
-    raise InstantiationError("Cannot instantiate: '_component_' field is missing.")
+    raise InstantiationError(
+        "Cannot instantiate specified object."
+        + "\nMake sure you've specified a _component_ field with a valid dotpath."
+        + f"\nGot {config_dict=}."
+    )
 
 
 def _instantiate_nested(obj: Any) -> Any:
@@ -134,9 +138,11 @@ def instantiate(
     """
     if config is None:
         return None
+
     if not OmegaConf.is_dict(config):
         raise ValueError(f"instantiate only supports DictConfigs, got {type(config)}")
 
+    # Ensure local imports are able to be instantiated
     if os.getcwd() not in sys.path:
         sys.path.append(os.getcwd())
 
@@ -148,7 +154,10 @@ def instantiate(
     config = config_copy
 
     if kwargs:
+        # This overwrites any repeated fields in the config with kwargs
         config = OmegaConf.merge(config, kwargs)
 
+    # Resolve all interpolations, or references to other fields within the same config
     OmegaConf.resolve(config)
+
     return _instantiate_node(OmegaConf.to_container(config, resolve=True), *args)
