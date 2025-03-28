@@ -36,10 +36,12 @@ MODEL_DIR=./models/Llama-3.3-70B-Instruct COMPILE=True PACKED=False SEQ_LEN=null
 
 # Similary you can finetune different llama models with full-weight, LoRA, qLoRA optimizations.
 ```
+##### Changes requried for efientuning with wikitext dataset:
+```bash
+1. If you want to finetune with wikitext from EleutherAI/wikitext_document_level, just change the _component_ to torchtune.datasets.wikitext_dataset
+2. If you want to run with a much bigger version of wikitext, then follow the steps:
+  2.1 Go to the file https://github.com/AMD-AIG-AIMA/torchtune/blob/Torchtune_AMD/torchtune/datasets/_wikitext.py
+  2.2 We need to just put wikitext instead of EleutherAI/wikitext_document_level for source
+  2.3 Change the column name from page to text
+```
 
-
-&nbsp;
-
-## License
-
-torchtune is released under the [BSD 3 license](./LICENSE). However you may have other legal obligations that govern your use of other content, such as the terms of service for third-party models.
