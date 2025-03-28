@@ -1,6 +1,6 @@
 
 # Torchtune Finetuning
-This section describes finetuning llama-3.3-70B using wikitext dataset on a single node using [Torchtune](https://pytorch.org/torchtune/stable/index.html) utility.
+This section describes finetuning llama models with full-weight/LoRA/qLoRA using alpaca dataset on a single node using [Torchtune](https://pytorch.org/torchtune/stable/index.html) utility.
 
 ### Environment Setup and Sample Examples Commands
 
