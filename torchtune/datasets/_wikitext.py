@@ -18,7 +18,7 @@ from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 def wikitext_dataset(
     tokenizer: ModelTokenizer,
-    source: str = "EleutherAI/wikitext_document_level",
+    source: str = "wikitext", #"EleutherAI/wikitext_document_level",
     subset: str = "wikitext-103-v1",
     max_seq_len: Optional[int] = None,
     packed: bool = False,
@@ -60,7 +60,7 @@ def wikitext_dataset(
     return text_completion_dataset(
         tokenizer=tokenizer,
         source=source,
-        column="page",
+        column="text",
         max_seq_len=max_seq_len,
         name=subset,
         packed=packed,
