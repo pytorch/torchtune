@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -145,11 +146,19 @@ class WandBLogger(MetricLoggerInterface):
             specify a group, the run will be logged as an individual experiment.
         log_dir (Optional[str]): WandB log directory. If not specified, use the `dir`
             argument provided in kwargs. Else, use root directory.
+        run_id (Optional[str]): WandB run ID to resume. If specified, will attempt to continue
+            logging to an existing run with this ID.
+        resume (Optional[str]): How to resume the run. Options are "auto", "must", "allow", "never".
+            Defaults to "auto". See https://docs.wandb.ai/guides/track/resuming for details.
+        seed (Optional[int]): Random seed used for the experiment. Will be used to tag logs.
         **kwargs: additional arguments to pass to wandb.init
 
     Example:
         >>> from torchtune.training.metric_logging import WandBLogger
+        >>> # Start a new run
         >>> logger = WandBLogger(project="my_project", entity="my_entity", group="my_group")
+        >>> # Resume an existing run
+        >>> logger = WandBLogger(project="my_project", run_id="abcd1234", resume="must")
         >>> logger.log("my_metric", 1.0, 1)
         >>> logger.log_dict({"my_metric": 1.0}, 1)
         >>> logger.close()
@@ -166,12 +175,16 @@ class WandBLogger(MetricLoggerInterface):
 
     def __init__(
         self,
-        project: str = "torchtune",
+        project: str = "agents",
         entity: Optional[str] = None,
         group: Optional[str] = None,
         log_dir: Optional[str] = None,
+        run_id: Optional[str] = None,
+        epoch: Optional[int] = 0,
+        seed: Optional[int] = None,
         **kwargs,
     ):
+        
         try:
             import wandb
         except ImportError as e:
@@ -183,21 +196,38 @@ class WandBLogger(MetricLoggerInterface):
 
         # Use dir if specified, otherwise use log_dir.
         self.log_dir = kwargs.pop("dir", log_dir)
-
+        # Extract seed from log_dir if not provided explicitly
+        self.seed = seed
+                    
         _, self.rank = get_world_size_and_rank()
 
         if self._wandb.run is None and self.rank == 0:
-            # we check if wandb.init got called externally,
+            # we check if wandb.init got called externally
+            resume = 'allow'
+            
+            # Add seed to tags if available
+            tags = kwargs.pop("tags", []) or []
+            if self.seed is not None:
+                tags.append(f"seed_{self.seed}")
+
+
+            run_id_seed = f"{run_id}_seed_{self.seed}" if run_id and self.seed is not None else run_id
             run = self._wandb.init(
                 project=project,
                 entity=entity,
-                group=group,
+                group=run_id,
                 dir=self.log_dir,
+                id=run_id_seed,
+                name = run_id_seed,
+                resume=resume,
                 **kwargs,
             )
-
+            
         if self._wandb.run:
             self._wandb.run._label(repo="torchtune")
+            # Add seed as a config parameter to make it more visible
+            if self.seed is not None:
+                self._wandb.config.update({"seed": self.seed}, allow_val_change=True)
 
         # define default x-axis (for latest wandb versions)
         if getattr(self._wandb, "define_metric", None):
@@ -218,7 +248,7 @@ class WandBLogger(MetricLoggerInterface):
         if self._wandb.run:
             resolved = OmegaConf.to_container(config, resolve=True)
             self._wandb.config.update(
-                resolved, allow_val_change=self.config_allow_val_change
+                resolved, allow_val_change=True
             )
             try:
                 output_config_fname = Path(
@@ -242,11 +272,19 @@ class WandBLogger(MetricLoggerInterface):
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         if self._wandb.run:
-            self._wandb.log({name: data, "global_step": step})
+            payload = {name: data, "global_step": step}
+            # Add seed to the log data for identification without changing the metric name
+            if self.seed is not None:
+                payload["seed"] = self.seed
+            self._wandb.log(payload)
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         if self._wandb.run:
-            self._wandb.log({**payload, "global_step": step})
+            metrics = {**payload, "global_step": step}
+            # Add seed to the log data for identification
+            if self.seed is not None:
+                metrics["seed"] = self.seed
+            self._wandb.log(metrics)
 
     def __del__(self) -> None:
         # extra check for when there is an import error
