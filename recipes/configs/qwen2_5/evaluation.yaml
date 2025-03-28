@@ -7,13 +7,14 @@ output_dir: ./ # Not needed
 
 # Model Arguments
 model:
-  _component_: torchtune.models.qwen2_5.qwen2_5_0_5b
+  _component_: torchtune.models.qwen2_5.qwen2_5_3b
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2.5-0.5B-Instruct
   checkpoint_files: [
-    model.safetensors,
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
   ]
   output_dir: ${output_dir}
   model_type: QWEN2
