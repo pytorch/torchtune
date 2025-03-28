@@ -1,0 +1,37 @@
+# Config for FederationRecipe in federation.py
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run federation --config federation_dilico.yaml
+
+output_dir: /tmp/torchtune/qwen2_5_0_5B/federated # /tmp may be deleted by your system. Change it to your preference.
+
+#
+# Model arguments
+model:
+  _component_: torchtune.models.qwen2_5.qwen2_5_0_5b
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /Users/maxime/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775
+  checkpoint_files: [model.safetensors]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: QWEN2
+resume_from_checkpoint: False
+
+device: mps
+dtype: bf16
+seed: 1234
+
+federator:
+  _component_: torchtune.training.federation.DiLoCoFederator
+  h: 50
+  optimizer:
+    _component_: torch.optim.SGD
+    lr: 1
+    nesterov: True
+    momentum: 0.9
+
+  participants:
+    - uioGMzl7zqtkydxP66mJh9dZCaNnSWOb
+    - etbefHUtU0XViIPrqo8nN2TlpvIUTdi7
