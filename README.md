@@ -1,7 +1,8 @@
 
 
 
-# torchtune
+# Torchtune
+## Examples scripts to run llama models with full-weight finetuning, LoRA, qLoRA are in the examples directory and the process to execute them is detailed in README_AMD.md
 
 [![Unit Test](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml)
 ![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)

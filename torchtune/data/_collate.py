@@ -59,6 +59,7 @@ def padded_collate(
     pad_direction: str,
     keys_to_pad: List[str],
     padding_idx: Union[int, Dict[str, int]],
+    pad_to_multiple_of: int = 1,
 ):
     """
     A generic padding collation function which pads ``keys_to_pad`` entries in a
@@ -79,6 +80,7 @@ def padded_collate(
         padding_idx (Union[int, Dict[str, int]]): Either a single integer padding value to apply to all
             ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key
             padding values.
+        pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
 
     Returns:
         torch.Tensor: The padded tensor of input ids with shape ``[batch_size, max_seq_len]``.
@@ -89,6 +91,7 @@ def padded_collate(
             if ``keys_to_pad`` is empty, or is not a list, **or**
             if ``keys_to_pad`` is not a subset of keys in the batch, **or**
             if ``padding_idx`` is provided as a dictionary, but the keys are not identical to ``keys_to_pad``
+            if ``pad_direction`` is "left" and ``pad_to_multiple_of`` is > 1
 
     Example:
         >>> a = [1, 2, 3]
@@ -115,6 +118,11 @@ def padded_collate(
     if pad_direction not in ["left", "right"]:
         raise ValueError(
             f"pad_direction should be one of 'left' or 'right' but found {pad_direction}"
+        )
+
+    if pad_direction == "left" and pad_to_multiple_of > 1:
+        raise ValueError(
+            f"pad_to_multiple_of={pad_to_multiple_of} is not supported for pad_direction='left'"
         )
 
     if not isinstance(keys_to_pad, list) or not keys_to_pad:
@@ -147,13 +155,27 @@ def padded_collate(
         else left_pad_sequence
     )
     for k in keys_to_pad:
-        output_dict[k] = pad_fn(
+        padded_tensor = pad_fn(
             [torch.tensor(x[k]) for x in batch],
             batch_first=True,
             padding_value=(
                 padding_idx[k] if isinstance(padding_idx, dict) else padding_idx
             ),
         )
+        # Pad to multiple of N if specified
+        if pad_to_multiple_of is not None:
+            seq_len = padded_tensor.shape[1]
+            remainder = seq_len % pad_to_multiple_of
+            if remainder != 0:
+                padding_size = pad_to_multiple_of - remainder
+                padded_tensor = F.pad(
+                    padded_tensor,
+                    (0, padding_size),
+                    value=(
+                        padding_idx[k] if isinstance(padding_idx, dict) else padding_idx
+                    ),
+                )
+        output_dict[k] = padded_tensor
     return output_dict
 
 
@@ -161,6 +183,7 @@ def padded_collate_sft(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+    pad_to_multiple_of: int = 1,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
@@ -169,6 +192,8 @@ def padded_collate_sft(
         batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
+        pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
+            This is useful for proper sharding with e.g. SequenceParallel.
 
     Returns:
         Dict[str, torch.Tensor]: Collated input and label tensors.
@@ -213,6 +238,19 @@ def padded_collate_sft(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
+
+    # Pad to multiple of N
+    if pad_to_multiple_of > 1:
+        input_ids = F.pad(
+            input_ids,
+            (0, pad_to_multiple_of - (input_ids_seq_len % pad_to_multiple_of)),
+            value=padding_idx,
+        )
+        labels = F.pad(
+            labels,
+            (0, pad_to_multiple_of - (labels_seq_len % pad_to_multiple_of)),
+            value=ignore_idx,
+        )
     return {"tokens": input_ids.long(), "labels": labels.long()}
 
 
@@ -225,6 +263,7 @@ def padded_collate_tiled_images_and_mask(
     pad_direction: str = "right",
     pad_max_tiles: Optional[int] = None,
     pad_max_images: Optional[int] = None,
+    pad_to_multiple_of: int = 1,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of text sequences, tiled image tensors, aspect ratios,
     and cross attention masks. This can be used for both training and inference.
@@ -265,6 +304,7 @@ def padded_collate_tiled_images_and_mask(
             in the batch. Defaults to None.
         pad_max_images (Optional[int]): Maximum number of images to pad to. If None, will pad to the largest number of images
             in the batch. Defaults to None.
+        pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
 
     Returns:
         Dict[str, Tensor]: Collated tokens, labels, images, encoder_mask, aspect_ratio tensors.
@@ -277,7 +317,9 @@ def padded_collate_tiled_images_and_mask(
     Raises:
         ValueError:
             If ``pad_direction`` is not one of "left" or "right", **or**
-            if pad_max_tiles is set to a value less than the largest number of tiles in an image.
+            if pad_max_tiles is set to a value less than the largest number of tiles in an image, **or**
+            if ``pad_direction`` is "left" and ``pad_to_multiple_of`` is not None.
+
 
     Example:
         >>> image_id = 1
@@ -337,9 +379,15 @@ def padded_collate_tiled_images_and_mask(
         text_only = [
             {"tokens": sample["tokens"], "labels": sample["labels"]} for sample in batch
         ]
-        collated_text = padded_collate_sft(text_only, padding_idx, ignore_idx)
+        collated_text = padded_collate_sft(
+            text_only, padding_idx, ignore_idx, pad_to_multiple_of=pad_to_multiple_of
+        )
     # For inference, we don't need to handle labels
     elif pad_direction == "left":
+        if pad_to_multiple_of > 1:
+            raise ValueError(
+                f"pad_to_multiple_of={pad_to_multiple_of} is not supported for pad_direction='left'"
+            )
         collated_text = {
             "tokens": left_pad_sequence(
                 [torch.tensor(x["tokens"]) for x in batch],
@@ -512,6 +560,7 @@ def padded_collate_dpo(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+    pad_to_multiple_of: int = 1,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Pad a batch of sequences for Direct Preference Optimization (DPO).
 
@@ -525,6 +574,7 @@ def padded_collate_dpo(
             'chosen_labels', 'rejected_input_ids', and 'rejected_labels' are required.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
+        pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
@@ -561,5 +611,25 @@ def padded_collate_dpo(
     concatenated_labels = pad_sequence(
         to_pad_labels, batch_first=True, padding_value=ignore_idx
     )
+
+    # Pad to multiple of N
+    if pad_to_multiple_of > 1:
+        concatenated_input_ids = F.pad(
+            concatenated_input_ids,
+            (
+                0,
+                pad_to_multiple_of
+                - (concatenated_input_ids.size(1) % pad_to_multiple_of),
+            ),
+            value=padding_idx,
+        )
+        concatenated_labels = F.pad(
+            concatenated_labels,
+            (
+                0,
+                pad_to_multiple_of - (concatenated_labels.size(1) % pad_to_multiple_of),
+            ),
+            value=ignore_idx,
+        )
 
     return concatenated_input_ids, concatenated_labels

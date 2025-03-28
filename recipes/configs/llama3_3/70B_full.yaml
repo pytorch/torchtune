@@ -29,7 +29,7 @@ tokenizer:
   path: /tmp/Llama-3.3-70B-Instruct/original/tokenizer.model
   max_seq_len: null
 
-# Dataset
+# Datset
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
   packed: False  # True increases speed

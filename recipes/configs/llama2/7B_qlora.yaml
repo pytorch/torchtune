@@ -50,7 +50,7 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  _component_: torchtune.datasets.alpaca_dataset
   packed: False  # True increases speed
   train_on_input: True
 seed: null
