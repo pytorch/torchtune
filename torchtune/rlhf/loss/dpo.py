@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Optional, Protocol, Tuple, TypeVar
+from typing import Optional, Tuple, TypeVar
 
 import torch
 import torch.nn as nn
@@ -65,6 +65,7 @@ class DPOLoss(PreferenceLoss):
         beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
         label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
     """
+
     @property
     def is_reference_free(self) -> bool:
         return False
