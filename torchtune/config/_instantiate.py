@@ -42,7 +42,10 @@ def _create_component(
     if inspect.isclass(_component_):
         return _component_(*args, **kwargs)
     elif callable(_component_):
-        return partial(_component_, *args, **kwargs)
+        if args or kwargs:
+            return partial(_component_, *args, **kwargs)
+        else:
+            return _component_
     else:
         raise InstantiationError(f"Cannot process non-callable {_component_}")
 
