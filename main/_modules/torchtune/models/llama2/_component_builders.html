@@ -471,6 +471,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.common_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_register_reparametrize_state_dict_hooks</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">DoRALinear</span><span class="p">,</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Component builders for the Llama2 model and popular variants such as LoRA.</span>
@@ -737,7 +738,9 @@
         <span class="c1"># so as to not increase peak memory</span>
         <span class="c1"># TODO this is clowny, figure out a better way to get what precision the rest</span>
         <span class="c1"># of the model is in</span>
-        <span class="n">_register_reparametrize_state_dict_hooks</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">_register_reparametrize_state_dict_hooks</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
 
@@ -926,6 +929,11 @@
 <span class="c1"># ------------------ Llama2 Classifier ------------------</span>
 
 
+<span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Model-specific classifier builders are deprecated and will be removed in 0.8.0. &quot;</span>
+    <span class="s2">&quot;Please use `torchtune.modules.classifier_model`, with &quot;</span>
+    <span class="s2">&quot;`base_model_path=torchtune.models.llama2.llama2` instead.&quot;</span>
+<span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">llama2_classifier</span><span class="p">(</span>
     <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -970,7 +978,7 @@
     <span class="p">)</span>
 
     <span class="n">rope</span> <span class="o">=</span> <span class="n">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">)</span>
-    
+
     <span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
         <span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
@@ -1009,6 +1017,13 @@
     <span class="p">)</span>
 
 
+<span class="nd">@deprecated</span><span class="p">(</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Model-specific classifier builders, and PEFT-based classifier builders with `apply_lora_to_output=True` &quot;</span>
+    <span class="s2">&quot; are deprecated and will be removed in 0.8.0. &quot;</span>
+    <span class="s2">&quot;Please use `torchtune.modules.classifier_model`, with &quot;</span>
+    <span class="s2">&quot;`base_model_path=torchtune.models.llama2.lora_llama2` and &quot;</span>
+    <span class="s2">&quot;`apply_lora_to_output=False` instead.&quot;</span>
+<span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">lora_llama2_classifier</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1145,7 +1160,9 @@
         <span class="c1"># so as to not increase peak memory</span>
         <span class="c1"># TODO this is clowny, figure out a better way to get what precision the rest</span>
         <span class="c1"># of the model is in</span>
-        <span class="n">_register_reparametrize_state_dict_hooks</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">_register_reparametrize_state_dict_hooks</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span>
 </pre></div>
