@@ -25,6 +25,7 @@ Modeling Components and Building Blocks
     VisionTransformer
     LayerDropout
     prepare_layer_dropout
+    classifier_model
 
 Losses
 ------
