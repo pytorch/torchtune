@@ -218,7 +218,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
-            return checkpoint_dict
+        return checkpoint_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
