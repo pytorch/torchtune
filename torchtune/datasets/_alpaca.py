@@ -20,7 +20,8 @@ def alpaca_dataset(
     *,
     source: str = "tatsu-lab/alpaca",
     column_map: Optional[Dict[str, str]] = None,
-    train_on_input: bool = True,
+    masking_strategy: str = "train_on_all",
+    train_on_input: Optional[bool] = None,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
@@ -34,11 +35,12 @@ def alpaca_dataset(
     are fields from the dataset. This template is automatically applied independent
     of any prompt template configured in the tokenizer.
 
-    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
-    set to ``True`` by `default <https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49>`_
-    - If ``train_on_input`` is True, the prompt is used during training and
-    contributes to the loss.
-    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
+    Masking of the prompt during training is controlled by the ``masking_strategy`` parameter which is
+    set to ``train_on_all`` by default.
+    
+    - ``train_on_all``: both user and assistant messages are unmasked
+    - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+    - ``train_on_last``: only the last assistant message is unmasked
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -51,7 +53,10 @@ def alpaca_dataset(
             :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. Keys should be
             "instruction", "input", and "output" and values should be the actual column names. If None, uses
             the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.
+        masking_strategy (str): Masking strategy to use for model training.
+            Must be one of: ``train_on_all``, ``train_on_assistant``, ``train_on_last``.
+            Default is "train_on_all".
+        train_on_input (bool): Deprecated. Whether the model is trained on the prompt or not. Default is True.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
@@ -74,9 +79,9 @@ def alpaca_dataset(
         >>>     print(f"Batch size: {len(batch)}")
         >>> Batch size: 8
     """
-
+    
     message_transform = AlpacaToMessages(
-        train_on_input=train_on_input, column_map=column_map
+        masking_strategy=masking_strategy, column_map=column_map, train_on_input=train_on_input
     )
     ds = SFTDataset(
         source=source,

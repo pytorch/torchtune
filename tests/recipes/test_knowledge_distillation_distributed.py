@@ -42,7 +42,7 @@ class TestKDDistributedRecipe:
         return [
             "batch_size=4",
             "enable_activation_checkpointing=False",
-            "dataset.train_on_input=False",
+            "dataset.masking_strategy='train_on_assistant'",
             "seed=9",
             f"epochs={epochs}",
             "dtype=fp32",

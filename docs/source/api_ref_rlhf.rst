@@ -15,4 +15,3 @@ Components and losses for RLHF algorithms like PPO and DPO.
     truncate_sequence_at_first_stop_token
     loss.PPOLoss
     loss.DPOLoss
-    loss.RSOLoss
