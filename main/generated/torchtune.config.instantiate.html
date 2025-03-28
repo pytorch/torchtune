@@ -457,53 +457,56 @@
 <h1>instantiate<a class="headerlink" href="#instantiate" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="torchtune.config.instantiate">
-<span class="sig-prename descclassname"><span class="pre">torchtune.config.</span></span><span class="sig-name descname"><span class="pre">instantiate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DictConfig</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></span><a class="reference internal" href="../_modules/torchtune/config/_instantiate.html#instantiate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.config.instantiate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a DictConfig with a _component_ field specifying the object to instantiate and
-additional fields for keyword arguments, create an instance of the specified object.
-You can use this function to create the exact instance of a torchtune object you want
-to use in your recipe using the specification from the config.</p>
-<p>This function also supports passing in positional args and keyword args within the
-function call. These are automatically merged with the provided config, with keyword
-args taking precedence.</p>
-<p>Based on Hydra’s <cite>instantiate</cite> utility from Facebook Research:
-<a class="reference external" href="https://github.com/facebookresearch/hydra/blob/main/hydra/_internal/instantiate/_instantiate2.py#L148">https://github.com/facebookresearch/hydra/blob/main/hydra/_internal/instantiate/_instantiate2.py#L148</a></p>
+<span class="sig-prename descclassname"><span class="pre">torchtune.config.</span></span><span class="sig-name descname"><span class="pre">instantiate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DictConfig</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">caller_globals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></span><a class="reference internal" href="../_modules/torchtune/config/_instantiate.html#instantiate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.config.instantiate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate a component from a configuration, recursively handling nested components.</p>
+<p>Given a dict with a ‘_component_’ field specifying the object to instantiate and
+additional fields as keyword arguments, create an instance of the specified object.
+Positional and keyword arguments passed in the call are merged with the config, with
+keyword arguments taking precedence.</p>
+<p>Based on Hydra’s <cite>instantiate</cite> utility.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>config</strong> (<em>DictConfig</em>) – a single field in the OmegaConf object parsed from the yaml file.
-This is expected to have a _component_ field specifying the path of the object
-to instantiate.</p></li>
-<li><p><strong>*args</strong> (<em>Any</em>) – positional arguments to pass to the object to instantiate.</p></li>
-<li><p><strong>**kwargs</strong> (<em>Any</em>) – keyword arguments to pass to the object to instantiate.</p></li>
+<li><p><strong>config</strong> (<em>Union</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>Any</em><em>]</em><em>, </em><em>DictConfig</em><em>]</em>) – Configuration with ‘_component_’ and optional arguments.</p></li>
+<li><p><strong>*args</strong> (<em>Any</em>) – Positional arguments for the component.</p></li>
+<li><p><strong>caller_globals</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>Any</em><em>]</em><em>]</em>) – Enable instantiating objects from caller’s globals.</p></li>
+<li><p><strong>**kwargs</strong> (<em>Any</em>) – Keyword arguments to override or add to the config.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The instantiated object, or None if config is None.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Any</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">yaml</span><span class="p">:</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">model</span><span class="p">:</span>
-<span class="gp">&gt;&gt;&gt; </span>      <span class="n">_component_</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">llama2</span>
-<span class="gp">&gt;&gt;&gt; </span>      <span class="n">num_layers</span><span class="p">:</span> <span class="mi">32</span>
-<span class="gp">&gt;&gt;&gt; </span>      <span class="n">num_heads</span><span class="p">:</span> <span class="mi">32</span>
-<span class="gp">&gt;&gt;&gt; </span>      <span class="n">num_kv_heads</span><span class="p">:</span> <span class="mi">32</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchtune</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">32000</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Pass in vocab size as positional argument. Since it is positioned first</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># in llama2(), it must be specified first. Pass in other arguments as kwargs.</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># This will return an nn.Module directly for llama2 with specified args.</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">parsed_yaml</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">embed_dim</span><span class="o">=</span><span class="mi">4096</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">Spice</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">heat_level</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="bp">self</span><span class="o">.</span><span class="n">heat_level</span> <span class="o">=</span> <span class="n">heat_level</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">Food</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">ingredient</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="bp">self</span><span class="o">.</span><span class="n">ingredient</span> <span class="o">=</span> <span class="n">ingredient</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">create</span><span class="p">({</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;_component_&#39;</span><span class="p">:</span> <span class="s1">&#39;Food&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;seed&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s1">&#39;ingredient&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;_component_&#39;</span><span class="p">:</span> <span class="s1">&#39;Spice&#39;</span><span class="p">,</span> <span class="s1">&#39;heat_level&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">food</span> <span class="o">=</span> <span class="n">instantiate</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">food</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>  <span class="c1"># 42</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">food</span><span class="o">.</span><span class="n">ingredient</span><span class="o">.</span><span class="n">heat_level</span><span class="p">)</span>  <span class="c1"># 5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_spice</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;_component_&#39;</span><span class="p">:</span> <span class="s1">&#39;Spice&#39;</span><span class="p">,</span> <span class="s1">&#39;heat_level&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">food</span> <span class="o">=</span> <span class="n">instantiate</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">ingredient</span><span class="o">=</span><span class="n">new_spice</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">food</span><span class="o">.</span><span class="n">ingredient</span><span class="o">.</span><span class="n">heat_level</span><span class="p">)</span>  <span class="c1"># 10</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>the instantiated object.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Any</p>
-</dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – if config is not a DictConfig.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If config is not a DictConfig.</p></li>
+<li><p><strong>InstantiationError</strong> – If the object to instantiate misses the ‘_component_’ key.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

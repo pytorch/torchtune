@@ -452,15 +452,16 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictConfig</span><span class="p">,</span> <span class="n">OmegaConf</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">InstantiationError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_component_from_path</span><span class="p">,</span> <span class="n">_has_component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_component_from_path</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_create_component</span><span class="p">(</span>
@@ -468,77 +469,119 @@
     <span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an instance of a component with given arguments.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">_component_</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_instantiate_node</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_instantiate_node</span><span class="p">(</span>
+    <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">caller_globals</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Creates the object specified in _component_ field with provided positional args</span>
-<span class="sd">    and kwargs already merged. Raises an InstantiationError if _component_ is not specified.</span>
+<span class="sd">    Instantiate a component from an object, recursively processing nested structures.</span>
+
+<span class="sd">    If the object is a dictionary with a &#39;_component_&#39; key, instantiate the component,</span>
+<span class="sd">    processing its arguments recursively. If it&#39;s a dictionary without &#39;_component_&#39; or a list,</span>
+<span class="sd">    process each item recursively. Otherwise, return the object unchanged.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obj (Any): Object to process (dict, list, or other).</span>
+<span class="sd">        *args (Any): Positional arguments for the component (used only at top level).</span>
+<span class="sd">        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller&#39;s globals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Any: Instantiated object or processed structure.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">_has_component</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
-        <span class="n">_component_</span> <span class="o">=</span> <span class="n">_get_component_from_path</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_component_&quot;</span><span class="p">))</span>
-        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;_component_&quot;</span><span class="p">}</span>
-        <span class="k">return</span> <span class="n">_create_component</span><span class="p">(</span><span class="n">_component_</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">DictConfig</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;_component_&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">_instantiate_node</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">caller_globals</span><span class="o">=</span><span class="n">caller_globals</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_component_</span> <span class="o">=</span> <span class="n">_get_component_from_path</span><span class="p">(</span>
+                <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;_component_&quot;</span><span class="p">],</span> <span class="n">caller_globals</span><span class="o">=</span><span class="n">caller_globals</span>
+            <span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">_instantiate_node</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">caller_globals</span><span class="o">=</span><span class="n">caller_globals</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;_component_&quot;</span>
+            <span class="p">}</span>
+            <span class="k">return</span> <span class="n">_create_component</span><span class="p">(</span><span class="n">_component_</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">_instantiate_node</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">caller_globals</span><span class="o">=</span><span class="n">caller_globals</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InstantiationError</span><span class="p">(</span>
-            <span class="s2">&quot;Cannot instantiate specified object.&quot;</span>
-            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Make sure you&#39;ve specified a _component_ field with a valid dotpath.&quot;</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">obj</span>
 
 
 <div class="viewcode-block" id="instantiate"><a class="viewcode-back" href="../../../generated/torchtune.config.instantiate.html#torchtune.config.instantiate">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">instantiate</span><span class="p">(</span>
-    <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">DictConfig</span><span class="p">],</span>
     <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">caller_globals</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Given a DictConfig with a _component_ field specifying the object to instantiate and</span>
-<span class="sd">    additional fields for keyword arguments, create an instance of the specified object.</span>
-<span class="sd">    You can use this function to create the exact instance of a torchtune object you want</span>
-<span class="sd">    to use in your recipe using the specification from the config.</span>
+<span class="sd">    Instantiate a component from a configuration, recursively handling nested components.</span>
 
-<span class="sd">    This function also supports passing in positional args and keyword args within the</span>
-<span class="sd">    function call. These are automatically merged with the provided config, with keyword</span>
-<span class="sd">    args taking precedence.</span>
+<span class="sd">    Given a dict with a &#39;_component_&#39; field specifying the object to instantiate and</span>
+<span class="sd">    additional fields as keyword arguments, create an instance of the specified object.</span>
+<span class="sd">    Positional and keyword arguments passed in the call are merged with the config, with</span>
+<span class="sd">    keyword arguments taking precedence.</span>
 
-<span class="sd">    Based on Hydra&#39;s `instantiate` utility from Facebook Research:</span>
-<span class="sd">    https://github.com/facebookresearch/hydra/blob/main/hydra/_internal/instantiate/_instantiate2.py#L148</span>
+<span class="sd">    Based on Hydra&#39;s `instantiate` utility.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        config (DictConfig): a single field in the OmegaConf object parsed from the yaml file.</span>
-<span class="sd">            This is expected to have a _component_ field specifying the path of the object</span>
-<span class="sd">            to instantiate.</span>
-<span class="sd">        *args (Any): positional arguments to pass to the object to instantiate.</span>
-<span class="sd">        **kwargs (Any): keyword arguments to pass to the object to instantiate.</span>
-
-<span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; config.yaml:</span>
-<span class="sd">        &gt;&gt;&gt;     model:</span>
-<span class="sd">        &gt;&gt;&gt;       _component_: torchtune.models.llama2</span>
-<span class="sd">        &gt;&gt;&gt;       num_layers: 32</span>
-<span class="sd">        &gt;&gt;&gt;       num_heads: 32</span>
-<span class="sd">        &gt;&gt;&gt;       num_kv_heads: 32</span>
-
-<span class="sd">        &gt;&gt;&gt; from torchtune import config</span>
-<span class="sd">        &gt;&gt;&gt; vocab_size = 32000</span>
-<span class="sd">        &gt;&gt;&gt; # Pass in vocab size as positional argument. Since it is positioned first</span>
-<span class="sd">        &gt;&gt;&gt; # in llama2(), it must be specified first. Pass in other arguments as kwargs.</span>
-<span class="sd">        &gt;&gt;&gt; # This will return an nn.Module directly for llama2 with specified args.</span>
-<span class="sd">        &gt;&gt;&gt; model = config.instantiate(parsed_yaml.model, vocab_size, max_seq_len=4096, embed_dim=4096)</span>
+<span class="sd">        config (Union[Dict[str, Any], DictConfig]): Configuration with &#39;_component_&#39; and optional arguments.</span>
+<span class="sd">        *args (Any): Positional arguments for the component.</span>
+<span class="sd">        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller&#39;s globals.</span>
+<span class="sd">        **kwargs (Any): Keyword arguments to override or add to the config.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Any: the instantiated object.</span>
+<span class="sd">        Any: The instantiated object, or None if config is None.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; class Spice:</span>
+<span class="sd">        &gt;&gt;&gt;     def __init__(self, heat_level):</span>
+<span class="sd">        &gt;&gt;&gt;         self.heat_level = heat_level</span>
+<span class="sd">        &gt;&gt;&gt; class Food:</span>
+<span class="sd">        &gt;&gt;&gt;     def __init__(self, seed, ingredient):</span>
+<span class="sd">        &gt;&gt;&gt;         self.seed = seed</span>
+<span class="sd">        &gt;&gt;&gt;         self.ingredient = ingredient</span>
+<span class="sd">        &gt;&gt;&gt; config = OmegaConf.create({</span>
+<span class="sd">        &gt;&gt;&gt;     &#39;_component_&#39;: &#39;Food&#39;,</span>
+<span class="sd">        &gt;&gt;&gt;     &#39;seed&#39;: 0,</span>
+<span class="sd">        &gt;&gt;&gt;     &#39;ingredient&#39;: {&#39;_component_&#39;: &#39;Spice&#39;, &#39;heat_level&#39;: 5}</span>
+<span class="sd">        &gt;&gt;&gt; })</span>
+<span class="sd">        &gt;&gt;&gt; food = instantiate(config, seed=42)</span>
+<span class="sd">        &gt;&gt;&gt; print(food.seed)  # 42</span>
+<span class="sd">        &gt;&gt;&gt; print(food.ingredient.heat_level)  # 5</span>
+<span class="sd">        &gt;&gt;&gt; new_spice = {&#39;_component_&#39;: &#39;Spice&#39;, &#39;heat_level&#39;: 10}</span>
+<span class="sd">        &gt;&gt;&gt; food = instantiate(config, ingredient=new_spice)</span>
+<span class="sd">        &gt;&gt;&gt; print(food.ingredient.heat_level)  # 10</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: if config is not a DictConfig.</span>
+<span class="sd">        ValueError: If config is not a DictConfig.</span>
+<span class="sd">        InstantiationError: If the object to instantiate misses the &#39;_component_&#39; key.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># Return None if config is None</span>
     <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">is_dict</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;instantiate only supports DictConfigs, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Convert plain dict to DictConfig if necessary</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">is_dict</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;instantiate only supports DictConfigs or dicts, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;_component_&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InstantiationError</span><span class="p">(</span>
+            <span class="s2">&quot;Cannot instantiate specified object.&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Make sure you&#39;ve specified a _component_ field with a valid dotpath.&quot;</span>
+            <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Got </span><span class="si">{</span><span class="n">config</span><span class="si">=}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
 
     <span class="c1"># Ensure local imports are able to be instantiated</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
@@ -558,7 +601,19 @@
     <span class="c1"># Resolve all interpolations, or references to other fields within the same config</span>
     <span class="n">OmegaConf</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">_instantiate_node</span><span class="p">(</span><span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_object</span><span class="p">(</span><span class="n">config</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="c1"># caller → instantiate → _instantiate_node → _get_component_from_path</span>
+    <span class="c1"># To get the caller&#39;s globals, in case the the user is trying to instantiate some object from it,</span>
+    <span class="c1"># we step back (f_back) and get it, so `_get_component_from_path`` can use it.</span>
+    <span class="k">if</span> <span class="n">caller_globals</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">current_frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">currentframe</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">current_frame</span> <span class="ow">and</span> <span class="n">current_frame</span><span class="o">.</span><span class="n">f_back</span><span class="p">:</span>
+            <span class="n">caller_globals</span> <span class="o">=</span> <span class="n">current_frame</span><span class="o">.</span><span class="n">f_back</span><span class="o">.</span><span class="n">f_globals</span>
+
+    <span class="k">return</span> <span class="n">_instantiate_node</span><span class="p">(</span>
+        <span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_container</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="n">caller_globals</span><span class="o">=</span><span class="n">caller_globals</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="p">)</span></div>
 </pre></div>
 
              </article>
