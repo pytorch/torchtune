@@ -228,7 +228,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
+            return checkpoint_dict
 
     def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
         """
