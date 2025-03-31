@@ -301,9 +301,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        # skip final projection, since the loss takes hidden input instead of logits
-        self.skip_unembedding = cfg.get("loss_takes_embeddings", False)
-        self._model.set_skip_unembedding(self.skip_unembedding)
+        # skip final output multiplication, since the loss takes the hidden input instead of logits
+        self.use_output_weight_in_loss = cfg.get("use_output_weight_in_loss", False)
+        self._model.set_skip_output_layer(self.use_output_weight_in_loss)
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
@@ -797,27 +797,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
                 )
 
-                # TODO: move to utils
-                def get_model_proj_weight(model) -> tuple[torch.Tensor]:
-                    """Extract weight and bias from the model’s output module."""
-                    if hasattr(model, "output"):
-                        output = model.output
-                    elif hasattr(model, "decoder"):
-                        output = model.decoder.output
-                    else:
-                        raise ValueError("Could not find output module in model.")
-
-                    if isinstance(output, nn.Linear):
-                        return output.weight
-                    elif isinstance(output, modules.TiedLinear):
-                        return output.tied_module.weight
-                    else:
-                        raise ValueError(
-                            f"Unsupported output module type: {type(output)}"
-                        )
-
-                if self.skip_unembedding:
-                    weight = get_model_proj_weight(self._model)
+                if self.use_output_weight_in_loss:
+                    weight = self._model.get_output_weight()
                     current_loss = self._loss_fn(weight, outputs, labels)
                 else:
                     labels = labels.reshape(-1)

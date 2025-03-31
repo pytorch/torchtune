@@ -4,11 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .ce_chunked_output_loss import (
-    CEWithChunkedOutputLoss,
-    ChunkedCEAutograd,
-    ChunkedCrossEntropyLoss,
-)
+from .ce_chunked_output_loss import CEWithChunkedOutputLoss
 from .kd_losses import (
     ForwardKLLoss,
     ForwardKLWithChunkedOutputLoss,
@@ -17,6 +13,8 @@ from .kd_losses import (
     SymmetricKLLoss,
     SymmetricKLWithChunkedOutputLoss,
 )
+
+from .sft_losses import ChunkedCrossEntropyLoss, ChunkedCrossEntropywithAutogradLoss
 
 __all__ = [
     "CEWithChunkedOutputLoss",
@@ -27,5 +25,5 @@ __all__ = [
     "SymmetricKLLoss",
     "SymmetricKLWithChunkedOutputLoss",
     "ChunkedCrossEntropyLoss",
-    "ChunkedCEAutograd",
+    "ChunkedCrossEntropywithAutogradLoss",
 ]
