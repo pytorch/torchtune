@@ -39,6 +39,14 @@ checkpointer:
   model_type: LLAMA3
 resume_from_checkpoint: False
 
+# Parallelism tweaks
+tensor_parallel_dim: 8 # 8-way TP
+tensor_parallel_plan:
+  _component_: torchtune.models.llama3.base_llama_tp_plan
+data_parallel_shard_dim: -1 # -1 means to infer based on other parallel dims & world size
+data_parallel_replicate_dim: 1
+minimize_all_reduces: True
+
 # Fine-tuning arguments
 batch_size: 4
 epochs: 1
