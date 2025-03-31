@@ -86,8 +86,8 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
         loss.rkl_loss = torch.compile(loss.rkl_loss, backend=backend)
     elif isinstance(loss, SymmetricKLWithChunkedOutputLoss):
         loss.sym_kl_loss = torch.compile(loss.sym_kl_loss, backend=backend)
-    # elif hasattr(loss, "forward"):
-    #     loss.forward = torch.compile(loss.forward, backend=backend)
+    elif hasattr(loss, "forward"):
+        loss.forward = torch.compile(loss.forward, backend=backend)
     else:
         loss = torch.compile(loss, backend=backend)
 

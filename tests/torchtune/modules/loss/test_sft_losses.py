@@ -46,7 +46,7 @@ class TestCEWithChunkedOutputLoss:
         chunked_loss = chunked_ce_loss_fn(weight, hidden, targets)
 
         # Compute standard cross entropy for comparison
-        logits = F.linear(hidden, weight)  # [batch_size, seq_len, vocab_size]
+        logits = torch.nn.linear(hidden, weight)  # [batch_size, seq_len, vocab_size]
         logits = logits.reshape(-1, vocab_size)
         targets = targets.reshape(-1)
         standard_loss = F.cross_entropy(

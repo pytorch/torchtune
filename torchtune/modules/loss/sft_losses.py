@@ -38,15 +38,18 @@ class ChunkedCrossEntropyLoss(nn.Module):
         mask = target_chunk != self.ignore_index
 
         # Select hidden states and targets where mask is True
-        hidden_selected = hidden_chunk[mask]  # [num_valid, embed_dim]
-        target_selected = target_chunk[mask]  # [num_valid]
+        hidden_chunk = hidden_chunk[mask]  # [num_valid, embed_dim]
+        target_chunk = target_chunk[mask]  # [num_valid]
 
         # Project only selected hidden states: [num_valid, embed_dim] @ [embed_dim, vocab_size]
-        logits_selected = F.linear(hidden_selected, weight)  # [num_valid, vocab_size]
+        logits = F.linear(hidden_chunk, weight)  # [num_valid, vocab_size]
 
         # Compute cross-entropy on selected tokens
         return F.cross_entropy(
-            logits_selected.float(), target_selected, reduction="sum"
+            logits.float(),
+            target_chunk,
+            reduction="sum",
+            ignore_index=self.ignore_index,
         )
 
     def forward(
