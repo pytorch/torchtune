@@ -66,7 +66,6 @@ class TestCEWithChunkedOutputLoss:
         embed_dim = 16
         vocab_size = 100
         ignore_index = -100
-        num_chunks = 8
 
         # Create dummy data
         hidden = torch.randn(batch_size, seq_len, embed_dim, dtype=torch.float32)
