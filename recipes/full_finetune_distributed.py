@@ -142,30 +142,23 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Initialize distributed variables
         self.world_size, self.rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
-        self.tensor_parallel_plan = config.instantiate(
-            cfg.get("tensor_parallel_plan", None)
-        )
-        self.tensor_parallel_dim = cfg.get("tensor_parallel_dim", 1)
-        if self.tensor_parallel_dim > 1 and self.tensor_parallel_plan is None:
+        self.tp_plan = config.instantiate(cfg.get("tensor_parallel_plan", None))
+        self.tp_degree = cfg.get("tensor_parallel_dim", 1)
+        if self.tp_degree > 1 and self.tp_plan is None:
             raise ValueError(
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
-        if self.world_size % self.tensor_parallel_dim != 0:
-            raise ValueError(
-                f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
-            )
+        data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
+        data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
-        data_shard = cfg.get("dp_shard", self.world_size // self.tensor_parallel_dim)
-        data_replicate = cfg.get("dp_replicate", 1)
-
+        # Set up n-d device mesh
         self.parallel_dims = training.ParallelDims(
             dp_replicate=data_replicate,
             dp_shard=data_shard,
-            tp=self.tensor_parallel_dim,
+            tp=self.tp_degree,
             world_size=self.world_size,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
-
         if self.parallel_dims.dp_enabled:
             dp_mesh = self.world_mesh["dp"]
             self.dp_degree, self.dp_rank = (
@@ -186,23 +179,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._log_peak_memory_stats = False
 
         # Training cfg
+        self.minimize_all_reduces = cfg.get("minimize_all_reduces", False)
+        if self.minimize_all_reduces and not self.parallel_dims.dp_shard_enabled:
+            raise ValueError("``minimize_all_reduces`` is not supported without FSDP")
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
-
-        # Should we raise an error rather than performing these silent checks like with `_optimizer_in_bwd` and `_clip_grad_norm`?
-        self._minimize_all_reduces = (
-            cfg.get("minimize_all_reduces", False)
-            and self._gradient_accumulation_steps > 1
-            and not self._optimizer_in_bwd
-            and self.parallel_dims.dp_enabled
-        )
-
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
+            if self.minimize_all_reduces:
+                raise RuntimeError(
+                    "minimize_all_reduces is not supported with optimizer in bwd."
+                    "Please set minimize_all_reduces=False, or optimizer_in_bwd=False."
+                )
             if self._clip_grad_norm is not None:
                 raise RuntimeError(
                     "Gradient clipping is not supported with optimizer in bwd."
@@ -562,8 +554,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             training.compile_model(model, verbose=self._is_rank_zero)
 
         # Apply tensor parallelism to the model
-        if self.tensor_parallel_dim > 1:
-            if self.data_parallel_dim == 1 and self.fsdp_cpu_offload:
+        if self.parallel_dims.tp_enabled:
+            if not self.parallel_dims.dp_enabled and self.fsdp_cpu_offload:
                 raise ValueError(
                     "Tensor parallelism is not supported with FSDP CPU offloading when data parallelism is disabled."
                 )
@@ -572,7 +564,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             parallelize_module(
                 model,
                 self.world_mesh["tp"],
-                parallelize_plan=self.tensor_parallel_plan,
+                parallelize_plan=self.tp_plan,
             )
 
         # We currently have two versions of activation checkpointing in this recipe
@@ -650,7 +642,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             training.log_memory_stats(memory_stats)
 
         # synchronize before training begins
-        torch.distributed.barrier()
+        torch.distributed.barrier(device_ids=[self._device.index])
 
         return model
 
@@ -748,7 +740,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.tensor_parallel_dim,
+                    pad_to_multiple_of=self.tp_degree,
                 )
                 if not packed
                 else padded_collate_packed
@@ -834,9 +826,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
 
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    current_loss = current_loss * (self.dp_size / num_tokens)
+                    current_loss = current_loss * (self.dp_degree / num_tokens)
 
-                if self._minimize_all_reduces and (
+                if self.minimize_all_reduces and (
                     (idx + 1) % self._gradient_accumulation_steps == 0
                 ):
                     self._model.set_is_last_backward(True)
@@ -853,7 +845,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         # We multiply by world_size to undo FSDP2 gradient normalization.
-                        training.scale_grads(self._model, self.dp_size / num_tokens)
+                        training.scale_grads(self._model, self.dp_degree / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
@@ -865,7 +857,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
-                        if self._minimize_all_reduces:
+                        if self.minimize_all_reduces:
                             self._model.set_is_last_backward(False)
                             self._model.set_requires_all_reduce(False)
 
