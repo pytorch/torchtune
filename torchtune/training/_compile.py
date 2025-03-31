@@ -57,7 +57,6 @@ def compile_model(
             m.compile(backend=backend)
 
 
-# @deprecate
 def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     """
     Utility to compile and return loss function. If the loss function is chunked cross-entropy,
