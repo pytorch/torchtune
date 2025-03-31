@@ -179,23 +179,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._log_peak_memory_stats = False
 
         # Training cfg
+        self.minimize_all_reduces = cfg.get("minimize_all_reduces", False)
+        if self.minimize_all_reduces and not self.parallel_dims.dp_shard_enabled:
+            raise ValueError("``minimize_all_reduces`` is not supported without FSDP")
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
-
-        # Should we raise an error rather than performing these silent checks like with `_optimizer_in_bwd` and `_clip_grad_norm`?
-        self._minimize_all_reduces = (
-            cfg.get("minimize_all_reduces", False)
-            and self._gradient_accumulation_steps > 1
-            and not self._optimizer_in_bwd
-            and self.parallel_dims.dp_enabled
-        )
-
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
+            if self.minimize_all_reduces:
+                raise RuntimeError(
+                    "minimize_all_reduces is not supported with optimizer in bwd."
+                    "Please set minimize_all_reduces=False, or optimizer_in_bwd=False."
+                )
             if self._clip_grad_norm is not None:
                 raise RuntimeError(
                     "Gradient clipping is not supported with optimizer in bwd."
@@ -827,7 +826,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
                     current_loss = current_loss * (self.dp_degree / num_tokens)
 
-                if self._minimize_all_reduces and (
+                if self.minimize_all_reduces and (
                     (idx + 1) % self._gradient_accumulation_steps == 0
                 ):
                     self._model.set_is_last_backward(True)
@@ -854,7 +853,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
-                        if self._minimize_all_reduces:
+                        if self.minimize_all_reduces:
                             self._model.set_is_last_backward(False)
                             self._model.set_requires_all_reduce(False)
 
