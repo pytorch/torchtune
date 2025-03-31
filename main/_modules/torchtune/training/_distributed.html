@@ -456,6 +456,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
@@ -473,7 +474,7 @@
     <span class="n">set_optimizer_state_dict</span><span class="p">,</span>
     <span class="n">StateDictOptions</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.device_mesh</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeviceMesh</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.device_mesh</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeviceMesh</span><span class="p">,</span> <span class="n">init_device_mesh</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.fsdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShardingStrategy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules.module</span><span class="w"> </span><span class="kn">import</span> <span class="n">_IncompatibleKeys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optimizer</span>
@@ -494,6 +495,81 @@
 <span class="c1">#     &quot;dev&quot; not in torch_version and torch_version_ge(&quot;2.6.0&quot;)</span>
 <span class="c1"># ) or (&quot;dev&quot; in torch_version and torch_version.split(&quot;dev&quot;)[1] &gt;= &quot;20241220&quot;)</span>
 <span class="n">_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParallelDims</span><span class="p">:</span>
+    <span class="n">dp_replicate</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">dp_shard</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">tp</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">world_size</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dp_replicate</span><span class="p">,</span> <span class="n">dp_shard</span><span class="p">,</span> <span class="n">tp</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">(</span><span class="n">dp_replicate</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Parallelism degree should be &gt;= 1, except for dp_shard&quot;</span>
+
+        <span class="k">assert</span> <span class="n">dp_shard</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">dp_shard</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot; dp_shard must -1 or &gt;=1.&quot;</span>
+        <span class="k">if</span> <span class="n">dp_shard</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span> <span class="o">=</span> <span class="n">dp_shard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">//</span> <span class="p">(</span><span class="n">dp_replicate</span> <span class="o">*</span> <span class="n">tp</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">dp_shard</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+        <span class="k">assert</span> <span class="n">dp_replicate</span> <span class="o">*</span> <span class="n">dp_shard</span> <span class="o">*</span> <span class="n">tp</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Invalid parallel dims: dp_replicate(</span><span class="si">{</span><span class="n">dp_replicate</span><span class="si">}</span><span class="s2">) * dp_shard(</span><span class="si">{</span><span class="n">dp_shard</span><span class="si">}</span><span class="s2">) * &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;tp(</span><span class="si">{</span><span class="n">tp</span><span class="si">}</span><span class="s2">) != WORLD_SIZE(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_mesh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device_type</span><span class="p">):</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="p">],</span>
+            <span class="p">[</span><span class="s2">&quot;dp_replicate&quot;</span><span class="p">,</span> <span class="s2">&quot;dp_shard&quot;</span><span class="p">,</span> <span class="s2">&quot;tp&quot;</span><span class="p">],</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+        <span class="n">mesh</span> <span class="o">=</span> <span class="n">init_device_mesh</span><span class="p">(</span><span class="n">device_type</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">mesh_dim_names</span><span class="o">=</span><span class="n">names</span><span class="p">)</span>
+
+        <span class="c1"># Create all the submesh here to ensure all required process groups are</span>
+        <span class="c1"># initialized:</span>
+        <span class="c1"># Mesh for data loading (no communication on this mesh)</span>
+        <span class="n">dp_mesh_dim_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate_enabled</span><span class="p">:</span>
+            <span class="n">dp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;dp_replicate&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard_enabled</span><span class="p">:</span>
+            <span class="n">dp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;dp_shard&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dp_mesh_dim_names</span> <span class="o">!=</span> <span class="p">[]:</span>
+            <span class="n">mesh</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">dp_mesh_dim_names</span><span class="p">)]</span><span class="o">.</span><span class="n">_flatten</span><span class="p">(</span><span class="n">mesh_dim_name</span><span class="o">=</span><span class="s2">&quot;dp&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mesh</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dp_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dp_replicate_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dp_shard_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tp_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">&gt;</span> <span class="mi">1</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_sharding_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ShardingStrategy</span><span class="p">:</span>
