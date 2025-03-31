@@ -579,7 +579,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         # Apply Fully Sharded Data Parallelism to the model
-        if self.parallel_dims.dp_enabled:
+        if self.parallel_dims.dp_shard_enabled:
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,
