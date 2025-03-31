@@ -78,7 +78,7 @@ class ChunkedCrossEntropyLoss(nn.Module):
         return total_loss / total_elements
 
 
-class ChunkedCEAutograd(torch.autograd.Function):
+class ChunkedCrossEntropywithAutograd(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx: torch.autograd.function.FunctionCtx,
@@ -225,6 +225,6 @@ class ChunkedCrossEntropywithAutogradLoss(nn.Module):
         Returns:
             torch.Tensor: Normalized loss
         """
-        return ChunkedCEAutograd.apply(
+        return ChunkedCrossEntropywithAutograd.apply(
             weight, hidden, targets, self.chunk_size, self.ignore_index
         )
