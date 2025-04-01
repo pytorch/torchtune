@@ -740,10 +740,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 return_logits=False,
             )
 
-        torch.distributed.barrier()
-        training._distributed.recursive_reshard(self._model)
-        torch.cuda.empty_cache()
-
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 

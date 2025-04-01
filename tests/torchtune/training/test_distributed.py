@@ -19,7 +19,6 @@ from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
-from torch.distributed.fsdp import FSDPModule
 from torch.testing._internal.common_distributed import MultiProcessTestCase
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
@@ -35,7 +34,6 @@ from torchtune.modules.peft import (
     LoRALinear,
     set_trainable_params,
 )
-from torchtune.training._distributed import recursive_reshard
 
 
 class TestDistributed:
@@ -386,45 +384,6 @@ class TestFullyShardState(FSDPTest):
             result.append(None)
         torch.distributed.broadcast_object_list(result, src=0)
         return result[0]
-
-    @gpu_test(gpu_count=2)
-    def test_recursive_reshard(self):
-        """Test of the recursive resharding function."""
-        # Create a device mesh for tensor parallelism
-        mesh = dist.init_device_mesh("cuda", mesh_shape=(2,))
-
-        # Create a model with a nested structure
-        model = nn.Sequential(
-            nn.Linear(10, 10),
-            nn.Sequential(
-                nn.Linear(10, 10),
-                nn.Linear(10, 10),
-            ),
-            nn.Linear(10, 10),
-        )
-
-        # Apply tensor parallelism preparation
-        for module in model.modules():
-            if isinstance(module, nn.Linear):
-                fully_shard(module, mesh=mesh, reshard_after_forward=False)
-
-        # Check that the model is correctly sharded
-        for module in model.modules():
-            assert isinstance(module, FSDPModule)
-
-        # Call forward
-        model(torch.randn(10, 10))
-
-        # Assert model has NOT been resharded after forward
-        for module in model.modules():
-            assert not isinstance(module, FSDPModule)
-
-        # Reshard the model now
-        recursive_reshard(model)
-
-        # Check that the model is correctly resharded
-        for module in model.modules():
-            assert isinstance(module, FSDPModule)
 
 
 class TestTensorParalell(MultiProcessTestCase):
