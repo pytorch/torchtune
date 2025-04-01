@@ -170,6 +170,10 @@ class RefActor:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
+        self.STOP_TOKENS_TENSOR = torch.tensor(
+            self._tokenizer.stop_tokens, device=self._device
+        )
+
     def set_metric_logger(self, logger):
         """Store the MetricLoggerActor handle."""
         if self._is_actor_zero:
@@ -381,7 +385,7 @@ class RefActor:
             response_padding_masks, responses = (
                 rlhf.truncate_sequence_at_first_stop_token(
                     responses,
-                    torch.tensor(self._tokenizer.stop_tokens, device=self._device),
+                    self.STOP_TOKENS_TENSOR.to(self._device),
                     self._tokenizer.pad_id,
                 )
             )
