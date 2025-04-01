@@ -82,8 +82,8 @@ def batched_rewards(
     )
     metadata = {"func_names": [f.__name__ for f in reward_funcs]}
     for b in range(batch_size):
-        answer = answers[b]
         for g in range(grpo_size):
+            answer = answers[b][g]
             text_completion = tokenizer.decode(completions[b, g].tolist())
             cot, potential_answer = extract_tags(f"<think>{text_completion}")
             for rw_idx, reward_func in enumerate(reward_funcs):

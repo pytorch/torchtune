@@ -318,17 +318,24 @@ class RefActor:
             ref_logprobs = rlhf.batched_logits_to_logprobs(
                 ref_logits, trajectory["responses"], self._temperature
             )
-            batch_size = trajectory["query_responses"].shape[0]
+
+            batch_size = self.cfg.vllm.batch_size  # B
+            group_size = self.grpo_samples  # G
 
             del ref_logits, position_ids, masks
             # masking of ref_logprobs is done in grpo_step
 
-            # Extract components from raw trajectory
+            # Extract components from raw trajectory: these have size [B * G, T]
+            print(f"Extracting components from raw trajectory: {trajectory}")
             query_responses = trajectory["query_responses"]
             responses = trajectory["responses"]
             query_response_padding_masks = trajectory["query_response_padding_masks"]
             seq_lens = trajectory["seq_lens"]
-            answers = trajectory["answers"]
+            answers = trajectory["answers"]  # list[str] of len (B * G)
+            answers = [
+                answers[i : i + self.grpo_samples]
+                for i in range(0, len(answers), self.grpo_samples)
+            ]  # list[list[str]] of len [B, G]. Basically a reshape
 
             # Compute padded tokens percentage
             total_tokens = query_responses.numel()
@@ -358,21 +365,19 @@ class RefActor:
             del query_response_padding_masks
 
             # Compute rewards
-            responses = responses.reshape(
-                batch_size // self.grpo_samples, self.grpo_samples, -1
-            )
-            rewards_full, successes_full, reward_metadata = batched_rewards(
+            responses = responses.reshape(batch_size, group_size, -1)
+            rewards_by_fn, successes_by_fn, reward_metadata = batched_rewards(
                 self._tokenizer, responses, answers, device=self._device
-            )
+            )  # These are (B, G, num_funcs)
 
             # Compute advantages: B, G, num_funcs -> B, G
-            rewards_sum = rewards_full.sum(-1)
-            advantages = (rewards_sum - rewards_sum.mean(1, keepdim=True)) / (
-                rewards_sum.std(1, keepdim=True) + 1e-4
-            )
-            successes = successes_full.reshape(batch_size, -1)
-            rewards = rewards_full.reshape(batch_size, -1)
-            advantages = advantages.reshape(batch_size)
+            group_rewards = rewards_by_fn.sum(-1)
+            group_successes = successes_by_fn.sum(-1)
+
+            # To compute advantage, subtract the mean of the group rewards from each group reward
+            group_advantages = (group_rewards - group_rewards.mean(1, keepdim=True)) / (
+                group_rewards.std(1, keepdim=True) + 1e-4
+            )  # (B, G)
 
             # Repack trajectory with policy_version
 
@@ -385,14 +390,18 @@ class RefActor:
                 seq_lens=trajectory["seq_lens"],
                 answers=trajectory["answers"],
                 policy_version=trajectory["policy_version"],
-                rewards=rewards,
-                advantages=advantages,
-                successes=successes,
+                rewards=rewards_by_fn.reshape(
+                    batch_size * group_size, -1
+                ),  # (B, G, num_funcs)
+                advantages=group_advantages.reshape(batch_size * group_size),  # (B, G)
+                successes=successes_by_fn.reshape(
+                    batch_size * group_size, -1
+                ),  # (B, G, num_funcs)
                 reward_metadata=reward_metadata,
-                batch_size=batch_size,
+                batch_size=batch_size * group_size,
             )
 
-            # print(f"RefActor PUTS: {trajectory}")
+            log.info(f"Constructed trajectory: {trajectory}")
             # Move tensors to CPU before putting into the queue
             trajectory = trajectory.cpu()
 
@@ -693,8 +702,13 @@ class vLLMRolloutActor:
 
             # FIXME: tokens is currently on cpu, is this right?s
             tokens, answers = batch["tokens"], batch["answers"]
+
             batch_tokens = tokens[:, None, :].expand(-1, self.grpo_samples, -1)
             batch_tokens = batch_tokens.reshape(self.batch_size * self.grpo_samples, -1)
+
+            # Each answer is repeated for the whole group
+            answers = [a for a in answers for _ in range(self.grpo_samples)]
+
             # A downside is they only seem to take in List[List[int]] and not torch.Tensor :(
             batch_tokens = batch_tokens.numpy().tolist()
 
@@ -735,6 +749,7 @@ class vLLMRolloutActor:
             if self._is_actor_zero:
                 # End timing the rollout step
                 time_total_rollout = time.perf_counter() - time_step_start
+                log.info(f"Put this into queue: {postprocessed_results}")
 
                 # TODO: training.get_memory_stats() crashes vLLM
                 # Log metrics
