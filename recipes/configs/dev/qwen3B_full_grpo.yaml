@@ -71,9 +71,8 @@ resume_from_checkpoint: False
 save_every_n_epochs: 1
 
 # Fine-tuning arguments
-batch_size: 1
+batch_size: 16
 grpo_samples: 16
-forward_batch_size: 1
 max_generated_tokens: 512
 top_k: null
 temperature: 1.0
@@ -116,7 +115,7 @@ num_fsdp_workers: 2
 vllm:
   num_workers: 5
   tp_size: 1
-  batch_size: 1 # TODO: for now, needs to match recipe batch size
+  batch_size: 1
   queue_maxsize: 3 #num workers * steps_before_sync
 
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 README!! What's going on in this script?
 
@@ -63,7 +64,8 @@ from ray.util.placement_group import placement_group
 
 from ray.util.queue import Full as QueueFull, Queue
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
-from tensordict import is_tensorclass, TensorClass
+
+from tensordict import is_tensorclass, NonTensorData, TensorClass, TensorDict
 
 from torch.distributed.device_mesh import init_device_mesh
 from torch.optim import Optimizer
@@ -97,6 +99,10 @@ class Trajectory(TensorClass["nocast"]):
     seq_lens: torch.Tensor
     answers: torch.Tensor
     policy_version: int
+    rewards: torch.Tensor
+    advantages: torch.Tensor
+    successes: torch.Tensor
+    reward_metadata: Dict[str, List[str]]
 
 
 def stateless_init_process_group(
@@ -137,6 +143,7 @@ class RefActor:
         self.rollout_queue = kwargs.pop("rollout_queue")
         self.replay_buffer = kwargs.pop("replay_buffer")
         self._device = utils.get_device(device=self.cfg.device)
+        self._tokenizer = config.instantiate(self.cfg.tokenizer)
         self._dtype = training.get_dtype(self.cfg.dtype, device=self._device)
         ref_checkpoint_dict = self.load_ref_checkpoint(
             cfg_ref_checkpointer=self.cfg.ref_checkpointer
@@ -147,6 +154,9 @@ class RefActor:
         self._temperature = self.cfg.temperature
 
         self.metric_logger = None  # Placeholder for the logger
+
+        self.grpo_samples = self.cfg.grpo_samples
+        self.vllm_batch_size = self.cfg.vllm.batch_size
 
         device_type = self.cfg.device
         self._log_peak_memory_stats = self.cfg.get("log_peak_memory_stats", True)
@@ -159,6 +169,10 @@ class RefActor:
         if self._is_actor_zero:
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
+
+        self.STOP_TOKENS_TENSOR = torch.tensor(
+            self._tokenizer.stop_tokens, device=self._device
+        )
 
     def set_metric_logger(self, logger):
         """Store the MetricLoggerActor handle."""
@@ -213,6 +227,11 @@ class RefActor:
         time_waiting_buffer,
         # full_queue_data_discard,
         rollout_queue_size,
+        rewards_mean,
+        successes_mean,
+        rewards_mean_per_func,
+        successes_mean_per_func,
+        reward_metadata,
     ):
         """Log metrics for the RefActor, only on actor zero."""
         if not self._is_actor_zero:
@@ -251,6 +270,33 @@ class RefActor:
             }
         )
 
+        log_dict.update(
+            {
+                "ref_actor_rewards/rewards_mean": rewards_mean.item(),
+                "ref_actor_rewards/successes_mean": successes_mean.item(),
+            }
+        )
+
+        # # TODO we should encode this in the dataclass instead of keeping a dict
+        # # otherwise we end up with a list of identical dicts
+        # assert all(
+        #     metadata["func_names"] == reward_metadata[0]["func_names"]
+        #     for metadata in reward_metadata
+        # ), "Function names in reward_metadata are not consistent across all entries"
+        # function_names = reward_metadata[0]["func_names"]
+
+        function_names = reward_metadata["func_names"]
+
+        # Per-function rewards and successes
+        for func_name, func_mean in zip(function_names, rewards_mean_per_func):
+            log_dict[f"ref_actor_rewards/rewards_func_{func_name}_mean"] = (
+                func_mean.item()
+            )
+        for func_name, func_mean in zip(function_names, successes_mean_per_func):
+            log_dict[f"ref_actor_rewards/successes_func_{func_name}_mean"] = (
+                func_mean.item()
+            )
+
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
     def run(self):
@@ -274,39 +320,24 @@ class RefActor:
                     if self._is_actor_zero:
                         print(f"Getting from rollout_queue queue.")
                     trajectory = self.rollout_queue.get(timeout=0.5)
+                    trajectory = trajectory.to(self._device)
 
-                    # Move tensors back to GPU
-                    trajectory = [
-                        (
-                            tensor.to(self._device)
-                            if isinstance(tensor, torch.Tensor)
-                            else tensor
-                        )
-                        for tensor in trajectory
-                    ]
                 except ray.util.queue.Empty:
                     trajectory = None
                     time.sleep(0.1)
             time_wait_end = time.perf_counter()
             time_waiting_buffer = time_wait_end - time_step_start
 
-            (
-                query_responses,
-                responses,
-                logprobs,
-                query_response_padding_masks,
-                seq_lens,
-                answers,
-                policy_version,
-            ) = trajectory
-
-            context_length = query_responses.shape[1] - responses.shape[1]
+            context_length = (
+                trajectory["query_responses"].shape[1]
+                - trajectory["responses"].shape[1]
+            )
 
             masks = generation.get_causal_mask_from_padding_mask(
-                query_response_padding_masks
+                trajectory["query_response_padding_masks"]
             )
             position_ids = generation.get_position_ids_from_padding_mask(
-                query_response_padding_masks
+                trajectory["query_response_padding_masks"]
             )
 
             # Reset GPU memory stats before model_running
@@ -315,42 +346,112 @@ class RefActor:
             time_grpo_steps_start = time.perf_counter()
             with torch.no_grad():
                 ref_logits = self._ref_model(
-                    query_responses, input_pos=position_ids, mask=masks
+                    trajectory["query_responses"], input_pos=position_ids, mask=masks
                 )
             time_model_running = time.perf_counter() - time_grpo_steps_start
 
             ref_logits = rlhf.truncate_sequence_for_logprobs(ref_logits, context_length)
             ref_logprobs = rlhf.batched_logits_to_logprobs(
-                ref_logits, responses, self._temperature
+                ref_logits, trajectory["responses"], self._temperature
             )
+
+            batch_size = self.cfg.vllm.batch_size  # B
+            group_size = self.grpo_samples  # G
 
             del ref_logits, position_ids, masks
             # masking of ref_logprobs is done in grpo_step
 
-            # Repack trajectory with policy_version
-            batch_size = logprobs.shape[:1] if logprobs.ndim > 1 else ()
-            trajectory = Trajectory(
-                query_responses=query_responses,
-                responses=responses,
-                logprobs=logprobs,
-                ref_logprobs=ref_logprobs,
-                query_response_padding_masks=query_response_padding_masks,
-                seq_lens=seq_lens,
-                answers=answers,
-                policy_version=policy_version,
-                batch_size=batch_size,
-            )
-            print(f"putting trajectory {trajectory} into actor queue")
+            # Extract components from raw trajectory: these have size [B * G, T]
+            print(f"Extracting components from raw trajectory: {trajectory}")
+            query_responses = trajectory["query_responses"]
+            responses = trajectory["responses"]
+            query_response_padding_masks = trajectory["query_response_padding_masks"]
+            seq_lens = trajectory["seq_lens"]
+            answers = trajectory["answers"]  # list[str] of len (B * G)
+            answers = [
+                answers[i : i + self.grpo_samples]
+                for i in range(0, len(answers), self.grpo_samples)
+            ]  # list[list[str]] of len [B, G]. Basically a reshape
 
+            # Compute padded tokens percentage
+            total_tokens = query_responses.numel()
+            padded_tokens = (query_responses == self._tokenizer.pad_id).sum().item()
+            padded_tokens_percentage = (
+                (padded_tokens / total_tokens) * 100 if total_tokens > 0 else 0
+            )
+            number_of_tokens = seq_lens.sum().item()
+
+            # Truncate sequences at first stop token
+            response_padding_masks, responses = (
+                rlhf.truncate_sequence_at_first_stop_token(
+                    responses,
+                    self.STOP_TOKENS_TENSOR.to(self._device),
+                    self._tokenizer.pad_id,
+                )
+            )
+
+            # Generate masks and position IDs
+            masks = generation.get_causal_mask_from_padding_mask(
+                query_response_padding_masks
+            )
+            position_ids = generation.get_position_ids_from_padding_mask(
+                query_response_padding_masks
+            )
+            context_length = query_responses.shape[1] - responses.shape[1]
+            del query_response_padding_masks
+
+            # Compute rewards
+            responses = responses.reshape(batch_size, group_size, -1)
+            rewards_by_fn, successes_by_fn, reward_metadata = batched_rewards(
+                self._tokenizer, responses, answers, device=self._device
+            )  # These are (B, G, num_funcs)
+
+            # Compute advantages: B, G, num_funcs -> B, G
+            group_rewards = rewards_by_fn.sum(-1)
+            group_successes = successes_by_fn.sum(-1)
+
+            # To compute advantage, subtract the mean of the group rewards from each group reward
+            group_advantages = (group_rewards - group_rewards.mean(1, keepdim=True)) / (
+                group_rewards.std(1, keepdim=True) + 1e-4
+            )  # (B, G)
+
+            # Repack trajectory with policy_version
+
+            trajectory = Trajectory(
+                query_responses=trajectory["query_responses"],
+                responses=trajectory["responses"],
+                logprobs=trajectory["logprobs"],
+                ref_logprobs=ref_logprobs,
+                query_response_padding_masks=trajectory["query_response_padding_masks"],
+                seq_lens=trajectory["seq_lens"],
+                answers=trajectory["answers"],
+                policy_version=trajectory["policy_version"],
+                rewards=rewards_by_fn.reshape(
+                    batch_size * group_size, -1
+                ),  # (B, G, num_funcs)
+                advantages=group_advantages.reshape(batch_size * group_size),  # (B, G)
+                successes=successes_by_fn.reshape(
+                    batch_size * group_size, -1
+                ),  # (B, G, num_funcs)
+                reward_metadata=reward_metadata,
+                batch_size=batch_size * group_size,
+            )
+
+            log.info(f"Constructed trajectory: {trajectory}")
             # Move tensors to CPU before putting into the queue
             trajectory = trajectory.cpu()
 
             # Update circular queue
-            self.replay_buffer.add(trajectory)
+            self.replay_buffer.extend(trajectory)
 
             # End of step timing
             time_total_ref_step = time.perf_counter() - time_step_start
 
+            # Calculate mean rewards and successes for logging
+            rewards_mean_per_func = rewards_by_fn.mean(dim=(0, 1)).cpu()
+            successes_mean_per_func = successes_by_fn.mean(dim=(0, 1)).cpu()
+            rewards_mean = rewards_mean_per_func.mean()
+            successes_mean = successes_mean_per_func.mean()
             # log metrics
             if self._is_actor_zero:
                 self._log_metrics(
@@ -361,6 +462,11 @@ class RefActor:
                     # TODO: what should we do with this? We can log the total number of elements written in the buffer instead
                     # full_queue_data_discard=full_queue_data_discard,
                     rollout_queue_size=rollout_queue_size,
+                    rewards_mean=rewards_mean,
+                    successes_mean=successes_mean,
+                    rewards_mean_per_func=rewards_mean_per_func,
+                    successes_mean_per_func=successes_mean_per_func,
+                    reward_metadata=reward_metadata,
                 )
 
             torch.cuda.empty_cache()
@@ -608,14 +714,14 @@ class vLLMRolloutActor:
             seq_lens = torch.tensor(seq_lens, dtype=torch.long, device="cuda")
 
             # FIXME: change to Tensorclassy tensordict object
-            return [
-                query_responses,
-                responses,
-                logprobs,
-                # response_padding_masks,
-                query_response_padding_masks,
-                seq_lens,
-            ]
+            return TensorDict(
+                query_responses=query_responses,
+                responses=responses,
+                logprobs=logprobs,
+                query_response_padding_masks=query_response_padding_masks,
+                seq_lens=seq_lens,
+                batch_size=bs,
+            )
 
         for idx, batch in enumerate(self._dataloader):
             time_step_start = time.perf_counter()
@@ -642,8 +748,13 @@ class vLLMRolloutActor:
 
             # FIXME: tokens is currently on cpu, is this right?s
             tokens, answers = batch["tokens"], batch["answers"]
+
             batch_tokens = tokens[:, None, :].expand(-1, self.grpo_samples, -1)
             batch_tokens = batch_tokens.reshape(self.batch_size * self.grpo_samples, -1)
+
+            # Each answer is repeated for the whole group
+            answers = [a for a in answers for _ in range(self.grpo_samples)]
+
             # A downside is they only seem to take in List[List[int]] and not torch.Tensor :(
             batch_tokens = batch_tokens.numpy().tolist()
 
@@ -662,29 +773,13 @@ class vLLMRolloutActor:
 
             postprocessed_results = postprocess_vllm_request_output(result)
 
-            # Unpack to compute padded tokens percentage and tokens per second
-            (
-                query_responses,
-                responses,
-                logprobs,
-                query_response_padding_masks,
-                seq_lens,
-            ) = postprocessed_results
-            # Compute total generated tokens for tokens per second
-            total_generated_tokens = seq_lens.sum().item()
+            total_generated_tokens = postprocessed_results["seq_lens"].sum().item()
 
-            postprocessed_results.append(answers)
-            postprocessed_results.append(self.policy_version)
-
-            # print(self._tokenizer.decode(batch_tokens[0]))
-            # print("===")
-            # print(self._tokenizer.decode(postprocessed_results[0][0].cpu().numpy().tolist()))
+            postprocessed_results["answers"] = answers
+            postprocessed_results["policy_version"] = NonTensorData(self.policy_version)
 
             # Move tensors to CPU before putting into the queue
-            postprocessed_results = [
-                tensor.cpu() if isinstance(tensor, torch.Tensor) else tensor
-                for tensor in postprocessed_results
-            ]
+            postprocessed_results = postprocessed_results.to("cpu")
 
             # Update circular queue and count full queue tries
             # full_queue_data_discard = 0
@@ -695,11 +790,12 @@ class vLLMRolloutActor:
                 except QueueFull:
                     self.rollout_queue.get()  # Remove the oldest item to make space
                     # full_queue_data_discard += 1
-                    print(f"rollout queue full. Discarding data.")
+                    log.warning(f"rollout queue full. Discarding data.")
 
             if self._is_actor_zero:
                 # End timing the rollout step
                 time_total_rollout = time.perf_counter() - time_step_start
+                log.info(f"Put this into queue: {postprocessed_results}")
 
                 # TODO: training.get_memory_stats() crashes vLLM
                 # Log metrics
@@ -1196,11 +1292,6 @@ class PyTorchActorModel:
         number_of_tokens,
         padded_tokens_percentage,
         policy_age,
-        rewards_mean,
-        successes_mean,
-        rewards_mean_per_func,
-        successes_mean_per_func,
-        reward_metadata,
         train_replay_buffer_size,
     ):
         """Log training metrics, only on rank zero."""
@@ -1236,26 +1327,6 @@ class PyTorchActorModel:
                 .item(),
             }
         )
-
-        # rewards and successes
-        log_dict.update(
-            {
-                "train_actor_rewards/rewards_mean": rewards_mean.item(),
-                "train_actor_rewards/successes_mean": successes_mean.item(),
-            }
-        )
-
-        # Per-function rewards and successes
-        for func_name, mean in zip(
-            reward_metadata["func_names"], rewards_mean_per_func
-        ):
-            log_dict[f"train_actor_rewards/rewards_func_{func_name}_mean"] = mean.item()
-        for func_name, mean in zip(
-            reward_metadata["func_names"], successes_mean_per_func
-        ):
-            log_dict[f"train_actor_rewards/successes_func_{func_name}_mean"] = (
-                mean.item()
-            )
 
         log_dict.update(
             {
@@ -1324,11 +1395,10 @@ class PyTorchActorModel:
                 log.info("waiting for replay buffer")
                 time.sleep(1.0)
 
-            trajectory = self.replay_buffer.sample(batch_size=self.batch_size)[0].to(
-                self._device
-            )
+            trajectory = self.replay_buffer.sample().to(self._device)
             time_waiting_buffer = time.perf_counter() - time_waiting_buffer_start
-            log.info(f"{self.rank=} got from queue traj {trajectory}")
+            if self._is_rank_zero:
+                log.info(f"{self.rank=} got from queue traj {trajectory}")
 
             # Prepare trajectory for optimization
             trajectory, context_length, metadata = self._prepare_trajectory(trajectory)
@@ -1387,7 +1457,9 @@ class PyTorchActorModel:
 
             # Log metrics
             total_step_time = time.perf_counter() - time_step_start
-            policy_age = self.policy_version - metadata["policy_version"]
+            avg_policy_age = self.policy_version - (
+                sum(metadata["policy_version"]) / len(metadata["policy_version"])
+            )
             if self._is_rank_zero:
                 log.info("logging metrics")
                 self._log_metrics(
@@ -1401,12 +1473,7 @@ class PyTorchActorModel:
                     time_weight_gather=time_weight_gather,
                     number_of_tokens=metadata["number_of_tokens"],
                     padded_tokens_percentage=metadata["padded_tokens_percentage"],
-                    policy_age=policy_age,
-                    rewards_mean=metadata["rewards_mean"],
-                    successes_mean=metadata["successes_mean"],
-                    rewards_mean_per_func=metadata["rewards_mean_per_func"],
-                    successes_mean_per_func=metadata["successes_mean_per_func"],
-                    reward_metadata=metadata["reward_metadata"],
+                    policy_age=avg_policy_age,
                     train_replay_buffer_size=train_replay_buffer_size,
                 )
                 log.info("done logging metrics")
@@ -1470,14 +1537,19 @@ class PyTorchActorModel:
             metadata (dict): Metadata for logging, including rewards and performance metrics.
         """
         # Extract components from raw trajectory
-        query_responses = raw_trajectory.query_responses
-        responses = raw_trajectory.responses
-        logprobs = raw_trajectory.logprobs
-        ref_logprobs = raw_trajectory.ref_logprobs
-        query_response_padding_masks = raw_trajectory.query_response_padding_masks
-        seq_lens = raw_trajectory.seq_lens
-        answers = raw_trajectory.answers
-        policy_version = raw_trajectory.policy_version
+        # Extract components from raw trajectory
+        query_responses = raw_trajectory["query_responses"]
+        responses = raw_trajectory["responses"]
+        logprobs = raw_trajectory["logprobs"]
+        ref_logprobs = raw_trajectory["ref_logprobs"]
+        query_response_padding_masks = raw_trajectory["query_response_padding_masks"]
+        seq_lens = raw_trajectory["seq_lens"]
+        answers = raw_trajectory["answers"]
+        policy_version = raw_trajectory["policy_version"]
+        rewards = raw_trajectory["rewards"]
+        advantages = raw_trajectory["advantages"]
+        successes = raw_trajectory["successes"]
+        reward_metadata = raw_trajectory["reward_metadata"]
 
         # Compute padded tokens percentage
         total_tokens = query_responses.numel()
@@ -1504,19 +1576,6 @@ class PyTorchActorModel:
         context_length = query_responses.shape[1] - responses.shape[1]
         del query_response_padding_masks
 
-        # Compute rewards
-        responses = responses.reshape(self.batch_size, self.grpo_samples, -1)
-        rewards_full, successes_full, reward_metadata = batched_rewards(
-            self._tokenizer, responses, answers, device=self._device
-        )
-
-        # Compute advantages: B, G, num_funcs -> B, G
-        rewards_sum = rewards_full.sum(-1)
-        advantages = (rewards_sum - rewards_sum.mean(1, keepdim=True)) / (
-            rewards_sum.std(1, keepdim=True) + 1e-4
-        )
-        advantages = advantages.reshape(self.batch_size * self.grpo_samples)
-
         # Create GRPOTrajectory
         trajectory = GRPOTrajectory(
             query_responses=query_responses,
@@ -1529,34 +1588,11 @@ class PyTorchActorModel:
             seq_lens=training.get_unmasked_sequence_lengths(response_padding_masks),
         )
 
-        # Reduce rewards and successes for logging
-        torch.distributed.reduce(rewards_full, dst=0, op=torch.distributed.ReduceOp.AVG)
-        torch.distributed.reduce(
-            successes_full, dst=0, op=torch.distributed.ReduceOp.AVG
-        )
-        if self._is_rank_zero:
-            rewards_mean_per_func = rewards_full.mean(dim=(0, 1)).cpu()
-            successes_mean_per_func = successes_full.mean(dim=(0, 1)).cpu()
-            rewards_mean = rewards_mean_per_func.mean()
-            successes_mean = successes_mean_per_func.mean()
-        else:
-            rewards_mean_per_func = successes_mean_per_func = rewards_mean = (
-                successes_mean
-            ) = None
-
-        # Clean up intermediate variables
-        del rewards_full, successes_full, responses, rewards_sum
-        torch.distributed.barrier()
-
         # Metadata for logging
         metadata = {
             "padded_tokens_percentage": padded_tokens_percentage,
             "number_of_tokens": number_of_tokens,
             "policy_version": policy_version,
-            "rewards_mean": rewards_mean,
-            "successes_mean": successes_mean,
-            "rewards_mean_per_func": rewards_mean_per_func,
-            "successes_mean_per_func": successes_mean_per_func,
             "reward_metadata": reward_metadata,
         }
 
@@ -1599,7 +1635,7 @@ class RayGRPORecipe:
         )
         self.replay_buffer = RayReplayBuffer(
             storage=functools.partial(LazyStackStorage, max_size=3),
-            batch_size=1,
+            batch_size=cfg.batch_size,
             remote_config={"num_cpus": 10, "num_gpus": 0},
         )
 
