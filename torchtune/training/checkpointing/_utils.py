@@ -433,10 +433,10 @@ def get_recipe_checkpoint_path(
             output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
         )
 
-    # TODO: improve this msg
     if not recipe_checkpoint_path or not os.path.exists(recipe_checkpoint_path):
         raise ValueError(
-            "If should_load_recipe_state is True, recipe_checkpoint file must be provided."
+            "If `should_load_recipe_state=True`, recipe_checkpoint file must be provided. "
+            f"Could not find it at {recipe_checkpoint_path}."
         )
 
     return Path(recipe_checkpoint_path)
@@ -460,6 +460,9 @@ def get_adapter_checkpoint_path(
 
     Returns:
         Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
+
+    Raises:
+        ValueError: If the adapter checkpoint file is missing or If the adapter checkpoint file is not a .pt file.
     """
     if not should_load_recipe_state:
         return None
@@ -468,7 +471,14 @@ def get_adapter_checkpoint_path(
 
     if adapter_checkpoint:
         adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
-        # TODO: add error if it doesnt exist
+        if not os.path.exists(adapter_checkpoint_path):
+            raise ValueError(
+                f"Adapter checkpoint file {adapter_checkpoint_path} does not exist."
+            )
+        if not adapter_checkpoint_path.endswith(".pt"):
+            raise ValueError(
+                f"Adapter checkpoint file {adapter_checkpoint_path} must end with .pt extension."
+            )
     else:
         # Look for the latest adapter checkpoint in the output directory
         largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
