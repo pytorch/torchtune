@@ -10,7 +10,6 @@ import torch
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
-from torchtune.modules.tied_linear import TiedLinear
 
 class TransformerSelfAttentionLayer(nn.Module):
     """
@@ -704,7 +703,8 @@ class TransformerDecoder(nn.Module):
         # resize output projection, if not tied
         if isinstance(self.output, Callable):
             # if output is a callable, we need to resize the output projection
-            self.output = self.output(new_num_tokens)
+            # this works for TiedLinear, need to check against other callables
+            self.output.tied_module = self.tok_embeddings
         else:
             # otherwise, Linear layer, resize linear layer
             old_output = self.output
