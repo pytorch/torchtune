@@ -71,7 +71,7 @@ resume_from_checkpoint: False
 save_every_n_epochs: 1
 
 # Fine-tuning arguments
-batch_size: 1
+batch_size: 16
 grpo_samples: 16
 max_generated_tokens: 512
 top_k: null
