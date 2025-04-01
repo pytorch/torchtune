@@ -223,6 +223,11 @@ class RefActor:
         time_waiting_buffer,
         # full_queue_data_discard,
         rollout_queue_size,
+        rewards_mean,
+        successes_mean,
+        rewards_mean_per_func,
+        successes_mean_per_func,
+        reward_metadata,
     ):
         """Log metrics for the RefActor, only on actor zero."""
         if not self._is_actor_zero:
@@ -260,6 +265,33 @@ class RefActor:
                 "queues/rollout_queue_size": rollout_queue_size,
             }
         )
+
+        log_dict.update(
+            {
+                "ref_actor_rewards/rewards_mean": rewards_mean.item(),
+                "ref_actor_rewards/successes_mean": successes_mean.item(),
+            }
+        )
+
+        # # TODO we should encode this in the dataclass instead of keeping a dict
+        # # otherwise we end up with a list of identical dicts
+        # assert all(
+        #     metadata["func_names"] == reward_metadata[0]["func_names"]
+        #     for metadata in reward_metadata
+        # ), "Function names in reward_metadata are not consistent across all entries"
+        # function_names = reward_metadata[0]["func_names"]
+
+        function_names = reward_metadata["func_names"]
+
+        # Per-function rewards and successes
+        for func_name, func_mean in zip(function_names, rewards_mean_per_func):
+            log_dict[f"ref_actor_rewards/rewards_func_{func_name}_mean"] = (
+                func_mean.item()
+            )
+        for func_name, func_mean in zip(function_names, successes_mean_per_func):
+            log_dict[f"ref_actor_rewards/successes_func_{func_name}_mean"] = (
+                func_mean.item()
+            )
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
@@ -411,6 +443,11 @@ class RefActor:
             # End of step timing
             time_total_ref_step = time.perf_counter() - time_step_start
 
+            # Calculate mean rewards and successes for logging
+            rewards_mean_per_func = rewards_by_fn.mean(dim=(0, 1)).cpu()
+            successes_mean_per_func = successes_by_fn.mean(dim=(0, 1)).cpu()
+            rewards_mean = rewards_mean_per_func.mean()
+            successes_mean = successes_mean_per_func.mean()
             # log metrics
             if self._is_actor_zero:
                 self._log_metrics(
@@ -421,6 +458,11 @@ class RefActor:
                     # TODO: what should we do with this? We can log the total number of elements written in the buffer instead
                     # full_queue_data_discard=full_queue_data_discard,
                     rollout_queue_size=rollout_queue_size,
+                    rewards_mean=rewards_mean,
+                    successes_mean=successes_mean,
+                    rewards_mean_per_func=rewards_mean_per_func,
+                    successes_mean_per_func=successes_mean_per_func,
+                    reward_metadata=reward_metadata,
                 )
 
             torch.cuda.empty_cache()
@@ -1246,11 +1288,6 @@ class PyTorchActorModel:
         number_of_tokens,
         padded_tokens_percentage,
         policy_age,
-        rewards_mean,
-        successes_mean,
-        rewards_mean_per_func,
-        successes_mean_per_func,
-        reward_metadata,
         train_replay_buffer_size,
     ):
         """Log training metrics, only on rank zero."""
@@ -1286,32 +1323,6 @@ class PyTorchActorModel:
                 .item(),
             }
         )
-
-        # rewards and successes
-        log_dict.update(
-            {
-                "train_actor_rewards/rewards_mean": rewards_mean.item(),
-                "train_actor_rewards/successes_mean": successes_mean.item(),
-            }
-        )
-
-        # TODO we should encode this in the dataclass instead of keeping a dict
-        # otherwise we end up with a list of identical dicts
-        assert all(
-            metadata["func_names"] == reward_metadata[0]["func_names"]
-            for metadata in reward_metadata
-        ), "Function names in reward_metadata are not consistent across all entries"
-        function_names = reward_metadata[0]["func_names"]
-
-        # Per-function rewards and successes
-        for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[f"train_actor_rewards/rewards_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
-        for func_name, func_mean in zip(function_names, successes_mean_per_func):
-            log_dict[f"train_actor_rewards/successes_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
 
         log_dict.update(
             {
@@ -1459,11 +1470,6 @@ class PyTorchActorModel:
                     number_of_tokens=metadata["number_of_tokens"],
                     padded_tokens_percentage=metadata["padded_tokens_percentage"],
                     policy_age=avg_policy_age,
-                    rewards_mean=metadata["rewards_mean"],
-                    successes_mean=metadata["successes_mean"],
-                    rewards_mean_per_func=metadata["rewards_mean_per_func"],
-                    successes_mean_per_func=metadata["successes_mean_per_func"],
-                    reward_metadata=metadata["reward_metadata"],
                     train_replay_buffer_size=train_replay_buffer_size,
                 )
                 log.info("done logging metrics")
@@ -1578,20 +1584,11 @@ class PyTorchActorModel:
             seq_lens=training.get_unmasked_sequence_lengths(response_padding_masks),
         )
 
-        rewards_mean_per_func = rewards.mean(dim=0).cpu()
-        successes_mean_per_func = successes.mean(dim=0).cpu()
-        rewards_mean = rewards_mean_per_func.mean()
-        successes_mean = successes_mean_per_func.mean()
-
         # Metadata for logging
         metadata = {
             "padded_tokens_percentage": padded_tokens_percentage,
             "number_of_tokens": number_of_tokens,
             "policy_version": policy_version,
-            "rewards_mean": rewards_mean,
-            "successes_mean": successes_mean,
-            "rewards_mean_per_func": rewards_mean_per_func,
-            "successes_mean_per_func": successes_mean_per_func,
             "reward_metadata": reward_metadata,
         }
 
