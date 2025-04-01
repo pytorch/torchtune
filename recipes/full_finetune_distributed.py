@@ -791,12 +791,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return loss
 
-    def validate(self) -> float:
+    def validate(self) -> Dict[str, float]:
         """
         Run validation loop and return average validation loss.
         """
         if self._val_dataloader is None:
-            return 0.0
+            return {"val_loss": 0.0}
 
         self._model.eval()
         total_val_loss = torch.tensor(0.0, device=self._device)
@@ -827,8 +827,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             if total_val_tokens > 0
             else float("inf")
         )
+        log_dict = {"val_loss": avg_val_loss}
 
-        return avg_val_loss
+        if self._is_rank_zero:
+            log.info(f"Validation loss: {avg_val_loss:.4f}")
+            self._metric_logger.log_dict(
+                log_dict,
+                step=self.global_step,
+            )
+        return log_dict
 
     def train(self) -> None:
         """
@@ -979,13 +986,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         and self.global_step % self._run_val_every_n_steps == 0
                     ):
                         pbar.refresh()
-                        val_loss = self.validate()
-                        if self._is_rank_zero:
-                            log.info(f"Validation loss: {val_loss:.4f}")
-                            self._metric_logger.log_dict(
-                                {"val_loss": val_loss},
-                                step=self.global_step,
-                            )
+                        self.validate()
 
                 if (
                     (idx + 1) // self._gradient_accumulation_steps
