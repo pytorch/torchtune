@@ -1608,6 +1608,7 @@ class PyTorchActorModel:
 class MetricLoggerActor:
     def __init__(self, cfg):
         self.logger = config.instantiate(cfg.metric_logger)
+        self.logger.log_config(cfg)
 
     def log_dict(self, log_dict, step=None):
         # allowing actors to use their own step counters
@@ -1634,7 +1635,9 @@ class RayGRPORecipe:
             maxsize=cfg.vllm.queue_maxsize,
         )
         self.replay_buffer = RayReplayBuffer(
-            storage=functools.partial(LazyStackStorage, max_size=3),
+            storage=functools.partial(
+                LazyStackStorage, max_size=cfg.replay_buffer_size
+            ),
             batch_size=cfg.batch_size,
             remote_config={"num_cpus": 10, "num_gpus": 0},
         )

@@ -76,6 +76,7 @@ grpo_samples: 16
 max_generated_tokens: 512
 top_k: null
 temperature: 1.0
+replay_buffer_size: 64
 
 ppo_epochs: 1
 
@@ -116,7 +117,7 @@ vllm:
   num_workers: 5
   tp_size: 1
   batch_size: 1
-  queue_maxsize: 3 #num workers * steps_before_sync
+  queue_maxsize: 128 #num workers * steps_before_sync
 
 
 # Logging
