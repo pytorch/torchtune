@@ -246,7 +246,6 @@ def generate(
                 with shape ``[bsz x num_generated_tokens x vocab_size]``.
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
-    print("Initial Prompt:", prompt)
 
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
@@ -256,7 +255,6 @@ def generate(
 
     generated_tokens = prompt.clone()
     incremental_decoding = model.caches_are_enabled()
-    print("Cloned Prompt:", generated_tokens)
 
     # grab the correct max_seq_len to generate full causal masks/position ids
     # this is the model's max cache len if incremental decoding, or the sequence
@@ -321,9 +319,7 @@ def generate(
         q=q,
     )
 
-    print("First Generated Token:", tokens)
     generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
-    print("After First Concat:", generated_tokens)
 
     curr_pos = prompt_length
 
@@ -346,11 +342,10 @@ def generate(
         stop_token_reached = update_stop_tokens_tracker(
             tokens, stop_tokens, stop_token_reached
         )
-        print("Stop Token Reached After First:", stop_token_reached)
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits
 
-    for i in range(max_generated_tokens - 1):
+    for _ in range(max_generated_tokens - 1):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
         # reshaped to be bsz first
@@ -383,9 +378,7 @@ def generate(
             top_k=top_k,
             q=q,
         )
-        print(f"Step {i+2} Token:", tokens)
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
-        print(f"Step {i+2} Generated Tokens:", generated_tokens)
         generated_logits = torch.cat([generated_logits, logits], dim=1)
         curr_pos += 1
 
@@ -393,7 +386,6 @@ def generate(
             stop_token_reached = update_stop_tokens_tracker(
                 tokens, stop_tokens, stop_token_reached
             )
-            print(f"Step {i+2} Stop Reached:", stop_token_reached)
             if stop_token_reached.all():
                 break
 
