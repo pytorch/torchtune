@@ -21,8 +21,8 @@ from tests.recipes.utils import (
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
-    gpu_test,
     get_loss_values_from_metric_logger,
+    gpu_test,
 )
 from torchtune import config
 
