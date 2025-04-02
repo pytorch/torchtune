@@ -58,7 +58,7 @@ jobs:
         run: python -c "import torch; import torchvision; import torchao; print(torch.__version__, torchvision.__version__, torchao.__version__, torch.version.cuda); "
       - name: Test NCCL initialization
         env:
-          NCCL_DEBUG: ${{ matrix.torch-version == 'nightly' && 'INFO' }}
+          NCCL_DEBUG: INFO
         run: python -c "import torch.distributed as dist; dist.init_process_group('nccl'); dist.barrier(); dist.destroy_process_group()"
       - name: Run recipe and unit tests with coverage
         env:
