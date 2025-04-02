@@ -462,7 +462,7 @@ def get_adapter_checkpoint_path(
         Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.
 
     Raises:
-        ValueError: If the adapter checkpoint file is missing or If the adapter checkpoint file is not a .pt file.
+        ValueError: If the adapter checkpoint file is missing or if the adapter checkpoint file is not a .pt file.
     """
     if not should_load_recipe_state:
         return None
