@@ -59,7 +59,7 @@ import torch.nn as nn
 import torchtune
 import torchtune.training as training
 
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from ray.util.placement_group import placement_group
 
 from ray.util.queue import Full as QueueFull, Queue
@@ -78,7 +78,6 @@ from torchtune.dev.grpo.rewards import batched_rewards
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.models import qwen2_5
 from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
-from torchtune.rlhf import Trajectory
 
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
@@ -1632,7 +1631,7 @@ class RayGRPORecipe:
         # Initialize queues
         self.rollout_queue = Queue(
             actor_options={"num_cpus": 10, "num_gpus": 0},
-            maxsize=cfg.vllm.queue_maxsize,
+            maxsize=self.cfg.vllm.queue_maxsize,
         )
         self.replay_buffer = RayReplayBuffer(
             storage=functools.partial(
@@ -1798,6 +1797,8 @@ class RayGRPORecipe:
 
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
+    OmegaConf.register_new_resolver("eval", eval)
+    OmegaConf.resolve(cfg)
 
     if cfg.get("enable_expandable_segments", True):
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
