@@ -6,7 +6,6 @@
 
 import time
 
-import torch
 from fifo_bins_packing import OnTheFlyPackedDataset as FIFOBinsPackedDataset
 from fifo_buffer_packing import OnTheFlyPackedDataset as FIFOBufferPackedDataset
 

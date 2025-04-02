@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import random
-import time
 from collections import defaultdict
 
 import torch
