@@ -71,7 +71,7 @@ class GRPO_Dataset(Dataset):
         
         # Convert tokens to GPU tensors directly where needed
         response_tokens = torch.tensor(
-            sample["tokens"] + [128001], 
+            np.concatenate([sample["tokens"]]), 
             dtype=torch.long, 
             device=self._device
         ).unsqueeze(0)
@@ -84,7 +84,8 @@ class GRPO_Dataset(Dataset):
         ).unsqueeze(0)
         
         # Combine logic for logprobs without intermediate lists
-        query_response_logprobs = np.concatenate([sample["log_probs"], [0.0]])
+        response_logprobs = np.concatenate([sample["log_probs"]])
+
         
         # Create padding masks efficiently
         query_response_padding_masks = query_response_tokens != self._tokenizer.pad_id
@@ -128,11 +129,13 @@ class GRPO_Dataset(Dataset):
             "query_responses": query_response_tokens,
             "position_ids": position_ids,
             "masks": masks,
-            "logprobs": torch.tensor(query_response_logprobs, device=self._device).unsqueeze(0),
+            "logprobs": torch.tensor(response_logprobs, device=self._device).unsqueeze(0),
             "ref_logprobs": ref_logprobs,
             "advantages": torch.tensor(advantages, device=self._device).unsqueeze(0),
             "response_padding_masks": response_padding_masks,
             "query_len": len(query_tokens),
+            "type": torch.tensor(sample["original_reward"]),
+            "response_tokens": response_tokens
         }
         
         return trajectory

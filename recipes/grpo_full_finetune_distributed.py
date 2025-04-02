@@ -455,8 +455,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
 
         #RL params
+        self.add_sampling_temperature=cfg.add_sampling_temperature
         self._total_steps = cfg.num_steps
         self._temperature = cfg.temperature
+        self.sampling_temperature= cfg.sampling_temperature
         self._save_every_n_epochs = cfg.save_every_n_epochs
 
         
@@ -939,6 +941,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             **extras,
         }
 
+
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))
         if self._is_rank_zero:
@@ -952,6 +955,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> GRPOStats:
         # estimate logprobs from the policy at the current optimisation step
         torch.cuda.empty_cache()
+        self._temperature=1.0
 
         pi_logits = self._model(
             trajectory.query_responses,
@@ -959,26 +963,34 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             mask=trajectory.masks,
         )
 
+        if self.add_sampling_temperature:
+            pi_logits=pi_logits/self.sampling_temperature
+
         pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, trajectory.query_len)
+
 
         pi_logprobs = rlhf.batched_logits_to_logprobs(
             pi_logits,
-            trajectory.query_responses[:, trajectory.query_len:],
+            trajectory.response_tokens,
             self._temperature,
             chunk_size=1,
         )
+
         pi_logprobs[trajectory.response_padding_masks] = 1.0
 
         del pi_logits
         torch.cuda.empty_cache()
 
+
+
         # calculate grpo loss
         loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
-            trajectory.logprobs,
-            pi_logprobs,
-            trajectory.ref_logprobs,
-            trajectory.advantages,
+            pi_old_logprobs=trajectory.logprobs,
+            pi_logprobs=pi_logprobs,
+            ref_logprobs=trajectory.ref_logprobs,
+            advantages=trajectory.advantages,
             padding_masks=~trajectory.response_padding_masks,
+            type_=trajectory.type
         )
 
         torch.cuda.empty_cache()
@@ -998,57 +1010,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             approx_policy_kls,
         )
 
-    def grpo_validation_step(
-    self,
-    trajectory: GRPOTrajectory,
-) -> GRPOStats:
-        """
-        Performs a validation step for GRPO, similar to grpo_step but without backpropagation.
-        """
-        with torch.no_grad():
-            # estimate logprobs from the policy at the current validation step
-            torch.cuda.empty_cache()
-
-            pi_logits = self._model(
-                trajectory.query_responses,
-                input_pos=trajectory.position_ids,
-                mask=trajectory.masks,
-            )
-
-            pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, trajectory.query_len)
-
-            pi_logprobs = rlhf.batched_logits_to_logprobs(
-                pi_logits,
-                trajectory.query_responses[:, trajectory.query_len:],
-                self._temperature,
-                chunk_size=1,
-            )
-            pi_logprobs[trajectory.response_padding_masks] = 1.0
-
-            del pi_logits
-            torch.cuda.empty_cache()
-
-            # calculate grpo loss
-            loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
-                trajectory.logprobs,
-                pi_logprobs,
-                trajectory.ref_logprobs,
-                trajectory.advantages,
-                padding_masks=~trajectory.response_padding_masks,
-            )
-
-            approx_policy_kls = (
-                0.5 * (pi_logprobs - trajectory.logprobs).pow(2)
-            ).mean()
-
-            return GRPOStats(
-                loss,
-                policy_loss,
-                kl_loss,
-                ratios,
-                clipfrac,
-                approx_policy_kls,
-            )
+    
     
     def cleanup_after_step(
         self,
@@ -1070,7 +1032,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         """
         The core training loop with validation.
         """
-        # Setup phase
+        # Setup phase - keep this the same
         training.cleanup_before_training()
         world_size, rank = training.get_world_size_and_rank()
         self._optimizer.zero_grad()
@@ -1089,7 +1051,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
                     break
 
-                # Start tracking CUDA memory if configured
+                # Start tracking CUDA memory if configured - keep this the same
                 if (
                     self._is_rank_zero
                     and curr_epoch == 0
@@ -1098,7 +1060,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                # Process trajectory
+                # Process trajectory - keep this the same
                 trajectory = GRPOTrajectory(
                     query_responses=batch["query_responses"],
                     logprobs=batch["logprobs"],
@@ -1108,20 +1070,28 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     position_ids=batch["position_ids"],
                     response_padding_masks=batch["response_padding_masks"],
                     query_len=batch["query_len"],
+                    type=batch["type"],
+                    response_tokens= batch["response_tokens"],
                 )
 
                 step_stats = self.grpo_step(trajectory)
+                
+                # LOG EVERY STEP - Add this to log every step
+                extra_metrics = {"lr": get_lr(self._optimizer), "batch_idx": idx, "epoch": curr_epoch + 1}
+                self.log_metrics(trajectory, step_stats, **extra_metrics)
+                
                 grpo_stats.append(step_stats)
 
-                # Update progress bar with current loss
+                # Update progress bar with current loss - keep this the same
                 current_loss = step_stats.loss.mean().item()
                 pbar.set_description(
                     f"{curr_epoch + 1}|{self.global_step}|Loss: {current_loss:.4f}"
                 )
+                pbar.update(1)
 
                 # Optimization step (based on gradient accumulation)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    # Apply gradient clipping if configured
+                    # Apply gradient clipping if configured - keep this the same
                     grad_norm = None
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -1129,38 +1099,39 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                             max_norm=float(self._clip_grad_norm),
                         )
 
-                    # Optimization step
+                    # Optimization step - keep this the same
                     torch.distributed.barrier()
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
-                    # Update global step
+                    # Update global step - keep this the same
                     self.global_step += 1
 
-                    # Learning rate scheduler step
+                    # Learning rate scheduler step - keep this the same
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
-                    # Logging
+                    # Logging of accumulated stats (you can keep or remove this depending on preference)
                     if self.global_step % self._log_every_n_steps == 0:
                         extra_metrics = {"lr": get_lr(self._optimizer)}
                         if grad_norm is not None:
                             extra_metrics["grad_norm"] = grad_norm
-
+                            
+                        # Log accumulated metrics (optional if you also want a summary)
                         if grpo_stats:
                             combined_stats = GRPOStats(*map(torch.stack, zip(*grpo_stats)))
                             self.log_metrics(
                                 trajectory,
                                 combined_stats,
+                                step_type="accumulated",  # Add this to distinguish from per-step logs
                                 **extra_metrics,
                             )
 
-                    # Cleanup after step
+                    # Cleanup after step - keep this the same
                     self.cleanup_after_step(trajectory, grpo_stats)
                     grpo_stats = []
-                    pbar.update(1)
 
-                    # Check if training is complete
+                    # Check if training is complete - keep this the same
                     if ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch:
                         training_completed = True
                         break
@@ -1172,7 +1143,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             if training_completed:
                 break
 
-        # Finalize training
+        # Finalize training - keep this the same
         self._profiler.stop()
 
     def cleanup(self) -> None:
