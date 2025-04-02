@@ -847,13 +847,14 @@ to look for it in the output_dir.</p>
 <section id="resuming-from-checkpoint-lora-finetuning">
 <h2>Resuming from checkpoint - LoRA Finetuning<a class="headerlink" href="#resuming-from-checkpoint-lora-finetuning" title="Permalink to this heading">¶</a></h2>
 <p>Similarly to full finetuning, we will also only need to modify two fields: <code class="docutils literal notranslate"><span class="pre">resume_from_checkpoint</span></code>
-and <code class="docutils literal notranslate"><span class="pre">adapter_checkpoint</span></code>, which will be loaded from output_dir. We do not have to modify <code class="docutils literal notranslate"><span class="pre">checkpoint_files</span></code>,
-because the base model being loaded is still the same.</p>
+and <code class="docutils literal notranslate"><span class="pre">adapter_checkpoint</span></code>, which will be loaded from <code class="docutils literal notranslate"><span class="pre">output_dir</span></code>. We do NOT have to modify <code class="docutils literal notranslate"><span class="pre">checkpoint_files</span></code>,
+because the base model being loaded is still the same. You can optionally leave <code class="docutils literal notranslate"><span class="pre">adapter_checkpoint</span></code> empty.
+In this case, we will look for it in the last saved epoch folder.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 <span class="w">    </span><span class="c1"># [... rest of the config...]</span>
 
-<span class="w">    </span><span class="c1"># adapter_checkpoint. Note that you will need to update this</span>
-<span class="w">    </span><span class="c1"># section of the config with the intermediate checkpoint files</span>
+<span class="w">    </span><span class="c1"># adapter_checkpoint. You will need to update this with the intermediate checkpoint files.</span>
+<span class="w">    </span><span class="c1"># It can be empty if resuming from last epoch.</span>
 <span class="w">    </span><span class="nt">adapter_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">epoch_{YOUR_EPOCH}/adapter_model.pt</span>
 
 <span class="c1"># set to True if restarting training</span>
