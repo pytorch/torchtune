@@ -791,13 +791,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     except StopIteration:
                         break
 
-                    utils.batch_to_device(batch, self._device)
-
                     # Calculate the number of unmasked tokens in the current batch
                     # and increment the total number of tokens seen in the step
                     current_num_tokens = (
-                        batch["labels"] != self._loss_fn.ignore_index
-                    ).sum()
+                        (batch["labels"] != self._loss_fn.ignore_index)
+                        .sum()
+                        .to(self._device)
+                    )
                     num_tokens += current_num_tokens
                     batches.append((batch, current_num_tokens.item()))
 
@@ -812,6 +812,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 num_tokens = num_tokens / self.parallel_dims.non_data_parallel_size
 
                 for batch, token_count in batches:
+                    utils.batch_to_device(batch, self._device)
                     # Shape [b, s], needed for the loss not the model
                     labels = batch.pop("labels")
 
