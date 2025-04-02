@@ -818,9 +818,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 total_val_tokens += current_num_tokens
 
         # Aggregate validation metrics across all ranks
-        if torch.distributed.is_initialized():
-            torch.distributed.all_reduce(total_val_loss)
-            torch.distributed.all_reduce(total_val_tokens)
+        torch.distributed.all_reduce(total_val_loss)
+        torch.distributed.all_reduce(total_val_tokens)
 
         avg_val_loss = (
             (total_val_loss / total_val_tokens).item()
