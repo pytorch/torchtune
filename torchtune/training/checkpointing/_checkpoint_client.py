@@ -141,6 +141,11 @@ class CheckpointClient:
         ckpt_dict[training.MODEL_KEY] = model.state_dict()
         ckpt_dict[training.OPT_KEY] = optimizer.state_dict()
 
+        print(
+            "pre-checkpoint 2 initial_lr",
+            "initial_lr" in ckpt_dict[training.OPT_KEY]["param_groups"][0].keys(),
+        )
+
         dcp_saver = self._get_dcp_checkpointer()
         dcp_saver.save_checkpoint(
             ckpt_dict,
@@ -171,8 +176,10 @@ class CheckpointClient:
         """
 
         intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
+        print("epoch is ", epoch, "total epochs", training_progress.total_epochs)
         checkpointer = self._get_checkpointer()
         no_dist = not isinstance(checkpointer, DistributedCheckpointer)
+        print("no dist", no_dist, "intermediate", intermediate_checkpoint)
 
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
@@ -217,10 +224,10 @@ class CheckpointClient:
                     )
                 else:
                     for param, opt in optimizer.optim_map.items():
-                        optim_state_dict[
-                            param
-                        ] = training.get_full_optimizer_state_dict(
-                            model, opt, self._is_rank_zero, device=self._device
+                        optim_state_dict[param] = (
+                            training.get_full_optimizer_state_dict(
+                                model, opt, self._is_rank_zero, device=self._device
+                            )
                         )
             else:
                 optim_state_dict = optimizer.state_dict()
@@ -245,6 +252,7 @@ class CheckpointClient:
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
+            print("optimizer in saved, ", training.OPT_KEY in checkpoint_dict)
 
             if self._is_rank_zero:
                 log.info(
@@ -353,5 +361,5 @@ class CheckpointClient:
             log.info(
                 f"DistributedCheckpointer loaded the checkpoint in {time.perf_counter() - dcp_load_start:.2f} seconds."
             )
-
+        print("returning keys", checkpoint_dict.keys())
         return checkpoint_dict

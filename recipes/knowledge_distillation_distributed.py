@@ -150,7 +150,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._kd_ratio = cfg.get("kd_ratio", 0.5)
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
         base model weights. If resume_from_checkpoint is True, this also includes
@@ -182,7 +182,7 @@ class KDRecipeDistributed(FTRecipeInterface):
 
             # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
-            return checkpoint_dict
+        return checkpoint_dict
 
     def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -246,7 +246,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         self._compile = cfg.get("compile", False)
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
         teacher_checkpoint_dict = self.load_teacher_checkpoint(
             cfg_checkpointer=cfg.teacher_checkpointer
         )
@@ -260,7 +260,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
                 checkpoint_dict[training.ADAPTER_KEY]
-                if self._resume_from_checkpoint
+                if training.ADAPTER_KEY in checkpoint_dict
                 else None
             ),
         )
@@ -280,10 +280,38 @@ class KDRecipeDistributed(FTRecipeInterface):
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
+                if training.OPT_KEY in checkpoint_dict
                 else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                # try:
+                checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
+                    self._model,
+                    self._optimizer,
+                )
+                print("keys 1 from checkpoint_dict: ", checkpoint_dict.keys())
+                """
+                except Exception as e:
+                    log.warning(
+                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
+                    )
+                """
+            """
+            if training.ADAPTER_KEY not in checkpoint_dict:
+                raise ValueError(
+                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
+                )
+            """
+            print("keys 2 from checkpoint_dict: ", checkpoint_dict.keys())
+            # Update the recipe state from the checkpoint state dict.
+            self._update_recipe_state(checkpoint_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)

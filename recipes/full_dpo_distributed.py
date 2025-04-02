@@ -14,6 +14,7 @@ import torch
 from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
@@ -196,14 +197,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def _load_checkpoint(self, base_checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
         """
-
-        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
-
+        checkpoint_dict = base_checkpoint
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
             # using the DistributedCheckpointer.
@@ -221,14 +220,13 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                             ),
                         )
                     )
+
                 except Exception as e:
                     log.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
                     )
 
-            # Update the recipe state from the checkpoint state dict.
-            self._update_recipe_state(checkpoint_dict)
-            return checkpoint_dict
+        return checkpoint_dict
 
     def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -292,7 +290,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         # Load the base model
-        checkpoint_dict = self._load_checkpoint(cfg.checkpointer)
+        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
         ref_checkpoint_dict = self._load_ref_checkpoint(cfg.ref_checkpointer)
 
         self._compile = cfg.get("compile", False)
@@ -316,16 +314,32 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
+                if training.OPT_KEY in checkpoint_dict
                 else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
+                    self._model,
+                    (
+                        self._optim_ckpt_wrapper
+                        if self._optimizer_in_bwd
+                        else self._optimizer
+                    ),
+                )
+
+            self._update_recipe_state(checkpoint_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -360,6 +374,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
+
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
@@ -367,6 +382,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
+
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
@@ -676,11 +692,19 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optimizer:
+        print(
+            "before set up initial_lr",
+            "initial_lr" in self._optimizer.state_dict()["param_groups"][0].keys(),
+        )
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
             self._optimizer,
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
+        )
+        print(
+            "after set up initial_lr",
+            "initial_lr" in self._optimizer.state_dict()["param_groups"][0].keys(),
         )
         if self._is_rank_zero:
             log.info("Learning rate scheduler is initialized.")
@@ -1000,7 +1024,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     self._profiler.step()
 
             self.epochs_run += 1
+            print(
+                "before checkpoint initial_lr",
+                "initial_lr" in self._optimizer.state_dict()["param_groups"][0].keys(),
+            )
             self.save_checkpoint(epoch=curr_epoch)
+            print("next\n\n")
 
         self._profiler.stop()
 
