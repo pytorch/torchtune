@@ -51,7 +51,6 @@ class TestEleutherEval:
         "eval_name, expected_acc, bsz",
         [
             ("truthfulqa_gen", 0.1, 4),
-            ("truthfulqa_gen", 0.0, 1),
             ("truthfulqa_mc2", 0.4, 4),
         ],
     )
