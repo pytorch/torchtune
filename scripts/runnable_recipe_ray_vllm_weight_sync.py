@@ -1536,19 +1536,18 @@ class PyTorchActorModel:
             metadata (dict): Metadata for logging, including rewards and performance metrics.
         """
         # Extract components from raw trajectory
-        # Extract components from raw trajectory
-        query_responses = raw_trajectory["query_responses"]
-        responses = raw_trajectory["responses"]
-        logprobs = raw_trajectory["logprobs"]
-        ref_logprobs = raw_trajectory["ref_logprobs"]
-        query_response_padding_masks = raw_trajectory["query_response_padding_masks"]
-        seq_lens = raw_trajectory["seq_lens"]
-        answers = raw_trajectory["answers"]
-        policy_version = raw_trajectory["policy_version"]
-        rewards = raw_trajectory["rewards"]
-        advantages = raw_trajectory["advantages"]
-        successes = raw_trajectory["successes"]
-        reward_metadata = raw_trajectory["reward_metadata"]
+        query_responses = raw_trajectory.query_responses
+        responses = raw_trajectory.responses
+        logprobs = raw_trajectory.logprobs
+        ref_logprobs = raw_trajectory.ref_logprobs
+        query_response_padding_masks = raw_trajectory.query_response_padding_masks
+        seq_lens = raw_trajectory.seq_lens
+        answers = raw_trajectory.answers
+        policy_version = raw_trajectory.policy_version
+        rewards = raw_trajectory.rewards
+        advantages = raw_trajectory.advantages
+        successes = raw_trajectory.successes
+        reward_metadata = raw_trajectory.reward_metadata
 
         # Compute padded tokens percentage
         total_tokens = query_responses.numel()
