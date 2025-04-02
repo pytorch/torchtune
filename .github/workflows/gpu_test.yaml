@@ -56,10 +56,14 @@ jobs:
           python -m pip install lm-eval>=0.4.5
       - name: Print PyTorch torchvision torchao cuda versions
         run: python -c "import torch; import torchvision; import torchao; print(torch.__version__, torchvision.__version__, torchao.__version__, torch.version.cuda); "
+      - name: Test NCCL initialization
+        env:
+          NCCL_DEBUG: ${{ matrix.torch-version == 'nightly' && 'INFO' }}
+        run: python -c "import torch.distributed as dist; dist.init_process_group('nccl'); dist.barrier(); dist.destroy_process_group()"
       - name: Run recipe and unit tests with coverage
         env:
           # Set NCCL_DEBUG=INFO for nightly tests to get more detailed NCCL logs
-          NCCL_DEBUG: ${{ matrix.torch-version == 'nightly' && 'sINFO' }}
-        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv
+          NCCL_DEBUG: INFO
+        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv 2>&1
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
