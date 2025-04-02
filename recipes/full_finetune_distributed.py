@@ -834,6 +834,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 log_dict,
                 step=self.global_step,
             )
+
+        self._model.train()
         return log_dict
 
     def train(self) -> None:
@@ -871,7 +873,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                self._model.train()
                 utils.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
