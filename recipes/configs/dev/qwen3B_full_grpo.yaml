@@ -21,6 +21,7 @@
 #  sbatch multinode_grpo.sbatch
 
 name: grpo_qwen3b
+total_inference_batch_size: ${eval:'${vllm.batch_size} * ${grpo_samples}'}
 
 output_dir: /tmp/checkpoints/${name}
 base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
@@ -76,7 +77,7 @@ grpo_samples: 16
 max_generated_tokens: 512
 top_k: null
 temperature: 1.0
-replay_buffer_size: 64
+replay_buffer_size: ${total_inference_batch_size}  # TODO this needs to be fixed. Right now this can't be bigger, or else we'll get padding issues
 
 ppo_epochs: 1
 
@@ -117,7 +118,7 @@ vllm:
   num_workers: 5
   tp_size: 1
   batch_size: 1
-  queue_maxsize: 128 #num workers * steps_before_sync
+  queue_maxsize: ${eval:'${vllm.num_workers} * ${steps_before_sync}'}
 
 
 # Logging
