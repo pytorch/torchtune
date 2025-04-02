@@ -362,13 +362,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
         # Used to ignore labels for loss computation
-        bzs_cache = (
+        bsz_cache = (
             cfg.batch_size
             if self._val_dataloader is None
             else max(cfg.batch_size, self._val_dataloader.batch_size)
         )
         self.ignore_labels_cache = torch.full(
-            (bzs_cache, 1), self._loss_fn.ignore_index, device=self._device
+            (bsz_cache, 1), self._loss_fn.ignore_index, device=self._device
         )
 
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
