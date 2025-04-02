@@ -56,18 +56,20 @@ jobs:
           python -m pip install lm-eval>=0.4.5
       - name: Print environment details
         run: |
-          echo "CUDA Version:"
-          nvcc --version
-          echo "NVIDIA Driver Version:"
+          echo "nvidia-smi"
           nvidia-smi
+          echo "CUDA Available:"
+          python -c "import torch; print(torch.cuda.is_available())"
           echo "PyTorch Version:"
           python -c "import torch; print(torch.__version__)"
           echo "TorchAO Version:"
           python -c "import torchao; print(torchao.__version__)"
           echo "TorchVision Version:"
           python -c "import torchvision; print(torchvision.__version__)"
-          echo "CUDA Runtime Version:"
+          echo "PyTorch Built with CUDA Version:"
           python -c "import torch; print(torch.version.cuda)"
+          echo "GPU Information:"
+          python -c "import torch; print(torch.cuda.get_device_properties(0))"
       - name: Run recipe and unit tests with coverage
         env:
           # Set NCCL_DEBUG=INFO for nightly tests to get more detailed NCCL logs
