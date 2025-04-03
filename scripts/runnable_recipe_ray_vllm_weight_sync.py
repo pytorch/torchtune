@@ -737,7 +737,6 @@ class LLMCollector(SyncDataCollector):
             # This argument allows a non-TensorDictModule policy to be assumed
             # to be compatible with the collector
             trust_policy=True,
-            use_buffers=False,
         )
 
         log.info("done init LLMCollector")
@@ -2075,9 +2074,7 @@ class RayGRPORecipe:
     def _create_data_collectors(self):
         data_collectors = []
 
-        # set .out_keys to prevent error
-        # Check if these are even correct...
-        # FIXME: write out why this is needed
+        # This seems to need to be done to prevent some internal checks in torchrl
         vllm_generate.out_keys = [
             "prompt",
             "prompt_tokens",
