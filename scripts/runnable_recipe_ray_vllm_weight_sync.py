@@ -62,7 +62,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from ray.util.queue import Full as QueueFull, Queue
 
 from readerwriterlock import rwlock
-from tensordict import is_tensorclass, NonTensorData, TensorClass, TensorDict
+from tensordict import NonTensorData, TensorClass, TensorDict
 
 from torch.optim import Optimizer
 
@@ -479,7 +479,6 @@ from tensordict import (
     from_dataclass,
     lazy_stack,
     TensorClass,
-    TensorDict,
     TensorDictBase,
 )
 from tensordict.utils import _zip_strict, expand_as_right
@@ -680,6 +679,7 @@ class LLMCollector(SyncDataCollector):
         self.worker_id = worker_id
         self._is_collector_zero = self.worker_id == 0
 
+        self.tp_size = self.cfg.vllm.tp_size
         self.batch_size = self.cfg.vllm.batch_size
 
         # TDOO: tp_size + distributed_executor_backend needs to be fixed and is coming in a follow up
@@ -689,9 +689,8 @@ class LLMCollector(SyncDataCollector):
             enable_chunked_prefill=True,
             dtype="bfloat16",
             worker_cls=vLLMWorkerWrapper,
-            # tensor_parallel_size=vllm_tp_size,
-            # gpu_memory_utilization=cfg.vllm.gpu_memory_utilization,
-            # FIXME: Need to use placement_groups in order to use distributed_executor_backend="ray"
+            tensor_parallel_size=self.tp_size,
+            # TODO: Need to use placement_groups in order to use distributed_executor_backend="ray"
             # distributed_executor_backend="ray",
         )
 
@@ -825,7 +824,7 @@ class LLMCollector(SyncDataCollector):
         tokens_per_second = (
             total_generated_tokens / time_generate if time_generate > 0 else 0
         )
-        div_gib = 1024**3
+        div_GiB = 1024**3
 
         log_dict = {
             "vllm_actor_performance/total_rollout_time (s)": time_total_rollout,
@@ -834,13 +833,13 @@ class LLMCollector(SyncDataCollector):
             "vllm_actor_performance/gpu_memory_peak_allocated (GiB)": gpu_memory[
                 "allocated"
             ]
-            / div_gib,
+            / div_GiB,
             "vllm_actor_performance/gpu_memory_peak_reserved (GiB)": gpu_memory[
                 "reserved"
             ]
-            / div_gib,
+            / div_GiB,
             "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
-            / div_gib,
+            / div_GiB,
             # "queues/vllm_full_queue_data_discard": full_queue_data_discard,
             "queues/rollout_queue_size": self.rollout_queue.qsize(),
         }
@@ -1874,8 +1873,8 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         # FIXME: why this hang even when I pass use_local_synchronization=False in the other one??
         # self.fsdp_group = torch.distributed.new_group(ranks=list(range(self.world_size - 1)))
 
-    def register_collector(self, worker_id, handle):
-        self.vllm_worker_handles[worker_id] = handle
+    def register_collector(self, worker_id, handle, collector_metadata):
+        self.vllm_worker_handles[worker_id] = (handle, collector_metadata)
         log.info(f"registered collector {worker_id=}")
 
     def register_model_metadata(self, model_metadata):
@@ -1918,10 +1917,8 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             return True
         return False
 
-    def _init_model_update_group(self, worker_id):
-        # here again, I want to grab the tp size from the vLLM worker... :(
-        # llm.llm_engine.parallel_config.tensor_parallel_size
-        vllm_tp_size = 1
+    def _init_model_update_group(self, worker_id, worker_metadata):
+        vllm_tp_size = worker_metadata.get("tp_size", 1)
         weight_sync_world_size = vllm_tp_size + 1
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
@@ -1933,10 +1930,13 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         self.vllm_comm_groups[worker_id] = model_update_group
 
     def _sync_weights_with_worker(self, worker_id: int, server_weights):
-        log.info(f"in _sync_weights_with_worker {worker_id}")
-        self.vllm_worker_handles[worker_id].update_policy_weights_.remote()
+        log.info(f"in _sync_weights_with_worker {worker_id}", flush=True)
+        worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
+        worker_handle.update_policy_weights_.remote()
         if worker_id not in self.vllm_comm_groups:
-            self._init_model_update_group(worker_id)
+            print("init model update group")
+            self._init_model_update_group(worker_id, worker_metadata)
+        print("done init model update group")
         read_lock = self.state_dict_lock.gen_rlock()
         read_lock.acquire()
         for i, k in enumerate(server_weights.keys()):
@@ -1982,7 +1982,6 @@ class RayGRPORecipe:
         )
 
         # Create workers using config values directly
-        # self.rollout_workers = self._create_vllm_workers()
         self.ref_workers = self._create_ref_workers()
         self.actor_workers = self._create_fsdp_group(
             worker_cls=PyTorchActorModel,
@@ -2118,7 +2117,10 @@ class RayGRPORecipe:
                     remote_weight_updater=self.param_server,
                 )
             )
-            self.param_server.register_collector.remote(i, collector)
+            collector_metadata = {"tp_size": self.cfg.vllm.tp_size}
+            self.param_server.register_collector.remote(
+                i, collector, collector_metadata
+            )
             data_collectors.append(collector)
         return data_collectors
 
