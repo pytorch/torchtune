@@ -76,8 +76,6 @@ class RLDataset(Dataset):
         mask = [1 for _ in q_tokens]
         answer = transformed_sample["answer"]
 
-        print(f"question: {question}, answer: {answer}")
-
         return {
             "question": question,
             "tokens": q_tokens,

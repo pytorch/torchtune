@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
-
 """
 README!! What's going on in this script?
 
@@ -306,10 +300,9 @@ class RefActor:
     def run(self):
         import time
 
-        print("running ref actor")
+        log.info("running ref actor")
         idx = 0
         while True:
-            print(f"{idx=}")
             if idx == self.cfg.num_steps:
                 break
 
@@ -321,7 +314,7 @@ class RefActor:
             while trajectory is None:
                 try:
                     if self._is_actor_zero:
-                        print("Getting from rollout_queue queue.")
+                        log.info("Getting from rollout_queue queue.")
                     trajectory = self.rollout_queue.get(timeout=0.5)
                     trajectory = trajectory.to(self._device)
                 except ray.util.queue.Empty:
@@ -542,8 +535,8 @@ def vllm_generate(
     td = tensordict.clone()
     td.update(out, keys_to_update=list(out.keys()))
 
-    # This runs into errors with accessing resut["bla"] e.g. llm.py:511
-    # return Trajectory.from_tensordict(out)
+    # return a td instead of Trajectory here otherwise within torchrl calls like traj["bla"]
+    # will be broken
     return td, time_generate
 
 
@@ -666,14 +659,13 @@ class LLMCollector(SyncDataCollector):
         self,
         cfg,
         llm,
-        # env,
         policy,
         queue,
         worker_id,
         *,
         dialog_turns_per_batch: int = -1,
         # -1 is never ending (until shutdown)
-        total_steps: int = -1,
+        total_dialog_turns: int = -1,
         async_envs: bool = False,
         reset_at_each_iter: bool = False,
         local_weight_updater: LocalWeightUpdaterBase | None = None,
@@ -690,7 +682,7 @@ class LLMCollector(SyncDataCollector):
 
         self.batch_size = self.cfg.vllm.batch_size
 
-        # FIXME: add kwargs here like tp_size
+        # TDOO: tp_size + distributed_executor_backend needs to be fixed and is coming in a follow up
         self.inference_server = LLM(
             model="Qwen/Qwen2.5-3B",
             enforce_eager=True,
@@ -737,7 +729,7 @@ class LLMCollector(SyncDataCollector):
             create_env_fn=env,
             policy=policy,
             frames_per_batch=dialog_turns_per_batch,
-            total_frames=total_steps,
+            total_frames=total_dialog_turns,
             local_weight_updater=local_weight_updater,
             remote_weight_updater=remote_weight_updater,
             reset_at_each_iter=reset_at_each_iter,
@@ -745,9 +737,10 @@ class LLMCollector(SyncDataCollector):
             # This argument allows a non-TensorDictModule policy to be assumed
             # to be compatible with the collector
             trust_policy=True,
+            use_buffers=False,
         )
 
-        print("done init LLMCollector")
+        log.info("done init LLMCollector")
 
     @property
     def remote_weight_updater(self) -> RemoteWeightUpdaterBase:
@@ -1000,351 +993,6 @@ class LLMCollector(SyncDataCollector):
         return dataloader
 
 
-class vLLMRolloutActor:
-    def __init__(self, *args, queue, cfg, actor_id=-1, **kwargs):
-        import os
-
-        import torch
-
-        print(f"Actor CUDA_VISIBLE_DEVICES: {os.environ.get('CUDA_VISIBLE_DEVICES')}")
-        print(f"Device count: {torch.cuda.device_count()}")
-
-        self.cfg = cfg
-        self._max_generated_tokens = self.cfg.max_generated_tokens
-        self.grpo_samples = self.cfg.grpo_samples
-        self._temperature = self.cfg.temperature
-        # FIXME: I don't know what this is for and haven't used this yet
-        self._top_k = self.cfg.top_k
-        self.batch_size = self.cfg.vllm.batch_size
-        self._steps_before_sync = self.cfg.steps_before_sync * self.cfg.num_fsdp_workers
-
-        self.actor_id = actor_id
-        self._is_actor_zero = self.actor_id == 0
-
-        self.rollout_queue = queue
-        self.inference_server = LLM(*args, **kwargs)
-        from torchtune import config
-
-        self._tokenizer = config.instantiate(self.cfg.tokenizer)
-        collate_name = self.cfg.get(
-            "collate_fn", "torchtune.dev.grpo.data.padded_collate_rl"
-        )
-        # NOTE: the data mix is now a bit different, vllm now owns the dataloader rather
-        # than the data parallel worker
-        # A separate design I saw in OpenRLHF was for data parallel workers to
-        # place their inputs from dataloader into a vllm queue
-        # where each vllm instance has 1 queue per assigned dp worker
-        self._dataloader = self._setup_data(
-            self.cfg.dataset,
-            shuffle=self.cfg.shuffle,
-            batch_size=self.batch_size,
-            collate_fn=collate_name,
-        )
-
-        # I'm using this to stop the generation until weight sync is done
-        # FIXME: Should really use a lock
-        self.sleeping = False
-
-        # Initialize policy version for tracking trajectory age
-        self.policy_version = 0
-
-        self.metric_logger = None  # Placeholder for the logger
-
-    def set_metric_logger(self, logger):
-        """Store the MetricLoggerActor handle."""
-        self._metric_logger = logger
-
-    def start_weight_update(self, param_list, policy_version):
-        # Update the policy version when weights are synchronized
-        self.policy_version = policy_version
-        for name, dtype, shape in param_list:
-            self.inference_server.collective_rpc(
-                "update_weight", args=(name, dtype, shape)
-            )
-
-    def llm_collective_rpc(self, *args, **kwargs):
-        self.inference_server.collective_rpc(*args, **kwargs)
-
-    def _setup_data(
-        self,
-        cfg_dataset: DictConfig,
-        shuffle: bool,
-        batch_size: int,
-        collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> StatefulDataLoader:
-        """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
-        """
-        # Not importing here and doing these imports globally will cause vLLM worker
-        # to have no cuda devices during cuda lazy init for some reason?? Even when
-        # this method is not actually called...
-        from torchtune import config
-        from torchtune.config._utils import _get_component_from_path
-        from torchtune.datasets import ConcatDataset
-
-        if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
-            ds = ConcatDataset(datasets=datasets)
-        else:
-            ds = config.instantiate(cfg_dataset, self._tokenizer)
-
-        collate_fn = _get_component_from_path(collate_fn)
-        sampler = StatefulDistributedSampler(
-            ds,
-            # FIXME: hardcoding num_replicas and rank for now
-            num_replicas=1,
-            rank=0,
-            shuffle=shuffle,
-            # FIXME: set seed?
-            # seed=self.seed,
-        )
-        dataloader = StatefulDataLoader(
-            dataset=ds,
-            batch_size=batch_size,
-            sampler=sampler,
-            collate_fn=(
-                partial(
-                    collate_fn,
-                    padding_idx=self._tokenizer.pad_id,
-                )
-            ),
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
-        )
-        if dataloader_state_dict is not None:
-            assert False, "Haven't handled dataloader_state_dict yet"
-            dataloader.load_state_dict(dataloader_state_dict)
-            # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
-            # we need to force the dataloader to finish the last iteration before it's actually used
-            list(dataloader)
-        return dataloader
-
-    def wake_up(self):
-        self.sleeping = False
-        print(f"{self.__class__.__name__} (pid={os.getpid()}) woke up", flush=True)
-
-    def is_sleeping(self):
-        return self.sleeping
-
-    def print_me(self, string):
-        print(string, flush=True)
-
-    def _log_metrics(
-        self,
-        step_idx,
-        time_total_rollout,
-        time_generate,
-        total_generated_tokens,
-        # full_queue_data_discard,
-        gpu_memory,
-    ):
-        """Log metrics for the vLLMRolloutActor, only on actor zero."""
-        if not self._is_actor_zero:
-            return
-
-        pct_time_model_running = (
-            (time_generate / time_total_rollout) * 100 if time_total_rollout > 0 else 0
-        )
-        tokens_per_second = (
-            total_generated_tokens / time_generate if time_generate > 0 else 0
-        )
-        div_gib = 1024**3
-
-        log_dict = {
-            "vllm_actor_performance/total_rollout_time (s)": time_total_rollout,
-            "vllm_actor_performance/pct_time_model_running (%)": pct_time_model_running,
-            "vllm_actor_performance/tokens_per_second": tokens_per_second,
-            "vllm_actor_performance/gpu_memory_peak_allocated (GiB)": gpu_memory[
-                "allocated"
-            ]
-            / div_gib,
-            "vllm_actor_performance/gpu_memory_peak_reserved (GiB)": gpu_memory[
-                "reserved"
-            ]
-            / div_gib,
-            "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
-            / div_gib,
-            # "queues/vllm_full_queue_data_discard": full_queue_data_discard,
-            "queues/rollout_queue_size": self.rollout_queue.qsize(),
-        }
-
-        ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
-
-    def rollout(self):
-        sampling_params = SamplingParams(
-            # FIXME: can just directly change n to grpo_size instead of repeating prompt grpo_size times
-            n=1,
-            max_tokens=self._max_generated_tokens,
-            temperature=self._temperature,
-            # nondeterministically returns more than 1??
-            logprobs=1,
-        )
-
-        def postprocess_vllm_request_output(request_output):
-            bs = len(request_output)
-            prompt_tokens = []
-            response_tokens = []
-            logprobs = []
-            prompt_tokens = request_output[0].prompt_token_ids
-            for output in request_output:
-                assert len(output.outputs) == 1
-                # vllm doesn't return prompt as part of output so we need to add it back later
-                tokens = list(output.outputs[0].token_ids)
-                response_tokens.append(tokens)
-                # nondeterministically returns more than 1 logprob sometimes
-                logprobs.append(
-                    [
-                        d[tok].logprob
-                        for tok, d in zip(tokens, output.outputs[0].logprobs)
-                    ]
-                )
-
-            seq_lens = [len(t) for t in response_tokens]
-
-            max_seq_len = max(seq_lens)
-            # pad output tokens
-            response_tokens = [
-                t + [self._tokenizer.pad_id] * (max_seq_len - len(t))
-                for t in response_tokens
-            ]
-            responses = torch.tensor(response_tokens, dtype=torch.long, device="cuda")
-
-            # pad logprobs
-            logprobs = [t + [1.0] * (max_seq_len - len(t)) for t in logprobs]
-
-            logprobs = torch.tensor(logprobs, dtype=torch.float, device="cuda")
-
-            query_responses = torch.empty(
-                bs,
-                len(prompt_tokens) + max_seq_len,
-                dtype=torch.long,
-                device="cuda",
-            )
-            query_responses[:, : len(prompt_tokens)] = torch.tensor(
-                prompt_tokens, dtype=torch.long
-            )
-            query_responses[:, len(prompt_tokens) :] = torch.tensor(
-                response_tokens, dtype=torch.long
-            )
-
-            query_response_padding_masks = torch.ne(
-                query_responses, self._tokenizer.pad_id
-            )
-            # this is so weird that they're opposite lol
-            # response_padding_masks = torch.eq(responses, self._tokenizer.pad_id)
-
-            seq_lens = torch.tensor(seq_lens, dtype=torch.long, device="cuda")
-
-            # FIXME: change to Tensorclassy tensordict object
-            return TensorDict(
-                query_responses=query_responses,
-                responses=responses,
-                logprobs=logprobs,
-                query_response_padding_masks=query_response_padding_masks,
-                seq_lens=seq_lens,
-                batch_size=bs,
-            )
-
-        for idx, batch in enumerate(self._dataloader):
-            time_step_start = time.perf_counter()
-
-            print(f"batch {idx}")
-            # might want to do so for 0 also if weights are directly broadcasted from dp?
-            if idx != 0 and idx % self._steps_before_sync == 0:
-                # === sleep until weight synchronization is complete ===
-                # this discards the current kv-cache, which I think is what we want (?)
-                self.inference_server.reset_prefix_cache()
-                # FIXME: use a lock
-                self.sleeping = True
-
-                print("started sleeping")
-                start = time.time()
-                while self.sleeping:
-                    time.sleep(0.1)
-                print(
-                    f"vLLMRolloutActor slept for {time.time() - start} seconds while waiting for weight update"
-                )
-
-            if idx == 400:
-                return
-
-            # FIXME: tokens is currently on cpu, is this right?s
-            tokens, answers = batch["tokens"], batch["answers"]
-
-            batch_tokens = tokens[:, None, :].expand(-1, self.grpo_samples, -1)
-            batch_tokens = batch_tokens.reshape(self.batch_size * self.grpo_samples, -1)
-
-            # Each answer is repeated for the whole group
-            answers = [a for a in answers for _ in range(self.grpo_samples)]
-
-            # A downside is they only seem to take in List[List[int]] and not torch.Tensor :(
-            batch_tokens = batch_tokens.numpy().tolist()
-
-            # Reset GPU memory stats before generation
-            torch.cuda.reset_peak_memory_stats(device="cuda:0")
-
-            time_generate_start = time.perf_counter()
-            # do the generation
-            result = self.inference_server.generate(
-                prompts=None,
-                prompt_token_ids=batch_tokens,
-                sampling_params=sampling_params,
-                use_tqdm=False,
-            )
-            time_generate = time.perf_counter() - time_generate_start
-
-            postprocessed_results = postprocess_vllm_request_output(result)
-
-            total_generated_tokens = postprocessed_results["seq_lens"].sum().item()
-
-            postprocessed_results["answers"] = answers
-            postprocessed_results["policy_version"] = NonTensorData(self.policy_version)
-
-            # Move tensors to CPU before putting into the queue
-            postprocessed_results = postprocessed_results.to("cpu")
-
-            # Update circular queue and count full queue tries
-            # full_queue_data_discard = 0
-            while True:
-                try:
-                    self.rollout_queue.put_nowait(postprocessed_results)
-                    break
-                except QueueFull:
-                    self.rollout_queue.get()  # Remove the oldest item to make space
-                    # full_queue_data_discard += 1
-                    log.warning(f"rollout queue full. Discarding data.")
-
-            if self._is_actor_zero:
-                # End timing the rollout step
-                time_total_rollout = time.perf_counter() - time_step_start
-                log.info(f"Put this into queue: {postprocessed_results}")
-
-                # TODO: training.get_memory_stats() crashes vLLM
-                # Log metrics
-                gpu_memory = {
-                    "allocated": torch.cuda.max_memory_allocated(device="cuda:0"),
-                    "reserved": torch.cuda.max_memory_reserved(device="cuda:0"),
-                    "active": torch.cuda.memory_stats(device="cuda:0").get(
-                        "active_bytes.all.peak", 0
-                    ),
-                }
-                time_total_rollout = time.perf_counter() - time_step_start
-                self._log_metrics(
-                    step_idx=idx,
-                    time_total_rollout=time_total_rollout,
-                    time_generate=time_generate,
-                    total_generated_tokens=total_generated_tokens,
-                    # full_queue_data_discard=full_queue_data_discard,
-                    gpu_memory=gpu_memory,
-                )
-
-
 class vLLMWorkerWrapper(Worker):
     """vLLM Rollout Model worker for Ray."""
 
@@ -1485,7 +1133,7 @@ class PyTorchActorModel:
         self.total_epochs = cfg.epochs
         self.global_step = 0
         self._steps_run = 0
-        self._total_steps = cfg.num_steps
+        self._total_dialog_turns = cfg.num_steps
         self._epochs_run = 0
         self._rng = torch.Generator(self._device).manual_seed(
             self.seed
@@ -1909,7 +1557,7 @@ class PyTorchActorModel:
         self._optimizer.zero_grad()
         self._profiler.start()
 
-        while self._steps_run < self._total_steps:
+        while self._steps_run < self._total_dialog_turns:
 
             # Memory profiling start
             if (
@@ -2159,7 +1807,6 @@ class MetricLoggerActor:
 
 class vLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
     def __init__(self, master_address, master_port, model_metadata):
-        print(f"{master_address=}, {master_port=}")
         self.master_address = master_address
         self.master_port = master_port
         self.model_metadata = model_metadata
@@ -2198,7 +1845,7 @@ class vLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
 @ray.remote(num_cpus=4, num_gpus=1)
 class vLLMParameterServer(RemoteWeightUpdaterBase):
     def __init__(self, vllm_master_addresses, vllm_master_ports, env_vars):
-        print("in param server init")
+        log.info("in param server init")
         super().__init__()
         self.vllm_master_addresses = vllm_master_addresses
         self.vllm_master_ports = vllm_master_ports
@@ -2230,7 +1877,7 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
 
     def register_collector(self, worker_id, handle):
         self.vllm_worker_handles[worker_id] = handle
-        print(f"registered collector {worker_id=}")
+        log.info(f"registered collector {worker_id=}")
 
     def register_model_metadata(self, model_metadata):
         self.model_metadata = model_metadata
@@ -2266,7 +1913,7 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         if worker_id not in self.vllm_weight_versions:
             return False
         if self.vllm_weight_versions[worker_id] == self.version:
-            print(
+            log.info(
                 f"skipping update for {worker_id=}, {self.version=}, {self.vllm_weight_versions[worker_id]=}"
             )
             return True
@@ -2277,7 +1924,6 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         # llm.llm_engine.parallel_config.tensor_parallel_size
         vllm_tp_size = 1
         weight_sync_world_size = vllm_tp_size + 1
-        print("before stateless_init_process_group")
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
             self.vllm_master_ports[worker_id],
@@ -2285,21 +1931,16 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             weight_sync_world_size,
             torch.device("cuda:0"),
         )
-        print("after stateless_init_process_group")
         self.vllm_comm_groups[worker_id] = model_update_group
 
     def _sync_weights_with_worker(self, worker_id: int, server_weights):
-        print(f"in _sync_weights_with_worker {worker_id}", flush=True)
+        log.info(f"in _sync_weights_with_worker {worker_id}")
         self.vllm_worker_handles[worker_id].update_policy_weights_.remote()
         if worker_id not in self.vllm_comm_groups:
-            print("init model update group")
             self._init_model_update_group(worker_id)
-        print("done init model update group")
         read_lock = self.state_dict_lock.gen_rlock()
         read_lock.acquire()
         for i, k in enumerate(server_weights.keys()):
-            # if i == 0:
-            #     print(f"{server_weights[k][0]=}")
             self.vllm_comm_groups[worker_id].broadcast(
                 server_weights[k], src=0, stream=torch.cuda.current_stream()
             )
@@ -2307,7 +1948,9 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             self.version_tensor, src=0, stream=torch.cuda.current_stream()
         )
         torch.cuda.synchronize()
-        print(f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}")
+        log.info(
+            f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}"
+        )
         self.vllm_weight_versions[worker_id] = self.version
         read_lock.release()
 
@@ -2352,7 +1995,6 @@ class RayGRPORecipe:
             num_vllm_workers=self.num_vllm_workers,
         )
         self.rollout_workers = self._create_data_collectors()
-        # self._init_weight_sync_pg()
 
         # needs to happens after workers are created
         # or there are conflicts with the placement group
@@ -2462,11 +2104,10 @@ class RayGRPORecipe:
                 .remote(
                     cfg=self.cfg,
                     llm="Qwen/Qwen2.5-3B",
-                    # env=env,
                     policy=vllm_generate,
                     worker_id=i,
                     dialog_turns_per_batch=1,
-                    total_steps=1000,
+                    total_dialog_turns=1000,
                     reset_at_each_iter=True,
                     queue=self.rollout_queue,
                     local_weight_updater=local_weight_updaters[i],
@@ -2489,43 +2130,7 @@ class RayGRPORecipe:
             workers.append(worker)
         return workers
 
-    def _init_weight_sync_pg(self):
-        addr, weight_update_port = get_ip(), get_open_port()
-        weight_sync_world_size = self.num_vllm_workers * self.vllm_tp_size + 1
-
-        # only FSDP rank 0 is in the weight sync process group
-        handle = self.actor_workers[0].init_model_update_group.remote(
-            addr,
-            weight_update_port,
-            0,
-            weight_sync_world_size,
-        )
-
-        # this call makes all vllm workers part of weight sync group
-        [
-            worker.llm_collective_rpc.remote(
-                "init_weight_update_group",
-                args=(
-                    addr,
-                    weight_update_port,
-                    i * self.vllm_tp_size + 1,
-                    weight_sync_world_size,
-                ),
-            )
-            for (i, worker) in enumerate(self.rollout_workers)
-        ]
-
-        # only need to .get one of the handles since this will block until
-        # all participating ranks init
-        ray.get(handle)
-
-        self.rollout_workers = self.rollout_workers
-
-        ray.get(self.actor_workers[0].set_vllm_engines.remote(self.rollout_workers))
-
     def train(self):
-        # rollout_handles = [worker.rollout.remote() for worker in self.rollout_workers]
-        # self.rollout_workers[0].print_me.remote("hello vllm worker, it's __main__")
         rollout_handles = [worker.run.remote() for worker in self.rollout_workers]
         ref_handles = [worker.run.remote() for worker in self.ref_workers]
         worker_handles = [worker.train.remote() for worker in self.actor_workers]
