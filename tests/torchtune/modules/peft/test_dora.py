@@ -286,11 +286,10 @@ class TestDistributedDoRALinear(MultiProcessTestCase):
 
     def setUp(self):
         super().setUp()
-        # Ensure the device is set for each process
-        torch.cuda.set_device(f"cuda:{self.rank}")
 
     @gpu_test(gpu_count=2)
     def test_dora_distributed_init(self):
+        torch.cuda.set_device(f"cuda:{self.rank}")
         self.run_subtests(
             {
                 "load_dora_weights": [True, False],
