@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, TypedDict, Unio
 
 import torch
 from datasets import load_dataset
+
 # from tensordict.nn import TensorDictModule
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
@@ -75,7 +76,14 @@ class RLDataset(Dataset):
         mask = [1 for _ in q_tokens]
         answer = transformed_sample["answer"]
 
-        return {"tokens": q_tokens, "mask": mask, "answer": answer}
+        print(f"question: {question}, answer: {answer}")
+
+        return {
+            "question": question,
+            "tokens": q_tokens,
+            "mask": mask,
+            "answer": answer,
+        }
 
 
 def padded_collate_rl(
@@ -116,5 +124,6 @@ def padded_collate_rl(
     )
 
     answers = [x["answer"] for x in batch]
+    text = [x["question"] for x in batch]
 
-    return {"tokens": input_ids.long(), "answers": answers}
+    return {"tokens": input_ids.long(), "answers": answers, "text": text}

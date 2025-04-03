@@ -81,7 +81,7 @@ replay_buffer_size: ${total_inference_batch_size}  # TODO this needs to be fixed
 
 ppo_epochs: 1
 
-num_steps: 400
+num_steps: 250
 
 clip_grad_norm: 1.0
 
@@ -115,9 +115,10 @@ num_ref_workers: 1
 num_fsdp_workers: 2
 
 vllm:
-  num_workers: 5
+  num_workers: 4
   tp_size: 1
   batch_size: 1
+  steps_before_sync: 1
   queue_maxsize: ${eval:'${vllm.num_workers} * ${steps_before_sync}'}
 
 

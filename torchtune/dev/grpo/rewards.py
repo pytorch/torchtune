@@ -48,6 +48,7 @@ def math_response_correct(
     cot: str, answer: str, potential_answer: str
 ) -> Tuple[int, int]:
     """Did it get the right answer?"""
+    print(f"{cot=}, {answer=}, {potential_answer=}")
     if potential_answer is None:
         return 0.0, 0.0  # (reward, success)
     if answer == potential_answer:
