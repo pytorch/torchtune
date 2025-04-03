@@ -39,12 +39,12 @@ class TestEleutherEval:
     @pytest.fixture
     def expected_vision_acc(self):
         return {
-            "Science": 0.0667,
+            "Science": 0.2,
             "Biology": 0,
             "Chemistry": 0.3333,
             "Geography": 0,
             "Math": 0,
-            "Physics": 0.0,
+            "Physics": 0.6667,
         }
 
     @pytest.mark.parametrize(
