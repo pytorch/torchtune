@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 """
 README!! What's going on in this script?
 
@@ -1984,13 +1990,12 @@ class RayGRPORecipe:
         # Create workers using config values directly
         # self.rollout_workers = self._create_vllm_workers()
         self.ref_workers = self._create_ref_workers()
-        (
-            self.actor_workers,
-            self.param_server,
-        ) = self._create_fsdp_group_and_param_server(
+        self.actor_workers = self._create_fsdp_group(
             worker_cls=PyTorchActorModel,
-            parameter_server_cls=vLLMParameterServer,
             fsdp_world_size=self.num_fsdp_workers,
+        )
+        self.param_server = self._create_param_server(
+            parameter_server_cls=vLLMParameterServer,
             num_vllm_workers=self.num_vllm_workers,
         )
         self.rollout_workers = self._create_data_collectors()
@@ -2019,12 +2024,10 @@ class RayGRPORecipe:
         for worker in self.actor_workers:
             worker.set_metric_logger.remote(self.metric_logger)
 
-    def _create_fsdp_group_and_param_server(
+    def _create_fsdp_group(
         self,
         worker_cls,
-        parameter_server_cls,
         fsdp_world_size: int,
-        num_vllm_workers: int,
     ):
         addr, port = get_ip(), get_open_port()
         fsdp_workers = []
@@ -2043,6 +2046,13 @@ class RayGRPORecipe:
             )
             fsdp_workers.append(worker)
 
+        return fsdp_workers
+
+    def _create_param_server(
+        self,
+        parameter_server_cls,
+        num_vllm_workers: int,
+    ):
         self.vllm_addresses = [get_ip()] * num_vllm_workers
         self.vllm_ports = [get_open_port() for i in range(num_vllm_workers)]
 
@@ -2061,7 +2071,7 @@ class RayGRPORecipe:
         self.model_metadata = ray.get(fsdp_workers[0].get_model_metadata.remote())
         ray.get(parameter_server.register_model_metadata.remote(self.model_metadata))
 
-        return fsdp_workers, parameter_server
+        return parameter_server
 
     def _create_ref_worker(self):
         worker = RefActor.remote(
