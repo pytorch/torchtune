@@ -62,6 +62,13 @@ dev = [
     "wandb",
     "expecttest",
 ]
+federated = [
+    "fastapi",
+    "uvicorn",
+    "aiofiles",
+    "requests",
+    "python-multipart"
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "torchtune.__version__"}

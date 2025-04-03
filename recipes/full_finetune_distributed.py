@@ -234,6 +234,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
+    def load_federation(self, cfg_federation: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the checkpoint state from file and validate. If resume_from_checkpoint
+        is True, this also includes the recipe state.
+        """
+        self._federation = config.instantiate(
+            cfg_federation,
+            device=self._device,
+            enable_cpu_offload=self.fsdp_cpu_offload,
+        )
+        return self._federation.handshake()
+
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
@@ -288,6 +300,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger = config.instantiate(cfg.metric_logger)
             # log config with parameter override
             self._metric_logger.log_config(cfg)
+
+        if "federation" in cfg:
+            modified_config = self.load_federation(cfg.federation, device=self._device)
 
         # Load the base model
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
@@ -898,6 +913,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         and self._device.type == "cuda"
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
+
+                    if self._is_rank_zero:
+                        if self._federation is not None:
+                            was_synced = self._federation.synchronize(
+                                self._model, self.global_step
+                            )
 
                     # Step profiler
                     # Note that this is called within gradient accumulation block, hence
