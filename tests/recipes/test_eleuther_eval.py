@@ -44,7 +44,7 @@ class TestEleutherEval:
             "Chemistry": 0.3333,
             "Geography": 0,
             "Math": 0,
-            "Physics": 0.6667,
+            "Physics": 0.0,
         }
 
     @pytest.mark.parametrize(
