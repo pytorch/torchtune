@@ -341,6 +341,7 @@ class GRPOTaperLoss(nn.Module):
         a_negative: float = 0.1,
         b_negative: float = 10.0,
         kl_coeff: float = 0.1,
+        epsilon: float = 0.1,
     ):
         super().__init__()
         self.a_positive = a_positive
@@ -364,14 +365,10 @@ class GRPOTaperLoss(nn.Module):
         result = x.clone()  # Start with original values (for the "otherwise" case)
         
         # For values below a
-        below_a_mask = x < a
-        if below_a_mask.any():
-            result[below_a_mask] = a * (1 + torch.log(x[below_a_mask] / a + 1e-10))
-        
-        # For values above b
-        above_b_mask = x > b
-        if above_b_mask.any():
-            result[above_b_mask] = b * (1 + torch.log(x[above_b_mask] / b + 1e-10))
+        if x < a:
+            result = a * (1 + torch.log(x / a + 1e-10))
+        elif x > b:
+            result = b * (1 + torch.log(x / b + 1e-10))
         
         return result
 
