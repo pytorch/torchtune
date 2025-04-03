@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
-
 """
 README!! What's going on in this script?
 
@@ -1996,6 +1990,7 @@ class RayGRPORecipe:
         )
         self.param_server = self._create_param_server(
             parameter_server_cls=vLLMParameterServer,
+            fsdp_world_size=self.num_fsdp_workers,
             num_vllm_workers=self.num_vllm_workers,
         )
         self.rollout_workers = self._create_data_collectors()
@@ -2029,15 +2024,15 @@ class RayGRPORecipe:
         worker_cls,
         fsdp_world_size: int,
     ):
-        addr, port = get_ip(), get_open_port()
+        self.addr, self.port = get_ip(), get_open_port()
         fsdp_workers = []
         world_size = fsdp_world_size + 1
         for i in range(fsdp_world_size):
             env_vars = {
                 "RANK": str(i),
                 "WORLD_SIZE": world_size,
-                "MASTER_ADDR": addr,
-                "MASTER_PORT": port,
+                "MASTER_ADDR": self.addr,
+                "MASTER_PORT": self.port,
             }
             worker = worker_cls.remote(
                 self.cfg,
@@ -2051,24 +2046,26 @@ class RayGRPORecipe:
     def _create_param_server(
         self,
         parameter_server_cls,
+        fsdp_world_size: int,
         num_vllm_workers: int,
     ):
+        world_size = fsdp_world_size + 1
         self.vllm_addresses = [get_ip()] * num_vllm_workers
         self.vllm_ports = [get_open_port() for i in range(num_vllm_workers)]
 
         env_vars = {
             "RANK": str(fsdp_world_size),
             "WORLD_SIZE": world_size,
-            "MASTER_ADDR": addr,
-            "MASTER_PORT": port,
+            "MASTER_ADDR": self.addr,
+            "MASTER_PORT": self.port,
         }
 
         parameter_server = parameter_server_cls.options(max_concurrency=5).remote(
             self.vllm_addresses, self.vllm_ports, env_vars
         )
 
-        fsdp_workers[0].register_parameter_server.remote(parameter_server)
-        self.model_metadata = ray.get(fsdp_workers[0].get_model_metadata.remote())
+        self.actor_workers[0].register_parameter_server.remote(parameter_server)
+        self.model_metadata = ray.get(self.actor_workers[0].get_model_metadata.remote())
         ray.get(parameter_server.register_model_metadata.remote(self.model_metadata))
 
         return parameter_server
