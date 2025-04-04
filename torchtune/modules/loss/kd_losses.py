@@ -8,6 +8,7 @@ from typing import List
 
 import torch
 import torch.nn.functional as F
+from torchtune.utils import chunk
 
 
 class ForwardKLLoss(torch.nn.Module):
@@ -127,14 +128,10 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
         mask = (labels != self.ignore_index).int()
 
         # chunk and reshape labels (bsz, num_tokens, vocab) -> [(bsz*num_tokens/num_chunks, vocab)]
-
-        # torch.chunk/split may split tensor into a list with less elements than specified
-        # that causes crash by timeout since other nodes in sharding wait for exact amount of tensors
-        # code below splits tensor into exact number of chunks
-        base, reminder = divmod(labels.size(1), self.num_output_chunks)
-        chunks = labels.split([base] * (self.num_output_chunks - 1) + [base + reminder], dim=1)
-
-        labels = [target_chunk.reshape(-1) for target_chunk in chunks]
+        labels = [
+            target_chunk.reshape(-1)
+            for target_chunk in chunk(labels, self.num_output_chunks, dim=1)
+        ]
 
         total_fkl_loss = 0.0
         for student_chunk, teacher_chunk, label_chunk in zip(

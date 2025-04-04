@@ -10,6 +10,7 @@ import torch
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
+from torchtune.utils import chunk
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -495,13 +496,10 @@ class TransformerDecoder(nn.Module):
             List[torch.Tensor]: List of num_chunks output tensors, each with shape
                 [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
         """
-        # torch.chunk/split may split tensor into a list with less elements than specified
-        # that causes crash by timeout since other nodes in sharding wait for exact amount of tensors
-        # code below splits tensor into exact number of chunks
-        base, reminder = divmod(last_hidden_state.size(1), self.num_output_chunks)
-        chunks = last_hidden_state.split([base] * (self.num_output_chunks - 1) + [base + reminder], dim=1)
-
-        return [self.output(chunk) for chunk in chunks]
+        return [
+            self.output(chunk)
+            for chunk in chunk(last_hidden_state, self.num_output_chunks, dim=1)
+        ]
 
     def _validate_inputs(
         self,
