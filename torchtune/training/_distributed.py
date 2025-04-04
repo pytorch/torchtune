@@ -8,6 +8,7 @@
 import logging
 import os
 from dataclasses import dataclass
+from functools import cached_property
 from itertools import chain
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
@@ -121,6 +122,11 @@ class ParallelDims:
     @property
     def tp_enabled(self):
         return self.tp > 1
+
+    @cached_property
+    def non_data_parallel_size(self):
+        # update this as new parallelism strategies are added
+        return self.tp
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
