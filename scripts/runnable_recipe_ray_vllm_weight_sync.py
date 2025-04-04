@@ -122,11 +122,10 @@ def stateless_init_process_group(
     from vllm.distributed.device_communicators.pynccl import PyNcclCommunicator
     from vllm.distributed.utils import StatelessProcessGroup
 
-    print(master_address, master_port, rank, world_size, device)
     pg = StatelessProcessGroup.create(
         host=master_address, port=master_port, rank=rank, world_size=world_size
     )
-    print("got pg")
+
     pynccl = PyNcclCommunicator(pg, device=device)
     return pynccl
 
@@ -753,7 +752,7 @@ class LLMCollector(SyncDataCollector):
         self._remote_weight_updater = value
 
     def _postprocess_for_queue(self, data):
-        # local import below LLM call to avoid vLLM no CUDA GPUs available error
+        # local import to avoid vLLM no CUDA GPUs available error
         from torchtune import training
 
         data = data.squeeze()
@@ -803,9 +802,6 @@ class LLMCollector(SyncDataCollector):
         **kwargs,
     ) -> None:
         self.local_weight_updater(policy_weights, **kwargs)
-
-    def llm_collective_rpc(self, *args, **kwargs):
-        self.inference_server.collective_rpc(*args, **kwargs)
 
     def set_metric_logger(self, logger):
         """Store the MetricLoggerActor handle."""
@@ -901,12 +897,6 @@ class LLMCollector(SyncDataCollector):
             assert self.replay_buffer is None
             postprocessed_results, total_generated_tokens = self._postprocess_for_queue(
                 data
-            )
-
-            print(
-                self._tokenizer.decode(
-                    postprocessed_results.query_responses[0].cpu().numpy().tolist()
-                )
             )
 
             while True:
