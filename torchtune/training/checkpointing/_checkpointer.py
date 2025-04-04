@@ -401,6 +401,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the receipe state from a previous run. Default is False
         enable_dcp (bool): If True, the checkpointer will load the checkpoint file using dcp checkpointing apis.
+            This is currently an experimental feature.
 
     Raises:
         ValueError: If ther checkpoint_dir and output_dir are not on the same filesystem
