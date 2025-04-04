@@ -32,6 +32,14 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="dev/grpo_lora_finetune_single_device",
+        file_path="dev/grpo_lora_finetune_single_device.py",
+        configs=[
+            Config(name="dev/3B_lora_grpo", file_path="dev/3B_lora_grpo.yaml"),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
         name="full_finetune_single_device",
         file_path="full_finetune_single_device.py",
         configs=[
@@ -377,6 +385,9 @@ _ALL_RECIPES = [
         name="lora_finetune_distributed",
         file_path="lora_finetune_distributed.py",
         configs=[
+            Config(
+                name="dev/3B_lora_grpo_sft", file_path="dev/3B_lora_sft_for_grpo.yaml"
+            ),
             Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
             Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
             Config(name="llama2/70B_lora", file_path="llama2/70B_lora.yaml"),
