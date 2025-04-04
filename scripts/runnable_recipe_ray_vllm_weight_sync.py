@@ -690,6 +690,7 @@ class LLMCollector(SyncDataCollector):
             distributed_executor_backend="ray",
         )
 
+        # local import below LLM call to avoid vLLM no CUDA GPUs available error
         from torchtune import config
 
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
@@ -716,6 +717,7 @@ class LLMCollector(SyncDataCollector):
             dataloader_state_dict=None,
         )
 
+        # local import below LLM call to avoid vLLM no CUDA GPUs available error
         from torchrl.envs import LLMEnv
 
         env = LLMEnv.from_dataloader(
@@ -751,9 +753,7 @@ class LLMCollector(SyncDataCollector):
         self._remote_weight_updater = value
 
     def _postprocess_for_queue(self, data):
-        """
-        This is a helper that should be deleted once the TensorClass stuff has been figured out.
-        """
+        # local import below LLM call to avoid vLLM no CUDA GPUs available error
         from torchtune import training
 
         data = data.squeeze()
@@ -831,7 +831,7 @@ class LLMCollector(SyncDataCollector):
         tokens_per_second = (
             total_generated_tokens / time_generate if time_generate > 0 else 0
         )
-        div_GiB = 1024**3
+        div_gib = 1024**3
 
         log_dict = {
             "vllm_actor_performance/total_rollout_time (s)": time_total_rollout,
@@ -840,13 +840,13 @@ class LLMCollector(SyncDataCollector):
             "vllm_actor_performance/gpu_memory_peak_allocated (GiB)": gpu_memory[
                 "allocated"
             ]
-            / div_GiB,
+            / div_gib,
             "vllm_actor_performance/gpu_memory_peak_reserved (GiB)": gpu_memory[
                 "reserved"
             ]
-            / div_GiB,
+            / div_gib,
             "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
-            / div_GiB,
+            / div_gib,
             # "queues/vllm_full_queue_data_discard": full_queue_data_discard,
             "queues/rollout_queue_size": self.rollout_queue.qsize(),
         }
@@ -858,9 +858,6 @@ class LLMCollector(SyncDataCollector):
         for i in range(num_steps):
             self.rollout(i)
             if i % self.cfg.vllm.steps_before_sync == 0:
-                print(
-                    f"{self.worker_id} about to update weights, {self.remote_weight_updater}"
-                )
                 ray.get(
                     self.remote_weight_updater.update_weights.remote(
                         weights=None, worker_ids=self.worker_id
@@ -868,8 +865,6 @@ class LLMCollector(SyncDataCollector):
                 )
 
     def rollout(self, idx) -> TensorDictBase:
-        from torchtune import training
-
         if self.reset_at_each_iter or self._shuttle is None:
             data = self.env.reset()
         else:
@@ -1018,10 +1013,12 @@ class vLLMWorkerWrapper(Worker):
         print(f"device count {torch.cuda.device_count()}")
         super().__init__(*args, **kwargs)
 
-    def init_weight_update_group(self, master_address, master_port, rank, world_size):
+    def init_weight_update_group(
+        self, master_address, master_port, rank_offset, world_size
+    ):
         from vllm.distributed.parallel_state import get_world_group
 
-        rank = get_world_group().rank + rank
+        rank = get_world_group().rank + rank_offset
 
         print(f"init_weight {master_port=} {rank=} {self.device}")
 
@@ -1844,16 +1841,15 @@ class vLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
 
     def _update_local_weights(self, local_weights, mapped_weights):
         inference_server = self.collector.inference_server
-        # if self.initialized_group is None:
-        #     weight_sync_world_size = (
-        #         inference_server.llm_engine.parallel_config.tensor_parallel_size + 1
-        #     )
-        #     print(f"{weight_sync_world_size=}")
-        #     inference_server.collective_rpc(
-        #         "init_weight_update_group",
-        #         args=(self.master_address, self.master_port, 1, weight_sync_world_size),
-        #     )
-        #     self.initialized_group = True
+        if self.initialized_group is None:
+            weight_sync_world_size = (
+                inference_server.llm_engine.parallel_config.tensor_parallel_size + 1
+            )
+            inference_server.collective_rpc(
+                "init_weight_update_group",
+                args=(self.master_address, self.master_port, 1, weight_sync_world_size),
+            )
+            self.initialized_group = True
 
         for k, (dtype, shape) in self.model_metadata.items():
             inference_server.collective_rpc("update_weight", args=(k, dtype, shape))
@@ -1938,21 +1934,12 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             return True
         return False
 
-    def init_model_update_group(self, worker_id):
+    def _init_model_update_group(self, worker_id):
         worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
         vllm_tp_size = worker_metadata.get("tp_size", 1)
         weight_sync_world_size = vllm_tp_size + 1
         print(
             f"before stateless_init_process_group, {self.vllm_master_ports[worker_id]} {weight_sync_world_size}"
-        )
-        worker_handle.llm_collective_rpc.remote(
-            "init_weight_update_group",
-            args=(
-                self.vllm_master_addresses[worker_id],
-                self.vllm_master_ports[worker_id],
-                1,
-                weight_sync_world_size,
-            ),
         )
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
@@ -1967,6 +1954,8 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         print(f"in _sync_weights_with_worker {worker_id}")
         worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
         worker_handle.update_policy_weights_.remote()
+        if worker_id not in self.vllm_comm_groups:
+            self._init_model_update_group(worker_id)
         read_lock = self.state_dict_lock.gen_rlock()
         read_lock.acquire()
         for i, k in enumerate(server_weights.keys()):
@@ -1977,9 +1966,7 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             self.version_tensor, src=0, stream=torch.cuda.current_stream()
         )
         torch.cuda.synchronize()
-        print(
-            f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}"
-        )
+        print(f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}")
         self.vllm_weight_versions[worker_id] = self.version
         read_lock.release()
 
@@ -2165,7 +2152,6 @@ class RayGRPORecipe:
                     i, collector, collector_metadata
                 )
             )
-            ray.get(self.param_server.init_model_update_group.remote(i))
             data_collectors.append(collector)
         return data_collectors
 
