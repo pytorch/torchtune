@@ -335,7 +335,8 @@ def get_largest_iter_folder(
 
     fs, _ = url_to_fs(dir)
     # Iterate over the directory contents
-    for fname in fs.ls(dir):
+    for fpath in fs.ls(dir):
+        fname = os.path.basename(fpath)
         match = regex.match(fname)
         if match:
             # Extract the number from the match
