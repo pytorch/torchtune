@@ -4,14 +4,115 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
 from torch.nn import functional as F
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, SequentialSampler
+
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX, PACK_TYPE
+from torchtune.data._torchdata import assert_torchdata_installed
+from torchtune.utils._import_guard import _TORCHDATA_INSTALLED
 from tqdm import tqdm
+
+
+if _TORCHDATA_INSTALLED:
+    from torchdata.nodes import (
+        BaseNode,
+        Loader,
+        ParallelMapper,
+        Prefetcher,
+        SamplerWrapper,
+        T,
+    )
+
+    class Packer(BaseNode[T]):
+        def __init__(
+            self,
+            source: BaseNode[T],
+            max_seq_len: int,
+            padding_idx: int = 0,
+            max_packs: int = 0,
+            split_across_pack: bool = False,
+        ) -> None:
+            super().__init__()
+            self.source = source
+            self.max_seq_len = max_seq_len
+            self.padding_idx = padding_idx
+            self.max_packs = max_packs
+            self.split_across_pack = split_across_pack
+            self.previous_sample_boundary: int = 0
+            self._yielded_packs = 0
+            self._current_pack = self._new_pack()
+
+        def reset(self, initial_state: Optional[Dict[str, T]] = None) -> None:
+            super().reset(initial_state)
+            if initial_state is not None:
+                self.source.reset(initial_state["source"])
+                self._yielded_packs = initial_state["_yielded_packs"]
+                raise NotImplementedError("TODO")
+            else:
+                self.source.reset()
+                self._yielded_packs = 0
+
+        def _new_pack(self) -> Dict[str, List]:
+            return {
+                "tokens": [],
+                "labels": [],
+                "input_pos": [],
+                "seq_lens": [],
+            }
+
+        def next(self) -> T:
+            # Get samples and add to current pack until it's long enough for a full pack
+            _source_progress = 0
+            while len(self._current_pack["tokens"]) <= self.max_seq_len:
+                # Get next sample from source
+                sample = next(self.source)
+                _source_progress += 1
+                tokens, labels = sample["tokens"], sample["labels"]
+
+                # If the dataset outputs samples that are larger than the specified
+                # max_seq_len and we're unable to split it, user needs to modify
+                # one of the two parameters
+                seq_len = len(tokens)
+                if seq_len > self.max_seq_len and not self.split_across_pack:
+                    raise ValueError(
+                        f"Dataset sample is too long ({seq_len} > {self.max_seq_len}). "
+                        "Please set `split_across_pack=True` or increase `max_seq_len`."
+                    )
+
+                self.previous_sample_boundary = len(self._current_pack["tokens"])
+                # Update the current pack
+                self._current_pack["tokens"] += tokens
+                self._current_pack["labels"] += labels
+                self._current_pack["input_pos"] += [
+                    x % self.max_seq_len for x in range(seq_len)
+                ]
+                self._current_pack["seq_lens"] += [seq_len]
+                # We pass this along so that pbar can be incremented
+                self._current_pack["source_progress"] = _source_progress
+
+            if len(self._current_pack["tokens"]) > self.max_seq_len:
+                pack, self._current_pack = _split_and_add_pack(
+                    self._current_pack,
+                    max_seq_len=self.max_seq_len,
+                    padding_idx=self.padding_idx,
+                    previous_sample_boundary=self.previous_sample_boundary,
+                    split_across_pack=self.split_across_pack,
+                )
+                self.previous_sample_boundary = len(self._current_pack["tokens"])
+
+                return pack
+            else:
+                raise StopIteration()
+
+        def get_state(self) -> Dict[str, T]:
+            return {
+                "source": self.source.state_dict(),
+                "_yielded_packs": self._yielded_packs,
+            }
 
 
 class PackedDataset(Dataset):
@@ -78,6 +179,10 @@ class PackedDataset(Dataset):
             For pre-training, typically this is set to True for general text completion. For
             fine-tuning, typically this is set to False to avoid truncating sentences in instruct
             tuning. Default is False.
+        num_workers (Optional[int]): Number of multi-process workers to use for parallelizing the
+            initialization/packing step. Default is None. Requires `torchdata>=0.10.1`
+        prebatch_size (int): When num_workers is greater than 0, this is a micro-optimization parameter for
+            improving throughput (and thus startup time). When num_workers is None, this setting is ignored.
     """
 
     def __init__(
@@ -88,6 +193,9 @@ class PackedDataset(Dataset):
         padding_idx: int = 0,
         max_packs: Optional[int] = None,
         split_across_pack: bool = False,
+        # If startup time is too slow, trying adjusting the values below
+        num_workers: Optional[int] = None,
+        prebatch_size: int = 32,
     ) -> None:
         self.ds = ds
         self.max_seq_len = max_seq_len
@@ -97,7 +205,16 @@ class PackedDataset(Dataset):
         # Where final samples will be held
         self.packs: List[PACK_TYPE] = []
         self.previous_sample_boundary: int = 0
-        self._pack()
+
+        # Parallel packing settings
+        self.num_workers = num_workers
+        self.prebatch_size = prebatch_size
+
+        if self.num_workers:
+            assert_torchdata_installed()
+            self._parallel_pack()
+        else:
+            self._pack()
 
     def _pack(self) -> None:
         """Iterate through the dataset. Use a buffer to hold samples until max_seq_len,
@@ -145,7 +262,14 @@ class PackedDataset(Dataset):
                 len(current_pack["tokens"]) > self.max_seq_len
                 and not self._should_stop_packing()
             ):
-                current_pack = self._split_and_add_pack(current_pack)
+                pack, current_pack = _split_and_add_pack(
+                    current_pack,
+                    max_seq_len=self.max_seq_len,
+                    padding_idx=self.padding_idx,
+                    previous_sample_boundary=self.previous_sample_boundary,
+                    split_across_pack=self.split_across_pack,
+                )
+                self.packs.append(pack)
 
             if rank == 0:
                 pbar.update()
@@ -163,6 +287,44 @@ class PackedDataset(Dataset):
             # No need to handle splitting at this point so we can just add the current pack
             self._add_pack(current_pack)
 
+    def _parallel_pack(self) -> None:
+        """Parallel version of ``_pack``. Uses torchdata to parallelize the initialization
+        procedure.
+        """
+
+        # Only show progress bar on rank 0
+        rank = (
+            torch.distributed.get_rank()
+            if torch.distributed.is_available() and torch.distributed.is_initialized()
+            else 0
+        )
+        if rank == 0:
+            pbar = tqdm(total=len(self.ds), desc="Packing dataset", dynamic_ncols=True)
+
+        node = SamplerWrapper(SequentialSampler(self.ds))
+        node = ParallelMapper(
+            node,
+            map_fn=self.ds.__getitem__,
+            num_workers=self.num_workers,
+            method="process",
+            in_order=True,  # For determinism
+            prebatch=self.prebatch_size,
+        )
+        node = Packer(
+            node,
+            max_seq_len=self.max_seq_len,
+            padding_idx=self.padding_idx,
+            max_packs=self.max_packs,
+            split_across_pack=self.split_across_pack,
+        )
+        node = Prefetcher(node, prefetch_factor=4)
+        loader = Loader(node)
+
+        for pack in loader:
+            self.packs.append(pack)
+            if rank == 0:
+                pbar.update(pack["source_progress"])
+
     def _should_stop_packing(self) -> bool:
         """If max packs is set, stop packing when we reach that number."""
 
@@ -170,105 +332,165 @@ class PackedDataset(Dataset):
             return True
         return False
 
-    def _split_and_add_pack(self, current_pack: PACK_TYPE) -> PACK_TYPE:
-        """Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and
-        returns the start of the next pack."""
+    # def _split_and_add_pack(self, current_pack: PACK_TYPE) -> PACK_TYPE:
+    #     """Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and
+    #     returns the start of the next pack."""
 
-        if self.split_across_pack:
-            boundary = self.max_seq_len
-            # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
-            leftover_seq_len = self.max_seq_len - sum(current_pack["seq_lens"][:-1])
-            seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
-        else:
-            boundary = self.previous_sample_boundary
-            # If we aren't splitting across packs, we leave out the last sample b/c
-            # it will go into the next pack
-            seq_len_padding = []
+    #     if self.split_across_pack:
+    #         boundary = self.max_seq_len
+    #         # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
+    #         leftover_seq_len = self.max_seq_len - sum(current_pack["seq_lens"][:-1])
+    #         seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
+    #     else:
+    #         boundary = self.previous_sample_boundary
+    #         # If we aren't splitting across packs, we leave out the last sample b/c
+    #         # it will go into the next pack
+    #         seq_len_padding = []
 
-        pack = {
-            "tokens": current_pack["tokens"][:boundary],
-            "labels": current_pack["labels"][:boundary],
-            "input_pos": current_pack["input_pos"][:boundary],
-            "seq_lens": current_pack["seq_lens"][:-1] + seq_len_padding,
-        }
+    #     pack = {
+    #         "tokens": current_pack["tokens"][:boundary],
+    #         "labels": current_pack["labels"][:boundary],
+    #         "input_pos": current_pack["input_pos"][:boundary],
+    #         "seq_lens": current_pack["seq_lens"][:-1] + seq_len_padding,
+    #     }
 
-        # Process and add the pack
-        self._add_pack(pack)
+    #     # Process and add the pack
+    #     pack = _convert_to_tensors(pack)
+    #     pack = _pad_pack(
+    #         pack, padding_idx=self.padding_idx, max_seq_len=self.max_seq_len
+    #     )
 
-        # Return the length of the first sample in next pack if we are splitting across packs,
-        # otherwise return the length of the last sample in the current pack
-        next_seq_len = (
-            len(current_pack["tokens"][boundary:])
-            if self.split_across_pack
-            else current_pack["seq_lens"][-1]
-        )
+    #     # Return the length of the first sample in next pack if we are splitting across packs,
+    #     # otherwise return the length of the last sample in the current pack
+    #     next_seq_len = (
+    #         len(current_pack["tokens"][boundary:])
+    #         if self.split_across_pack
+    #         else current_pack["seq_lens"][-1]
+    #     )
 
-        return {
-            "tokens": current_pack["tokens"][boundary:],
-            "labels": current_pack["labels"][boundary:],
-            "input_pos": current_pack["input_pos"][boundary:],
-            "seq_lens": [next_seq_len],
-        }
-
-    def _add_pack(self, pack: PACK_TYPE) -> None:
-        """Processes, pads and adds a pack to ``self.packs``."""
-        pack = self._convert_to_tensors(pack)
-        pack = self._pad_pack(pack, padding_idx=self.padding_idx)
-        self.packs.append(pack)
-
-    def _convert_to_tensors(self, pack: PACK_TYPE) -> PACK_TYPE:
-        """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors."""
-        return {
-            "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
-            "labels": torch.tensor(pack["labels"], dtype=torch.long),
-            "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
-            "seq_lens": torch.tensor(pack["seq_lens"], dtype=torch.long),
-        }
-
-    def _pad_pack(self, pack: PACK_TYPE, padding_idx: int) -> PACK_TYPE:
-        """Pads a pack to ``self.max_seq_len``."""
-        # Pad tokens
-        num_padding_tokens = self.max_seq_len - len(pack["tokens"])
-        padded_tokens = F.pad(
-            pack["tokens"],
-            (0, num_padding_tokens),
-            value=padding_idx,
-        )
-
-        # Pad labels
-        padded_labels = F.pad(
-            pack["labels"],
-            (0, self.max_seq_len - len(pack["labels"])),
-            value=CROSS_ENTROPY_IGNORE_IDX,
-        )
-
-        # Add padding tokens as a last seq len to ensure sum is max_seq_len
-        padded_seq_lens = (
-            torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
-            if num_padding_tokens > 0
-            else pack["seq_lens"]
-        )
-
-        # Pad input_pos continuing the sequence from last value
-        # in input_pos
-        # e.g. [0 1 2] -> [0 1 2 3 4 5] for self.max_seq_len = 6
-        num_range = torch.arange(
-            pack["input_pos"][-1] + 1,
-            pack["input_pos"][-1] + self.max_seq_len - len(pack["input_pos"]) + 1,
-        )
-        # Clamp to max_seq_len - 1 to avoid out of bounds error
-        clamped_num_range = torch.clamp(num_range, 0, self.max_seq_len - 1)
-        padded_input_pos = torch.cat([pack["input_pos"], clamped_num_range])
-
-        return {
-            "tokens": padded_tokens,
-            "labels": padded_labels,
-            "input_pos": padded_input_pos,
-            "seq_lens": padded_seq_lens,
-        }
+    #     return pack, {
+    #         "tokens": current_pack["tokens"][boundary:],
+    #         "labels": current_pack["labels"][boundary:],
+    #         "input_pos": current_pack["input_pos"][boundary:],
+    #         "seq_lens": [next_seq_len],
+    #     }
 
     def __len__(self) -> int:
         return len(self.packs)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         return self.packs[idx]
+
+
+def _pad_pack(pack: PACK_TYPE, padding_idx: int, max_seq_len: int) -> PACK_TYPE:
+    """Pads a pack to ``self.max_seq_len``."""
+    # Pad tokens
+    num_padding_tokens = max_seq_len - len(pack["tokens"])
+    padded_tokens = F.pad(
+        pack["tokens"],
+        (0, num_padding_tokens),
+        value=padding_idx,
+    )
+
+    # Pad labels
+    padded_labels = F.pad(
+        pack["labels"],
+        (0, max_seq_len - len(pack["labels"])),
+        value=CROSS_ENTROPY_IGNORE_IDX,
+    )
+
+    # Add padding tokens as a last seq len to ensure sum is max_seq_len
+    padded_seq_lens = (
+        torch.cat([pack["seq_lens"], torch.tensor([num_padding_tokens])])
+        if num_padding_tokens > 0
+        else pack["seq_lens"]
+    )
+
+    # Pad input_pos continuing the sequence from last value
+    # in input_pos
+    # e.g. [0 1 2] -> [0 1 2 3 4 5] for self.max_seq_len = 6
+    num_range = torch.arange(
+        pack["input_pos"][-1] + 1,
+        pack["input_pos"][-1] + max_seq_len - len(pack["input_pos"]) + 1,
+    )
+    # Clamp to max_seq_len - 1 to avoid out of bounds error
+    clamped_num_range = torch.clamp(num_range, 0, max_seq_len - 1)
+    padded_input_pos = torch.cat([pack["input_pos"], clamped_num_range])
+
+    ret = {
+        "tokens": padded_tokens,
+        "labels": padded_labels,
+        "input_pos": padded_input_pos,
+        "seq_lens": padded_seq_lens,
+    }
+    if "source_progress" in pack:
+        ret["source_progress"] = pack["source_progress"]
+    return ret
+
+
+def _convert_to_tensors(pack: PACK_TYPE) -> PACK_TYPE:
+    """Converts a pack into tensors. Pack comes in as a dict of lists and is converted to tensors."""
+    ret = {
+        "tokens": torch.tensor(pack["tokens"], dtype=torch.long),
+        "labels": torch.tensor(pack["labels"], dtype=torch.long),
+        "input_pos": torch.tensor(pack["input_pos"], dtype=torch.long),
+        "seq_lens": torch.tensor(pack["seq_lens"], dtype=torch.long),
+    }
+    if "source_progress" in pack:
+        ret["source_progress"] = pack["source_progress"]
+    return ret
+
+
+def _split_and_add_pack(
+    current_pack: PACK_TYPE,
+    max_seq_len: int,
+    padding_idx: int,
+    previous_sample_boundary: int,
+    split_across_pack: bool,
+) -> Tuple[PACK_TYPE, PACK_TYPE]:
+    """Splits the current pack at the boundary, processes it, adds it to ``self.packs`` and
+    returns the start of the next pack."""
+
+    if split_across_pack:
+        boundary = max_seq_len
+        # The last elem in ``seq_lens`` ensures that ``sum(seq_lens) == self.max_seq_len``
+        leftover_seq_len = max_seq_len - sum(current_pack["seq_lens"][:-1])
+        seq_len_padding = [leftover_seq_len] if leftover_seq_len > 0 else []
+    else:
+        boundary = previous_sample_boundary
+        # If we aren't splitting across packs, we leave out the last sample b/c
+        # it will go into the next pack
+        seq_len_padding = []
+
+    pack = {
+        "tokens": current_pack["tokens"][:boundary],
+        "labels": current_pack["labels"][:boundary],
+        "input_pos": current_pack["input_pos"][:boundary],
+        "seq_lens": current_pack["seq_lens"][:-1] + seq_len_padding,
+    }
+    if "source_progress" in current_pack:
+        pack["source_progress"] = current_pack["source_progress"]
+
+    # Process and add the pack
+    pack = _convert_to_tensors(pack)
+    pack = _pad_pack(pack, padding_idx=padding_idx, max_seq_len=max_seq_len)
+
+    # Return the length of the first sample in next pack if we are splitting across packs,
+    # otherwise return the length of the last sample in the current pack
+    next_seq_len = (
+        len(current_pack["tokens"][boundary:])
+        if split_across_pack
+        else current_pack["seq_lens"][-1]
+    )
+
+    ret = {
+        "tokens": current_pack["tokens"][boundary:],
+        "labels": current_pack["labels"][boundary:],
+        "input_pos": current_pack["input_pos"][boundary:],
+        "seq_lens": [next_seq_len],
+    }
+
+    if "source_progress" in current_pack:
+        ret["source_progress"] = current_pack["source_progress"]
+
+    return pack, ret
