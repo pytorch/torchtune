@@ -21,8 +21,8 @@ class TestSlimOrcaDataset:
         return DummyTokenizer()
 
     @patch("torchtune.datasets._sft.load_dataset")
-    @pytest.mark.parametrize("train_on_input", [True, False])
-    def test_dataset_get_item(self, mock_load_dataset, train_on_input, tokenizer):
+    @pytest.mark.parametrize("masking_strategy", ["train_on_all", "train_on_assistant"])
+    def test_dataset_get_item(self, mock_load_dataset, masking_strategy, tokenizer):
         # Sample data from slimorca dataset
         mock_load_dataset.return_value = Dataset.from_list(
             [
@@ -46,7 +46,7 @@ class TestSlimOrcaDataset:
         )
         ds = slimorca_dataset(
             tokenizer=tokenizer,
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
         )
         # Generate the input and labels
         input, labels = ds[0]["tokens"], ds[0]["labels"]
@@ -69,7 +69,7 @@ class TestSlimOrcaDataset:
             -1: 1,
         }
         assert Counter(input) == expected_counts
-        if train_on_input:
+        if masking_strategy == "train_on_all":
             # Check that system is masked but not input
             assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 35
         else:

@@ -135,7 +135,7 @@ class TestPreferenceDataset:
             tokenizer=DummyTokenizer(),
             source="json",
             data_files=str(ASSETS / "hh_rlhf_tiny.json"),
-            train_on_input=False,
+            masking_strategy="train_on_assistant",
             split="train",
         )
 
@@ -165,7 +165,7 @@ class TestPreferenceDataset:
                 tokenizer=DummyTokenizer(),
                 source="json",
                 data_files=str(ASSETS / "hh_rlhf_tiny.json"),
-                train_on_input=False,
+                masking_strategy="train_on_assistant",
                 split="train",
                 packed=True,
             )

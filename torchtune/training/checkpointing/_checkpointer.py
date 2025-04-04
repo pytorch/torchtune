@@ -136,9 +136,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
             and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
             Default is None.
-        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
-            the recipe state from a previous run. Default is False. This flag is deprecated. Please use the
-            should_load_recipe_state flag instead.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the recipe state from a previous run. Default is False
 
@@ -154,7 +151,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
-        resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
     ) -> None:
 
@@ -168,12 +164,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
         self._checkpoint_dir = Path(checkpoint_dir)
         self._should_load_recipe_state = should_load_recipe_state
-
-        if resume_from_checkpoint:
-            self._should_load_recipe_state = resume_from_checkpoint
-            logger.warning(
-                "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
-            )
 
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
@@ -392,9 +382,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
             and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
             Default is None.
-        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
-            the receipe state from a previous run. Default is False. This flag is deprecated. Please use
-            the should_load_recipe_state flag instead.
         safe_serialization (bool): If True, the checkpointer will save the checkpoint file using `safetensors`.
             Default is True.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
@@ -409,17 +396,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
-        resume_from_checkpoint: bool = False,
         safe_serialization: bool = True,
         should_load_recipe_state: bool = False,
     ) -> None:
 
         self._should_load_recipe_state = should_load_recipe_state
-        if resume_from_checkpoint:
-            self._should_load_recipe_state = resume_from_checkpoint
-            logger.warning(
-                "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
-            )
 
         self._safe_serialization = safe_serialization
         self._checkpoint_dir = Path(checkpoint_dir)
@@ -946,9 +927,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
             and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/recipe_state.
             Default is None.
-        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
-                the recipe state from a previous run. Default is False. This flag is deprecated. Please use the
-                should_load_recipe_state instead.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
                 the recipe state from a previous run. Default is False
 
@@ -964,7 +942,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
-        resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
     ) -> None:
 
@@ -978,11 +955,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         self._checkpoint_dir = Path(checkpoint_dir)
         self._should_load_recipe_state = should_load_recipe_state
-        if resume_from_checkpoint:
-            self._should_load_recipe_state = resume_from_checkpoint
-            logger.warning(
-                "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
-            )
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         check_outdir_not_in_ckptdir(

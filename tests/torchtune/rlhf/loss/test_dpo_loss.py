@@ -7,7 +7,7 @@
 import pytest
 import torch
 from torchtune.rlhf._types import ChosenRejectedOutputs
-from torchtune.rlhf.loss import DPOLoss, RSOLoss
+from torchtune.rlhf.loss import DPOLoss
 
 
 @pytest.fixture(autouse=True)
@@ -21,12 +21,6 @@ class TestDPOLosses:
         return DPOLoss(
             beta=0.1,
             label_smoothing=0.0,
-        )
-
-    @pytest.fixture
-    def rso_loss(self):
-        return RSOLoss(
-            gamma=0.1,
         )
 
     @pytest.fixture
@@ -76,27 +70,5 @@ class TestDPOLosses:
         exp_scaled_logits = torch.exp(torch.tensor([0.0, -1.0, -2.0]))
         expected_losses = -(1 / (1 + exp_scaled_logits)).log()
         losses, *_ = dpo_loss(*loss_inputs)
-
-        torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
-
-    def test_rso_loss(self, rso_loss, loss_inputs):
-        """
-        # maths:
-        ratios = torch.tensor([-0.4, 20.0, 20.0])
-        ref_ratios = torch.tensor([-0.4, 10, 0.0])
-
-        # logits is ratios - ref_ratios
-
-        logits = torch.tensor([0.0, 10.0, 20.0])
-        scaled_logits = torch.tensor([0.0, 1.0, 2.0])
-
-        # hinge loss doesn't use label smoothing
-        # loss = relu(1 - scaled_logits) = max(0, 1 - scaled_logits)
-        expected_losses = torch.tensor([1.0, 0.0, 0.0])
-        """
-
-        expected_losses = torch.tensor([1.0, 0.0, 0.0])
-
-        losses, *_ = rso_loss(*loss_inputs)
 
         torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
