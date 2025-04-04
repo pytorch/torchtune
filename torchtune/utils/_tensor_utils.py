@@ -20,7 +20,7 @@ def chunk(tensor: torch.Tensor, chunks: int, dim: int = 0) -> Tuple[torch.Tensor
     Args:
         tensor (torch.Tensor): The tensor to chunk.
         chunks (int): Number of chunks to return in a tuple.
-        dim (int): Dimension along which to split the
+        dim (int): Dimension along which to chunk the tensor.
 
     Returns:
         Tuple[torch.Tensor]: Chunked tensor.

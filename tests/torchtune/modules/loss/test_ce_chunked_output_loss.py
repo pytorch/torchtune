@@ -9,7 +9,7 @@ import torch
 from tests.test_utils import assert_expected
 from torchtune.modules.loss import CEWithChunkedOutputLoss
 from torchtune.training.seed import set_seed
-from torchtune.utils import chunk
+from torchtune.utils import tensor_utils
 
 
 @pytest.fixture(autouse=True)
@@ -37,7 +37,7 @@ class TestCEWithChunkedOutputLoss:
         ce_loss = CEWithChunkedOutputLoss(
             num_output_chunks=8, ignore_index=ignore_index
         )
-        logits_chunks = chunk(logits, ce_loss.num_output_chunks, dim=1)
+        logits_chunks = tensor_utils.chunk(logits, ce_loss.num_output_chunks, dim=1)
         chunked_loss = ce_loss(logits_chunks, labels)
 
         # vanilla CE

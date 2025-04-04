@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
-from torchtune.utils import chunk
+from torchtune.utils import tensor_utils
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -498,7 +498,9 @@ class TransformerDecoder(nn.Module):
         """
         return [
             self.output(chunk)
-            for chunk in chunk(last_hidden_state, self.num_output_chunks, dim=1)
+            for chunk in tensor_utils.chunk(
+                last_hidden_state, self.num_output_chunks, dim=1
+            )
         ]
 
     def _validate_inputs(

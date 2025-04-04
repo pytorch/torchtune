@@ -9,7 +9,7 @@ import torch
 from tests.test_utils import assert_expected
 from torchtune.modules.loss import ForwardKLLoss, ForwardKLWithChunkedOutputLoss
 from torchtune.training.seed import set_seed
-from torchtune.utils import chunk
+from torchtune.utils import tensor_utils
 
 
 @pytest.fixture(autouse=True)
@@ -43,8 +43,10 @@ class TestForwardKLWithChunkedOutputLoss:
         chunked_fkl_loss = ForwardKLWithChunkedOutputLoss(
             num_output_chunks=8, ignore_index=ignore_index
         )
-        logits_chunks = chunk(logits, chunked_fkl_loss.num_output_chunks, dim=1)
-        teacher_logits_chunks = chunk(
+        logits_chunks = tensor_utils.chunk(
+            logits, chunked_fkl_loss.num_output_chunks, dim=1
+        )
+        teacher_logits_chunks = tensor_utils.chunk(
             teacher_logits, chunked_fkl_loss.num_output_chunks, dim=1
         )
         chunked_loss = chunked_fkl_loss(logits_chunks, teacher_logits_chunks, labels)
@@ -124,10 +126,10 @@ class TestForwardKLWithChunkedOutputLoss:
         chunked_fkl_loss = ForwardKLWithChunkedOutputLoss(
             num_output_chunks=2, ignore_index=-100
         )
-        student_logits_chunks = chunk(
+        student_logits_chunks = tensor_utils.chunk(
             student_logits, chunked_fkl_loss.num_output_chunks, dim=1
         )
-        teacher_logits_chunks = chunk(
+        teacher_logits_chunks = tensor_utils.chunk(
             teacher_logits, chunked_fkl_loss.num_output_chunks, dim=1
         )
         chunked_loss = chunked_fkl_loss(
