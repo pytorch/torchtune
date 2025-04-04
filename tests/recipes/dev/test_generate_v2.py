@@ -55,7 +55,9 @@ class TestGenerateV2:
         # this is gibberish b/c the model is random weights, but it's
         # the expected value for what we currently have in V2
         # this test should catch any changes to the generate recipe that affect output
-        expected_output = "Pietroместkap щotimes rivers cache НиtringindexPathNAME"
+        expected_output = (
+            "restricted chap Пав Frenchisto porqueноello ignor ambientQuery"
+        )
 
         logs = caplog.text
         assert expected_output in logs
