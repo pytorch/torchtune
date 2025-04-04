@@ -46,7 +46,7 @@ class TestFullDPODistributedRecipe:
         ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
+    @gpu_test(gpu_count=2)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -143,10 +143,8 @@ class TestFullDPODistributedRecipe:
             resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
-        assert False
-
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
+    @gpu_test(gpu_count=2)
     def test_2_training_state_on_resume_with_async_checkpointing(
         self, tmpdir, monkeypatch
     ):
