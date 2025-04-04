@@ -626,8 +626,8 @@ class TransformerDecoder(nn.Module):
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
-            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `skip_output_layer=False`
-            and ``[b x s x d]`` if true, or a list of layer output tensors defined by ``output_hidden_states`` with the
+            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_layer=False`
+            and ``[b x s x d]`` otherwise, or a list of layer output tensors defined by ``output_hidden_states`` with the
             final output tensor appended to the list.
 
         Note:
