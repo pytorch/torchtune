@@ -768,6 +768,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                should_step = (idx + 1) % self._gradient_accumulation_steps == 0
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -818,9 +819,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
                     current_loss = current_loss * (self.dp_degree / num_tokens)
 
+                # Should this be only done in HSDP setting?
+                # Need to all reduce on step always
+                if should_step:
+                    self._model.set_is_last_backward(True)
+                    self._model.set_requires_all_reduce(True)
+
                 current_loss.backward()
                 # Optimizer step (if not fused in backward call)
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if should_step:
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
                         torch.distributed.all_reduce(num_tokens)
@@ -838,6 +845,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 grad_norm = grad_norm.full_tensor()
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
+
+                        # Grad acc trick to minimize all reduces
+                        self._model.set_is_last_backward(False)
+                        self._model.set_requires_all_reduce(False)
 
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
