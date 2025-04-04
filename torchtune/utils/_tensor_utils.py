@@ -34,4 +34,4 @@ def chunk(tensor: torch.Tensor, chunks: int, dim: int = 0) -> List[torch.Tensor]
         List[torch.Tensor]: Chunked tensor.
     """
     base, reminder = divmod(tensor.size(dim), chunks)
-    return tensor.split([base] * (chunks - 1) + [base + reminder], dim=1)
+    return tensor.split([base] * (chunks - 1) + [base + reminder], dim=dim)
