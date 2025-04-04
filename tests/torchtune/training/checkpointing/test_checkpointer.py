@@ -533,14 +533,19 @@ class TestHFLlama2FullModelCheckpointer:
         * Internal state of the checkpointer is correctly updated
         * Converted checkpoint can be loaded into the llama2 torchtune implementation
         """
+
         multi_file_checkpointer._enable_dcp = True
         # Read the state dict directly from files
         checkpoint_file_1, checkpoint_file_2 = llama2_hf_checkpoints
         orig_state_dict_1 = safe_torch_load(checkpoint_file_1)
         orig_state_dict_2 = safe_torch_load(checkpoint_file_2)
 
+        state_dict = {}
         # merged state dict from checkpointer
-        state_dict = multi_file_checkpointer.load_checkpoint()
+        try:
+            state_dict = multi_file_checkpointer.load_checkpoint()
+        except ImportError:
+            pytest.skip("DCP HF classes not available")
 
         # We ignore inv_freq as is standard practice
         assert len(state_dict["model"].keys()) + 2 == len(
@@ -569,7 +574,10 @@ class TestHFLlama2FullModelCheckpointer:
         )
         model.load_state_dict(state_dict["model"])
 
-        multi_file_checkpointer.save_checkpoint(state_dict, epoch=3)
+        try:
+            multi_file_checkpointer.save_checkpoint(state_dict, epoch=3)
+        except ImportError:
+            pytest.skip("DCP HF classes not available")
 
         # Reload the output checkpoint file and compare to the original checkpoint. This
         # assumes we know what the name of the file is. This is fine, breaking this logic
