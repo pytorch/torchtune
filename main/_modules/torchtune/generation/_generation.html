@@ -508,7 +508,12 @@
 
     <span class="c1"># if q is None, we use the default softmax sampling trick</span>
     <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span><span class="o">.</span><span class="n">exponential_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># alternative to torch.empty_like(probs).exponential_(1)</span>
+        <span class="c1"># so it is reproducible in stable and nightly</span>
+        <span class="n">uniform_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">uniform_val</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="n">uniform_val</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">epsilon</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="o">-</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">uniform_val</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">multinomial_sample_one</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span></div>
 
