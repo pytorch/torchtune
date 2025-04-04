@@ -66,10 +66,14 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         total_elements = (labels != self.ignore_index).sum()
 
         # chunk and reshape labels (bsz, num_tokens, vocab) -> [(bsz*num_tokens/num_chunks, vocab)]
-        labels = [
-            target_chunk.reshape(-1)
-            for target_chunk in labels.chunk(self.num_output_chunks, dim=1)
-        ]
+
+        # torch.chunk/split may split tensor into a list with less elements than specified
+        # that causes crash by timeout since other nodes in sharding wait for exact amount of tensors
+        # code below splits tensor into exact number of chunks
+        base, reminder = divmod(labels.size(1), self.num_output_chunks)
+        chunks = labels.split([base] * (self.num_output_chunks - 1) + [base + reminder], dim=1)
+
+        labels = [target_chunk.reshape(-1) for target_chunk in chunks]
         # reshape logits [(bsz, num_tokens/num_chunks, vocab)] -> [(bsz*num_tokens/num_chunks, vocab)]
         logits = [
             logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits

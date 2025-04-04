@@ -495,10 +495,13 @@ class TransformerDecoder(nn.Module):
             List[torch.Tensor]: List of num_chunks output tensors, each with shape
                 [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
         """
-        return [
-            self.output(chunk)
-            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
-        ]
+        # torch.chunk/split may split tensor into a list with less elements than specified
+        # that causes crash by timeout since other nodes in sharding wait for exact amount of tensors
+        # code below splits tensor into exact number of chunks
+        base, reminder = divmod(last_hidden_state.size(1), self.num_output_chunks)
+        chunks = last_hidden_state.split([base] * (self.num_output_chunks - 1) + [base + reminder], dim=1)
+
+        return [self.output(chunk) for chunk in chunks]
 
     def _validate_inputs(
         self,
