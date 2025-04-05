@@ -4,10 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import List
 
 import torch
 import torch.nn.functional as F
+
+from torchtune.utils import get_logger, log_once
+
+logger = get_logger("DEBUG")
 
 
 class CEWithChunkedOutputLoss(torch.nn.Module):
@@ -29,6 +34,12 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
 
     def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
         super().__init__()
+        msg = (
+            "'CEWithChunkedOutputLoss' is deprecated and will be removed in future versions. "
+            "Please set in your config use_output_weight_in_loss=True and use "
+            "`torchtune.sft_losses.ChunkedCrossEntropyLoss` instead."
+        )
+        log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
 

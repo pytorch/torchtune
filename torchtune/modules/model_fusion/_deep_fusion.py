@@ -92,6 +92,7 @@ class DeepFusionModel(nn.Module):
         else:
             trainable_params -= set(get_fusion_params(self))
         set_trainable_params(self, trainable_params)
+        self.skip_output_layer = False
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
@@ -148,6 +149,15 @@ class DeepFusionModel(nn.Module):
         without deleting or reallocating cache tensors.
         """
         self.decoder.reset_caches()
+
+    def get_output_weight(self) -> torch.Tensor:
+        """Returns the output weight matrix."""
+        return self.decoder.get_output_weight()
+
+    def set_skip_output_layer(self, skip: bool) -> None:
+        """Set whether to skip output layer in the decoder and return hidden states."""
+        self.skip_output_layer = skip
+        self.decoder.set_skip_output_layer(skip)
 
     def forward(
         self,

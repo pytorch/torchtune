@@ -14,6 +14,8 @@ from .kd_losses import (
     SymmetricKLWithChunkedOutputLoss,
 )
 
+from .sft_losses import ChunkedCrossEntropyLoss, ChunkedCrossEntropywithAutogradLoss
+
 __all__ = [
     "CEWithChunkedOutputLoss",
     "ForwardKLLoss",
@@ -22,4 +24,6 @@ __all__ = [
     "ReverseKLWithChunkedOutputLoss",
     "SymmetricKLLoss",
     "SymmetricKLWithChunkedOutputLoss",
+    "ChunkedCrossEntropyLoss",
+    "ChunkedCrossEntropywithAutogradLoss",
 ]
