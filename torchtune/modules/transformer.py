@@ -11,7 +11,6 @@ from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
 
-
 class TransformerSelfAttentionLayer(nn.Module):
     """
     Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
@@ -675,3 +674,44 @@ class TransformerDecoder(nn.Module):
             output = self.output(h).float()
 
         return output
+
+    def resize_token_embeddings(self, new_num_tokens: int) -> nn.Embedding:
+        """
+        Resize the token embeddings matrix of the model.
+        Placeholder location and hacky code for now
+
+        TODOs:
+        - add support for custom embedding classes
+        - add initialization of new weights 
+        - add support for output projection that is not a Linear layer (e.g. TiedLinear)
+        """
+        old_embeddings = self.tok_embeddings
+        # resize with new num tokens
+        # TODO: add support for custom embedding classes 
+        # TODO: add initialization of new weights 
+        new_embeddings = nn.Embedding(new_num_tokens, old_embeddings.embedding_dim, device=old_embeddings.weight.device, dtype=old_embeddings.weight.dtype)        
+        new_embeddings.requires_grad_(old_embeddings.weight.requires_grad)
+        # num rows to copy over,
+        n = min(new_num_tokens, old_embeddings.num_embeddings)
+        # initialize prexisting rows with old embeddings
+        new_embeddings.weight.data[:n, :] = old_embeddings.weight.data[:n, :]
+        # this just returns the new embeddings, we need to account for custom embedding classes
+        # and the fact that the embedding might be shared with the output projection
+        # and/or other parts of the model
+        self.tok_embeddings = new_embeddings
+
+        # resize output projection, if not tied
+        if isinstance(self.output, Callable):
+            # if output is a callable, we need to resize the output projection
+            # this works for TiedLinear, need to check against other callables
+            self.output.tied_module = self.tok_embeddings
+        else:
+            # otherwise, Linear layer, resize linear layer
+            old_output = self.output
+            self.output = nn.Linear(old_output.in_features, new_num_tokens, bias=old_output.bias is not None, device=old_output.weight.device, dtype=old_output.weight.dtype)
+            self.output.requires_grad_(old_output.weight.requires_grad)
+            # copy over existing weights
+            self.output.weight.data[:old_output.weight.shape[0], :] = old_output.weight.data[:old_output.weight.shape[0], :]
+            # TODO: add initialization of new weights 
+        
+        return self.tok_embeddings
