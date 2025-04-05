@@ -464,7 +464,8 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">url_to_fs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span> <span class="k">as</span> <span class="n">save_safetensors</span><span class="p">,</span> <span class="n">save_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">async_save</span><span class="p">,</span>
     <span class="n">FileSystemReader</span><span class="p">,</span>
@@ -848,6 +849,11 @@
 <span class="sd">            Default is True.</span>
 <span class="sd">        should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to</span>
 <span class="sd">            the receipe state from a previous run. Default is False</span>
+<span class="sd">        enable_dcp (bool): If True, the checkpointer will load the checkpoint file using dcp checkpointing apis.</span>
+<span class="sd">            This is currently an experimental feature.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ther checkpoint_dir and output_dir are not on the same filesystem</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -861,8 +867,8 @@
         <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">safe_serialization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">enable_dcp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">should_load_recipe_state</span>
         <span class="k">if</span> <span class="n">resume_from_checkpoint</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_should_load_recipe_state</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
@@ -871,13 +877,23 @@
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span> <span class="o">=</span> <span class="n">safe_serialization</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">checkpoint_dir</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
         <span class="n">check_outdir_not_in_ckptdir</span><span class="p">(</span>
             <span class="n">ckpt_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="n">out_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span> <span class="o">=</span> <span class="n">enable_dcp</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">)</span>
+        <span class="n">output_fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span> <span class="o">!=</span> <span class="n">output_fs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Checkpoint and output directories must be on the same filesystem. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">output_fs</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># weight_map contains the state_dict key -&gt; checkpoint file mapping so we can correctly</span>
         <span class="c1"># parition the state dict into output checkpoint files. This is updated during checkpoint</span>
@@ -885,19 +901,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># the config.json file contains model params needed for state dict conversion</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span>
-            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="s2">&quot;config.json&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="s2">&quot;config.json&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 
         <span class="c1"># repo_id is necessary for when saving an adapter config, so its compatible with HF.</span>
         <span class="c1"># This json file is produced and saved in the download step.</span>
         <span class="c1"># contents are {&quot;repo_id&quot;: &quot;some_model/some_model_version&quot;}</span>
-        <span class="n">repo_id_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="n">REPO_ID_FNAME</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span>
-            <span class="s2">&quot;.json&quot;</span>
-        <span class="p">)</span>
+        <span class="n">repo_id_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="n">REPO_ID_FNAME</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">repo_id</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">repo_id_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">repo_id_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">repo_id_path</span><span class="p">):</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">repo_id_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">json_file</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">repo_id</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;repo_id&quot;</span><span class="p">)</span>
 
@@ -961,24 +978,49 @@
         <span class="c1"># the recipe state and adapter weights</span>
         <span class="n">converted_state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="c1"># _checkpoint_paths are already sorted so simply enumerate to generate the right id</span>
-        <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">cpt_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">):</span>
-            <span class="n">state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="n">cpt_path</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="c1"># Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption</span>
-                <span class="c1"># will break recipe code</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Expected all values in the state dict to be torch.Tensor. &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
-                    <span class="p">)</span>
-                <span class="c1"># idx is written in the 4 digit format (eg: 0001, 0002, etc.)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cpt_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="n">merged_state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                <span class="n">_HuggingFaceLoadPlanner</span><span class="p">,</span>
+                <span class="n">_HuggingFaceStorageReader</span><span class="p">,</span>
+            <span class="p">)</span>
 
-            <span class="c1"># delete the state_dict to free up memory; TODO check if this del is needed</span>
-            <span class="k">del</span> <span class="n">state_dict</span>
-            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+            <span class="c1"># DCP load using the storage reader</span>
+            <span class="n">hf_storage_reader</span> <span class="o">=</span> <span class="n">_HuggingFaceStorageReader</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">)</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">hf_storage_reader</span><span class="o">.</span><span class="n">read_metadata</span><span class="p">()</span>
+            <span class="n">state_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">state_dict_metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="c1"># arbitrary value to ensure that the state_dict is not empty</span>
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">storage_data</span>
+
+            <span class="n">load</span><span class="p">(</span>
+                <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">,</span>
+                <span class="n">storage_reader</span><span class="o">=</span><span class="n">hf_storage_reader</span><span class="p">,</span>
+                <span class="n">planner</span><span class="o">=</span><span class="n">_HuggingFaceLoadPlanner</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+            <span class="n">merged_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># _checkpoint_paths are already sorted so simply enumerate to generate the right id</span>
+            <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">cpt_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_paths</span><span class="p">):</span>
+                <span class="n">state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="n">cpt_path</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="c1"># Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption</span>
+                    <span class="c1"># will break recipe code</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Expected all values in the state dict to be torch.Tensor. &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="c1"># idx is written in the 4 digit format (eg: 0001, 0002, etc.)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cpt_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">04</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">merged_state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
+
+                <span class="c1"># delete the state_dict to free up memory; TODO check if this del is needed</span>
+                <span class="k">del</span> <span class="n">state_dict</span>
+                <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">,</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI4</span><span class="p">):</span>
             <span class="n">log_rank_zero</span><span class="p">(</span>
                 <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
@@ -1178,76 +1220,102 @@
                     <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                 <span class="p">)</span>
 
-            <span class="c1"># split the state_dict into separate dicts, one for each output checkpoint file</span>
-            <span class="c1"># e.g. split_state_dicts= {</span>
-            <span class="c1">#       &quot;0001&quot;: {&quot;key1&quot;: tensor1, &quot;key2&quot;: tensor2},</span>
-            <span class="c1">#       &quot;0002&quot;: {&quot;key3&quot;: tensor3}</span>
-            <span class="c1">#       }</span>
-            <span class="n">split_state_dicts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="n">total_size</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">cpt_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-
-                <span class="c1"># initialize dict</span>
-                <span class="k">if</span> <span class="n">cpt_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="p">:</span>
-                    <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-
-                <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">weight</span><span class="p">})</span>
-                <span class="n">total_size</span> <span class="o">+=</span> <span class="n">weight</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="n">weight</span><span class="o">.</span><span class="n">element_size</span><span class="p">()</span>
-
-            <span class="c1"># write the partitioned state dicts to the right checkpoint file</span>
-            <span class="c1"># e.g. model-00001-of-00004.safetensors, model-00002-of-00004.safetensors, etc</span>
-            <span class="n">num_shards</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_state_dicts</span><span class="p">)</span>
-            <span class="n">map_original_name_to_new_name</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">model_state_dict</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="c1"># TODO: We should probably use the original shard name and just add a prefix</span>
-                <span class="c1"># however, having the SHARD_FNAME standardizes our checkpoints</span>
-                <span class="n">shard_name</span> <span class="o">=</span> <span class="n">SHARD_FNAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">cpt_idx</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cpt_idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span> <span class="n">num_shards</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_shards</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-                <span class="p">)</span>
-                <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">shard_name</span>
-                <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">shard_name</span>
-                <span class="p">)</span>
-                <span class="n">output_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
-                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.bin&quot;</span><span class="p">)</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.safetensors&quot;</span><span class="p">)</span>
-                    <span class="n">save_file</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">})</span>
-
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">&quot;Model checkpoint of size &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">_HuggingFaceSavePlanner</span><span class="p">,</span>
+                    <span class="n">_HuggingFaceStorageWriter</span><span class="p">,</span>
                 <span class="p">)</span>
 
-            <span class="c1"># Save the appropriate index file based on serialization format</span>
-            <span class="c1"># e.g. {metadata: {total_size: 1234}, weight_map: {&quot;key1&quot;: &quot;model_0001.safetensors&quot;, &quot;key2&quot;: &quot;model_0002.safetensors&quot;}}</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
-                <span class="n">weight_map</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="n">k</span><span class="p">:</span> <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.safetensors&quot;</span>
-                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">cpt_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="p">}</span>
-                <span class="n">index_file_name</span> <span class="o">=</span> <span class="n">SAFETENSOR_INDEX_FNAME</span>
+                <span class="c1"># DCP save using the storage writer</span>
+                <span class="n">fqn_to_file_index_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">fqn</span><span class="p">,</span> <span class="n">filename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">fqn_to_file_index_mapping</span><span class="p">[</span><span class="n">fqn</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span>
+                <span class="n">storage_writer</span> <span class="o">=</span> <span class="n">_HuggingFaceStorageWriter</span><span class="p">(</span>
+                    <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+                    <span class="n">fqn_to_index_mapping</span><span class="o">=</span><span class="n">fqn_to_file_index_mapping</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">save</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
+                    <span class="n">storage_writer</span><span class="o">=</span><span class="n">storage_writer</span><span class="p">,</span>
+                    <span class="n">planner</span><span class="o">=</span><span class="n">_HuggingFaceSavePlanner</span><span class="p">(),</span>
+                    <span class="n">no_dist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">weight_map</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="n">k</span><span class="p">:</span> <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.bin&quot;</span>
-                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">cpt_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="c1"># split the state_dict into separate dicts, one for each output checkpoint file</span>
+                <span class="c1"># e.g. split_state_dicts= {</span>
+                <span class="c1">#       &quot;0001&quot;: {&quot;key1&quot;: tensor1, &quot;key2&quot;: tensor2},</span>
+                <span class="c1">#       &quot;0002&quot;: {&quot;key3&quot;: tensor3}</span>
+                <span class="c1">#       }</span>
+                <span class="n">split_state_dicts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">total_size</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">cpt_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+                    <span class="c1"># initialize dict</span>
+                    <span class="k">if</span> <span class="n">cpt_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="p">:</span>
+                        <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+                    <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">weight</span><span class="p">})</span>
+                    <span class="n">total_size</span> <span class="o">+=</span> <span class="n">weight</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">*</span> <span class="n">weight</span><span class="o">.</span><span class="n">element_size</span><span class="p">()</span>
+
+                <span class="c1"># write the partitioned state dicts to the right checkpoint file</span>
+                <span class="c1"># e.g. model-00001-of-00004.safetensors, model-00002-of-00004.safetensors, etc</span>
+                <span class="n">num_shards</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_state_dicts</span><span class="p">)</span>
+                <span class="n">map_original_name_to_new_name</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">model_state_dict</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="c1"># TODO: We should probably use the original shard name and just add a prefix</span>
+                    <span class="c1"># however, having the SHARD_FNAME standardizes our checkpoints</span>
+                    <span class="n">shard_name</span> <span class="o">=</span> <span class="n">SHARD_FNAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">cpt_idx</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cpt_idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span>
+                        <span class="n">num_shards</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_shards</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">shard_name</span>
+                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">shard_name</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
+                        <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">=</span> <span class="s2">&quot;.bin&quot;</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;.safetensors&quot;</span>
+                        <span class="n">save_file</span><span class="p">(</span>
+                            <span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">}</span>
+                        <span class="p">)</span>
+
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;Model checkpoint of size &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># Save the appropriate index file based on serialization format</span>
+                <span class="c1"># e.g. {metadata: {total_size: 1234},</span>
+                <span class="c1"># weight_map: {&quot;key1&quot;: &quot;model_0001.safetensors&quot;, &quot;key2&quot;: &quot;model_0002.safetensors&quot;}}</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
+                    <span class="n">weight_map</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">k</span><span class="p">:</span> <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.safetensors&quot;</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">cpt_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="p">}</span>
+                    <span class="n">index_file_name</span> <span class="o">=</span> <span class="n">SAFETENSOR_INDEX_FNAME</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">weight_map</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">k</span><span class="p">:</span> <span class="n">map_original_name_to_new_name</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.bin&quot;</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">cpt_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="p">}</span>
+                    <span class="n">index_file_name</span> <span class="o">=</span> <span class="n">TORCH_INDEX_FNAME</span>
+
+                <span class="n">index_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index_file_name</span>
+                <span class="p">)</span>
+
+                <span class="n">index_data</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;total_size&quot;</span><span class="p">:</span> <span class="n">total_size</span><span class="p">},</span>
+                    <span class="s2">&quot;weight_map&quot;</span><span class="p">:</span> <span class="n">weight_map</span><span class="p">,</span>
                 <span class="p">}</span>
-                <span class="n">index_file_name</span> <span class="o">=</span> <span class="n">TORCH_INDEX_FNAME</span>
-
-            <span class="n">index_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index_file_name</span>
-            <span class="p">)</span>
-
-            <span class="n">index_data</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;total_size&quot;</span><span class="p">:</span> <span class="n">total_size</span><span class="p">},</span>
-                <span class="s2">&quot;weight_map&quot;</span><span class="p">:</span> <span class="n">weight_map</span><span class="p">,</span>
-            <span class="p">}</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">index_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">index_data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">index_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">index_data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
 
@@ -1255,11 +1323,13 @@
             <span class="c1"># convert_weights.tune_to_peft_adapter_weights, we do NOT have a fn</span>
             <span class="c1"># convert_weights.peft_to_tune. The .pt format is not needed, but</span>
             <span class="c1"># it is an easy way to distinguish the adapters. Ideally we should save only one.</span>
-            <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
-            <span class="n">output_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">output_path</span><span class="p">)</span>
+            <span class="n">output_path</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot;.pt&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
@@ -1284,20 +1354,22 @@
                     <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
                     <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                 <span class="p">)</span>
-                <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+                <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span>
                 <span class="p">)</span>
-                <span class="n">output_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
-                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.bin&quot;</span><span class="p">)</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">output_path</span><span class="p">)</span>
+                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;.bin&quot;</span>
+                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.safetensors&quot;</span><span class="p">)</span>
-                    <span class="n">save_file</span><span class="p">(</span>
-                        <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span>
-                        <span class="n">output_path</span><span class="p">,</span>
-                        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">},</span>
-                    <span class="p">)</span>
+                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">+</span> <span class="s2">&quot;.safetensors&quot;</span>
+                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">save_bytes</span> <span class="o">=</span> <span class="n">save_safetensors</span><span class="p">(</span>
+                            <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span>
+                            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">},</span>
+                        <span class="p">)</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">save_bytes</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GiB &quot;</span>
@@ -1325,10 +1397,13 @@
                     <span class="n">base_model_name_or_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">repo_id</span><span class="p">,</span>
                 <span class="p">)</span>
 
-                <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ADAPTER_CONFIG_FNAME</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">)</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">output_path</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ADAPTER_CONFIG_FNAME</span>
+                    <span class="p">)</span>
+                    <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
+                <span class="p">)</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                     <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
@@ -1340,7 +1415,7 @@
         <span class="c1"># So its easy to run inference with the model using this epoch&#39;s checkpoint</span>
         <span class="n">copy_files</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
             <span class="n">ignore_suffixes</span><span class="o">=</span><span class="n">SUFFIXES_TO_NOT_COPY</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -1350,10 +1425,11 @@
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+            <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
             <span class="p">)</span>
-            <span class="n">output_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">parent_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fs</span><span class="o">.</span><span class="n">mkdirs</span><span class="p">(</span><span class="n">parent_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;Recipe checkpoint of size &quot;</span>

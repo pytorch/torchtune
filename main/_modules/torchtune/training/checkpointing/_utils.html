@@ -463,7 +463,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_open</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">url_to_fs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">huggingface_hub</span><span class="w"> </span><span class="kn">import</span> <span class="n">HfFileSystem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">safetensors.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils._logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
 
@@ -639,28 +641,31 @@
         <span class="p">]</span></div></div>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_path</span><span class="p">(</span>
+    <span class="n">input_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Utility to recover and validate the path for a given file within a given directory.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_dir (Path): Directory containing the file</span>
+<span class="sd">        input_dir (Union[Path, str]): Directory containing the file</span>
 <span class="sd">        filename (str): Name of the file</span>
 <span class="sd">        missing_ok (bool): Whether to raise an error if the file is missing.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Path: Path to the file</span>
+<span class="sd">        str: Path to the file</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the file is missing and missing_ok is False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">input_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+    <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">input_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fs</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">input_dir</span><span class="si">}</span><span class="s2"> is not a valid directory.&quot;</span><span class="p">)</span>
 
-    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
     <span class="c1"># If missing_ok is False, raise an error if the path is invalid</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">missing_ok</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">missing_ok</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">fs</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No file with name: </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> found in </span><span class="si">{</span><span class="n">input_dir</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">file_path</span>
 
@@ -687,22 +692,31 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># convert the path into a string since pathlib Path and mmap don&#39;t work</span>
         <span class="c1"># well together</span>
+        <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">))</span>
         <span class="n">is_safetensors_file</span> <span class="o">=</span> <span class="p">(</span>
             <span class="kc">True</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.safetensors&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">is_safetensors_file</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">with</span> <span class="n">safe_open</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">framework</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                    <span class="n">result</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-            <span class="n">state_dict</span> <span class="o">=</span> <span class="n">result</span>
+            <span class="k">with</span> <span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">checkpoint_file</span><span class="p">:</span>
+                <span class="n">state_dict</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
-                <span class="nb">str</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">),</span>
-                <span class="n">map_location</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
-                <span class="n">mmap</span><span class="o">=</span><span class="n">mmap</span><span class="p">,</span>
-                <span class="n">weights_only</span><span class="o">=</span><span class="n">weights_only</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="n">HfFileSystem</span><span class="p">):</span>
+                <span class="c1"># HfFileSystem does not support mmap</span>
+                <span class="n">mmap</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">with</span> <span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">checkpoint_file</span><span class="p">:</span>
+                    <span class="n">state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                        <span class="n">checkpoint_file</span><span class="p">,</span>
+                        <span class="n">map_location</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+                        <span class="n">mmap</span><span class="o">=</span><span class="n">mmap</span><span class="p">,</span>
+                        <span class="n">weights_only</span><span class="o">=</span><span class="n">weights_only</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                    <span class="n">checkpoint_path</span><span class="p">,</span>
+                    <span class="n">map_location</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+                    <span class="n">mmap</span><span class="o">=</span><span class="n">mmap</span><span class="p">,</span>
+                    <span class="n">weights_only</span><span class="o">=</span><span class="n">weights_only</span><span class="p">,</span>
+                <span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unable to load checkpoint from </span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s2">. &quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
     <span class="k">return</span> <span class="n">state_dict</span>
@@ -768,8 +782,10 @@
     <span class="n">iter_folders</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
 
+    <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span>
     <span class="c1"># Iterate over the directory contents</span>
-    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">fpath</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span>
         <span class="n">match</span> <span class="o">=</span> <span class="n">regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
             <span class="c1"># Extract the number from the match</span>
@@ -811,19 +827,23 @@
 <span class="sd">    This will copy all files from &#39;path/to/input_dir&#39; to &#39;path/to/output_dir&#39;, except those that</span>
 <span class="sd">    already exist in the destination or have the specified suffixes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
+    <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">input_dir</span><span class="p">)</span>
     <span class="n">max_file_size</span> <span class="o">=</span> <span class="n">max_file_size_mb</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
-    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
 
         <span class="c1"># Filter out directories that start with &#39;.&#39;. E.g. &quot;.cache/&quot;</span>
         <span class="n">dirs</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)]</span>
 
         <span class="c1"># Construct the corresponding directory in the output</span>
-        <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">input_dir</span><span class="p">)</span>
-        <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+        <span class="n">protocol</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">protocol</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">protocol</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">protocol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;local&quot;</span> <span class="ow">in</span> <span class="n">protocol</span><span class="p">:</span>
+            <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">input_dir</span><span class="p">)</span>
+            <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
 
         <span class="c1"># Create the directory in the output if it doesn&#39;t exist</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">fs</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
             <span class="c1"># Skip files that start with &#39;.&#39;. E.g. &quot;.git&quot;</span>
@@ -840,34 +860,34 @@
             <span class="n">dest_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
 
             <span class="c1"># Check the file size</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">src_file</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_file_size</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">src_file</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_file_size</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Skipping copying </span><span class="si">{</span><span class="n">src_file</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2"> as it exceeds the size limit of </span><span class="si">{</span><span class="n">max_file_size_mb</span><span class="si">}</span><span class="s2"> MiB.&quot;</span>
                 <span class="p">)</span>
                 <span class="k">continue</span>
 
             <span class="c1"># Copy the file if it doesn&#39;t already exist in the destination</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dest_file</span><span class="p">):</span>
-                <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">src_file</span><span class="p">,</span> <span class="n">dest_file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fs</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dest_file</span><span class="p">):</span>
+                <span class="n">fs</span><span class="o">.</span><span class="n">cp_file</span><span class="p">(</span><span class="n">src_file</span><span class="p">,</span> <span class="n">dest_file</span><span class="p">)</span>
 
     <span class="k">return</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_recipe_checkpoint_path</span><span class="p">(</span>
-    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">recipe_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    If recipe_checkpoint is None, look for recipe_state.pt in {output_dir}/{RECIPE_STATE_DIRNAME}/recipe_state.pt.</span>
 <span class="sd">    This is to make it easier to resume from a previous run, without having to specify the recipe_checkpoint.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        output_dir (Path): Directory containing the recipe checkpoint.</span>
+<span class="sd">        output_dir (Union[str, Path]): Directory containing the recipe checkpoint.</span>
 <span class="sd">        recipe_checkpoint (Optional[str]): Name of the recipe checkpoint file. Defaults to None.</span>
 <span class="sd">        should_load_recipe_state (bool): Whether to load the recipe state from the checkpoint.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Optional[Path]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.</span>
+<span class="sd">        Optional[str]: Path to the recipe checkpoint file if should_load_recipe_state is True, otherwise None.</span>
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If should_load_recipe_state is True and the recipe checkpoint file is missing.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -888,27 +908,27 @@
             <span class="sa">f</span><span class="s2">&quot;Could not find it at </span><span class="si">{</span><span class="n">recipe_checkpoint_path</span><span class="si">}</span><span class="s2">.&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">recipe_checkpoint_path</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_adapter_checkpoint_path</span><span class="p">(</span>
-    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
     <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.</span>
 <span class="sd">    This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        output_dir (Path): Directory containing the adapter checkpoint.</span>
+<span class="sd">        output_dir (Union[Path, str]): Directory containing the adapter checkpoint.</span>
 <span class="sd">        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.</span>
 <span class="sd">        should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.</span>
 <span class="sd">        pattern (str): Regex pattern to match the epoch folder. Defaults to &quot;epoch_(\d+)&quot;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Optional[Path]: Path to the adapter checkpoint file, or None if not applicable.</span>
+<span class="sd">        Optional[str]: Path to the adapter checkpoint file, or None if not applicable.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the adapter checkpoint file is missing or if the adapter checkpoint file is not a .pt file.</span>
@@ -940,7 +960,7 @@
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tentative_adapter_checkpoint_path</span><span class="p">):</span>
             <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">tentative_adapter_checkpoint_path</span>
 
-    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">adapter_checkpoint_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">adapter_checkpoint_path</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">adapter_checkpoint_path</span> <span class="k">if</span> <span class="n">adapter_checkpoint_path</span> <span class="k">else</span> <span class="kc">None</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_model_checkpoint_path</span><span class="p">(</span>
@@ -1042,15 +1062,21 @@
     <span class="k">return</span> <span class="n">checkpoint_paths</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">check_outdir_not_in_ckptdir</span><span class="p">(</span><span class="n">ckpt_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_outdir_not_in_ckptdir</span><span class="p">(</span>
+    <span class="n">ckpt_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.</span>
 <span class="sd">    This is necessary to avoid making copies of copies when geting config files from ckpt_dir.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="c1"># Resolve the absolute paths to avoid issues with relative paths</span>
-    <span class="n">_ckpt_dir</span> <span class="o">=</span> <span class="n">ckpt_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-    <span class="n">_out_dir</span> <span class="o">=</span> <span class="n">out_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ckpt_dir</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="n">_ckpt_dir</span> <span class="o">=</span> <span class="n">ckpt_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="n">_out_dir</span> <span class="o">=</span> <span class="n">out_dir</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+    <span class="n">_ckpt_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">ckpt_dir</span><span class="p">)</span>
+    <span class="n">_out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
 
     <span class="c1"># Check if out_dir is the same as ckpt_dir or a subdirectory of it</span>
     <span class="k">if</span> <span class="n">_out_dir</span> <span class="o">==</span> <span class="n">_ckpt_dir</span> <span class="ow">or</span> <span class="n">_ckpt_dir</span> <span class="ow">in</span> <span class="n">_out_dir</span><span class="o">.</span><span class="n">parents</span><span class="p">:</span>
