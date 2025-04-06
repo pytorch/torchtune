@@ -13,7 +13,7 @@ tokenization and preparing it for the model.
 
 Configuring message transforms
 ------------------------------
-Most of our built-in message transforms contain parameters for controlling input masking (``train_on_input``),
+Most of our built-in message transforms contain parameters for controlling input masking (``masking_strategy``),
 adding a system prompt (``new_system_prompt``), and changing the expected column names (``column_map``).
 These are exposed in our dataset builders :func:`~torchtune.datasets.instruct_dataset` and :func:`~torchtune.datasets.chat_dataset`
 so you don't have to worry about the message transform itself and can configure this directly from the config.

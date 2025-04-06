@@ -7,15 +7,8 @@
 from typing import Callable, Optional
 
 from torch import nn
-from torchtune.modules.peft.lora import LoRALinear, QATLoRALinear
 
-
-try:
-    # torchao 0.7+
-    from torchao.dtypes import TensorCoreTiledLayout
-except ImportError:
-    # torchao 0.6 and before
-    from torchao.dtypes import TensorCoreTiledLayoutType as TensorCoreTiledLayout
+from torchao.dtypes import TensorCoreTiledLayout
 
 from torchao.quantization import (
     int4_weight_only,
@@ -23,28 +16,17 @@ from torchao.quantization import (
     quantize_,
 )
 
-try:
-    # torchao 0.7+
-    from torchao.quantization.qat import (
-        Int4WeightOnlyQATQuantizer,
-        Int8DynActInt4WeightQATQuantizer,
-    )
-    from torchao.quantization.qat.linear import (
-        disable_4w_fake_quant,
-        disable_8da4w_fake_quant,
-        enable_4w_fake_quant,
-        enable_8da4w_fake_quant,
-    )
-except ImportError:
-    # torchao 0.6 and before
-    from torchao.quantization.prototype.qat import (
-        disable_4w_fake_quant,
-        disable_8da4w_fake_quant,
-        enable_4w_fake_quant,
-        enable_8da4w_fake_quant,
-        Int4WeightOnlyQATQuantizer,
-        Int8DynActInt4WeightQATQuantizer,
-    )
+from torchao.quantization.qat import (
+    Int4WeightOnlyQATQuantizer,
+    Int8DynActInt4WeightQATQuantizer,
+)
+from torchao.quantization.qat.linear import (
+    disable_4w_fake_quant,
+    disable_8da4w_fake_quant,
+    enable_4w_fake_quant,
+    enable_8da4w_fake_quant,
+)
+from torchtune.modules.peft.lora import LoRALinear, QATLoRALinear
 
 
 __all__ = [
@@ -58,11 +40,10 @@ __all__ = [
 ]
 
 
-_torchao_0_7_supported = True
 try:
     from torchao.quantization import qat  # noqa: F401
-except ImportError:
-    _torchao_0_7_supported = False
+except ImportError as e:
+    raise ValueError("Need torchao version 0.7.0+") from e
 
 _quantizer_to_mode = {}
 _quantizer_mode_to_disable_fake_quant = {}

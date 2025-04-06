@@ -65,7 +65,7 @@ To download the Llama-3.2-3B-Instruct model:
 
     The Llama3.2 tokenizer reuses the :class:`~torchtune.models.llama3.llama3_tokenizer` class.
 
-llama3.2 Vision
+llama3.2 vision
 ---------------
 
 Vision-Language Models from the 3.2 version of `Llama3 family <https://llama.meta.com/llama3/>`_.
@@ -299,6 +299,26 @@ To download the Qwen2 1.5B model, for example:
     qwen2.lora_qwen2_7b
     qwen2.qwen2_tokenizer
 
+phi-4
+-----
+
+Models from the `Phi-4 family <https://arxiv.org/abs/2412.08905>`_.
+
+To download the Phi-4 instruct model:
+
+.. code-block:: bash
+
+    tune download microsoft/phi-4 --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    phi4.phi4_14b
+    phi4.lora_phi4_14b
+    phi4.qlora_phi4_14b
+    phi4.phi4_tokenizer
+
 phi-3
 -----
 
@@ -386,7 +406,7 @@ To download the Gemma 7B model:
     gemma.gemma_tokenizer
 
 
-gemma2 :
+gemma2
 --------
 
 Models of size 2B, 9B, 27B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.

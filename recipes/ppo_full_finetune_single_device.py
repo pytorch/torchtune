@@ -17,14 +17,15 @@ import torch
 from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -133,7 +134,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
         # manually setting up a generator for the recipe
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
         self._total_steps = 0
@@ -221,7 +224,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # sampler and dataloader depends on the tokenizer and should be set
         # setup after it is initialized
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -232,14 +235,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # setup a context manager for enabling KV-cacheing during
         # trajectory generation if enabled in the config
-        self.cache_ctx_manager = lambda enable_kv_cache: (
+        self.cache_ctx_manager = lambda enable_kv_cache, decoder_max_seq_len: (
             local_kv_cache(
                 self._policy_model,
                 batch_size=self._forward_batch_size,
                 dtype=self._dtype,
-                decoder_max_seq_len=self._tokenizer.max_seq_len
-                + self._max_generated_tokens,
                 device=self._device,
+                decoder_max_seq_len=decoder_max_seq_len,
             )
             if enable_kv_cache
             else contextlib.nullcontext()
@@ -568,20 +570,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
         # between ref policy and current policy
-        for module in policy_model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
-        for module in value_model.modules():
-            if isinstance(module, torch.nn.Dropout):
-                warn(
-                    f"Dropout found in {module}. This is likely to cause issues during training. Disabling."
-                )
-                module.p = 0
+        disable_dropout(policy_model)
+        disable_dropout(value_model)
 
-        # disabling grad and dropout in reward and reference policy models
+        # disabling grad in reward and reference policy models
         reward_model.eval()
         ref_policy_model.eval()
 
@@ -652,7 +644,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def _setup_data(
         self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here.
         """
@@ -665,14 +657,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
+        sampler = StatefulDistributedSampler(
             ds,
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
@@ -685,7 +676,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self, epoch: int, is_intermediate_checkpoint: bool = False
@@ -707,6 +698,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.MAX_STEPS_KEY: self._total_steps,
                     training.STEPS_KEY: self._steps_run,
                     training.RNG_KEY: self._rng.get_state(),
+                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
             if not self._optimizer_in_bwd:
@@ -778,9 +770,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory` comprising
                 the current trajectory.
         """
-
+        _, context_length = input_ids.shape
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-        with self.cache_ctx_manager(self.enable_kv_cache):
+        with self.cache_ctx_manager(
+            self.enable_kv_cache,
+            decoder_max_seq_len=context_length + self._max_generated_tokens,
+        ):
             query_responses, logits = generation.generate(
                 model=self._policy_model,
                 prompt=input_ids,
@@ -790,7 +785,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 pad_id=self._tokenizer.pad_id,
                 rng=self._rng,
             )
-        _, context_length = input_ids.shape
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
@@ -926,10 +920,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for curr_epoch in range(self._epochs_run, self._total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0

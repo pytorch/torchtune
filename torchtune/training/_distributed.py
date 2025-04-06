@@ -7,6 +7,7 @@
 
 import logging
 import os
+from dataclasses import dataclass
 from itertools import chain
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
@@ -19,20 +20,19 @@ from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
     _init_optim_state,
-    get_model_state_dict,
     get_optimizer_state_dict,
     set_model_state_dict,
     set_optimizer_state_dict,
     StateDictOptions,
 )
-from torch.distributed.device_mesh import DeviceMesh
-from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
+from torch.distributed.fsdp import FSDPModule, ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
-from torchtune.modules.model_fusion import DeepFusionModel
+from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
@@ -40,14 +40,87 @@ from torchtune.utils._logging import deprecated
 _log: logging.Logger = get_logger()
 
 
-_valid_distributed_single_node_nnodes = ["1:1", "1"]
-
 torch_version = torch.__version__
 # TODO: Fix issues with DSD before uncommenting. See #2313 and #2277.
 # _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = (
 #     "dev" not in torch_version and torch_version_ge("2.6.0")
 # ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = False
+
+
+@dataclass
+class ParallelDims:
+    dp_replicate: int
+    dp_shard: int
+    tp: int
+    world_size: int
+
+    def __post_init__(self):
+        self._validate()
+
+    def _validate(self):
+        dp_replicate, dp_shard, tp = (
+            self.dp_replicate,
+            self.dp_shard,
+            self.tp,
+        )
+        for d in (dp_replicate, tp):
+            assert d >= 1, "Parallelism degree should be >= 1, except for dp_shard"
+
+        assert dp_shard == -1 or dp_shard >= 1, " dp_shard must -1 or >=1."
+        if dp_shard < 0:
+            self.dp_shard = dp_shard = self.world_size // (dp_replicate * tp)
+        assert dp_shard >= 1
+
+        assert dp_replicate * dp_shard * tp == self.world_size, (
+            f"Invalid parallel dims: dp_replicate({dp_replicate}) * dp_shard({dp_shard}) * "
+            f"tp({tp}) != WORLD_SIZE({self.world_size})"
+        )
+
+    def build_mesh(self, device_type):
+        dims = []
+        names = []
+        for d, name in zip(
+            [self.dp_replicate, self.dp_shard, self.tp],
+            ["dp_replicate", "dp_shard", "tp"],
+        ):
+            if d > 1:
+                dims.append(d)
+                names.append(name)
+
+        names = tuple(names)
+        mesh = init_device_mesh(device_type, dims, mesh_dim_names=names)
+
+        # Create all the submesh here to ensure all required process groups are
+        # initialized:
+        # Mesh for data loading (no communication on this mesh)
+        dp_mesh_dim_names = []
+
+        if self.dp_replicate_enabled:
+            dp_mesh_dim_names.append("dp_replicate")
+        if self.dp_shard_enabled:
+            dp_mesh_dim_names.append("dp_shard")
+
+        if dp_mesh_dim_names != []:
+            mesh[tuple(dp_mesh_dim_names)]._flatten(mesh_dim_name="dp")
+
+        return mesh
+
+    @property
+    def dp_enabled(self):
+        return self.dp_replicate > 1 or self.dp_shard > 1
+
+    @property
+    def dp_replicate_enabled(self):
+        return self.dp_replicate > 1
+
+    @property
+    def dp_shard_enabled(self):
+        return self.dp_shard > 1
+
+    @property
+    def tp_enabled(self):
+        return self.tp > 1
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -98,6 +171,38 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         return tensor
 
 
+def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) -> str:
+    """Gets the PyTorch Distributed backend based on device type.
+
+    Args:
+        device_type (str): Device type to get backend for.
+        offload_ops_to_cpu (bool, optional): Flag to check if any operations should be offloaded to CPU.
+            Examples of these kinds of operations are CPU offload for FSDP and asynchronous save for distributed
+            checkpointing. Defaults to False.
+
+    Example:
+        >>> get_distributed_backend("cuda")
+        'nccl'
+        >>> get_distributed_backend("cpu")
+        'gloo'
+        >>> get_distributed_backend("cuda", offload_ops_to_cpu=True)
+        'cuda:nccl,cpu:gloo'
+
+    Returns:
+        str: Distributed backend for use in ``torch.distributed.init_process_group``.
+    """
+    default_device_backend_map = dist.Backend.default_device_backend_map
+    backend = "nccl"
+    if device_type in default_device_backend_map:
+        backend = default_device_backend_map[device_type]
+    if offload_ops_to_cpu:
+        backend = f"{device_type}:{backend},cpu:gloo"
+    return backend
+
+
+@deprecated(
+    msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
+)
 def init_distributed(**kwargs: Dict[str, Any]) -> bool:
     """Initialize process group required for ``torch.distributed``.
 
@@ -332,44 +437,28 @@ def gather_cpu_state_dict(
     Returns:
         Dict[str, Any]: State dict on CPU
     """
+    # TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.
     cpu_state_dict = {}
     sharded_sd = model.state_dict()
-    has_nf4 = any(
-        hasattr(param, "_local_tensor") and isinstance(param._local_tensor, NF4Tensor)
-        for param in sharded_sd.values()
-    )
-    if has_nf4:
-        cpu_state_dict = {}
-        sharded_sd = model.state_dict()
-        for param_name, param in sharded_sd.items():
-            if param.is_cpu:
-                # Move back to device if offloaded to CPU
-                param = param.to(device)
-            if hasattr(param, "_local_tensor"):
-                if isinstance(param._local_tensor, NF4Tensor):
-                    param = _gather_nf4_tensor(param)
-                else:
-                    # Gather DTensor
-                    param = param.full_tensor()
-            if isinstance(param, NF4Tensor):
-                param = param.to(param.dtype)
-            if is_rank_zero:
-                cpu_state_dict[param_name] = param.cpu()
-            torch.distributed.barrier()
-        return cpu_state_dict
-    else:
-        options = StateDictOptions(
-            full_state_dict=True,
-            broadcast_from_rank0=True,
-            cpu_offload=True,
-        )
-        cpu_state_dict = get_model_state_dict(model=model, options=options)
-        if adapter_weights_only:
-            cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
+    for param_name, param in sharded_sd.items():
+        if param.is_cpu:
+            # Move back to device if offloaded to CPU
+            param = param.to(device)
+        if hasattr(param, "_local_tensor"):
+            if isinstance(param._local_tensor, NF4Tensor):
+                param = _gather_nf4_tensor(param)
+            else:
+                # Gather DTensor
+                param = param.full_tensor()
+        if isinstance(param, NF4Tensor):
+            # upcasting NF4 to original dtype
+            param = param.to(param.dtype)
         if is_rank_zero:
-            return cpu_state_dict
-        else:
-            return {}
+            cpu_state_dict[param_name] = param.cpu()
+        torch.distributed.barrier()
+    if adapter_weights_only:
+        cpu_state_dict = get_adapter_state_dict(cpu_state_dict, device=None)
+    return cpu_state_dict
 
 
 def get_full_optimizer_state_dict(
@@ -509,6 +598,7 @@ def shard_model(
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
+    dp_mesh: Optional[DeviceMesh] = None,
 ) -> None:
     """
     Utility to shard a model with FSDP using the PyTorch Distributed fully_shard API.
@@ -527,11 +617,13 @@ def shard_model(
         reshard_after_forward (bool): Whether to reshard parameters and buffers after
             the forward pass. Setting this to True corresponds to the FULL_SHARD sharding strategy
             from FSDP1, while setting it to False corresponds to the SHARD_GRAD_OP sharding strategy.
+        dp_mesh (Optional[DeviceMesh]): Device mesh to use for FSDP sharding under mutliple parallelism.
+            Default to None.
 
     Raises:
         ValueError: If no layer modules were sharded, indicating that no shard_condition was triggered.
     """
-    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward}
+    fsdp_kwargs = {"reshard_after_forward": reshard_after_forward, "mesh": dp_mesh}
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
 
@@ -585,11 +677,11 @@ def prepare_mha_for_tp(
         >>> # num_kv_heads = 16 (32/2)
         >>> # embed_dim = 2048 (4096/2)
     """
-    # Consider the case of Deep Fusion models
-    if isinstance(model, DeepFusionModel):
-        model = model.decoder
+    # Handle fusion models by extracting decoder
+    is_fusion_model = isinstance(model, (DeepFusionModel, EarlyFusionModel))
+    decoder = model.decoder if is_fusion_model else model
     tp_size = tp_mesh.size()
-    for m in list(model.modules()):
+    for m in list(decoder.modules()):
         if isinstance(m, MultiHeadAttention):
             # Adjust attention module to use the local number of heads
             if m.num_heads % tp_size != 0:
@@ -610,4 +702,7 @@ def prepare_mha_for_tp(
             m.num_heads = m.num_heads // tp_size
             m.num_kv_heads = m.num_kv_heads // tp_size
             m.embed_dim = m.embed_dim // tp_size
+
+    if is_fusion_model:
+        model.decoder = decoder
     return model

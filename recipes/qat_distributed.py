@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
@@ -18,7 +18,8 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -150,8 +151,8 @@ class QATRecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
-        _, rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
+        self.world_size, self.rank = utils.get_world_size_and_rank()
+        self._is_rank_zero = self.rank == 0
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -202,7 +203,9 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -316,7 +319,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -562,7 +565,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     try:
                         training.load_from_full_optimizer_state_dict(
                             self._model,
-                            self._optim_ckpt_wrapper.state_dict()[param],
+                            self._optim_ckpt_wrapper.optim_map[param],
                             opt_state_dict[param],
                             self._device,
                         )
@@ -592,13 +595,12 @@ class QATRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here. Currently this recipe only supports the
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -616,10 +618,10 @@ class QATRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+        sampler = StatefulDistributedSampler(
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
@@ -638,7 +640,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self,
@@ -718,6 +720,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
@@ -737,8 +740,6 @@ class QATRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
@@ -756,9 +757,8 @@ class QATRecipeDistributed(FTRecipeInterface):
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -840,7 +840,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
 
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    current_loss = current_loss * (world_size / num_tokens)
+                    current_loss = current_loss * (self.world_size / num_tokens)
 
                 current_loss.backward()
 
@@ -853,7 +853,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         # We multiply by world_size to undo FSDP2 gradient normalization.
-                        training.scale_grads(self._model, world_size / num_tokens)
+                        training.scale_grads(self._model, self.world_size / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
@@ -887,7 +887,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                                 ),
                             ),
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            / (time_per_step * self.world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(

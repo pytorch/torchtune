@@ -502,28 +502,39 @@ class TransformerDecoder(nn.Module):
 
     def _validate_inputs(
         self,
-        seq_len: int,
+        tokens: Optional[torch.Tensor],
         mask: Optional[torch.Tensor] = None,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
+        input_embeds: Optional[torch.Tensor] = None,
     ):
         """
         Validates inputs for ``forward``.
         Args:
-            seq_len (int): Input tensor sequence length.
+            tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``
             mask (Optional[torch.Tensor]): Attention mask used for inference and for sequence packing.
             encoder_input (Optional[torch.Tensor]): Encoder input for cross-attention.
             encoder_mask (Optional[torch.Tensor]): Encoder attention mask for cross-embedding attention.
             input_pos (Optional[torch.Tensor]): Input tensor position IDs.
+            input_embeds (Optional[torch.Tensor]): Input tensor embeddings (if short-circuiting token embeddings).
 
         Raises:
             ValueError:
+                If neither tokens nor input_embeds are passed **or**
                 If seq_len of x is bigger than max_seq_len, **or**
                 if the model has caches which have been setup with self-attention layers and ``mask`` is not provided, **or**
                 if the model has caches which have been setup with encoder layers and ``encoder_mask`` is not provided, **or**
                 if the model has caches which have been setup ``input_pos`` is not provided.
         """
+
+        if tokens is None and input_embeds is None:
+            raise ValueError(
+                "Either tokens or input_embeds must be provided to the decoder."
+            )
+
+        # input tensor of shape [b, s]
+        seq_len = tokens.shape[1] if tokens is not None else input_embeds.shape[1]
 
         if seq_len > self.max_seq_len:
             raise ValueError(
@@ -551,16 +562,17 @@ class TransformerDecoder(nn.Module):
 
     def forward(
         self,
-        tokens: torch.Tensor,
+        tokens: Optional[torch.Tensor],
         *,
         mask: Optional[_MaskType] = None,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
+        input_embeds: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
-            tokens (torch.Tensor): input tensor with shape ``[b x s]``
+            tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``
             mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
                 and before the softmax. This parameter is required during inference if caches have been setup.
                 Either:
@@ -586,6 +598,8 @@ class TransformerDecoder(nn.Module):
                 of each token relative to its sample when packed, shape ``[b x s]``.
                 During inference, this indicates the position of the current token.
                 This parameter is required during inference if caches have been setup. Default is None.
+            input_embeds (Optional[torch.Tensor]): Pass these instead of tokens to short-circuit token embeddings
+                and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
             Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer
@@ -613,19 +627,18 @@ class TransformerDecoder(nn.Module):
             - d_e: encoder embed dim
             - m_s: max seq len
         """
-        # input tensor of shape [b, s]
-        seq_len = tokens.shape[1]
 
         self._validate_inputs(
-            seq_len,
+            tokens=tokens,
             mask=mask,
             encoder_input=encoder_input,
             encoder_mask=encoder_mask,
             input_pos=input_pos,
+            input_embeds=input_embeds,
         )
 
         # shape: [b, s, d]
-        h = self.tok_embeddings(tokens)
+        h = self.tok_embeddings(tokens) if input_embeds is None else input_embeds
 
         hidden = []
         for i, layer in enumerate(self.layers):
@@ -639,6 +652,9 @@ class TransformerDecoder(nn.Module):
                 encoder_mask=encoder_mask,
                 input_pos=input_pos,
             )
+
+        if len(self.layers) in self.output_hidden_states:
+            hidden.append(h)
 
         # shape: [b, seq_len, out_dim]
         output = self.unembed(h)
