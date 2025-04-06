@@ -9,6 +9,7 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set,
 
 import torch
 from torch import nn
+from torchtune.utils._logging import deprecate_parameter
 
 # Modules from MultiHeadAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -248,29 +249,40 @@ def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
                 module.disabled = False
 
 
+@deprecate_parameter(
+    param_name="lora_attn_modules", msg="Please use state_dict_keys instead."
+)
+@deprecate_parameter(
+    param_name="apply_lora_to_mlp", msg="Please use state_dict_keys instead."
+)
+@deprecate_parameter(
+    param_name="apply_lora_to_output", msg="Please use state_dict_keys instead."
+)
 def validate_missing_and_unexpected_for_lora(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool,
     apply_lora_to_output: bool,
+    state_dict_keys: Optional[List[str]] = None,
     base_missing: Optional[List[str]] = None,
     base_unexpected: Optional[List[str]] = None,
     lora_missing: Optional[List[str]] = None,
     lora_unexpected: Optional[List[str]] = None,
 ) -> None:
     """
-    A more memory-efficient way to validate that LoRA state dict loading was done properly.
-
-    This function uses a model's LoRA config to check that LoRA and/or base model weights
-    are loaded into the full model correctly. This function relies only on the values of missing and
-    unexpected as returned by the load_state_dict API with strict=False. This allows us to do the
-    validation without any additional calls to .state_dict(), which use additional memory.
+    This function checks that LoRA and/or base model weights are loaded into the full model correctly.
+    via set comparison of the missing kets. This function relies only on the values of missing and
+    unexpected as returned by the load_state_dict API with strict=False.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+            DEPRECATED: use state_dict_keys instead.
         apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+            DEPRECATED: use state_dict_keys instead.
         apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
+            DEPRECATED: use state_dict_keys instead.
+        state_dict_keys (Optional[List[str]]): ground truth model state dict we are validating against
         base_missing (Optional[List[str]]): List of missing keys when loading base model weights.
             Default: None
         base_unexpected (Optional[List[str]]): List of unexpected keys when loading base model weights.
@@ -279,36 +291,61 @@ def validate_missing_and_unexpected_for_lora(
             Default: None
         lora_unexpected (Optional[List[str]]): List of unexpected keys when loading LoRA weights.
             Default: None
-
     Returns:
         None
-
     Raises:
-        AssertionError:
+        RuntimeError:
             If base_missing contains any base model keys, **or**
             if base_unexpected is nonempty, **or**
             if lora_missing contains any LoRA keys, **or**
             if lora_unexpected is nonempty.
     """
-    lora_modules = get_lora_module_names(
-        lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
-    )
-    is_lora_param = lambda x: any(
-        [
-            ".".join([k, "lora"]) in x or ".".join([k, "magnitude"]) in x
-            for k in lora_modules
-        ]
-    )
+    if state_dict_keys is not None:
+        is_lora_key = lambda x: "lora" in x or "magnitude" in x
+        base_state_dict = set(k for k in state_dict_keys if not is_lora_key(k))
+        lora_state_dict = set(k for k in state_dict_keys if is_lora_key(k))
+        base_missing_set = set(base_missing or [])
+        lora_missing_set = set(lora_missing or [])
+        # Base missing should have LoRA keys only, and LoRA missing should have base model keys only
+        # If there is an overlap, check if the key is adapter or base model key and raise accordingly
+        missing_keys = (
+            (base_missing_set & lora_missing_set)
+            | (lora_missing_set & lora_state_dict)
+            | (base_missing_set & base_state_dict)
+        )
+        err_msgs = []
+        for key in missing_keys:
+            if key in base_state_dict:
+                err_msgs.append(f"- Missing non-LoRA key {key} from base model dict")
+            elif key in lora_state_dict:
+                err_msgs.append(f"- Missing LoRA key {key} from adapter state dict")
+            else:
+                raise RuntimeError(f"Unexpected key found missing: {key}")
+        if len(err_msgs) > 0:
+            raise RuntimeError(
+                "Missing keys when validating state dict: \n" + "\n".join(err_msgs)
+            )
+    else:
+        lora_modules = get_lora_module_names(
+            lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
+        )
+        is_lora_param = lambda x: any(
+            [
+                ".".join([k, "lora"]) in x or ".".join([k, "magnitude"]) in x
+                for k in lora_modules
+            ]
+        )
 
-    if base_missing:
-        for k in base_missing:
-            if not is_lora_param(k):
-                raise AssertionError(f"Missing non-LoRA key {k} from base model dict")
+        if base_missing:
+            for k in base_missing:
+                if not is_lora_param(k):
+                    raise RuntimeError(f"Missing non-LoRA key {k} from base model dict")
+        if lora_missing:
+            for k in lora_missing:
+                if is_lora_param(k):
+                    raise RuntimeError(f"Missing LoRA key {k} from adapter state dict")
+
     if base_unexpected:
-        raise AssertionError("Unexpected key loading base model")
-    if lora_missing:
-        for k in lora_missing:
-            if is_lora_param(k):
-                raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
+        raise RuntimeError("Unexpected key loading base model")
     if lora_unexpected:
-        raise AssertionError("Unexpected key loading adapter")
+        raise RuntimeError("Unexpected key loading adapter")
