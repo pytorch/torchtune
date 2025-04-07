@@ -36,6 +36,10 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.checkpointing._checkpoint_client import (
+    CheckpointClient,
+    TrainingProgress,
+)
 from torchtune.training.quantization import swap_lora_linear_with_qat
 
 from tqdm import tqdm
@@ -156,6 +160,9 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "Compile is not yet supported for QAT. Please set compile=False."
             )
 
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self._checkpoint_client = CheckpointClient(cfg)
+
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
@@ -220,22 +227,31 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         base model weights. If resume_from_checkpoint is True, this also includes
         the adapter weights and recipe state
         """
-        self._checkpointer = config.instantiate(
-            cfg_checkpointer,
-            should_load_recipe_state=self._resume_from_checkpoint,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
+        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
-        # When resuming from checkpoint for LoRA, the recipe expects the adapter weights
-        # and recipe state to be present. The keys should match up with what ``save_checkpoint``
-        # used to create these intermediate checkpoints
         if self._resume_from_checkpoint:
             if training.ADAPTER_KEY not in checkpoint_dict:
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
-            # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
-            # no need to check here
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                try:
+                    checkpoint_dict = (
+                        self._checkpoint_client.load_distributed_checkpoint(
+                            self._model,
+                            self._optimizer,
+                        )
+                    )
+                except Exception as e:
+                    log.warning(
+                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
+                    )
+
+            # Update the recipe state from the checkpoint state dict.
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
@@ -676,113 +692,17 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         epoch: int,
     ) -> None:
-        """
-        Checkpoint the state of the recipe. The constructed checkpoint state dict
-        contains the following information:
-        - Merged weights with key MODEL_KEY
-        - Adapter weights with key ADAPTER_KEY
-        - Relevant recipe state if training is not complete
-        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
-
-        Checkpointer will save the merged weights, adapter weights and recipe state in
-        different checkpoint files. To correctly resume from training, the adapter weights
-        and recipe state must be provided along with the base model weights.
-        """
-        # final dict passed onto the checkpointer
-        checkpoint_dict = {}
-
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
-
-        if self._is_rank_zero:
-            log.info(
-                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
-            )
-            start = time.perf_counter()
-
-        # To prevent GPU memory from spiking during checkpoint save,
-        # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.gather_cpu_state_dict(
-            self._model,
-            self._is_rank_zero,
-            device=self._device,
-            adapter_weights_only=self._save_adapter_weights_only,
+        self._checkpoint_client.save_checkpoint(
+            model=self._model,
+            optimizer=self._optimizer,
+            training_progress=TrainingProgress(
+                seed=self.seed,
+                epochs_run=self.epochs_run,
+                total_epochs=self.total_epochs,
+                max_steps_per_epoch=self.max_steps_per_epoch,
+            ),
+            epoch=epoch,
         )
-        if self._is_rank_zero:
-            log.info(
-                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
-            )
-
-        if intermediate_checkpoint:
-            if self._is_rank_zero:
-                log.info("Retrieving optimizer state dict...")
-            opt_state_dict = training.get_full_optimizer_state_dict(
-                self._model,
-                self._optimizer,
-                self._is_rank_zero,
-                device=self._device,
-            )
-            if self._is_rank_zero:
-                log.info(
-                    f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
-                )
-        else:
-            opt_state_dict = None
-
-        # Now that we have the model and opt state dict, create the actual checkpoint dict
-        # to be sent to the checkpointer and ultimately written to file
-        if self._is_rank_zero:
-            start = time.perf_counter()
-
-            if self._save_adapter_weights_only:
-                adapter_state_dict = cpu_state_dict
-            else:
-                # Filter out the adapter keys and weights from the model state dict. These will
-                # be saved separately
-                adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
-
-                # merge the adapter weights and base weights to create the model checkpoint
-                merged_state_dict = get_merged_lora_ckpt(
-                    cpu_state_dict,
-                    rank=self._lora_rank,
-                    alpha=self._lora_alpha,
-                )
-                checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
-
-            # if training is in-progress, checkpoint the optimizer state and recipe state
-            # as well.
-            if intermediate_checkpoint:
-                checkpoint_dict.update(
-                    {
-                        training.OPT_KEY: opt_state_dict,
-                        training.SEED_KEY: self.seed,
-                        training.EPOCHS_KEY: self.epochs_run,
-                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                        training.DATALOADER_KEY: self._dataloader.state_dict(),
-                    }
-                )
-
-            adapter_config = {
-                "r": self._lora_rank,
-                "lora_alpha": self._lora_alpha,
-                "target_modules": get_lora_module_names(
-                    self._lora_attn_modules,
-                    self._apply_lora_to_mlp,
-                    self._apply_lora_to_output,
-                ),
-                "peft_type": "LORA",
-            }
-            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
-            self._checkpointer.save_checkpoint(
-                checkpoint_dict,
-                epoch=epoch,
-                intermediate_checkpoint=intermediate_checkpoint,
-                adapter_only=self._save_adapter_weights_only,
-            )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
-
-        torch.distributed.barrier()
 
     def train(self) -> None:
         """
