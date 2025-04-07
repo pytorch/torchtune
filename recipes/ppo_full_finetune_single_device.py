@@ -258,7 +258,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             * (self.batch_size // self._ppo_batch_size)
         )
 
-       lr_steps = (
+        lr_steps = (
             self._total_steps
             * self._ppo_epochs
             * (self.batch_size // self._ppo_batch_size)
