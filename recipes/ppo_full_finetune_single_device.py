@@ -258,15 +258,16 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             * (self.batch_size // self._ppo_batch_size)
         )
 
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
+        self.lr_step = (
+            self._total_steps
+            * self._ppo_epochs
+            * (self.batch_size // self._ppo_batch_size)
         )
-        self.global_step = self._epochs_run * self._steps_per_epoch
 
         # Setup lr scheduler
         self._lr_scheduler = self._setup_lr_scheduler(
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
-            num_training_steps=self._total_epochs * self._steps_per_epoch,
+            num_training_steps=self.lr_step,
             last_epoch=self.global_step - 1,
         )
 
