@@ -138,8 +138,6 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
             E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the full input image. In this case, the function will consider your image as a single tile.
-        max_num_tiles (int): The maximum number of tiles in the image. This is used to unfold the input sequence
-            length into sequence length per tile so RoPE can be applied to each tile separately.
         dim (int): Embedding dimension. Unlike :class:`~torchtune.modules.RotaryPositionalEmbeddings`, this is
             usually set to the dim of each head in the attention module divided by 2, computed as
             ``embed_dim // num_heads // 2``. The divide by 2 accounts for x and y positions.
@@ -153,14 +151,13 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         self,
         patch_size: int,
         tile_size: int,
-        max_num_tiles: int,
         dim: int,
         base: int = 10_000,
         append_cls_token: bool = True,
     ) -> None:
         super().__init__()
         self.patch_grid_size = tile_size // patch_size
-        self.max_num_tiles = max_num_tiles
+        self.seq_len = self.patch_grid_size**2 + 1
         self.dim = dim
         self.base = base
         self.append_cls_token = append_cls_token
@@ -169,7 +166,7 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
     def rope_init(self):
         theta = 1.0 / (
             self.base
-            ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
+            ** (torch.arange(0, self.dim, 2)[: (self.dim // 4)].float() / self.dim)
         )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache()
@@ -200,7 +197,7 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         patch_y_pos = patch_idx // self.patch_grid_size
 
         # Outer product of theta and position index; output tensor has
-        # a shape of [patches_per_tile + 1, dim // 2]
+        # a shape of [patches_per_tile + 1, dim // 4]
         x_theta = torch.einsum("i, j -> ij", patch_x_pos + 1, self.theta).float()
         y_theta = torch.einsum("i, j -> ij", patch_y_pos + 1, self.theta).float()
 
@@ -228,9 +225,6 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         Returns:
             torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``
 
-        Raises:
-            ValueError: if sequence length of input tensor does not match the 2D RoPE cache's sequence length
-
         Notation used for tensor shapes:
             - b: batch size
             - s: sequence length
@@ -243,16 +237,10 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         # Split tile dimension from the sequence dimension
         # Cast to float to match the reference implementation
         # tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]
-        xshaped = x.float().reshape(bsz, self.max_num_tiles, -1, n_h, h_d // 2, 2)
-        seq_len = xshaped.size(2)
-
-        if seq_len != self.cache.shape[0]:
-            raise ValueError(
-                f"Input sequence length {seq_len} does not match 2D RoPE cache sequence length {self.cache.shape[0]}."
-            )
+        xshaped = x.float().reshape(bsz, -1, self.seq_len, n_h, h_d // 2, 2)
 
         # reshape the cache for broadcasting
-        rope_cache = self.cache.view(1, 1, seq_len, 1, h_d // 2, 2)
+        rope_cache = self.cache.view(1, 1, self.seq_len, 1, h_d // 2, 2)
 
         # tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]
         x_out = torch.stack(
@@ -266,5 +254,5 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         )
 
         # Squash tile dimension back into sequence dimension - tensor has shape [b, s, n_h, h_d]
-        x_out = x_out.reshape(bsz, self.max_num_tiles * seq_len, n_h, h_d)
+        x_out = x_out.reshape(bsz, -1, n_h, h_d)
         return x_out.type_as(x)

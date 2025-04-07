@@ -6,6 +6,39 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
+llama4
+------
+
+Multimodal models from the Llama4 family that support text and image input.
+
+Important: You need to request access on Hugging Face before downloading it.
+
+To download the Llama-4-Maverick-17B-16E-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-4-Scout-17B-16E-Instruct --hf-token <HF_TOKEN>
+
+To download the Llama-4-Maverick-17B-128E-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-4-Maverick-17B-128E-Instruct --hf-token <HF_TOKEN>
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llama4.llama4_scout_17b_16e
+    llama4.llama4_maverick_17b_128e
+    llama4.llama4_vision_encoder
+    llama4.llama4_vision_projection_head
+    llama4.llama4_decoder
+    llama4.Llama4VisionEncoder
+    llama4.Llama4VisionProjectionHead
+    llama4.Llama4Tokenizer
+    llama4.Llama4Transform
+
 llama3.3
 --------
 
