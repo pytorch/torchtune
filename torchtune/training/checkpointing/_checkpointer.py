@@ -548,7 +548,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             load(
                 state_dict=state_dict,
                 storage_reader=hf_storage_reader,
-                planner=_HuggingFaceLoadPlanner(),
+                planner=_HuggingFaceLoadPlanner(allow_tensor_resize=True),
             )
 
             merged_state_dict = state_dict
