@@ -1010,8 +1010,6 @@ class vLLMWorkerWrapper(Worker):
 
         rank = get_world_group().rank + rank_offset
 
-        print(f"init_weight {master_port=} {rank=} {self.device}")
-
         self._model_update_group = stateless_init_process_group(
             master_address,
             master_port,
@@ -1020,7 +1018,6 @@ class vLLMWorkerWrapper(Worker):
             self.device,
         )
 
-        print(f"{rank=} after stateless_init_process_group")
         self.version = torch.tensor([0], device="cuda")
 
     def update_weight(self, name, dtype, shape):
@@ -1928,9 +1925,6 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
         vllm_tp_size = worker_metadata.get("tp_size", 1)
         weight_sync_world_size = vllm_tp_size + 1
-        print(
-            f"before stateless_init_process_group, {self.vllm_master_ports[worker_id]} {weight_sync_world_size}"
-        )
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
             self.vllm_master_ports[worker_id],
@@ -1941,7 +1935,6 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         self.vllm_comm_groups[worker_id] = model_update_group
 
     def _sync_weights_with_worker(self, worker_id: int, server_weights):
-        print(f"in _sync_weights_with_worker {worker_id}")
         worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
         worker_handle.update_policy_weights_.remote()
         if worker_id not in self.vllm_comm_groups:
@@ -1956,7 +1949,6 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             self.version_tensor, src=0, stream=torch.cuda.current_stream()
         )
         torch.cuda.synchronize()
-        print(f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}")
         self.vllm_weight_versions[worker_id] = self.version
         read_lock.release()
 
