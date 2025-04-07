@@ -426,6 +426,7 @@ class TestHFLlama2FullModelCheckpointer:
             lora_attn_modules=lora_attn_modules,
             apply_lora_to_mlp=apply_lora_to_mlp,
             apply_lora_to_output=apply_lora_to_output,
+            state_dict_keys=model.state_dict().keys(),
             base_missing=missing,
             base_unexpected=unexpected,
         )
