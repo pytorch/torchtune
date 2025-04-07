@@ -997,7 +997,7 @@
             <span class="n">load</span><span class="p">(</span>
                 <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">,</span>
                 <span class="n">storage_reader</span><span class="o">=</span><span class="n">hf_storage_reader</span><span class="p">,</span>
-                <span class="n">planner</span><span class="o">=</span><span class="n">_HuggingFaceLoadPlanner</span><span class="p">(),</span>
+                <span class="n">planner</span><span class="o">=</span><span class="n">_HuggingFaceLoadPlanner</span><span class="p">(</span><span class="n">allow_tensor_resize</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
             <span class="p">)</span>
 
             <span class="n">merged_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span>
