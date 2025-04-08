@@ -258,6 +258,15 @@ class TestTransformerDecoder:
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
     @pytest.fixture
+    def input_chunked_corner_case(
+        self, input_params: Tuple[int, int, int]
+    ) -> torch.Tensor:
+        """Emulates 49 len sequence which should be split into 8 tensors list (not 7)."""
+        batch_size, _, vocab_size = input_params
+        seq_len = 49
+        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
     def causal_mask(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, _ = input_params
         return (
@@ -368,6 +377,45 @@ class TestTransformerDecoder:
             output = decoder(input)
         assert_expected(output.mean(), torch.tensor(20.4800), atol=1e-8, rtol=1e-6)
         assert_expected(output.shape, torch.Size([batch_size, seq_len, vocab_size]))
+
+    @mps_ignored_test()
+    def test_forward_output_chunks(
+        self,
+        input: torch.Tensor,
+        input_params: Tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks chunked output simple case."""
+        batch_size, seq_len, vocab_size = input_params
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+        for tensor in output:
+            assert tensor.size() == torch.Size(
+                (batch_size, seq_len / num_output_chunks, vocab_size)
+            )
+
+    @mps_ignored_test()
+    def test_forward_output_chunks_corner_case(
+        self,
+        input_chunked_corner_case: torch.Tensor,
+        input_params: Tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks chunked output corner case (torch.chunk would've split in 7)."""
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input_chunked_corner_case)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+        outputs_seq_len = [x.size(1) for x in output]
+        assert outputs_seq_len == [7, 6, 6, 6, 6, 6, 6, 6]
 
     def test_max_seq_len_exceeded(
         self,
