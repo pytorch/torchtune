@@ -110,7 +110,7 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
             >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
-            >>> teacher_chunks = [teacher_model.output(chunk) for chunk in n.tensor_split(hum_chunks, dim=1)]
+            >>> teacher_chunks = [teacher_model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
             >>> labels = torch.tensor([bsz, num_tokens])
             >>> loss = loss_fn(output_chunks, teacher_chunks, labels)
         """
