@@ -4,11 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import re
 from typing import List, Tuple
 from xml.etree import ElementTree as ET
 
 import torch
-from numpy.ma.core import reshape
 
 # from tensordict import TensorDict, TensorDictBase
 # from torchrl.data import Composite, TensorSpec, Unbounded
@@ -22,16 +22,13 @@ def extract_tags(text: str) -> Tuple[str, str]:
     Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
     The values are lists of strings, with each string being the content of a tag.
     """
-    xml_string = f"<root>{text}</root>"
-    try:
-        root = ET.fromstring(xml_string)
-    except ET.ParseError as e:
-        return ("", "")
-
-    return (
-        root.find("think").text if root.find("think") is not None else "",
-        root.find("answer").text if root.find("answer") is not None else "",
-    )
+    think_pattern = r"<think>(.*?)</think>"
+    answer_pattern = r"<answer>(.*?)</answer>"
+    think_match = re.search(think_pattern, text, re.DOTALL)
+    answer_match = re.search(answer_pattern, text, re.DOTALL)
+    cot = think_match.group(1).strip() if think_match else ""
+    potential_answer = answer_match.group(1).strip() if answer_match else ""
+    return cot, potential_answer
 
 
 def at_least_one_space_between_think_tags(
