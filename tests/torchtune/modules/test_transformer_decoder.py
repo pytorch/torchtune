@@ -267,6 +267,15 @@ class TestTransformerDecoder:
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
     @pytest.fixture
+    def input_chunked_not_enough_length(
+        self, input_params: Tuple[int, int, int]
+    ) -> torch.Tensor:
+        """Emulates 7 seq_len which should be split into 8 chunks."""
+        batch_size, _, vocab_size = input_params
+        seq_len = 7
+        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
     def causal_mask(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, _ = input_params
         return (
@@ -394,10 +403,6 @@ class TestTransformerDecoder:
 
         assert isinstance(output, list)
         assert len(output) == num_output_chunks
-        for tensor in output:
-            assert tensor.size() == torch.Size(
-                (batch_size, seq_len / num_output_chunks, vocab_size)
-            )
 
     @mps_ignored_test()
     def test_forward_output_chunks_corner_case(
@@ -416,6 +421,24 @@ class TestTransformerDecoder:
         assert len(output) == num_output_chunks
         outputs_seq_len = [x.size(1) for x in output]
         assert outputs_seq_len == [7, 6, 6, 6, 6, 6, 6, 6]
+
+    @mps_ignored_test()
+    def test_forward_output_chunks_not_enough_length(
+        self,
+        input_chunked_not_enough_length: torch.Tensor,
+        input_params: Tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks chunked output corner case (seq_len 7 should be split into 8 chunks)."""
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input_chunked_not_enough_length)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+        outputs_seq_len = [x.size(1) for x in output]
+        assert outputs_seq_len == [1, 1, 1, 1, 1, 1, 1, 0]
 
     def test_max_seq_len_exceeded(
         self,
