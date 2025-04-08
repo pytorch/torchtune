@@ -996,7 +996,7 @@ class LLMCollector(SyncDataCollector):
 
 class VLLMWorkerWrapper(Worker):
     """
-    vLLM Rollout Model worker for Ray.
+    vLLM worker for Ray.
 
     vLLMParameterServer will always take rank 0 in the stateless process group
     initialized by this worker. And the tp ranks associated with the LLM class
