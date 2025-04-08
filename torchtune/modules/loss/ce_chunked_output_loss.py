@@ -8,7 +8,6 @@ from typing import List
 
 import torch
 import torch.nn.functional as F
-from torchtune.utils import tensor_utils
 
 
 class CEWithChunkedOutputLoss(torch.nn.Module):
@@ -58,7 +57,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             >>> loss_fn = ChunkedCrossEntropyLoss()
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
-            >>> output_chunks = [model.output(chunk) for chunk in tensor_utils.chunk(n, hum_chunks, dim=1)]
+            >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(hum_chunks, dim=1)]
             >>>
             >>> labels = torch.tensor([bsz, num_tokens])
             >>> loss = loss_fn(output_chunks, labels)
@@ -69,9 +68,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         # chunk and reshape labels (bsz, num_tokens, vocab) -> [(bsz*num_tokens/num_chunks, vocab)]
         labels = [
             target_chunk.reshape(-1)
-            for target_chunk in tensor_utils.chunk(
-                labels, self.num_output_chunks, dim=1
-            )
+            for target_chunk in labels.tensor_split(self.num_output_chunks, dim=1)
         ]
         # reshape logits [(bsz, num_tokens/num_chunks, vocab)] -> [(bsz*num_tokens/num_chunks, vocab)]
         logits = [

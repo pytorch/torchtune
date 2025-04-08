@@ -8,7 +8,6 @@ from typing import List
 
 import torch
 import torch.nn.functional as F
-from torchtune.utils import tensor_utils
 
 
 class ForwardKLLoss(torch.nn.Module):
@@ -110,8 +109,8 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
             >>> loss_fn = ForwardKLWithChunkedOutputLoss()
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
-            >>> output_chunks = [model.output(chunk) for chunk in tensor_utils.chunk(h, num_chunks, dim=1)]
-            >>> teacher_chunks = [teacher_model.output(chunk) for chunk in tensor_utils.chunk(n, hum_chunks, dim=1)]
+            >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
+            >>> teacher_chunks = [teacher_model.output(chunk) for chunk in n.tensor_split(hum_chunks, dim=1)]
             >>> labels = torch.tensor([bsz, num_tokens])
             >>> loss = loss_fn(output_chunks, teacher_chunks, labels)
         """
@@ -126,13 +125,10 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
             for student_logits_chunk in student_logits
         ]
         mask = (labels != self.ignore_index).int()
-
         # chunk and reshape labels (bsz, num_tokens, vocab) -> [(bsz*num_tokens/num_chunks, vocab)]
         labels = [
             target_chunk.reshape(-1)
-            for target_chunk in tensor_utils.chunk(
-                labels, self.num_output_chunks, dim=1
-            )
+            for target_chunk in labels.tensor_split(self.num_output_chunks, dim=1)
         ]
 
         total_fkl_loss = 0.0
