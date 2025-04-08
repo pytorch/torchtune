@@ -995,7 +995,13 @@ class LLMCollector(SyncDataCollector):
 
 
 class VLLMWorkerWrapper(Worker):
-    """vLLM Rollout Model worker for Ray."""
+    """
+    vLLM Rollout Model worker for Ray.
+
+    vLLMParameterServer will always take rank 0 in the stateless process group
+    initialized by this worker. And the tp ranks associated with the LLM class
+    will be in the range [1, tp_size].
+    """
 
     def __init__(self, *args, **kwargs):
         import os
@@ -1849,9 +1855,10 @@ class VLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
 
 @ray.remote(num_cpus=4, num_gpus=1)
 class VLLMParameterServer(RemoteWeightUpdaterBase):
-    def __init__(self, vllm_master_addresses, vllm_master_ports, env_vars):
+    def __init__(self, cfg, vllm_master_addresses, vllm_master_ports, env_vars):
         log.info("in param server init")
         super().__init__()
+        self.cfg = cfg
         self.vllm_master_addresses = vllm_master_addresses
         self.vllm_master_ports = vllm_master_ports
         self.vllm_comm_groups = dict()
@@ -1880,8 +1887,8 @@ class VLLMParameterServer(RemoteWeightUpdaterBase):
         # FIXME: why this hang even when I pass use_local_synchronization=False in the other one??
         # self.fsdp_group = torch.distributed.new_group(ranks=list(range(self.world_size - 1)))
 
-    def register_collector(self, worker_id, handle, collector_metadata):
-        self.vllm_worker_handles[worker_id] = (handle, collector_metadata)
+    def register_collector(self, worker_id, handle):
+        self.vllm_worker_handles[worker_id] = handle
         log.info(f"registered collector {worker_id=}")
 
     def register_model_metadata(self, model_metadata):
@@ -1925,8 +1932,8 @@ class VLLMParameterServer(RemoteWeightUpdaterBase):
         return False
 
     def _init_model_update_group(self, worker_id):
-        worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
-        vllm_tp_size = worker_metadata.get("tp_size", 1)
+        worker_handle = self.vllm_worker_handles[worker_id]
+        vllm_tp_size = self.cfg.vllm.tp_size
         weight_sync_world_size = vllm_tp_size + 1
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
@@ -1939,7 +1946,7 @@ class VLLMParameterServer(RemoteWeightUpdaterBase):
 
     def _sync_weights_with_worker(self, worker_id: int, server_weights):
         print(f"in _sync_weights_with_worker {worker_id}")
-        worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
+        worker_handle = self.vllm_worker_handles[worker_id]
         worker_handle.update_policy_weights_.remote()
         if worker_id not in self.vllm_comm_groups:
             self._init_model_update_group(worker_id)
@@ -2064,7 +2071,7 @@ class RayGRPORecipe:
         }
 
         parameter_server = parameter_server_cls.options(max_concurrency=5).remote(
-            self.vllm_addresses, self.vllm_ports, env_vars
+            self.cfg, self.vllm_addresses, self.vllm_ports, env_vars
         )
 
         self.actor_workers[0].register_parameter_server.remote(parameter_server)
@@ -2133,12 +2140,10 @@ class RayGRPORecipe:
                     remote_weight_updater=self.param_server,
                 )
             )
-            collector_metadata = {"tp_size": self.cfg.vllm.tp_size}
-            ray.get(
-                self.param_server.register_collector.remote(
-                    i, collector, collector_metadata
-                )
-            )
+            # TODO: Currently we register a handle to the collector to the parameter server
+            # this will be cleaned up when we make the local_weight_updater remotely call
+            # the param server
+            ray.get(self.param_server.register_collector.remote(i, collector))
             data_collectors.append(collector)
         return data_collectors
 
