@@ -18,6 +18,10 @@ from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 def extract_tags(text: str) -> Tuple[str, str]:
+    """
+    Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
+    The values are lists of strings, with each string being the content of a tag.
+    """
     think_pattern = r"<think>(.*?)</think>"
     answer_pattern = r"<answer>(.*?)</answer>"
     think_match = re.search(think_pattern, text, re.DOTALL)
