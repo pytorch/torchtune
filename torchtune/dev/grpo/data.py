@@ -8,12 +8,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, TypedDict, Unio
 
 import torch
 from datasets import load_dataset
-
-# from tensordict.nn import TensorDictModule
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
-
-# from tensordict import NestedKey
 
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizers import ModelTokenizer

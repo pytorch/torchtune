@@ -58,11 +58,13 @@ import torch.nn as nn
 import torchtune.training as training
 
 from omegaconf import DictConfig, ListConfig, OmegaConf
+from ray.util.placement_group import placement_group
 
 from ray.util.queue import Full as QueueFull, Queue
+from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 
 from readerwriterlock import rwlock
-from tensordict import is_tensorclass, NonTensorData, TensorClass, TensorDict
+from tensordict import TensorClass, TensorDict
 
 from torch.optim import Optimizer
 
@@ -74,7 +76,6 @@ from torchrl.collectors import (
     SyncDataCollector,
 )
 from torchrl.data import LazyStackStorage, RayReplayBuffer
-from torchrl.envs import LLMEnv
 from torchtune import config, generation, modules, rlhf, utils
 from torchtune.dev.grpo.rewards import batched_rewards
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
@@ -123,6 +124,7 @@ def stateless_init_process_group(
     pg = StatelessProcessGroup.create(
         host=master_address, port=master_port, rank=rank, world_size=world_size
     )
+
     pynccl = PyNcclCommunicator(pg, device=device)
     return pynccl
 
@@ -475,13 +477,7 @@ from typing import Any, Dict
 
 import torch
 import vllm
-from tensordict import (
-    from_dataclass,
-    lazy_stack,
-    TensorClass,
-    TensorDict,
-    TensorDictBase,
-)
+from tensordict import from_dataclass, lazy_stack, TensorClass, TensorDictBase
 from tensordict.utils import _zip_strict, expand_as_right
 from vllm import LLM, SamplingParams
 
@@ -675,25 +671,27 @@ class LLMCollector(SyncDataCollector):
             raise NotImplementedError
 
         self.cfg = cfg
-        self._tokenizer = config.instantiate(self.cfg.tokenizer)
         self.rollout_queue = queue
         self.worker_id = worker_id
         self._is_collector_zero = self.worker_id == 0
 
+        self.tp_size = self.cfg.vllm.tp_size
         self.batch_size = self.cfg.vllm.batch_size
 
-        # TDOO: tp_size + distributed_executor_backend needs to be fixed and is coming in a follow up
         self.inference_server = LLM(
             model="Qwen/Qwen2.5-3B",
             enforce_eager=True,
             enable_chunked_prefill=True,
             dtype="bfloat16",
-            worker_cls=vLLMWorkerWrapper,
-            # tensor_parallel_size=vllm_tp_size,
-            # gpu_memory_utilization=cfg.vllm.gpu_memory_utilization,
-            # FIXME: Need to use placement_groups in order to use distributed_executor_backend="ray"
-            # distributed_executor_backend="ray",
+            worker_cls=VLLMWorkerWrapper,
+            tensor_parallel_size=self.tp_size,
+            distributed_executor_backend="ray",
         )
+
+        # local import below LLM call to avoid vLLM no CUDA GPUs available error
+        from torchtune import config
+
+        self._tokenizer = config.instantiate(self.cfg.tokenizer)
 
         policy_kwargs = {
             "generate_kwargs": dict(
@@ -716,6 +714,9 @@ class LLMCollector(SyncDataCollector):
             collate_name,
             dataloader_state_dict=None,
         )
+
+        # local import below LLM call to avoid vLLM no CUDA GPUs available error
+        from torchrl.envs import LLMEnv
 
         env = LLMEnv.from_dataloader(
             dataloader=dataloader,
@@ -750,9 +751,9 @@ class LLMCollector(SyncDataCollector):
         self._remote_weight_updater = value
 
     def _postprocess_for_queue(self, data):
-        """
-        This is a helper that should be deleted once the TensorClass stuff has been figured out.
-        """
+        # local import to avoid vLLM no CUDA GPUs available error
+        from torchtune import training
+
         data = data.squeeze()
         query_responses = torch.cat([data["tokens"], data["tokens_response"]], dim=-1)
         prompt_tokens = data["tokens"]
@@ -815,7 +816,7 @@ class LLMCollector(SyncDataCollector):
         # full_queue_data_discard,
         gpu_memory,
     ):
-        """Log metrics for the vLLMRolloutActor, only on actor zero."""
+        """Log metrics for the LLMCollector, only on collector zero."""
         if not self._is_collector_zero:
             return
 
@@ -852,11 +853,11 @@ class LLMCollector(SyncDataCollector):
         for i in range(num_steps):
             self.rollout(i)
             if i % self.cfg.vllm.steps_before_sync == 0:
-                print(
-                    f"{self.worker_id} about to update weights, {self.remote_weight_updater}"
-                )
-                self.remote_weight_updater.update_weights.remote(
-                    weights=None, worker_ids=self.worker_id
+                log.info(f"{self.worker_id} about to update weights")
+                ray.get(
+                    self.remote_weight_updater.update_weights.remote(
+                        weights=None, worker_ids=self.worker_id
+                    )
                 )
 
     def rollout(self, idx) -> TensorDictBase:
@@ -869,6 +870,7 @@ class LLMCollector(SyncDataCollector):
         collected_frames = 0
         time_generate = 0
         time_step_start = time.perf_counter()
+
         while collected_frames < self.frames_per_batch:
             policy_input = data
             env_input, generation_time = self.policy(
@@ -944,7 +946,7 @@ class LLMCollector(SyncDataCollector):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        # Not importing here and doing these imports globally will cause vLLM worker
+        # Not importing here and doing these imports globally will cause VLLM worker
         # to have no cuda devices during cuda lazy init for some reason?? Even when
         # this method is not actually called...
         from torchtune import config
@@ -984,7 +986,7 @@ class LLMCollector(SyncDataCollector):
             drop_last=True,
         )
         if dataloader_state_dict is not None:
-            assert False, "Haven't handled dataloader_state_dict yet"
+            raise AssertionError("Haven't handled dataloader_state_dict yet")
             dataloader.load_state_dict(dataloader_state_dict)
             # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
             # we need to force the dataloader to finish the last iteration before it's actually used
@@ -992,8 +994,14 @@ class LLMCollector(SyncDataCollector):
         return dataloader
 
 
-class vLLMWorkerWrapper(Worker):
-    """vLLM Rollout Model worker for Ray."""
+class VLLMWorkerWrapper(Worker):
+    """
+    vLLM worker for Ray.
+
+    vLLMParameterServer will always take rank 0 in the stateless process group
+    initialized by this worker. And the tp ranks associated with the LLM class
+    will be in the range [1, tp_size].
+    """
 
     def __init__(self, *args, **kwargs):
         import os
@@ -1002,12 +1010,12 @@ class vLLMWorkerWrapper(Worker):
         print(f"device count {torch.cuda.device_count()}")
         super().__init__(*args, **kwargs)
 
-    def init_weight_update_group(self, master_address, master_port, rank, world_size):
+    def init_weight_update_group(
+        self, master_address, master_port, rank_offset, world_size
+    ):
+        from vllm.distributed.parallel_state import get_world_group
 
-        # FIXME: Forgot why I changed rank_offset arg to rank
-        # but likely need to uncomment this for the >1 vllm worker case
-        # from vllm.distributed.parallel_state import get_world_group
-        # rank = get_world_group().rank + rank_offset
+        rank = get_world_group().rank + rank_offset
 
         self._model_update_group = stateless_init_process_group(
             master_address,
@@ -1016,6 +1024,7 @@ class vLLMWorkerWrapper(Worker):
             world_size,
             self.device,
         )
+
         self.version = torch.tensor([0], device="cuda")
 
     def update_weight(self, name, dtype, shape):
@@ -1032,13 +1041,16 @@ class vLLMWorkerWrapper(Worker):
             self.version, src=0, stream=torch.cuda.current_stream()
         )
         self.policy_version = self.version
+        torch.cuda.synchronize()
 
 
 @ray.remote(num_cpus=8, num_gpus=1)
 class PyTorchActorModel:
     """
-    A Ray actor responsible for training a model using the GRPO (Generalized Reward Policy Optimization) algorithm in a distributed setting.
-    This class leverages PyTorch's distributed training capabilities with FSDP and interacts with a replay buffer and vLLM engines.
+    A Ray actor responsible for training a model using the GRPO (Generalized Reward Policy Optimization)
+    algorithm in a distributed setting.
+    This class leverages PyTorch's distributed training capabilities with FSDP and interacts
+    with a replay buffer and VLLM engines.
 
     Args:
         cfg (DictConfig): Configuration object containing training parameters.
@@ -1804,7 +1816,7 @@ class MetricLoggerActor:
             self.logger.close()
 
 
-class vLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
+class VLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
     def __init__(self, master_address, master_port, model_metadata):
         self.master_address = master_address
         self.master_port = master_port
@@ -1842,10 +1854,11 @@ class vLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
 
 
 @ray.remote(num_cpus=4, num_gpus=1)
-class vLLMParameterServer(RemoteWeightUpdaterBase):
-    def __init__(self, vllm_master_addresses, vllm_master_ports, env_vars):
+class VLLMParameterServer(RemoteWeightUpdaterBase):
+    def __init__(self, cfg, vllm_master_addresses, vllm_master_ports, env_vars):
         log.info("in param server init")
         super().__init__()
+        self.cfg = cfg
         self.vllm_master_addresses = vllm_master_addresses
         self.vllm_master_ports = vllm_master_ports
         self.vllm_comm_groups = dict()
@@ -1919,9 +1932,8 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         return False
 
     def _init_model_update_group(self, worker_id):
-        # here again, I want to grab the tp size from the vLLM worker... :(
-        # llm.llm_engine.parallel_config.tensor_parallel_size
-        vllm_tp_size = 1
+        worker_handle = self.vllm_worker_handles[worker_id]
+        vllm_tp_size = self.cfg.vllm.tp_size
         weight_sync_world_size = vllm_tp_size + 1
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
@@ -1933,8 +1945,9 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         self.vllm_comm_groups[worker_id] = model_update_group
 
     def _sync_weights_with_worker(self, worker_id: int, server_weights):
-        log.info(f"in _sync_weights_with_worker {worker_id}")
-        self.vllm_worker_handles[worker_id].update_policy_weights_.remote()
+        print(f"in _sync_weights_with_worker {worker_id}")
+        worker_handle = self.vllm_worker_handles[worker_id]
+        worker_handle.update_policy_weights_.remote()
         if worker_id not in self.vllm_comm_groups:
             self._init_model_update_group(worker_id)
         read_lock = self.state_dict_lock.gen_rlock()
@@ -1947,9 +1960,7 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             self.version_tensor, src=0, stream=torch.cuda.current_stream()
         )
         torch.cuda.synchronize()
-        log.info(
-            f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}"
-        )
+        print(f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}")
         self.vllm_weight_versions[worker_id] = self.version
         read_lock.release()
 
@@ -1982,14 +1993,13 @@ class RayGRPORecipe:
         )
 
         # Create workers using config values directly
-        # self.rollout_workers = self._create_vllm_workers()
         self.ref_workers = self._create_ref_workers()
         self.actor_workers = self._create_fsdp_group(
             worker_cls=PyTorchActorModel,
             fsdp_world_size=self.num_fsdp_workers,
         )
         self.param_server = self._create_param_server(
-            parameter_server_cls=vLLMParameterServer,
+            parameter_server_cls=VLLMParameterServer,
             fsdp_world_size=self.num_fsdp_workers,
             num_vllm_workers=self.num_vllm_workers,
         )
@@ -2061,7 +2071,7 @@ class RayGRPORecipe:
         }
 
         parameter_server = parameter_server_cls.options(max_concurrency=5).remote(
-            self.vllm_addresses, self.vllm_ports, env_vars
+            self.cfg, self.vllm_addresses, self.vllm_ports, env_vars
         )
 
         self.actor_workers[0].register_parameter_server.remote(parameter_server)
@@ -2095,16 +2105,28 @@ class RayGRPORecipe:
         vllm_ports = self.vllm_ports
 
         local_weight_updaters = [
-            vLLMHFLocalWeightUpdater(
+            VLLMHFLocalWeightUpdater(
                 vllm_master_address, vllm_update_port, self.model_metadata
             )
             for vllm_master_address, vllm_update_port in zip(vllm_addresses, vllm_ports)
         ]
 
         for i in range(self.num_vllm_workers):
+
+            pg_inference = placement_group(
+                [{"GPU": 1, "CPU": 0}] * self.cfg.vllm.tp_size
+            )
+            ray.get(pg_inference.ready())
+            scheduling_inference = PlacementGroupSchedulingStrategy(
+                placement_group=pg_inference,
+                placement_group_capture_child_tasks=True,
+            )
+
             collector = (
-                ray.remote(num_cpus=8, num_gpus=self.vllm_tp_size)(LLMCollector)
-                .options(max_concurrency=2)
+                ray.remote(
+                    num_cpus=0, num_gpus=0, scheduling_strategy=scheduling_inference
+                )(LLMCollector)
+                .options(max_concurrency=5)
                 .remote(
                     cfg=self.cfg,
                     llm="Qwen/Qwen2.5-3B",
@@ -2118,7 +2140,10 @@ class RayGRPORecipe:
                     remote_weight_updater=self.param_server,
                 )
             )
-            self.param_server.register_collector.remote(i, collector)
+            # TODO: Currently we register a handle to the collector to the parameter server
+            # this will be cleaned up when we make the local_weight_updater remotely call
+            # the param server
+            ray.get(self.param_server.register_collector.remote(i, collector))
             data_collectors.append(collector)
         return data_collectors
 
