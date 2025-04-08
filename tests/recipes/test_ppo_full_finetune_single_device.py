@@ -55,8 +55,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "seed=9",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
-            "lr_scheduler.num_warmup_steps=0",
-            "lr_scheduler.num_cycles=0",
             "log_every_n_steps=1",
             "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()

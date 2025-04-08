@@ -147,6 +147,8 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/90B_full",
                 file_path="llama3_2_vision/90B_full.yaml",
             ),
+            Config(name="llama4/17Bx16E_full", file_path="llama4/17Bx16E_full.yaml"),
+            Config(name="llama4/17Bx128E_full", file_path="llama4/17Bx128E_full.yaml"),
         ],
         supports_distributed=True,
     ),
@@ -434,6 +436,7 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/90B_qlora",
                 file_path="llama3_2_vision/90B_qlora.yaml",
             ),
+            Config(name="llama4/17Bx16_lora", file_path="llama4/17Bx16_lora.yaml"),
         ],
         supports_distributed=True,
     ),
@@ -467,6 +470,10 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2_vision/11B_generation_v2",
                 file_path="llama3_2_vision/11B_generation_v2.yaml",
+            ),
+            Config(
+                name="llama4/17Bx16_generation_v2",
+                file_path="llama4/17Bx16_generation_v2.yaml",
             ),
         ],
         supports_distributed=False,

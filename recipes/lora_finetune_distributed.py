@@ -24,6 +24,7 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.moe.experts import LoRAGroupedExperts
 from torchtune.modules.peft import (
     DoRALinear,
     get_adapter_params,
@@ -497,7 +498,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
                 if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
+                    isinstance(m, LoRALinear)
+                    or isinstance(m, DoRALinear)
+                    or isinstance(m, LoRAGroupedExperts)
                 ) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time

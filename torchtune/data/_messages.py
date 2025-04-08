@@ -45,7 +45,7 @@ class Message:
             as follows::
 
                 [
-                    {"type": "image", "content": <PIL.Image.Image>},
+                    {"type": "image", "content": torch.Tensor},
                     {"type": "text", "content": "What is in this image?"},
                 ]
 
@@ -61,8 +61,8 @@ class Message:
             - All ipython messages (tool call returns) should set ``eot=False``.
 
     Note:
-        Message class expects any image content to be in
-        `PIL Image format <https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image>`_.
+        Message class expects any image content to be a torch.Tensor, as output
+        by e.g. :func:`~torchtune.data.load_image`
     """
 
     def __init__(
@@ -137,7 +137,7 @@ class Message:
         )
 
     def _validate_message(self) -> None:
-        if self.ipython and self.contains_media:
+        if self.ipython and (self.contains_media):
             raise ValueError(
                 f"Media tokens in tool calls are not supported. Both are set in message: {self.text_content}"
             )

@@ -230,7 +230,6 @@ class MultiHeadAttention(nn.Module):
         # y has shape [b, s_y, d]
         b, s_x, _ = x.shape
         s_y = y.shape[1] if y is not None else 0
-
         # q has shape [b, s_x, num_heads * head_dim]
         q = self.q_proj(x)
 
@@ -298,7 +297,6 @@ class MultiHeadAttention(nn.Module):
             dropout_p=self.attn_dropout if self.training else 0.0,
             is_causal=self.kv_cache is None and mask is None and self.is_causal,
         )
-
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
         return self.output_proj(output)

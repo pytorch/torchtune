@@ -266,3 +266,7 @@ def _sdpa_or_flex_attention() -> Callable:
             )
 
     return _attention_call
+
+
+def causal_mask_flex(b, h, q_idx, kv_idx):
+    return q_idx >= kv_idx

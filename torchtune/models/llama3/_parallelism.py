@@ -6,6 +6,8 @@
 
 from typing import Dict
 
+from torch import nn
+
 from torch.distributed.tensor import Replicate, Shard
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
@@ -14,7 +16,6 @@ from torch.distributed.tensor.parallel import (
     SequenceParallel,
 )
 from torch.distributed.tensor.parallel.style import ParallelStyle
-
 
 # Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
 BASE_LLAMA_TP_PLAN = {
@@ -43,9 +44,12 @@ BASE_LLAMA_TP_PLAN = {
 }
 
 
-def base_llama_tp_plan() -> Dict[str, ParallelStyle]:
+def base_llama_tp_plan(model: nn.Module) -> Dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
+
+    Args:
+        model (nn.Module): Model to generate plan for (no-op)
 
     Returns:
         Dict[str, Any]: The tensor parallel plan for Llama3 model.
