@@ -64,7 +64,7 @@ from ray.util.queue import Full as QueueFull, Queue
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 
 from readerwriterlock import rwlock
-from tensordict import NonTensorData, TensorClass, TensorDict
+from tensordict import TensorClass, TensorDict
 
 from torch.optim import Optimizer
 
@@ -76,7 +76,6 @@ from torchrl.collectors import (
     SyncDataCollector,
 )
 from torchrl.data import LazyStackStorage, RayReplayBuffer
-from torchrl.envs import LLMEnv
 from torchtune import config, generation, modules, rlhf, utils
 from torchtune.dev.grpo.rewards import batched_rewards
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
@@ -684,7 +683,7 @@ class LLMCollector(SyncDataCollector):
             enforce_eager=True,
             enable_chunked_prefill=True,
             dtype="bfloat16",
-            worker_cls=vLLMWorkerWrapper,
+            worker_cls=VLLMWorkerWrapper,
             tensor_parallel_size=self.tp_size,
             distributed_executor_backend="ray",
         )
@@ -817,7 +816,7 @@ class LLMCollector(SyncDataCollector):
         # full_queue_data_discard,
         gpu_memory,
     ):
-        """Log metrics for the vLLMRolloutActor, only on actor zero."""
+        """Log metrics for the LLMCollector, only on collector zero."""
         if not self._is_collector_zero:
             return
 
@@ -854,6 +853,7 @@ class LLMCollector(SyncDataCollector):
         for i in range(num_steps):
             self.rollout(i)
             if i % self.cfg.vllm.steps_before_sync == 0:
+                log.info(f"{self.worker_id} about to update weights")
                 ray.get(
                     self.remote_weight_updater.update_weights.remote(
                         weights=None, worker_ids=self.worker_id
@@ -870,6 +870,7 @@ class LLMCollector(SyncDataCollector):
         collected_frames = 0
         time_generate = 0
         time_step_start = time.perf_counter()
+
         while collected_frames < self.frames_per_batch:
             policy_input = data
             env_input, generation_time = self.policy(
@@ -945,7 +946,7 @@ class LLMCollector(SyncDataCollector):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        # Not importing here and doing these imports globally will cause vLLM worker
+        # Not importing here and doing these imports globally will cause VLLM worker
         # to have no cuda devices during cuda lazy init for some reason?? Even when
         # this method is not actually called...
         from torchtune import config
@@ -985,7 +986,7 @@ class LLMCollector(SyncDataCollector):
             drop_last=True,
         )
         if dataloader_state_dict is not None:
-            assert False, "Haven't handled dataloader_state_dict yet"
+            raise AssertionError("Haven't handled dataloader_state_dict yet")
             dataloader.load_state_dict(dataloader_state_dict)
             # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
             # we need to force the dataloader to finish the last iteration before it's actually used
@@ -993,7 +994,7 @@ class LLMCollector(SyncDataCollector):
         return dataloader
 
 
-class vLLMWorkerWrapper(Worker):
+class VLLMWorkerWrapper(Worker):
     """vLLM Rollout Model worker for Ray."""
 
     def __init__(self, *args, **kwargs):
@@ -1040,8 +1041,10 @@ class vLLMWorkerWrapper(Worker):
 @ray.remote(num_cpus=8, num_gpus=1)
 class PyTorchActorModel:
     """
-    A Ray actor responsible for training a model using the GRPO (Generalized Reward Policy Optimization) algorithm in a distributed setting.
-    This class leverages PyTorch's distributed training capabilities with FSDP and interacts with a replay buffer and vLLM engines.
+    A Ray actor responsible for training a model using the GRPO (Generalized Reward Policy Optimization)
+    algorithm in a distributed setting.
+    This class leverages PyTorch's distributed training capabilities with FSDP and interacts
+    with a replay buffer and VLLM engines.
 
     Args:
         cfg (DictConfig): Configuration object containing training parameters.
@@ -1807,7 +1810,7 @@ class MetricLoggerActor:
             self.logger.close()
 
 
-class vLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
+class VLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
     def __init__(self, master_address, master_port, model_metadata):
         self.master_address = master_address
         self.master_port = master_port
@@ -1845,7 +1848,7 @@ class vLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
 
 
 @ray.remote(num_cpus=4, num_gpus=1)
-class vLLMParameterServer(RemoteWeightUpdaterBase):
+class VLLMParameterServer(RemoteWeightUpdaterBase):
     def __init__(self, vllm_master_addresses, vllm_master_ports, env_vars):
         log.info("in param server init")
         super().__init__()
@@ -1935,6 +1938,7 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
         self.vllm_comm_groups[worker_id] = model_update_group
 
     def _sync_weights_with_worker(self, worker_id: int, server_weights):
+        print(f"in _sync_weights_with_worker {worker_id}")
         worker_handle, worker_metadata = self.vllm_worker_handles[worker_id]
         worker_handle.update_policy_weights_.remote()
         if worker_id not in self.vllm_comm_groups:
@@ -1949,6 +1953,7 @@ class vLLMParameterServer(RemoteWeightUpdaterBase):
             self.version_tensor, src=0, stream=torch.cuda.current_stream()
         )
         torch.cuda.synchronize()
+        print(f"_sync_weights_with_worker done broadcast {worker_id} {self.version=}")
         self.vllm_weight_versions[worker_id] = self.version
         read_lock.release()
 
@@ -1987,7 +1992,7 @@ class RayGRPORecipe:
             fsdp_world_size=self.num_fsdp_workers,
         )
         self.param_server = self._create_param_server(
-            parameter_server_cls=vLLMParameterServer,
+            parameter_server_cls=VLLMParameterServer,
             fsdp_world_size=self.num_fsdp_workers,
             num_vllm_workers=self.num_vllm_workers,
         )
@@ -2093,7 +2098,7 @@ class RayGRPORecipe:
         vllm_ports = self.vllm_ports
 
         local_weight_updaters = [
-            vLLMHFLocalWeightUpdater(
+            VLLMHFLocalWeightUpdater(
                 vllm_master_address, vllm_update_port, self.model_metadata
             )
             for vllm_master_address, vllm_update_port in zip(vllm_addresses, vllm_ports)
