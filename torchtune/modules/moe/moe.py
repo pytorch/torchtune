@@ -7,7 +7,6 @@
 from typing import Optional
 
 import torch
-import torch.nn.functional as F
 from torch import nn
 
 
@@ -20,7 +19,6 @@ class TokenChoiceTopKRouter(nn.Module):
         dim (int): Dimension of input tokens.
         num_experts (int): Number of experts in each moe layer.
         experts_per_token (int): Number of experts each token will be routed to in Token Choice.
-        use_sigmoid (bool): Whether to use sigmoid or softmax for router scores. Default is False.
     """
 
     def __init__(
@@ -30,14 +28,12 @@ class TokenChoiceTopKRouter(nn.Module):
         dim: int,
         num_experts: int,
         experts_per_token: int,
-        use_sigmoid: bool = False,
     ):
         super().__init__()
         self.gate = gate
         self.dim = dim
         self.num_experts = num_experts
         self.experts_per_token = experts_per_token
-        self.use_sigmoid = use_sigmoid
 
     def forward(
         self, x: torch.Tensor
@@ -58,10 +54,7 @@ class TokenChoiceTopKRouter(nn.Module):
         scores = self.gate(x)
 
         # By default, sigmoid or softmax is performed in float32 to avoid loss explosion
-        if self.use_sigmoid:
-            scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
-        else:
-            scores = F.softmax(scores.to(torch.float32), dim=1).to(x.dtype)
+        scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
 
         # top scores shape (bs*slen, top_k)
         top_scores, selected_experts_indices = torch.topk(
