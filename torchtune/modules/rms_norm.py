@@ -43,7 +43,8 @@ class RMSNorm(nn.Module):
 
 class L2Norm(nn.Module):
     """
-    See: https://pytorch.org/docs/stable/generated/torch.nn.RMSNorm.html
+    This is just RMSNorm sans the trainable scale parameter.
+
     Args:
         dim (int): embedding size
         eps (float): small value to avoid division by zero. Default: 1e-6

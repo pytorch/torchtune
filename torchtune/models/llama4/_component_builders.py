@@ -179,6 +179,7 @@ def llama4_decoder(
     num_experts: int = 8,
     experts_per_token: int = 1,
     use_shared_expert: bool = True,
+    use_qk_norm: bool = True,
     moe_every_n_layers: Optional[int] = None,
     mlp_hidden_dim: Optional[int] = None,
     skip_rope_interval: Optional[int] = None,
@@ -210,6 +211,7 @@ def llama4_decoder(
         num_experts (int): Number of experts in each moe layer. Default: 8
         experts_per_token (int): Number of experts each token will choose in Token Choice. Default: 2
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
+        use_qk_norm (bool): Whether to use qk norm in RoPE layers. Default: True
         moe_every_n_layers (Optional[int]): Frequency of inserting MoE layers in the decoder.
             If set, every nth layer will be an MoE layer. Default: MoE every layer
         mlp_hidden_dim (Optional[int]): Hidden dim for any MLP (i.e. non-MoE) layers.
@@ -235,14 +237,16 @@ def llama4_decoder(
     for i in range(num_layers):
 
         mask_mod = None
-        # TODO: check for 128E
         if skip_rope_interval is not None and (i + 1) % skip_rope_interval != 0:
             mask_mod = partial(
                 get_chunked_attention_mask, chunk_size=attention_chunk_size
             )
             # Note: this is the value in llama-models, which doesn't match the config
-            q_norm = L2Norm(dim=num_heads * head_dim, eps=1e-6)
-            k_norm = L2Norm(dim=num_kv_heads * head_dim, eps=1e-6)
+            pos_embeddings = rope
+            q_norm = L2Norm(dim=num_heads * head_dim, eps=1e-6) if use_qk_norm else None
+            k_norm = (
+                L2Norm(dim=num_kv_heads * head_dim, eps=1e-6) if use_qk_norm else None
+            )
         else:
             pos_embeddings, q_norm, k_norm = None, None, None
 
@@ -262,14 +266,13 @@ def llama4_decoder(
 
         is_moe = moe_every_n_layers is None or (i + 1) % moe_every_n_layers == 0
         if is_moe:
+            # TODO: fix this
             mlp_layer = llama4_moe(
                 dim=embed_dim,
                 hidden_dim=hidden_dim,
                 num_experts=num_experts,
                 experts_per_token=experts_per_token,
-                capacity_factor=capacity_factor,
                 use_shared_expert=use_shared_expert,
-                use_expert_choice=use_expert_choice,
             )
         else:
             mlp_layer = llama4_mlp(dim=embed_dim, hidden_dim=mlp_hidden_dim)
@@ -329,9 +332,7 @@ def llama4_moe(
     hidden_dim: int,
     num_experts: int = 8,
     experts_per_token: int = 2,
-    capacity_factor: float = 1.0,
     use_shared_expert: bool = True,
-    use_expert_choice: bool = True,
 ) -> MoE:
     """
     Build the MoE layer associated with the Llama model.
@@ -341,9 +342,7 @@ def llama4_moe(
         hidden_dim (int): Hidden dimension of experts.
         num_experts (int): Number of experts in each MoE layer. Default: 8
         experts_per_token (int): Number of experts each token will be routed to in Token Choice.
-        capacity_factor (float): Capacity factor determines how many tokens each expert can choose. Default: 1.0
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
-        use_expert_choice (bool): True uses expert choice routing, False uses token choice routing. Default: True
 
     Returns:
         MoE: Instantiation of MoE layer.

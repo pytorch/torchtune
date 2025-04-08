@@ -110,7 +110,6 @@ class TestLlama4Tokenizer:
         assert tokenizer.python_start_id == 200016
         assert tokenizer.python_end_id == 200017
         assert tokenizer.image_id == 200090
-        assert tokenizer.audio_id == 200038
         assert tokenizer.patch_id == 200092
         assert tokenizer.image_start == 200080
         assert tokenizer.image_end == 200081

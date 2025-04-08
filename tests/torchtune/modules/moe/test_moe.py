@@ -9,7 +9,8 @@ import pytest
 import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
-from torchtune.modules.moe import ExpertChoiceTopKRouter, GroupedExperts, MoE
+from torchtune.modules.moe import GroupedExperts, MoE
+from torchtune.modules.moe.moe import TokenChoiceTopKRouter
 from torchtune.training.seed import set_seed
 
 
@@ -36,20 +37,20 @@ class TestMoeLayer:
         return 8
 
     @pytest.fixture
-    def capacity_factor(self) -> float:
-        return 1.0
+    def experts_per_token(self) -> float:
+        return 1
 
     @pytest.fixture
     def experts(self, dim, hidden_dim, num_experts) -> int:
         return GroupedExperts(dim=dim, hidden_dim=hidden_dim, num_experts=num_experts)
 
     @pytest.fixture
-    def router(self, dim, num_experts, capacity_factor) -> int:
-        return ExpertChoiceTopKRouter(
+    def router(self, dim, num_experts, experts_per_token) -> int:
+        return TokenChoiceTopKRouter(
             gate=nn.Linear(dim, num_experts, bias=False),
             dim=dim,
             num_experts=num_experts,
-            capacity_factor=capacity_factor,
+            experts_per_token=experts_per_token,
         )
 
     @pytest.fixture
@@ -88,8 +89,6 @@ class TestMoeLayer:
             "shared_expert.down_proj",
             "shared_expert.up_proj",
             "router.gate.weight",
-            "running_gate_stats",
-            "global_gate_stats",
         }
 
         # Check that the state_dict can be loaded back into the model

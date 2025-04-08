@@ -663,10 +663,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             text_config = self._config.get("text_config")
             converted_state_dict[training.MODEL_KEY] = llama4_hf_to_tune(
                 merged_state_dict,
-                num_heads=text_config["num_attention_heads"],
-                num_kv_heads=text_config["num_key_value_heads"],
-                dim=text_config["hidden_size"],
-                head_dim=text_config.get("head_dim", None),
             )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
@@ -779,10 +775,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 text_config = self._config.get("text_config")
                 state_dict[training.MODEL_KEY] = llama4_tune_to_hf(
                     state_dict[training.MODEL_KEY],
-                    num_heads=text_config["num_attention_heads"],
-                    num_kv_heads=text_config["num_key_value_heads"],
-                    dim=text_config["hidden_size"],
-                    head_dim=text_config.get("head_dim", None),
                 )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(

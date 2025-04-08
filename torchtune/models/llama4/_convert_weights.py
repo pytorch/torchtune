@@ -193,14 +193,8 @@ def llama4_tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.
 
 def llama4_hf_to_tune(
     state_dict: Dict[str, torch.Tensor],
-    num_heads: int = 40,
-    num_kv_heads: int = 8,
-    dim: int = 5120,
-    head_dim: int = None,
 ) -> Dict[str, torch.Tensor]:
     converted_state_dict = {}
-    if head_dim is None:
-        head_dim = dim // num_heads
 
     for key, value in state_dict.items():
         new_key = get_mapped_key(key, _FROM_HF)
@@ -225,18 +219,12 @@ def llama4_hf_to_tune(
 
 def llama4_tune_to_hf(
     state_dict: Dict[str, torch.Tensor],
-    num_heads: int = 40,
-    num_kv_heads: int = 8,
-    dim: int = 5120,
-    head_dim: int = None,
 ) -> Dict[str, torch.Tensor]:
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
-    if head_dim is None:
-        head_dim = dim // num_heads
 
     for key, value in state_dict.items():
-        new_key = get_mapped_key(key, _FROM_HF)
+        new_key = get_mapped_key(key, inverted_mapping_dict)
         if "language_model" in key:
             if key.endswith("experts.gate_proj"):
                 up_proj = state_dict[key.replace("gate", "up")]

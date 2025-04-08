@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.data._prompt_templates import _TemplateType
 
@@ -17,35 +17,25 @@ from torchtune.models.llama4._tokenizer import LLAMA4_SPECIAL_TOKENS
 from torchtune.models.llama4._transform import Llama4Transform
 
 from torchtune.modules.model_fusion import EarlyFusionModel
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRATrainable
 
 """
 Model builders build specific instantiations using component builders. For example
-the llama4 model builder uses the moe component builder to create the
-Llama4 MOE model.
+the llama4 model builder uses the MoE component builder to create the
+Llama4 MoE model.
 """
 
 
-def llama4_17bx16e(
+def llama4_scout_17b_16e(
     decoder_trainable: bool = True,
     vision_encoder_trainable: bool = False,
     fusion_trainable: bool = True,
     image_size: int = 336,
 ) -> EarlyFusionModel:
     """
-    Builder for creating a 17B(active parameters) Llama4 MOE model.
-
-    Args:
-        decoder_trainable (bool): Whether to make decoder params trainable. Default is True.
-        vision_encoder_trainable (bool): Whether to make vision encoder params trainable. Default is False.
-        speech_encoder_trainable (bool): Whether to make speech encoder params trainable. Default is False.
-        fusion_trainable (bool): Whether to make fusion params trainable. This applies to the vision projection
-            head from the vision encoder to the decoder and the speech token embedding table. Default is True.
-        image_size (int): Base image size that images will be tiled and resized to.
-            Default is 336.
+    Builder for creating an instance of the Llama4 Scout 17Bx16E model
 
     Returns:
-        EarlyFusionModel: Instantiation of a 17B Llama4 MOE model with encoders.
+        EarlyFusionModel: Instantiation of a 17Bx16E Llama4 MoE model with encoders.
     """
     decoder_embed_dim = 5120
 
@@ -91,20 +81,17 @@ def llama4_17bx16e(
     )
 
 
-# Note that this one does not use QK norm
-
-
-def llama4_17bx16e(
+def llama4_maverick_17b_128e(
     decoder_trainable: bool = True,
     vision_encoder_trainable: bool = False,
     fusion_trainable: bool = True,
     image_size: int = 336,
 ) -> EarlyFusionModel:
     """
-    Builder for creating a 17B(active parameters) Llama4 MOE model.
+    Builder for creating an instance of the Llama4 Maverick 17Bx128E model
 
     Returns:
-        EarlyFusionModel: Instantiation of a 17B Llama4 MOE model with encoders.
+        EarlyFusionModel: Instantiation of a 17Bx128E Llama4 MoE model with encoders.
     """
     decoder_embed_dim = 5120
 
@@ -190,6 +177,7 @@ def llama4_17bx128e(
         norm_eps=1e-5,
         num_experts=128,
         use_shared_expert=True,
+        use_qk_norm=False,
         moe_every_n_layers=2,
         mlp_hidden_dim=16384,
         skip_rope_interval=4,

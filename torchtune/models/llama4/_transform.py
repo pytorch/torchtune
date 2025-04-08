@@ -26,7 +26,6 @@ class Llama4Transform(ModelTokenizer, Transform):
     is made up of the following transforms:
     - :class:`torchtune.models.llama4.Llama4Tokenizer`
     - :class:`torchtune.models.clip.CLIPImageTransform`
-    - TODO: add audio transform
 
     This transform can be used as a drop-in replacement for tokenizers in recipes and generation
     but handles additional transformations from the `__call__` method.

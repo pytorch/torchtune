@@ -47,6 +47,9 @@ class GroupedExperts(nn.Module):
         if self.up_proj is not None:
             nn.init.kaiming_uniform_(self.up_proj, a=math.sqrt(5))
 
+    # TODO: force no inference mode as a hack to get around
+    # "Cannot set version_counter for inference tensor"
+    @torch.inference_mode(mode=False)
     def forward(
         self,
         x: torch.Tensor,

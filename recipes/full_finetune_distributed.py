@@ -554,7 +554,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
             model = training.prepare_mha_for_tp(model, self.world_mesh["tp"])
             if self.tp_plan is not None:
-                self.tp_plan = config.instantiate(self.tp_plan, model=model)
+                self.tp_plan = config.instantiate(
+                    self.tp_plan,
+                    model=model,
+                )
             parallelize_module(
                 model,
                 self.world_mesh["tp"],

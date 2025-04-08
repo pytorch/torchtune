@@ -1,0 +1,111 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Llama4 17Bx128E MoE model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download ll-re/Llama-4-Maverick-17B-128E-Instruct --output-dir /tmp/ll-re/Llama-4-Maverick-17B-128E-Instruct
+#
+# Full finetuning of Llama4 17Bx128E is only possible in a multi-node setting
+# To launch on 2 nodes w/ 8 devices on a SLURM cluster, run the following command:
+#   # TODO: generalize SLURM script to support Llama4
+#   sbatch full_finetune_multinode.slurm
+#
+#
+# This config is only tested on 2 8xH100 nodes.
+#
+
+output_dir: /tmp/torchtune/llama4_17Bx16E/full
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama4.llama4_transform
+  path: ${model_dir}/tokenizer.model
+  max_seq_len: null
+  max_num_tiles: 16
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+  packed: False
+
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama4.llama4_maverick_17b_128e
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-4-Maverick-17B-128E-Instruct
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00055"
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA4
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 1
+epochs: 1
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+  fused: False
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+clip_grad_norm: 1.0
+max_steps_per_epoch: 1000
+gradient_accumulation_steps: 1
+optimizer_in_bwd: False
+
+# Training env
+device: cuda
+
+# Parallelism. For multi-node training we recommend tensor_parallel_dim=8
+tensor_parallel_dim: 8
+tensor_parallel_plan:
+  _component_: torchtune.models.llama4.decoder_only_tp_plan
+
+# Memory management
+enable_activation_checkpointing: True
+enable_activation_offloading: False
+fsdp_cpu_offload: False
+compile: False # torch.compile, set to true for perf/memory improvement
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.WandBLogger
+  log_dir: ${output_dir}/logs
+log_every_n_steps: 1
+log_peak_memory_stats: True
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: True
+  with_stack: True
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 1
+  warmup_steps: 2
+  active_steps: 1
+  num_cycles: 1

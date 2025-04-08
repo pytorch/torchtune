@@ -29,9 +29,11 @@ def get_chunked_attention_mask(
         raise ValueError("Local attention is only supported with flex attention.")
     if mask is None:
         mask_mod = causal_mask_flex
+        q_seq_len, kv_seq_len = seq_len, seq_len
     else:
         if isinstance(mask, BlockMask):
             mask_mod = mask.mask_mod
+            q_seq_len, kv_seq_len = mask.seq_lengths
         else:
             raise ValueError("Unsupported mask type")
 
@@ -51,6 +53,6 @@ def get_chunked_attention_mask(
         chunked_attention_mask_mod,
         bsz,
         None,
-        seq_len,
-        seq_len,
+        q_seq_len,
+        kv_seq_len,
     )

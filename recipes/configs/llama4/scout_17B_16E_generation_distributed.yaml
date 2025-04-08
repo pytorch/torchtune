@@ -1,0 +1,54 @@
+# Config for running the InferenceRecipe in dev/generate_v2.py to generate output
+# from a Llama4 17Bx16E MoE model
+#
+# This config assumes that you've run the following command before launching
+#   tune download ll-re/Llama-4-Scout-17B-16E-Instruct --output-dir /tmp/Llama-4-Scout-17B-16E-Instruct
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run --nproc_per_node 4 dev/generate_v2_distributed --config llama4/scout_17B_16E_generation_distributed
+
+output_dir: ./
+
+tensor_parallel_plan:
+  _component_: torchtune.models.llama4.decoder_only_tp_plan
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama4.llama4_scout_17b_16e
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama4.llama4_transform
+  path: /tmp/Llama-4-Scout-17B-16E-Instruct/tokenizer.model
+  max_seq_len: null
+  max_num_tiles: 16
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-4-Scout-17B-16E-Instruct
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00050"
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA4
+
+# TODO: this is a hack, but otherwise state dict load hangs
+use_distributed_state_dict: True
+use_flex: True
+
+# Device
+device: cuda
+dtype: bf16
+seed: 1234
+log_level: INFO
+
+# Generation arguments
+prompt:
+  system: You are a helpful assistant.
+  user:
+    text: How are you doing?
+max_new_tokens: 200
+temperature: 0.6 # 0.8 and 0.6 are popular values to try
+top_k: 300
