@@ -268,7 +268,7 @@ def _sdpa_or_flex_attention() -> Callable:
     return _attention_call
 
 
-def offset_causal_mask_flex(b, h, q_idx, kv_idx, offset):
+def kv_offset_mask_flex(b, h, q_idx, kv_idx, offset):
     return kv_idx <= offset
 
 
