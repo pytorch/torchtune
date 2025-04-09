@@ -379,6 +379,14 @@ class _LLMEvalWrapper(HFLM):
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
+    def apply_chat_template(self, chat_history: List[Dict[str, str]], add_generation_prompt: bool = True) -> str:
+        # We assume that this method exists
+        # TODO (@krammnic): We do not really support "add_generation_prompt = False"
+        chat_templated = self._tokenizer.prompt_template(
+            chat_history
+        )
+        return chat_templated
+
     @torch.inference_mode()
     def _model_generate(
         self, context: torch.Tensor, **generation_kwargs
@@ -463,6 +471,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self.batch_size = cfg.batch_size
         self.enable_kv_cache = cfg.get("enable_kv_cache", True)
         self.include_path = cfg.get("include_path", None)
+        self.apply_chat_template = cfg.get("chat_template", False)
 
     def setup(self, cfg: DictConfig) -> None:
         # Initialize quantizer and quantization mode
@@ -545,6 +554,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         output = evaluate(
             self.eleuther_model_wrapper,
             task_dict,
+            apply_chat_template=self.apply_chat_template,
             limit=self.limit,
         )
         t1 = time.time() - t0
