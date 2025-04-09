@@ -57,7 +57,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             >>> loss_fn = ChunkedCrossEntropyLoss()
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
-            >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(hum_chunks, dim=1)]
+            >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
             >>>
             >>> labels = torch.tensor([bsz, num_tokens])
             >>> loss = loss_fn(output_chunks, labels)
