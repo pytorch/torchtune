@@ -133,7 +133,6 @@ class GRPOCompletionLoss(nn.Module):
 
     def __init__(
         self,
-        epsilon: float = 0.1,
         kl_coeff: float = 0.1,
         a_positive: float = 0.1,
         b_positive: float = 0.1,
@@ -145,7 +144,6 @@ class GRPOCompletionLoss(nn.Module):
 
     ):
         super().__init__()
-        self.epsilon = epsilon
         self.kl_coeff = kl_coeff
         self.a_positive = a_positive
         self.b_positive = b_positive
@@ -341,7 +339,6 @@ class GRPOTaperLoss(nn.Module):
         a_negative: float = 0.1,
         b_negative: float = 10.0,
         kl_coeff: float = 0.1,
-        epsilon: float = 0.1,
     ):
         super().__init__()
         self.a_positive = a_positive
