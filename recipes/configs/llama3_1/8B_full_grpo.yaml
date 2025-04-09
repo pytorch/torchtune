@@ -90,13 +90,10 @@ optimizer:
   _component_: torch.optim.AdamW
   lr: 1e-5
   fused: True
-lr_scheduler:
-  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 50
+  
 loss:
   _component_: torchtune.rlhf.loss.grpo.GRPOSimpleLoss
-  kl_coeff: 0.01
-  epsilon: 0.2
+  kl_coeff: 0.0
 
 # Training env
 device: cuda

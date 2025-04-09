@@ -740,5 +740,7 @@ def padded_collate_grpo(
             "position_ids":mini_batch["position_ids"],
             "response_padding_masks":mini_batch["response_padding_masks"],
             "query_len":mini_batch["query_len"],
+            "type": mini_batch["type"],
+            "response_tokens": mini_batch["response_tokens"]
         }
 

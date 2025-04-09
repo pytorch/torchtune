@@ -107,6 +107,8 @@ class GRPOTrajectory(NamedTuple):
     position_ids: torch.Tensor  # [B x G, P+L]
     response_padding_masks: torch.Tensor  # [B x G, L]
     query_len: torch.Tensor
+    type: torch.Tensor
+    response_tokens: torch.Tensor 
 
 
 class GRPOStats(NamedTuple):
