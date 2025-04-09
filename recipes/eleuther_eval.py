@@ -379,12 +379,12 @@ class _LLMEvalWrapper(HFLM):
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
-    def apply_chat_template(self, chat_history: List[Dict[str, str]], add_generation_prompt: bool = True) -> str:
+    def apply_chat_template(
+        self, chat_history: List[Dict[str, str]], add_generation_prompt: bool = True
+    ) -> str:
         # We assume that this method exists
         # TODO (@krammnic): We do not really support "add_generation_prompt = False"
-        chat_templated = self._tokenizer.prompt_template(
-            chat_history
-        )
+        chat_templated = self._tokenizer.prompt_template(chat_history)
         return chat_templated
 
     @torch.inference_mode()
