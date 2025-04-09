@@ -258,16 +258,23 @@ class TestTransformerDecoder:
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
     @pytest.fixture
-    def input_chunked_corner_case(
+    def input_chunked_to_test_tensor_split(
         self, input_params: Tuple[int, int, int]
     ) -> torch.Tensor:
-        """Emulates 49 len sequence which should be split into 8 tensors list (not 7)."""
+        """Emulates 49 len sequence which should be split into 8 tensors list (not 7).
+
+        seq_len 7, 14, 21, 28, 35, 42, 49 previously caused timeout crash
+        because torch.chunk/torch.split funcs previously used in chunked_output
+        don't guarantee requested number of chunks.
+
+        Related issue: https://github.com/pytorch/torchtune/issues/2554
+        """
         batch_size, _, vocab_size = input_params
         seq_len = 49
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
     @pytest.fixture
-    def input_chunked_not_enough_length(
+    def input_chunked_less_data_than_num_output_chunks(
         self, input_params: Tuple[int, int, int]
     ) -> torch.Tensor:
         """Emulates 7 seq_len which should be split into 8 chunks."""
@@ -405,17 +412,24 @@ class TestTransformerDecoder:
         assert len(output) == num_output_chunks
 
     @mps_ignored_test()
-    def test_forward_output_chunks_corner_case(
+    def test_forward_output_chunks_exact_amount_of_chunks(
         self,
-        input_chunked_corner_case: torch.Tensor,
+        input_chunked_to_test_tensor_split: torch.Tensor,
         input_params: Tuple[int, int, int],
         decoder: TransformerDecoder,
     ) -> None:
-        """Checks chunked output corner case (torch.chunk would've split in 7)."""
+        """Checks output of chunked_output to be exactly num_output_chunks.
+
+        seq_len 7, 14, 21, 28, 35, 42, 49 previously caused timeout crash
+        because torch.chunk/torch.split funcs previously used in chunked_output
+        don't guarantee requested number of chunks.
+
+        Related issue: https://github.com/pytorch/torchtune/issues/2554
+        """
         num_output_chunks = 8
         with torch.no_grad():
             decoder.set_num_output_chunks(num_output_chunks)
-            output = decoder(input_chunked_corner_case)
+            output = decoder(input_chunked_to_test_tensor_split)
 
         assert isinstance(output, list)
         assert len(output) == num_output_chunks
@@ -423,17 +437,17 @@ class TestTransformerDecoder:
         assert outputs_seq_len == [7, 6, 6, 6, 6, 6, 6, 6]
 
     @mps_ignored_test()
-    def test_forward_output_chunks_not_enough_length(
+    def test_forward_output_chunks_less_data_than_num_output_chunks(
         self,
-        input_chunked_not_enough_length: torch.Tensor,
+        input_chunked_less_data_than_num_output_chunks: torch.Tensor,
         input_params: Tuple[int, int, int],
         decoder: TransformerDecoder,
     ) -> None:
-        """Checks chunked output corner case (seq_len 7 should be split into 8 chunks)."""
+        """Checks that seq_len=7 data is still split into 8 chunks."""
         num_output_chunks = 8
         with torch.no_grad():
             decoder.set_num_output_chunks(num_output_chunks)
-            output = decoder(input_chunked_not_enough_length)
+            output = decoder(input_chunked_less_data_than_num_output_chunks)
 
         assert isinstance(output, list)
         assert len(output) == num_output_chunks
