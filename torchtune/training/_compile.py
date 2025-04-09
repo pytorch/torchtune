@@ -57,7 +57,6 @@ def compile_model(
             m.compile(backend=backend)
 
 
-# @deprecate
 def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     """
     Utility to compile and return loss function. If the loss function is chunked cross-entropy,
@@ -86,6 +85,9 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
         loss.rkl_loss = torch.compile(loss.rkl_loss, backend=backend)
     elif isinstance(loss, SymmetricKLWithChunkedOutputLoss):
         loss.sym_kl_loss = torch.compile(loss.sym_kl_loss, backend=backend)
+    elif hasattr(loss, "forward"):
+        loss.forward = torch.compile(loss.forward, backend=backend)
     else:
         loss = torch.compile(loss, backend=backend)
+
     return loss
