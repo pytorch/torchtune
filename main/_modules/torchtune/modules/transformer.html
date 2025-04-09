@@ -946,7 +946,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">last_hidden_state</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">last_hidden_state</span><span class="o">.</span><span class="n">tensor_split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">]</span></div>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate_inputs</span><span class="p">(</span>

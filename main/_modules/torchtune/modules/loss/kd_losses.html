@@ -666,8 +666,8 @@
 <span class="sd">            &gt;&gt;&gt; loss_fn = ForwardKLWithChunkedOutputLoss()</span>
 <span class="sd">            &gt;&gt;&gt;</span>
 <span class="sd">            &gt;&gt;&gt; h = torch.tensor([bsz, num_tokens, dim])</span>
-<span class="sd">            &gt;&gt;&gt; output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]</span>
-<span class="sd">            &gt;&gt;&gt; teacher_chunks = [teacher_model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]</span>
+<span class="sd">            &gt;&gt;&gt; output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]</span>
+<span class="sd">            &gt;&gt;&gt; teacher_chunks = [teacher_model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]</span>
 <span class="sd">            &gt;&gt;&gt; labels = torch.tensor([bsz, num_tokens])</span>
 <span class="sd">            &gt;&gt;&gt; loss = loss_fn(output_chunks, teacher_chunks, labels)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -685,7 +685,7 @@
         <span class="c1"># chunk and reshape labels (bsz, num_tokens, vocab) -&gt; [(bsz*num_tokens/num_chunks, vocab)]</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">target_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">target_chunk</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target_chunk</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">tensor_split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">]</span>
 
         <span class="n">total_fkl_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
