@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Dict, List, Optional, Union
 
 import torch
@@ -11,6 +12,9 @@ from torch import nn
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params
+from torchtune.utils import get_logger, log_once
+
+logger = get_logger("DEBUG")
 
 
 class DeepFusionModel(nn.Module):
@@ -92,11 +96,16 @@ class DeepFusionModel(nn.Module):
         else:
             trainable_params -= set(get_fusion_params(self))
         set_trainable_params(self, trainable_params)
-        self.skip_output_layer = False
 
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
+        msg = (
+            "'set_num_output_chunks' is deprecated and will be removed in future versions. "
+            "Please use self.skip_output_projection(True) and do the chunking in your loss instead, "
+            "e.g. loss(weight, input, label)."
+        )
+        log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.decoder.set_num_output_chunks(num_output_chunks)
 
     def setup_caches(
@@ -154,10 +163,15 @@ class DeepFusionModel(nn.Module):
         """Returns the output weight matrix."""
         return self.decoder.get_output_weight()
 
-    def set_skip_output_layer(self, skip: bool) -> None:
+    @property
+    def skip_output_projection(self) -> bool:
+        """Returns whether to skip output layer in the decoder and return hidden states."""
+        return self.decoder.skip_output_projection
+
+    @skip_output_projection.setter
+    def skip_output_projection(self, skip: bool) -> None:
         """Set whether to skip output layer in the decoder and return hidden states."""
-        self.skip_output_layer = skip
-        self.decoder.set_skip_output_layer(skip)
+        self.decoder.skip_output_projection = skip
 
     def forward(
         self,

@@ -303,7 +303,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # skip final output multiplication, since the loss takes the hidden input instead of logits
         self.use_output_weight_in_loss = cfg.get("use_output_weight_in_loss", False)
-        self._model.set_skip_output_layer(self.use_output_weight_in_loss)
+        self._model.set_skip_output_projection(self.use_output_weight_in_loss)
 
         utils.log_rank_zero(log, "Loss is initialized.")
 

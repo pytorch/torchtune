@@ -393,7 +393,7 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.num_output_chunks = 0
-        self.skip_output_layer = False
+        self._skip_output_projection = False
 
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
@@ -404,7 +404,7 @@ class TransformerDecoder(nn.Module):
         This should be called before the first forward pass, in the recipe."""
         msg = (
             "'set_num_output_chunks' is deprecated and will be removed in future versions. "
-            "Please use self.set_skip_output_layer(True) and do the chunking in your loss instead, "
+            "Please use self.skip_output_projection(True) and do the chunking in your loss instead, "
             "e.g. loss(weight, input, label)."
         )
         log_once(logger=logger, msg=msg, level=logging.WARNING)
@@ -493,9 +493,15 @@ class TransformerDecoder(nn.Module):
         """Returns the output weight matrix."""
         return self.output.weight
 
-    def set_skip_output_layer(self, skip: bool) -> None:
+    @property
+    def skip_output_projection(self) -> bool:
+        """Get whether to skip output layer and return hidden states."""
+        return self._skip_output_projection
+
+    @skip_output_projection.setter
+    def skip_output_projection(self, skip: bool) -> None:
         """Set whether to skip output layer and return hidden states."""
-        self.skip_output_layer = skip
+        self._skip_output_projection = skip
 
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
         """
@@ -515,7 +521,7 @@ class TransformerDecoder(nn.Module):
         """
         msg = (
             "'chunked_output' is deprecated and will be removed in future versions. "
-            "Use self.set_skip_output_layer(True) and do the chunking in your loss instead, "
+            "Use self.set_skip_output_projection(True) and do the chunking in your loss instead, "
             "e.g. loss(weight, input, label)."
         )
         log_once(logger=logger, msg=msg, level=logging.WARNING)
@@ -626,7 +632,7 @@ class TransformerDecoder(nn.Module):
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
-            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_layer=False`
+            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_projection=False`
             and ``[b x s x d]`` otherwise, or a list of layer output tensors defined by ``output_hidden_states`` with the
             final output tensor appended to the list.
 
@@ -691,13 +697,12 @@ class TransformerDecoder(nn.Module):
     def unembed(self, h):
         # shape: [b, s, d]
         h = self.norm(h)
-        if self.skip_output_layer:
+        if self._skip_output_projection:
             output = h
+        elif self.num_output_chunks > 0:
+            output = self.chunked_output(h)
         else:
-            if self.num_output_chunks > 0:
-                output = self.chunked_output(h)
-            else:
-                # shape: [b, seq_len, out_dim]
-                output = self.output(h).float()
+            # shape: [b, seq_len, out_dim]
+            output = self.output(h).float()
 
         return output
