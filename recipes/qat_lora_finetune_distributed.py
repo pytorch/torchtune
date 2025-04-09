@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
@@ -18,7 +18,8 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -332,7 +333,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -557,6 +558,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
+            state_dict_keys=model.state_dict().keys(),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -621,7 +623,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here. Currently this recipe only supports the
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
@@ -644,11 +646,11 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
-        sampler = DistributedSampler(
+        sampler = StatefulDistributedSampler(
             ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
 
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
@@ -668,7 +670,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             log.info("Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self,
@@ -757,6 +759,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
@@ -802,9 +805,8 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
