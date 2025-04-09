@@ -379,18 +379,9 @@ class RayGRPORecipe:
 
         for i in range(self.num_vllm_workers):
 
-            pg_inference = placement_group(
-                [{"GPU": 1, "CPU": 0}] * self.cfg.vllm.tp_size
-            )
-            ray.get(pg_inference.ready())
-            scheduling_inference = PlacementGroupSchedulingStrategy(
-                placement_group=pg_inference,
-                placement_group_capture_child_tasks=True,
-            )
-
             collector = (
                 ray.remote(
-                    num_cpus=0, num_gpus=0, scheduling_strategy=scheduling_inference
+                    num_cpus=0, num_gpus=self.cfg.vllm.tp_size,
                 )(SyncLLMCollector)
                 .options(max_concurrency=5)
                 .remote(
