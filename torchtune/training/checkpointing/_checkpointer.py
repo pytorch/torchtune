@@ -996,7 +996,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             torch.save(state_dict, output_path)
             logger.info(
                 "Recipe checkpoint of size "
-                f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+                f"{self._fs.size(output_path) / 1024**3:.2f} GiB "
                 f"saved to {output_path}"
             )
         else:
