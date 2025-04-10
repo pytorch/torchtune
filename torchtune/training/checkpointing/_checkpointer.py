@@ -883,7 +883,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 torch.save(state_dict[training.ADAPTER_KEY], f)
             logger.info(
                 "Adapter checkpoint of size "
-                f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+                f"{self._fs.size(output_path) / 1024**3:.2f} GiB "
                 f"saved to {output_path}"
             )
 
@@ -923,7 +923,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                         f.write(save_bytes)
                 logger.info(
                     "Adapter checkpoint of size "
-                    f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+                    f"{self._fs.size(output_path) / 1024**3:.2f} GiB "
                     f"saved to {output_path}"
                 )
         elif adapter_only:
@@ -958,7 +958,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     json.dump(state_dict[training.ADAPTER_CONFIG], f)
                 logger.info(
                     "Adapter checkpoint of size "
-                    f"{os.path.getsize(output_path) / 1024**3:.2f} GiB "
+                    f"{self._fs.size(output_path) / 1024**3:.2f} GiB "
                     f"saved to {output_path}"
                 )
 
