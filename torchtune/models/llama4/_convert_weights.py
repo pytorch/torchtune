@@ -221,7 +221,7 @@ def llama4_tune_to_hf(
     state_dict: Dict[str, torch.Tensor],
 ) -> Dict[str, torch.Tensor]:
     converted_state_dict = {}
-    inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
+    inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 
     for key, value in state_dict.items():
         # get the inverse key name for vision output weights, get_mapped_key will not work as it will look up for {}
