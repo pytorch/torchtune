@@ -18,7 +18,7 @@ from ._model_builders import (
     llama4_maverick_17b_128e,
     llama4_scout_17b_16e,
     llama4_transform,
-    lora_llama4_17bx16,
+    lora_llama4_scout_17b_16e,
 )
 from ._parallelism import decoder_only_tp_plan
 from ._tokenizer import Llama4Tokenizer
@@ -37,7 +37,7 @@ __all__ = [
     "lora_llama4_vision_encoder",
     "lora_llama4_vision_projection_head",
     "lora_llama4_decoder",
-    "lora_llama4_17bx16",
+    "lora_llama4_scout_17b_16e",
     "Llama4Transform",
     "llama4_transform",
 ]

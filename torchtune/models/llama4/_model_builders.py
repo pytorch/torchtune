@@ -254,12 +254,11 @@ def llama4_transform(
 
 
 # TODO: check these
-def lora_llama4_17bx16(
+def lora_llama4_scout_17b_16e(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     *,
     decoder_trainable: str = "lora",
     vision_encoder_trainable: str = "frozen",
-    speech_encoder_trainable: str = "frozen",
     fusion_trainable: str = "lora",
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
@@ -304,7 +303,6 @@ def lora_llama4_17bx16(
     """
     decoder_type = LoRATrainable(decoder_trainable.lower())
     vision_encoder_type = LoRATrainable(vision_encoder_trainable.lower())
-    speech_encoder_type = LoRATrainable(speech_encoder_trainable.lower())
     fusion_type = LoRATrainable(fusion_trainable.lower())
     assert LoRATrainable.FULL not in [
         decoder_type,

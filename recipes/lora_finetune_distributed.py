@@ -198,6 +198,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         base model weights. If resume_from_checkpoint is True, this also includes
         the adapter weights and recipe state
         """
+        print("Loading checkpoint")
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
             should_load_recipe_state=self._resume_from_checkpoint,
@@ -215,6 +216,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
             # no need to check here
             self._update_recipe_state(checkpoint_dict)
+        print("Done loading checkpoint")
         return checkpoint_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
@@ -455,20 +457,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
-
+        print("Instantiating model")
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
         set_trainable_params(model, get_adapter_params(model))
-
+        print("Maybe compiling model")
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
-
+        print("Applying AC")
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
-
+        print("Sharding model")
         # For FSDP sharding
         fsdp_shard_conditions = [
             partial(
@@ -492,7 +494,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
         else:
             lora_missing, lora_unexpected = None, None
-
+        print("Initializing rope and lora weights")
         # Initialize LoRA params and RoPE buffers
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if fsdp_cpu_offload else self._device
@@ -509,7 +511,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                 if hasattr(m, "rope_init"):
                     m.rope_init()
-
+        print("Loading state dict")
         base_missing, base_unexpected = training.load_from_full_model_state_dict(
             model,
             base_model_state_dict,
@@ -532,7 +534,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
-
+        print("Maybe setting up activation offloading")
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
             model, enable_activation_offloading
