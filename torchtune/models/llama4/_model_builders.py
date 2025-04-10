@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Optional
+from typing import List, Optional
 
 from torchtune.data._prompt_templates import _TemplateType
 
@@ -17,6 +17,7 @@ from torchtune.models.llama4._tokenizer import LLAMA4_SPECIAL_TOKENS
 from torchtune.models.llama4._transform import Llama4Transform
 
 from torchtune.modules.model_fusion import EarlyFusionModel
+from torchtune.modules.peft import LORA_ATTN_MODULES, LoRATrainable
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -280,11 +281,9 @@ def lora_llama4_scout_17b_16e(
             or frozen (frozen). The default is "lora".
         vision_encoder_trainable (str): Option to set vision encoder params as fully trainable (full), lora trainable (lora),
             or frozen (frozen). The default is "frozen".
-        speech_encoder_trainable (str): Option to set vision encoder params as fully trainable (full)
-            or frozen (frozen). The default is "frozen".
         fusion_trainable (str): Option to set fusion params as fully trainable (full), lora trainable (lora),
-            or frozen (frozen). This applies to the vision projection head from the vision encoder to the decoder
-            and the speech token embedding table. The default is "lora".
+            or frozen (frozen). This applies to the vision projection head from the vision encoder to the decoder.
+            The default is "lora".
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer in the vision encoder and
             the MoE layer in each transformer layer in the text decoder. Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
@@ -307,15 +306,11 @@ def lora_llama4_scout_17b_16e(
     assert LoRATrainable.FULL not in [
         decoder_type,
         vision_encoder_type,
-        speech_encoder_type,
         fusion_type,
-    ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama4_17bx16 if you need full finetuning"
+    ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama4_scout_17b_16e if you need full finetuning"
 
     decoder_embed_dim = 5120
     adapter_embed_dim = 4096
-    speech_codebook_size = 65536
-    # TODO: Figure out if we need this
-    speech_extend_vocab_size = 256
 
     vision_encoder = lora_llama4_vision_encoder(
         encoder_lora=vision_encoder_type == LoRATrainable.LORA,
@@ -365,14 +360,12 @@ def lora_llama4_scout_17b_16e(
     )
     return EarlyFusionModel(
         decoder,
-        encoders={"vision": vision_encoder, "speech": speech_encoder},
+        encoders={"vision": vision_encoder},
         encoder_tokens={
             "vision": LLAMA4_SPECIAL_TOKENS["<|patch|>"],
-            "speech": LLAMA4_SPECIAL_TOKENS["<|generated_audio|>"],
         },
         encoders_trainable={
             "vision": vision_encoder_trainable != LoRATrainable.FROZEN,
-            "speech": speech_encoder_trainable != LoRATrainable.FROZEN,
         },
         decoder_trainable=decoder_trainable != LoRATrainable.FROZEN,
         fusion_trainable=fusion_trainable != LoRATrainable.FROZEN,

@@ -62,7 +62,7 @@ class GroupedExperts(nn.Module):
                 enumerating the number of tokens each expert receives
 
         Returns:
-            torch.Tensor: tensor with shape (bsz * seq_len * experts_per_token, dim)
+            torch.Tensor: tensor with shape ``(bsz * seq_len * experts_per_token, dim)``
         """
 
         # a tuple of tensors indexed by experts
@@ -244,5 +244,7 @@ class LoRAGroupedExperts(nn.Module, AdapterModule):
 
             # h shape (tokens_per_expert(varying), hidden_dim)
             out_experts_splits.append(h)
-
+        torch.distributed.breakpoint()
         out = torch.cat(out_experts_splits, dim=0)
+
+        return out

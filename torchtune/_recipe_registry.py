@@ -480,10 +480,6 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/11B_generation_v2",
                 file_path="llama3_2_vision/11B_generation_v2.yaml",
             ),
-            Config(
-                name="llama4/17Bx16_generation_v2",
-                file_path="llama4/17Bx16_generation_v2.yaml",
-            ),
         ],
         supports_distributed=False,
     ),

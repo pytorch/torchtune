@@ -134,7 +134,7 @@ def llama4_vision_projection_head(
 ) -> Llama4VisionProjectionHead:
     """
     Build the Llama 4 Vision Projection Head that maps the output of the CLIP encoder
-    to the decoder cross attention input.
+    to the vision embeddings that are fed to the decoder input.
 
     Args:
         decoder_embed_dim (int): embedding dimension for the decoder.
@@ -176,7 +176,7 @@ def llama4_decoder(
     attn_dropout: float = 0.0,
     rope_base: int = 500_000,
     norm_eps: float = 1e-5,
-    num_experts: int = 8,
+    num_experts: int = 16,
     experts_per_token: int = 1,
     use_shared_expert: bool = True,
     use_qk_norm: bool = True,
@@ -208,7 +208,7 @@ def llama4_decoder(
             Default: 0.0
         rope_base (int): base for the rotary positional embeddings. Default: 500_000
         norm_eps (float): epsilon in RMS norms. Default: 1e-5
-        num_experts (int): Number of experts in each moe layer. Default: 8
+        num_experts (int): Number of experts in each moe layer. Default: 16
         experts_per_token (int): Number of experts each token will choose in Token Choice. Default: 2
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
         use_qk_norm (bool): Whether to use qk norm in RoPE layers. Default: True
@@ -478,6 +478,7 @@ def lora_llama4_vision_encoder(
     }
     if fusion_lora:
         lora_options.pop("lora_modules")
+        lora_options.pop("apply_lora_to_mlp")
         projection_head = lora_llama4_vision_projection_head(
             apply_lora_to_output=apply_lora_to_output,
             **projection_options,
@@ -517,7 +518,6 @@ def lora_llama4_decoder(
     norm_eps: float = 1e-5,
     num_experts: int = 8,
     experts_per_token: int = 2,
-    capacity_factor: float = 1.0,
     use_shared_expert: bool = True,
     use_expert_choice: bool = True,
     # LoRA parameters
@@ -560,7 +560,6 @@ def lora_llama4_decoder(
         norm_eps (float): epsilon in RMS norms. Default: 1e-5
         num_experts (int): Number of experts in each moe layer. Default: 8
         experts_per_token (int): Number of experts each token will choose in Token Choice. Default: 2
-        capacity_factor (float): Capacity factor determines how many tokens each expert can choose. Default: 1.0
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
@@ -621,19 +620,15 @@ def lora_llama4_decoder(
                 lora_dropout=lora_dropout,
                 num_experts=num_experts,
                 experts_per_token=experts_per_token,
-                capacity_factor=capacity_factor,
                 use_shared_expert=use_shared_expert,
-                use_expert_choice=use_expert_choice,
             )
         else:
             moe_layer = llama4_moe(
                 dim=embed_dim,
                 hidden_dim=hidden_dim,
                 num_experts=num_experts,
-                capacity_factor=capacity_factor,
-                use_shared_expert=use_shared_expert,
-                use_expert_choice=use_expert_choice,
                 experts_per_token=experts_per_token,
+                use_shared_expert=use_shared_expert,
             )
 
         layer = TransformerSelfAttentionLayer(
@@ -687,7 +682,6 @@ def lora_llama4_vision_projection_head(
     clip_embed_dim: int,
     adapter_embed_dim: int,
     # LoRA args
-    apply_lora_to_mlp: bool,
     apply_lora_to_output: bool,
     lora_rank: int,
     lora_alpha: float,
@@ -717,8 +711,8 @@ def lora_llama4_vision_projection_head(
     """
     pixel_shuffle_scaling_factor = 0.5
     peft_cls = DoRALinear if use_dora else LoRALinear
-    if apply_lora_to_mlp:
-        adapter_mlp = nn.Sequential(
+    if apply_lora_to_output:
+        output = nn.Sequential(
             peft_cls(
                 # Account for the pixel shuffle scaling factor ** 2
                 in_dim=int(clip_embed_dim // (pixel_shuffle_scaling_factor**2)),
@@ -742,9 +736,19 @@ def lora_llama4_vision_projection_head(
                 **quantization_kwargs,
             ),
             nn.GELU(),
+            peft_cls(
+                adapter_embed_dim,
+                decoder_embed_dim,
+                rank=lora_rank,
+                alpha=lora_alpha,
+                dropout=lora_dropout,
+                use_bias=False,
+                quantize_base=quantize_base,
+                **quantization_kwargs,
+            ),
         )
     else:
-        adapter_mlp = nn.Sequential(
+        output = nn.Sequential(
             nn.Linear(
                 # Account for the pixel shuffle scaling factor ** 2
                 int(clip_embed_dim // (pixel_shuffle_scaling_factor**2)),
@@ -754,25 +758,10 @@ def lora_llama4_vision_projection_head(
             nn.GELU(),
             nn.Linear(adapter_embed_dim, adapter_embed_dim, bias=False),
             nn.GELU(),
+            nn.Linear(adapter_embed_dim, decoder_embed_dim, bias=False),
         )
-
-    output = (
-        peft_cls(
-            adapter_embed_dim,
-            decoder_embed_dim,
-            rank=lora_rank,
-            alpha=lora_alpha,
-            dropout=lora_dropout,
-            use_bias=False,
-            quantize_base=quantize_base,
-            **quantization_kwargs,
-        )
-        if apply_lora_to_output
-        else nn.Linear(adapter_embed_dim, decoder_embed_dim, bias=False)
-    )
 
     return Llama4VisionProjectionHead(
-        adapter=adapter_mlp,
         output=output,
         pixel_shuffle_scaling_factor=pixel_shuffle_scaling_factor,
     )
@@ -919,6 +908,48 @@ def lora_llama4_self_attention(
     return self_attn
 
 
+def lora_llama4_mlp(
+    *,
+    dim: int,
+    hidden_dim: int,
+    lora_rank: int,
+    lora_alpha: float,
+    lora_dropout: float = 0.0,
+    quantize_base: bool = False,
+    use_dora: bool = False,
+) -> FeedForward:
+    adapter_cls = DoRALinear if use_dora else LoRALinear
+    gate_proj = adapter_cls(
+        in_dim=dim,
+        out_dim=hidden_dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+        quantize_base=quantize_base,
+    )
+    down_proj = adapter_cls(
+        in_dim=hidden_dim,
+        out_dim=dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+        quantize_base=quantize_base,
+    )
+    up_proj = adapter_cls(
+        in_dim=dim,
+        out_dim=hidden_dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+        quantize_base=quantize_base,
+    )
+    return FeedForward(
+        gate_proj=gate_proj,
+        down_proj=down_proj,
+        up_proj=up_proj,
+    )
+
+
 def lora_llama4_moe(
     dim: int,
     hidden_dim: int,
@@ -926,10 +957,8 @@ def lora_llama4_moe(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     num_experts: int = 8,
-    experts_per_token: int = 2,
-    capacity_factor: float = 1.0,
+    experts_per_token: int = 1,
     use_shared_expert: bool = True,
-    use_expert_choice: bool = True,
 ) -> MoE:
     """
     Build the MoE layer associated with the Llama model.
@@ -949,20 +978,12 @@ def lora_llama4_moe(
     Returns:
         MoE: Instantiation of MoE layer.
     """
-    if use_expert_choice:
-        router = ExpertChoiceTopKRouter(
-            gate=nn.Linear(dim, num_experts, bias=False),
-            dim=dim,
-            num_experts=num_experts,
-            capacity_factor=capacity_factor,
-        )
-    else:
-        router = TokenChoiceTopKRouter(
-            gate=nn.Linear(dim, num_experts, bias=False),
-            dim=dim,
-            num_experts=num_experts,
-            experts_per_token=experts_per_token,
-        )
+    router = TokenChoiceTopKRouter(
+        gate=nn.Linear(dim, num_experts, bias=False),
+        dim=dim,
+        num_experts=num_experts,
+        experts_per_token=experts_per_token,
+    )
     experts = LoRAGroupedExperts(
         dim=dim,
         hidden_dim=hidden_dim,
@@ -971,17 +992,12 @@ def lora_llama4_moe(
         alpha=lora_alpha,
         dropout=lora_dropout,
     )
-    shared_expert = (
-        LoRAGroupedExperts(
-            dim=dim,
-            hidden_dim=hidden_dim,
-            num_experts=1,
-            rank=lora_rank,
-            alpha=lora_alpha,
-            dropout=lora_dropout,
-        )
-        if use_shared_expert
-        else None
+    shared_expert = lora_llama4_mlp(
+        dim=dim,
+        hidden_dim=hidden_dim,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
     )
 
     return MoE(
