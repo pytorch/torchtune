@@ -257,7 +257,9 @@ def padded_collate_sft(
     if "encoder_input" in batch[0]:
         x = [x["encoder_input"] for x in batch]
         batched_encodings = _stack_encoder_input(x, new_dim=stack_on_new_dim)
-        if batched_encodings is not {}:
+        # TODO: fix this hack
+        batched_encodings = {k: v for k, v in batched_encodings.items() if v != {}}
+        if batched_encodings != {}:
             batch_dict["encoder_input"] = batched_encodings
     return batch_dict
 
