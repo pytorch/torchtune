@@ -248,7 +248,10 @@ tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
 You can finetune Llama3.1 8B with LoRA on a single GPU using the following command:
 
 ```bash
-tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
+# default configeration is on a cuda device
+tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device 
+# finetune it on an Intel XPU device
+tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device device=xpu
 ```
 
 For distributed training, tune CLI integrates with [torchrun](https://pytorch.org/docs/stable/elastic/run.html).
