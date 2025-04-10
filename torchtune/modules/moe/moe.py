@@ -53,7 +53,7 @@ class TokenChoiceTopKRouter(nn.Module):
         # scores shape (bs*slen, num_experts)
         scores = self.gate(x)
 
-        # By default, sigmoid or softmax is performed in float32 to avoid loss explosion
+        # By default, sigmoid is performed in float32 to avoid loss explosion
         scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
 
         # top scores shape (bs*slen, top_k)

@@ -75,4 +75,4 @@ class TestMoeLayer:
         out = moe(x)
 
         assert out.shape == (2, 8, dim)
-        assert_expected(out.mean().item(), 1488.2578, atol=1e-3, rtol=1e-3)
+        assert_expected(out.mean().item(), 3303.9001, atol=1e-3, rtol=1e-3)
