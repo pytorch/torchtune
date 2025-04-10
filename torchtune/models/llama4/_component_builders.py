@@ -221,6 +221,8 @@ def llama4_decoder(
         )
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+
+    # TODO: could change this to Llama3ScaledRoPE for Scout long-context training
     rope = RotaryPositionalEmbeddings(
         dim=head_dim, max_seq_len=max_seq_len, base=rope_base
     )
@@ -277,11 +279,6 @@ def llama4_decoder(
         else:
             mlp_layer = llama4_mlp(dim=embed_dim, hidden_dim=mlp_hidden_dim)
 
-        mask_mod = None
-        if skip_rope_interval is not None and (i + 1) % skip_rope_interval != 0:
-            mask_mod = partial(
-                get_chunked_attention_mask, chunk_size=attention_chunk_size
-            )
         layer = TransformerSelfAttentionLayer(
             attn=self_attn,
             mlp=mlp_layer,
