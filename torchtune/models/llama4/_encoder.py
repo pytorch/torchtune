@@ -16,7 +16,7 @@ from torchtune.modules.model_fusion import register_fusion_module
 class Llama4VisionProjectionHead(nn.Module):
     """Projection transformer to adapt the output of a
     pretrained frozen encoder (CLIP) to a pretrained decoder model.
-    For example, nn.Sequential(CLIP(), Llama4VisionProjectionHead()).
+    For example, ``nn.Sequential(CLIP(), Llama4VisionProjectionHead())``.
 
     Note: this module assumes the CLS token embedding is added at the end
     of the sequence.
@@ -110,9 +110,10 @@ class Llama4VisionEncoder(nn.Module):
 
     Args:
         clip (nn.Module): CLIP encoder vision model
-        projection_head (nn.Module): projection_head that takes embeddings
-            with dimension encoder_dim as input and outputs embeddings of
-            size decoder_dim.
+        projection_head (nn.Module): ``projection_head`` that takes embeddings
+            with dimension ``encoder_dim`` as input and outputs embeddings of
+            size ``decoder_dim``. See :func:`torchtune.models.llama4.llama4_vision_projection_head`
+            as an example.
     """
 
     def __init__(self, clip: nn.Module, projection_head: nn.Module) -> None:
@@ -126,14 +127,14 @@ class Llama4VisionEncoder(nn.Module):
     ) -> torch.Tensor:
         """
         Args:
-            images (torch.Tensor): Image tensor with shape [b x i x t x c x w x h]
-            aspect_ratio (Optional[torch.Tensor]): Tensor with shape [b x i x 2]. If all
+            images (torch.Tensor): Image tensor with shape ``[b x i x t x c x w x h]``
+            aspect_ratio (Optional[torch.Tensor]): Tensor with shape ``[b x i x 2]``. If all
                 images have a single tile, i.e. they were not tile-cropped, it should be None.
                 Used to calculate the positional embeddings for the tiles.
 
         Returns:
-            Tensor: output tensor of a sequence of embeddings [b x s x d]
-                where sequence length is num_imgs*num_tiles+num_embeds
+            Tensor: output tensor of a sequence of embeddings ``[b x s x d]``
+                where sequence length (``s``) is ``(num_imgs*num_tiles)+num_embeds``
 
          Notation used for tensor shapes:
             - b: batch size

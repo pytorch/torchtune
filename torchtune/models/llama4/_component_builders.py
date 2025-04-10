@@ -15,11 +15,12 @@ from torchtune.models.llama4._encoder import (
     Llama4VisionEncoder,
     Llama4VisionProjectionHead,
 )
+from torchtune.models.llama4._position_embeddings import Llama4ScaledRoPE
 from torchtune.modules import (
     FeedForward,
     FrozenNF4Linear,
-    L2Norm,
     MultiHeadAttention,
+    rms_norm,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
@@ -175,6 +176,11 @@ def llama4_decoder(
     mlp_hidden_dim: Optional[int] = None,
     skip_rope_interval: Optional[int] = None,
     attention_chunk_size: Optional[int] = None,
+    use_scaled_rope: bool = False,
+    rope_scale_factor: Optional[float] = 16.0,
+    rope_low_freq_factor: Optional[float] = 1.0,
+    rope_high_freq_factor: Optional[float] = 1.0,
+    old_context_len: Optional[int] = 8192,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the MOE model. This includes:
@@ -211,6 +217,16 @@ def llama4_decoder(
             If set, every nth layer will use local attention. Default is to always use vanilla attention
         attention_chunk_size (Optional[int]): Size of chunks for local attention.
             Required if `skip_rope_interval` is set.
+        use_scaled_rope (bool): Whether to use scaled RoPE or not. Scaled RoPE is used for Llama4 Scout
+            model, but not Maverick model. Default: False
+        rope_scale_factor (Optional[float]): scaling factor for RoPE. Only applicable if use_scaled_rope=True.
+            Default: 16.0
+        rope_low_freq_factor (Optional[float]): scaling factor for low frequency RoPE. Only applicable if
+            use_scaled_rope=True. Default: 1.0
+        rope_high_freq_factor (Optional[float]): scaling factor for high frequency RoPE. Only applicable if
+            use_scaled_rope=True. Default: 1.0
+        old_context_len (Optional[int]): old context length for scaling theta. Only applicable if
+            use_scaled_rope=True. Default: 8192
 
     Returns:
         TransformerDecoder: Instantiation of MoE model.
@@ -222,10 +238,20 @@ def llama4_decoder(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
-    # TODO: could change this to Llama3ScaledRoPE for Scout long-context training
-    rope = RotaryPositionalEmbeddings(
-        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
-    )
+    if use_scaled_rope:
+        rope = Llama4ScaledRoPE(
+            dim=head_dim,
+            max_seq_len=max_seq_len,
+            base=rope_base,
+            scale_factor=rope_scale_factor,
+            low_freq_factor=rope_low_freq_factor,
+            high_freq_factor=rope_high_freq_factor,
+            old_context_len=old_context_len,
+        )
+    else:
+        rope = RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+        )
     layers = []
     for i in range(num_layers):
 
@@ -236,10 +262,9 @@ def llama4_decoder(
             )
             # Note: this is the value in llama-models, which doesn't match the config
             pos_embeddings = rope
-            q_norm = L2Norm(dim=num_heads * head_dim, eps=1e-6) if use_qk_norm else None
-            k_norm = (
-                L2Norm(dim=num_kv_heads * head_dim, eps=1e-6) if use_qk_norm else None
-            )
+
+            q_norm = partial(rms_norm, eps=norm_eps) if use_qk_norm else None
+            k_norm = partial(rms_norm, eps=norm_eps) if use_qk_norm else None
         else:
             pos_embeddings, q_norm, k_norm = None, None, None
 

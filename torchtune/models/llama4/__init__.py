@@ -17,6 +17,7 @@ from ._model_builders import (
     llama4_transform,
 )
 from ._parallelism import decoder_only_tp_plan
+from ._position_embeddings import Llama4ScaledRoPE
 from ._tokenizer import Llama4Tokenizer
 from ._transform import Llama4Transform
 
@@ -32,4 +33,5 @@ __all__ = [
     "llama4_maverick_17b_128e",
     "Llama4Transform",
     "llama4_transform",
+    "Llama4ScaledRoPE",
 ]
