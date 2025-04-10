@@ -29,11 +29,11 @@ def random():
 class TestLlama4:
     @pytest.fixture
     def patch_inputs(self):
-        return torch.randn((BSZ, N_IMG, N_TILES, N_PATCHES, EMBED_DIM))
+        return torch.randn((BSZ * N_IMG * N_TILES, N_PATCHES, EMBED_DIM))
 
     @pytest.fixture
     def image_inputs(self):
-        return torch.randn((BSZ, N_IMG, N_TILES, 3, TILE_SIZE, TILE_SIZE))
+        return torch.randn((BSZ * N_IMG * N_TILES, 3, TILE_SIZE, TILE_SIZE))
 
     def test_vision_projection_head_forward(self, patch_inputs):
         """
@@ -46,9 +46,9 @@ class TestLlama4:
         )
         fixed_init_model(head, min_val=-0.25, max_val=0.5)
         actual = head(patch_inputs)
-        expected = torch.tensor(2503.2566)
+        expected = torch.tensor(2463.2561)
         # The CLS patch is dropped, and divide by 4 to account for pixel shuffle
-        assert actual.shape == (BSZ, N_IMG * N_TILES * (N_PATCHES - 1) // 4, EMBED_DIM)
+        assert actual.shape == (BSZ * N_IMG * N_TILES, (N_PATCHES - 1) // 4, EMBED_DIM)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-4)
 
     def test_vision_encoder_forward(self, image_inputs):
@@ -67,9 +67,8 @@ class TestLlama4:
             in_channels=3,
         )
         fixed_init_model(encoder, min_val=-0.25, max_val=0.5)
-        aspect_ratio = torch.tensor([2, 2]).expand(BSZ, N_IMG, 2)
-        actual = encoder(image_inputs, aspect_ratio=aspect_ratio)
+        actual = encoder(image_inputs)
         expected = torch.tensor(40112.8438)
         # The CLS patch is dropped, and divide by 4 to account for pixel shuffle
-        assert actual.shape == (BSZ, N_IMG * N_TILES * (N_PATCHES - 1) // 4, EMBED_DIM)
+        assert actual.shape == (BSZ * N_IMG * N_TILES, (N_PATCHES - 1) // 4, EMBED_DIM)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-4)
