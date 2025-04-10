@@ -497,7 +497,7 @@ class TransformerDecoder(nn.Module):
         """
         return [
             self.output(chunk)
-            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+            for chunk in last_hidden_state.tensor_split(self.num_output_chunks, dim=1)
         ]
 
     def _validate_inputs(
