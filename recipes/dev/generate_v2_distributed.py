@@ -239,7 +239,6 @@ class InferenceRecipe:
         generated_tokens = []
         t0 = time.perf_counter()
         logits = self.model(prompt, **batch)[:, -1]
-        # torch.distributed.breakpoint()
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())
 

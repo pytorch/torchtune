@@ -61,7 +61,7 @@ class Message:
             - All ipython messages (tool call returns) should set ``eot=False``.
 
     Note:
-        Message class expects any image content to be a torch.Tensor, as output
+        Message class expects any image content to be a ``torch.Tensor``, as output
         by e.g. :func:`~torchtune.data.load_image`
     """
 

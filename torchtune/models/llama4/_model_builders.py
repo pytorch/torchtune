@@ -29,6 +29,13 @@ def llama4_scout_17b_16e(
     """
     Builder for creating an instance of the Llama4 Scout 17Bx16E model
 
+    Args:
+        decoder_trainable (bool): Whether to make decoder params trainable. Default is True.
+        encoder_trainable (bool): Whether to make encoder params trainable. Default is False.
+        fusion_trainable (bool): Whether to make fusion params trainable. Default is True.
+        image_size (int): Base image size that images will be tiled and resized to.
+            Default is 336.
+
     Returns:
         EarlyFusionModel: Instantiation of a 17Bx16E Llama4 MoE model with encoders.
     """
@@ -84,6 +91,13 @@ def llama4_maverick_17b_128e(
 ) -> EarlyFusionModel:
     """
     Builder for creating an instance of the Llama4 Maverick 17Bx128E model
+
+    Args:
+        decoder_trainable (bool): Whether to make decoder params trainable. Default is True.
+        encoder_trainable (bool): Whether to make encoder params trainable. Default is False.
+        fusion_trainable (bool): Whether to make fusion params trainable. Default is True.
+        image_size (int): Base image size that images will be tiled and resized to.
+            Default is 336.
 
     Returns:
         EarlyFusionModel: Instantiation of a 17Bx128E Llama4 MoE model with encoders.
