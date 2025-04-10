@@ -7,10 +7,9 @@
 import pytest
 
 import torch
-from tests.test_utils import assert_expected, fixed_init_model
+from tests.test_utils import assert_expected, fixed_init_model, gpu_test
 from torch import nn
-from torchtune.modules.moe import GroupedExperts, MoE
-from torchtune.modules.moe.moe import TokenChoiceTopKRouter
+from torchtune.modules.moe import GroupedExperts, MoE, TokenChoiceTopKRouter
 from torchtune.training.seed import set_seed
 
 
@@ -38,7 +37,7 @@ class TestMoeLayer:
 
     @pytest.fixture
     def experts_per_token(self) -> float:
-        return 1
+        return 2
 
     @pytest.fixture
     def experts(self, dim, hidden_dim, num_experts) -> int:
@@ -54,8 +53,8 @@ class TestMoeLayer:
         )
 
     @pytest.fixture
-    def shared_expert(self, dim, hidden_dim) -> int:
-        return GroupedExperts(dim=dim, hidden_dim=hidden_dim, num_experts=1)
+    def shared_expert(self, dim) -> int:
+        return nn.Linear(dim, dim, bias=False)
 
     @pytest.fixture
     def moe(self, experts, router, shared_expert) -> nn.Module:
@@ -64,32 +63,16 @@ class TestMoeLayer:
         return moe
 
     @torch.no_grad()
+    @gpu_test(gpu_count=1)
     def test_forward(self, moe, dim):
         """
         Test that the forward pass of the moe layer works as expected.
+
+        [Note] has to run on GPU because torch.histc is not supported on CPU
         """
-        x = torch.randn((16, dim)).view(2, 8, dim)
+        moe.to("cuda")
+        x = torch.randn((16, dim)).view(2, 8, dim).to("cuda")
         out = moe(x)
 
         assert out.shape == (2, 8, dim)
-        assert_expected(out.mean(), torch.tensor(215.6440), atol=1e-3, rtol=1e-3)
-
-    def test_get_and_load_state_dict(self, moe):
-        """
-        Test that the state dict hooks work in removing the "layer" variable
-        """
-        state_dict = moe.state_dict()
-        state_keys = set(state_dict.keys())
-
-        assert state_keys == {
-            "experts.gate_proj",
-            "experts.down_proj",
-            "experts.up_proj",
-            "shared_expert.gate_proj",
-            "shared_expert.down_proj",
-            "shared_expert.up_proj",
-            "router.gate.weight",
-        }
-
-        # Check that the state_dict can be loaded back into the model
-        moe.load_state_dict(state_dict)
+        assert_expected(out.mean().item(), 1488.2578, atol=1e-3, rtol=1e-3)

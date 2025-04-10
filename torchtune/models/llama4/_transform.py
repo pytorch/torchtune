@@ -7,7 +7,6 @@
 from typing import Any, List, Mapping, Optional, Tuple
 
 import torch
-import torchvision
 from PIL import Image
 
 from torchtune.data import Message
@@ -17,7 +16,7 @@ from torchtune.models.clip import CLIPImageTransform
 from torchtune.models.llama4._tokenizer import Llama4Tokenizer
 from torchtune.modules.tokenizers import ModelTokenizer, parse_hf_tokenizer_json
 from torchtune.modules.transforms import Transform
-from torchvision.transforms import Normalize, Resize, ToTensor
+from torchvision.transforms import v2
 
 
 class Llama4Transform(ModelTokenizer, Transform):
@@ -101,14 +100,15 @@ class Llama4Transform(ModelTokenizer, Transform):
             max_seq_len=max_seq_len,
             prompt_template=template,
         )
-        self.global_image_transform = ResizeNormalizeImageTransform(
-            image_size=tile_size,
-            image_mean=image_mean,
-            image_std=image_std,
-            dtype=dtype,
-            resample="bilinear",
+        self.thumbnail_transform = v2.Compose(
+            [
+                v2.Resize((tile_size, tile_size)),
+                v2.ToImage(),
+                v2.ToDtype(dtype=dtype, scale=True),
+                v2.Normalize(mean=image_mean, std=image_std, inplace=True),
+            ]
         )
-        self.tiled_image_transform = CLIPImageTransform(
+        self.clip_transform = CLIPImageTransform(
             image_mean=image_mean,
             image_std=image_std,
             tile_size=tile_size,
@@ -141,6 +141,18 @@ class Llama4Transform(ModelTokenizer, Transform):
     @property
     def vocab_size(self) -> int:
         return self.tokenizer.vocab_size
+
+    def transform_image(
+        self, image: Image.Image, inference: bool = False
+    ) -> torch.Tensor:
+        tiles, ar = self.clip_transform({"image": image}, inference=inference).values()
+        num_tiles, *_ = tiles.shape
+
+        # add thumbnail if there are multiple tiles
+        if num_tiles > 1:
+            thumbnail = self.thumbnail_transform(image)
+            tiles = torch.cat((tiles, thumbnail.unsqueeze(0)), dim=0)
+        return tiles, ar
 
     def encode(
         self,
@@ -234,7 +246,6 @@ class Llama4Transform(ModelTokenizer, Transform):
                 - tokens: List[int] of tokenized messages
                 - mask: List[bool] of masks for the tokenized messages
                 - encoder_input: Dict[str, Any] of transformed images
-                - encoder_mask: List[bool] of masks for the transformed images
         """
         encoder_input = {
             "vision": {"images": [], "aspect_ratio": []},
@@ -243,28 +254,11 @@ class Llama4Transform(ModelTokenizer, Transform):
         for message in messages:
             for content in message.content:
                 if content["type"] == "image":
-                    transformed_tiles = self.tiled_image_transform(
-                        {"image": content["content"]}
-                    )
-                    ar = transformed_tiles["aspect_ratio"]
-                    num_tiles, _, _, _ = transformed_tiles["image"].shape
-                    # Only add global thumbnail if there are multiple tiles
-                    if num_tiles > 1:
-                        global_tile = self.global_image_transform(
-                            {"image": content["content"]}
-                        )
-                        all_tiles = torch.cat(
-                            (
-                                transformed_tiles["image"],
-                                global_tile["image"].unsqueeze(0),
-                            ),
-                            dim=0,
-                        )
-                    else:
-                        all_tiles = transformed_tiles["image"]
-
-                    encoder_input["vision"]["images"].append(all_tiles)
+                    image = content["content"]
+                    tiles, ar = self.transform_image(image, inference=inference)
+                    encoder_input["vision"]["images"].append(tiles)
                     encoder_input["vision"]["aspect_ratio"].append(ar)
+
                     # Add number of patch tokens, tiles, and aspect ratio to metadata
                     # so tokenizer can add the corresponding special tokens
                     content["patch_tokens_per_tile"] = self.patch_tokens_per_tile
@@ -272,70 +266,4 @@ class Llama4Transform(ModelTokenizer, Transform):
 
         sample["encoder_input"] = encoder_input
         sample = self.tokenizer(sample, inference=inference)
-        return sample
-
-
-class ResizeNormalizeImageTransform:
-    """
-    Image transform pipeline that resizes and normalizes. Used for a global thumbnail of the image in Llama4.
-
-    Args:
-        image_size (int): Height and width of the output image to resize to. Output image will be square.
-        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
-            Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
-        image_std (Optional[List[float]]): Standard deviation values of each channel, used for normalization.
-            Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
-        dtype (torch.dtype): Data type of the output image. Default torch.bfloat16.
-        resample (str): Resampling method used when resizing images. Supports any enum of
-            ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
-            Default 'bilinear'.
-    """
-
-    def __init__(
-        self,
-        image_size: int,
-        image_mean: Optional[List[float]] = None,
-        image_std: Optional[List[float]] = None,
-        dtype: torch.dtype = torch.bfloat16,
-        resample: str = "bilinear",
-    ) -> None:
-        self.image_size = image_size
-        self.image_mean = image_mean
-        self.image_std = image_std
-        self.dtype = dtype
-        self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
-
-        self.resize = Resize((self.image_size, self.image_size))
-        self.to_tensor = ToTensor()
-        if self.image_mean is not None and self.image_std is not None:
-            self.normalize = Normalize(
-                mean=self.image_mean,
-                std=self.image_std,
-                inplace=True,
-            )
-        else:
-            self.normalize = None
-
-    def __call__(
-        self, sample: Mapping[str, Any], inference: bool = False
-    ) -> Mapping[str, Any]:
-        image = sample["image"]
-        assert isinstance(image, Image.Image), "Input image must be a PIL image."
-
-        # Make image torch.tensor((3, H, W), dtype=dtype), 0<=values<=1
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-
-        image = self.resize(image)
-        image = self.to_tensor(image)
-
-        if self.normalize is not None:
-            image = self.normalize(image)
-
-        sample.update(
-            {
-                "image": image,
-            }
-        )
-
         return sample

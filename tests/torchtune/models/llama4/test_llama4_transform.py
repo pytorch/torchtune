@@ -6,8 +6,9 @@
 
 import pytest
 import torch
+from tests.common import ASSETS
 from tests.test_utils import assert_expected
-from torchtune.models.llama4._transform import ResizeNormalizeImageTransform
+from torchtune.models.llama4._transform import Llama4Transform
 from torchtune.training.seed import set_seed
 from torchvision.transforms.v2 import functional as F
 
@@ -30,11 +31,14 @@ def random_image():
     return pil_image
 
 
-class TestResizeNormalizeImageTransform:
+class TestImageThumbnailTransform:
     @pytest.fixture
     def transform(self):
-        return ResizeNormalizeImageTransform(
-            image_size=16,
+        return Llama4Transform(
+            path=str(ASSETS / "tiktoken_small_llama4.model"),
+            tile_size=16,
+            patch_size=4,
+            max_num_tiles=4,
             image_mean=[0.5, 0.5, 0.5],
             image_std=[0.5, 0.5, 0.5],
             dtype=torch.float32,
@@ -42,6 +46,6 @@ class TestResizeNormalizeImageTransform:
 
     def test_call(self, transform):
         image = random_image()
-        actual = transform({"image": image})
-        assert actual["image"].shape == (3, 16, 16)
-        assert_expected(actual["image"].sum(), torch.tensor(-123.3412))
+        actual = transform.thumbnail_transform(image)
+        assert actual.shape == (3, 16, 16)
+        assert_expected(actual.sum(), torch.tensor(-123.3412))
