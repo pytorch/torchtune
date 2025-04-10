@@ -63,8 +63,7 @@ def llama4_vision_encoder(
     projection head fusion module. This includes:
     - Spatial positional encodings
     - CLIP model backbone
-    - Projection head on top of CLIP
-    - Final projection into token embedding dimension
+    - MLP head projecting CLIP outputs into embeddings for the decoder
 
     Args:
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
@@ -126,7 +125,7 @@ def llama4_vision_projection_head(
 ) -> Llama4VisionProjectionHead:
     """
     Build the Llama 4 Vision Projection Head that maps the output of the CLIP encoder
-    to the decoder cross attention input.
+    to embeddings that can be fed into the decoder.
 
     Args:
         decoder_embed_dim (int): embedding dimension for the decoder.

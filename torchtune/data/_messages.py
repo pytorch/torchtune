@@ -137,7 +137,7 @@ class Message:
         )
 
     def _validate_message(self) -> None:
-        if self.ipython and (self.contains_media):
+        if self.ipython and self.contains_media:
             raise ValueError(
                 f"Media tokens in tool calls are not supported. Both are set in message: {self.text_content}"
             )
