@@ -224,11 +224,11 @@ def llama4_tune_to_hf(
     inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
 
     for key, value in state_dict.items():
-        # get the invert key name for vision adapter weights, get_mapped_key will not work as it will look up for {}
+        # get the inverse key name for vision output weights, get_mapped_key will not work as it will look up for {}
         if (
-            key == "encoders.vision.projection.adapter.0.weight"
-            or key == "encoders.vision.projection.adapter.2.weight"
-            or key == "encoders.vision.projection.adapter.4.weight"
+            key == "encoders.vision.projection.output.0.weight"
+            or key == "encoders.vision.projection.output.2.weight"
+            or key == "encoders.vision.projection.output.4.weight"
         ):
             new_key = inverted_mapping_dict[key]
         else:
