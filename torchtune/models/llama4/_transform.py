@@ -27,7 +27,7 @@ class Llama4Transform(ModelTokenizer, Transform):
     - :class:`torchtune.models.clip.CLIPImageTransform`
 
     This transform can be used as a drop-in replacement for tokenizers in recipes and generation
-    but handles additional transformations from the `__call__` method.
+    but handles additional transformations from the ``__call__`` method.
 
     Args:
         path (str): Path to pretrained tiktoken tokenizer file.
@@ -37,7 +37,7 @@ class Llama4Transform(ModelTokenizer, Transform):
         max_num_tiles (int): Only used if possible_resolutions is NOT given.
             Maximum number of tiles to break an image into.
             This will be used to generate possible_resolutions,
-            e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
+            e.g. [(224, 224), (224, 448), (448, 224)] if ``max_num_tiles = 2`` and ``tile_size = 224``.
             Default 4.
         pixel_shuffle_scaling_factor (float): scaling factor for pixel shuffle. Default is 0.5. You must ensure this
             matches the pixel shuffle scaling factor used in :class:`~torchtune.models.llama4.Llama4VisionProjectionHead`

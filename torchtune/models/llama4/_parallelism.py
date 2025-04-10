@@ -12,13 +12,16 @@ from torch.distributed.tensor import Partial, Replicate, Shard
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
     PrepareModuleInput,
-    PrepareModuleInputOutput,
     PrepareModuleOutput,
     RowwiseParallel,
     SequenceParallel,
 )
 from torch.distributed.tensor.parallel.style import ParallelStyle
-from torchtune.modules.moe._parallelism import ExpertTensorParallel, NoParallel
+from torchtune.modules.moe._parallelism import (
+    ExpertTensorParallel,
+    NoParallel,
+    PrepareModuleInputOutput,
+)
 from torchtune.modules.moe.moe import MoE
 
 
