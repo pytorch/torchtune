@@ -7,8 +7,7 @@
 # To launch on 8 devices, run the following command from root:
 #   tune run --nproc_per_node 8 full_finetune_distributed --config llama4/scout_17B_16E_full
 #
-# You can add specific overrides through the command line. For example
-# to override the checkpointer directory while launching training:
+# You can add specific overrides through the command line. For example, to use a larger bsz:
 #   tune run --nproc_per_node 8 full_finetune_distributed --config llama4/scout_17B_16E_full batch_size=8
 #
 # This config was only tested on 8xA100 machine and 16xH100 machines.
