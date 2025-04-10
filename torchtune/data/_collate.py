@@ -180,20 +180,22 @@ def padded_collate(
 
 
 def padded_collate_sft(
-    batch: List[Dict[str, List[int]]],
+    batch: List[Dict[str, Any]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_to_multiple_of: int = 1,
+    stack_on_new_dim: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
 
     Args:
-        batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.
+        batch (List[Dict[str, Any]]): A list of dictionaries containing samples, including tokens and labels.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
             This is useful for proper sharding with e.g. SequenceParallel.
+        stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False
 
     Returns:
         Dict[str, torch.Tensor]: Collated input and label tensors.
@@ -251,7 +253,13 @@ def padded_collate_sft(
             (0, pad_to_multiple_of - (labels_seq_len % pad_to_multiple_of)),
             value=ignore_idx,
         )
-    return {"tokens": input_ids.long(), "labels": labels.long()}
+    batch_dict = {"tokens": input_ids.long(), "labels": labels.long()}
+    if "encoder_input" in batch[0]:
+        x = [x["encoder_input"] for x in batch]
+        batched_encodings = _stack_encoder_input(x, new_dim=stack_on_new_dim)
+        if batched_encodings is not {}:
+            batch_dict["encoder_input"] = batched_encodings
+    return batch_dict
 
 
 # TODO: Generalize this to support any type of encoder input, right now this assumes
@@ -674,3 +682,19 @@ def padded_collate_dpo(
         )
 
     return concatenated_input_ids, concatenated_labels
+
+
+def _stack_encoder_input(batch: List[Dict[str, Any]], new_dim=False) -> Dict[str, Any]:
+    """Recursively traverse dict for list of tensors to stack or cat"""
+    stacked_batch = {}
+    for k, v in batch[0].items():
+        if isinstance(v, list) and all(isinstance(x, torch.Tensor) for x in v):
+            v = [j for i in batch for j in i[k]]
+            if len(v) > 0:
+                stacked_batch[k] = torch.stack(v) if new_dim else torch.cat(v)
+        elif isinstance(v, dict):
+            v = [i[k] for i in batch]
+            stacked_batch[k] = _stack_encoder_input(v, new_dim)
+        else:
+            raise ValueError(f"Unsupported type {type(v)} for key {k}")
+        return stacked_batch

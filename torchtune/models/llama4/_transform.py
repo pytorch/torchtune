@@ -247,9 +247,7 @@ class Llama4Transform(ModelTokenizer, Transform):
                 - mask: List[bool] of masks for the tokenized messages
                 - encoder_input: Dict[str, Any] of transformed images
         """
-        encoder_input = {
-            "vision": {"images": [], "aspect_ratio": []},
-        }
+        encoder_input = {"vision": {"images": []}}
         messages = sample["messages"]
         for message in messages:
             for content in message.content:
@@ -257,7 +255,6 @@ class Llama4Transform(ModelTokenizer, Transform):
                     image = content["content"]
                     tiles, ar = self.transform_image(image, inference=inference)
                     encoder_input["vision"]["images"].append(tiles)
-                    encoder_input["vision"]["aspect_ratio"].append(ar)
 
                     # Add number of patch tokens, tiles, and aspect ratio to metadata
                     # so tokenizer can add the corresponding special tokens
