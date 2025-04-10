@@ -15,18 +15,22 @@
 
 output_dir: /tmp/torchtune/llama4_17Bx16E/full
 
-# Model arguments
+# Modeling arguments
 model:
   _component_: torchtune.models.llama4.llama4_scout_17b_16e
 
-# Tokenizer
+tensor_parallel_dim: 2 # For multi-node training we recommend tensor_parallel_dim: 8
+tensor_parallel_plan:
+  _component_: torchtune.models.llama4.decoder_only_tp_plan
+data_parallel_shard_dim: -1 # Will infer based on TP dim, effictively controls FSDP
+data_parallel_replicate_dim: 1
+
 tokenizer:
   _component_: torchtune.models.llama4.llama4_transform
   path: /tmp/Llama-4-Scout-17B-16E-Instruct/tokenizer.model
   max_seq_len: null
   max_num_tiles: 16
 
-# Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-4-Scout-17B-16E-Instruct
@@ -37,13 +41,6 @@ checkpointer:
   output_dir: ${output_dir}
   model_type: LLAMA4
 resume_from_checkpoint: False
-
-# For multi-node training we recommend tensor_parallel_dim: 8
-tensor_parallel_dim: 2
-tensor_parallel_plan:
-  _component_: torchtune.models.llama4.decoder_only_tp_plan
-data_parallel_shard_dim: -1 # Will infer based on TP dim, effictively controls FSDP
-data_parallel_replicate_dim: 1
 
 # Dataset
 dataset:
@@ -66,7 +63,7 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 clip_grad_norm: null
 
-# Training env
+# cuda, cpu, rocm, xpu...
 device: cuda
 
 # Memory management / performance
@@ -78,13 +75,14 @@ compile: False # torch.compile, set to true for perf/memory improvement
 # Reduced precision
 dtype: bf16
 
-# Logging
+# Log metrics during training
 metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
+# Useful for understanding how to optimize memory and performance
 profiler:
   _component_: torchtune.training.setup_torch_profiler
   enabled: False
