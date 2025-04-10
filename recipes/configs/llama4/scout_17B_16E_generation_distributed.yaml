@@ -2,7 +2,7 @@
 # from a Llama4 17Bx16E MoE model
 #
 # This config assumes that you've run the following command before launching
-#   tune download ll-re/Llama-4-Scout-17B-16E-Instruct --output-dir /tmp/Llama-4-Scout-17B-16E-Instruct
+#   tune download meta-llama/Llama-4-Scout-17B-16E-Instruct --output-dir /tmp/Llama-4-Scout-17B-16E-Instruct
 #
 # To launch, run the following command from root torchtune directory:
 #    tune run --nproc_per_node 4 dev/generate_v2_distributed --config llama4/scout_17B_16E_generation_distributed

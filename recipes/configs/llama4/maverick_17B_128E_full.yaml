@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download ll-re/Llama-4-Maverick-17B-128E-Instruct --output-dir /tmp/ll-re/Llama-4-Maverick-17B-128E-Instruct
+#   tune download meta-llama/Llama-4-Maverick-17B-128E-Instruct --output-dir /tmp/ll-re/Llama-4-Maverick-17B-128E-Instruct
 #
 # Full finetuning of Llama4 17Bx128E is only possible in a multi-node setting
 # To launch on 2 nodes w/ 8 devices on a SLURM cluster, run the following command:
@@ -14,7 +14,7 @@
 # This config is only tested on 2 8xH100 nodes.
 #
 
-output_dir: /tmp/torchtune/llama4_17Bx16E/full
+output_dir: /tmp/torchtune/llama4_17Bx128E/full
 
 # Tokenizer
 tokenizer:

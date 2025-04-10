@@ -122,7 +122,6 @@ def decoder_only_tp_inference_plan(model: nn.Module) -> Dict[str, ParallelStyle]
     Helper function to get the tensor parallel plan for Llama4 where only the decoder is parallelized.
     Usage of SequenceParallel requires that tp_dim % seq_len == 0, which will not hold in general
     during autoregressive generation. As a result, we define this plan specifically for usage during generation.
-
     Args:
         model (nn.Module): Model to generate plan for
 
@@ -140,25 +139,23 @@ def decoder_only_tp_inference_plan(model: nn.Module) -> Dict[str, ParallelStyle]
             f"decoder.layers.{layer_id}.attn.k_proj": ColwiseParallel(),
             f"decoder.layers.{layer_id}.attn.v_proj": ColwiseParallel(),
             f"decoder.layers.{layer_id}.attn.output_proj": RowwiseParallel(),
-            f"decoder.layers.{layer_id}.mlp_norm": SequenceParallel(),
         }
         if isinstance(transformer_block.mlp, MoE):
             mlp_plan = {
                 # input / output sharding on the seqlen dim
                 # all-gather for input, reduce-scatter for output
-                f"decoder.layers.{layer_id}.mlp": PrepareModuleInputOutput(
-                    input_layouts=(Shard(1),),
-                    desired_input_layouts=(Replicate(),),
-                    use_local_input=True,
+                f"decoder.layers.{layer_id}.mlp": PrepareModuleOutput(
                     output_layouts=(Partial(),),
-                    desired_output_layouts=(Shard(1),),
+                    desired_output_layouts=(Replicate(),),
                 ),
                 # replicate computation for the router
                 f"decoder.layers.{layer_id}.mlp.router.gate": NoParallel(),
                 # input Replicate, output Partial
                 f"decoder.layers.{layer_id}.mlp.experts": ExpertTensorParallel(),
                 f"decoder.layers.{layer_id}.mlp.shared_expert.w1": ColwiseParallel(),
-                f"decoder.layers.{layer_id}.mlp.shared_expert.w2": RowwiseParallel(),
+                f"decoder.layers.{layer_id}.mlp.shared_expert.w2": RowwiseParallel(
+                    output_layouts=Partial()
+                ),
                 f"decoder.layers.{layer_id}.mlp.shared_expert.w3": ColwiseParallel(),
             }
         else:

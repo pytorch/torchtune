@@ -76,7 +76,7 @@ class TestLlama4Tokenizer:
         )
 
         # fmt: off
-        expected_tokens = [200005, 520, 511, 446, 200006, 10, 10, 200016, 200012, 525, 99, 534, 95, 115, 433, 40, 114, 338, 105, 477, 61, 49, 1642, 95, 1642, 48, 95, 1642, 48, 41, 200013, 200017, 200007]  # noqa
+        expected_tokens = [200005, 520, 511, 446, 200006, 10, 10, 525, 99, 534, 95, 115, 433, 40, 114, 338, 105, 477, 61, 49, 1642, 95, 1642, 48, 95, 1642, 48, 41, 200007]  # noqa
         # fmt: on
 
         return message, expected_tokens
@@ -107,12 +107,14 @@ class TestLlama4Tokenizer:
         assert tokenizer.end_header_id == 200006
         assert tokenizer.eom_id == 200007
         assert tokenizer.eot_id == 200008
-        assert tokenizer.python_start_id == 200016
-        assert tokenizer.python_end_id == 200017
         assert tokenizer.image_id == 200090
         assert tokenizer.patch_id == 200092
         assert tokenizer.image_start == 200080
         assert tokenizer.image_end == 200081
+        assert tokenizer.tile_x_separator == 200084
+        assert tokenizer.tile_y_separator == 200085
+        assert tokenizer.reasoning_start == 201142
+        assert tokenizer.reasoning_end == 201143
 
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000

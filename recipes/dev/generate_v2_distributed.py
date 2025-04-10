@@ -137,6 +137,7 @@ class InferenceRecipe:
         )
 
         self.model = model
+        self.model.eval()
         if self._is_rank_zero:
             self._logger.info(
                 f"Model was initialized with precision {self._dtype} and TP degree {tp_degree}."
@@ -238,6 +239,7 @@ class InferenceRecipe:
         generated_tokens = []
         t0 = time.perf_counter()
         logits = self.model(prompt, **batch)[:, -1]
+        # torch.distributed.breakpoint()
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())
 

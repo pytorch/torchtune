@@ -41,6 +41,10 @@ class TestExperts:
         return 8
 
     @pytest.fixture
+    def num_tokens_per_expert(self, num_experts) -> int:
+        return torch.tensor([1, 2, 1, 4, 3, 1, 2, 2], dtype=torch.int)
+
+    @pytest.fixture
     def experts(self, dim, hidden_dim, num_experts) -> nn.Module:
         experts = GroupedExperts(
             dim=dim, hidden_dim=hidden_dim, num_experts=num_experts
@@ -49,28 +53,15 @@ class TestExperts:
         return experts
 
     @torch.no_grad()
-    def test_forward(self, experts, dim):
+    def test_forward(self, experts, num_tokens_per_expert, dim):
         """
         Test that the forward pass of the experts works as expected.
         """
-        x = torch.randn((16, dim)).view(8, 2, dim)
-        out = experts(x)
+        x = torch.randn((16, dim))
+        out = experts(x, num_tokens_per_expert)
 
-        assert out.shape == (8, 2, dim)
-        assert_expected(out.mean(), torch.tensor(18.5488), atol=1e-3, rtol=1e-3)
-
-    def test_get_and_load_state_dict(self, experts):
-        """
-        Test that the state dict hooks work in removing the "layer" variable
-        """
-        state_dict = experts.state_dict()
-        state_keys = set(state_dict.keys())
-
-        assert state_keys == {
-            "gate_proj",
-            "down_proj",
-            "up_proj",
-        }
+        assert out.shape == (16, dim)
+        assert_expected(out.mean().item(), 120.8260, atol=1e-3, rtol=1e-3)
 
         # Check that the state_dict can be loaded back into the model
         experts.load_state_dict(state_dict)

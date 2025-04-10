@@ -20,10 +20,12 @@ from torchtune.modules.transforms.tokenizers import (
 O200K_PATTERN = r"""[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]*[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(?i:'s|'t|'re|'ve|'m|'ll|'d)?|[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]+[\p{Ll}\p{Lm}\p{Lo}\p{M}]*(?i:'s|'t|'re|'ve|'m|'ll|'d)?|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n/]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
 
 
-def get_reserved_special_tokens(name, count, start_id):
-    return {
-        f"<|{name}_reserved_special_token_{i}|>": start_id + i for i in range(count)
-    }
+def get_reserved_special_tokens(start_id, end_id, name=None, start_reserved=0):
+    n = f"{name}_reserved_special_token" if name else "reserved_special_token"
+    reserved_tokens = {}
+    for i, id in enumerate(range(start_id, end_id)):
+        reserved_tokens[f"<|{n}_{start_reserved + i}|>"] = id
+    return reserved_tokens
 
 
 # 200000, ..., 200004
@@ -35,57 +37,66 @@ BASIC_SPECIAL_TOKENS = {
     "<|fim_suffix|>": 200004,
 }
 
-# 200005, ..., 200037
+# 200005, ..., 200079
 TEXT_SPECIAL_TOKENS = {
     "<|header_start|>": 200005,
     "<|header_end|>": 200006,
     "<|eom|>": 200007,
     "<|eot|>": 200008,
     "<|step|>": 200009,
-    "<|tool_definition_start|>": 200010,
-    "<|tool_definition_end|>": 200011,
-    "<|tool_call_start|>": 200012,
-    "<|tool_call_end|>": 200013,
-    "<|tool_output_start|>": 200014,
-    "<|tool_output_end|>": 200015,
-    "<|python_start|>": 200016,
-    "<|python_end|>": 200017,
+    "<|text_post_train_reserved_special_token_0|>": 200010,
+    "<|text_post_train_reserved_special_token_1|>": 200011,
+    "<|text_post_train_reserved_special_token_2|>": 200012,
+    "<|text_post_train_reserved_special_token_3|>": 200013,
+    "<|text_post_train_reserved_special_token_4|>": 200014,
+    "<|text_post_train_reserved_special_token_5|>": 200015,
+    "<|text_post_train_reserved_special_token_6|>": 200016,
+    "<|text_post_train_reserved_special_token_7|>": 200017,
     "<|finetune_right_pad|>": 200018,
-    "<|hint|>": 200019,
-    "<|memory_start|>": 200020,
-    "<|memory_end|>": 200021,
-} | get_reserved_special_tokens("text_post_train", 16, 200022)
+} | get_reserved_special_tokens(200019, 200080, "text_post_train", 8)
 
 # 200080, ..., 201133
-VISION_SPECIAL_TOKENS = (
-    {
-        "<|image_start|>": 200080,
-        "<|image_end|>": 200081,
-        "<|vid_start|>": 200082,
-        "<|vid_end|>": 200083,
-        "<|tile_x_separator|>": 200084,
-        "<|tile_y_separator|>": 200085,
-        "<|vid_meta_separator|>": 200086,
-        "<|vid_frame_separator|>": 200087,
-        "<|vid_clip_separator|>": 200088,
-        "<|im_meta_separator|>": 200089,
-        "<|image|>": 200090,
-        "<|video|>": 200091,
-        "<|patch|>": 200092,
-        "<|ocr|>": 200093,
-    }
-    | {"<|bbox_" + str(i) + "|>": 200094 + i for i in range(1024)}
-    | get_reserved_special_tokens("vision", 16, 201118)
-)
+VISION_SPECIAL_TOKENS = {
+    "<|image_start|>": 200080,
+    "<|image_end|>": 200081,
+    "<|vision_reserved_special_token_0|>": 200082,
+    "<|vision_reserved_special_token_1|>": 200083,
+    "<|tile_x_separator|>": 200084,
+    "<|tile_y_separator|>": 200085,
+    "<|vision_reserved_special_token_2|>": 200086,
+    "<|vision_reserved_special_token_3|>": 200087,
+    "<|vision_reserved_special_token_4|>": 200088,
+    "<|vision_reserved_special_token_5|>": 200089,
+    "<|image|>": 200090,
+    "<|vision_reserved_special_token_6|>": 200091,
+    "<|patch|>": 200092,
+} | get_reserved_special_tokens(200093, 201134, "vision", 7)
 
-SPECIAL_TOKENS = BASIC_SPECIAL_TOKENS | TEXT_SPECIAL_TOKENS | VISION_SPECIAL_TOKENS
+# 201134, ..., 201143
+REASONING_SPECIAL_TOKENS = {
+    "<|reasoning_reserved_special_token_0|>": 201134,
+    "<|reasoning_reserved_special_token_1|>": 201135,
+    "<|reasoning_reserved_special_token_2|>": 201136,
+    "<|reasoning_reserved_special_token_3|>": 201137,
+    "<|reasoning_reserved_special_token_4|>": 201138,
+    "<|reasoning_reserved_special_token_5|>": 201139,
+    "<|reasoning_reserved_special_token_6|>": 201140,
+    "<|reasoning_reserved_special_token_7|>": 201141,
+    "<|reasoning_thinking_start|>": 201142,
+    "<|reasoning_thinking_end|>": 201143,
+}
+
+
+SPECIAL_TOKENS = (
+    BASIC_SPECIAL_TOKENS
+    | TEXT_SPECIAL_TOKENS
+    | VISION_SPECIAL_TOKENS
+    | REASONING_SPECIAL_TOKENS
+)
 
 NUM_RESERVED_SPECIAL_TOKENS = 2048
 
-RESERVED_TOKENS = {
-    f"<|reserved_special_token_{i}|>": 201134 + i
-    for i in range(NUM_RESERVED_SPECIAL_TOKENS - len(SPECIAL_TOKENS))
-}
+RESERVED_TOKENS = get_reserved_special_tokens(201144, 202048)
 
 LLAMA4_SPECIAL_TOKENS = SPECIAL_TOKENS | RESERVED_TOKENS
 
@@ -93,7 +104,7 @@ LLAMA4_SPECIAL_TOKENS = SPECIAL_TOKENS | RESERVED_TOKENS
 class Llama4Tokenizer(ModelTokenizer, Transform):
     """
     tiktoken tokenizer configured with Llama4 Instruct's special tokens, as described in
-    TODO: add link to llama4 special tokens
+    https://www.llama.com/docs/model-cards-and-prompt-formats/llama4_omni/
 
     Args:
         path (str): Path to pretrained tiktoken tokenizer file.
@@ -143,10 +154,6 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
         self.end_header_id = self.special_tokens["<|header_end|>"]
         self.eom_id = self.special_tokens["<|eom|>"]
         self.eot_id = self.special_tokens["<|eot|>"]
-        self.python_start_id = self.special_tokens["<|python_start|>"]
-        self.python_end_id = self.special_tokens["<|python_end|>"]
-        self.tool_call_start = self.special_tokens["<|tool_call_start|>"]
-        self.tool_call_end = self.special_tokens["<|tool_call_end|>"]
 
         # Image tokens
         self.image_id = self.special_tokens["<|image|>"]
@@ -155,6 +162,10 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
         self.image_end = self.special_tokens["<|image_end|>"]
         self.tile_x_separator = self.special_tokens["<|tile_x_separator|>"]
         self.tile_y_separator = self.special_tokens["<|tile_y_separator|>"]
+
+        # Reasoning tokens
+        self.reasoning_start = self.special_tokens["<|reasoning_thinking_start|>"]
+        self.reasoning_end = self.special_tokens["<|reasoning_thinking_end|>"]
 
         # During generation, stop when either eos_id, eot_id, or eom_id is encountered
         self.stop_tokens = [self.eos_id, self.eot_id, self.eom_id]
@@ -183,25 +194,9 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
         """
         Validate that required special tokens are passed into the tokenizer.
         """
-        for token in [
-            "<|begin_of_text|>",
-            "<|end_of_text|>",
-            "<|finetune_right_pad|>",
-            "<|step|>",
-            "<|header_start|>",
-            "<|header_end|>",
-            "<|eom|>",
-            "<|eot|>",
-            "<|python_start|>",
-            "<|python_end|>",
-            "<|patch|>",
-            "<|image|>",
-            "<|image_start|>",
-            "<|image_end|>",
-            "<|tile_x_separator|>",
-            "<|tile_y_separator|>",
-        ]:
-            if token not in self.special_tokens:
+        for token in SPECIAL_TOKENS:
+            reserve_token = "_reserved_special_token_" in token
+            if not reserve_token and token not in self.special_tokens:
                 raise ValueError(f"{token} missing from special_tokens")
 
     def _remove_special_tokens(self, text: str) -> str:
@@ -335,13 +330,6 @@ class Llama4Tokenizer(ModelTokenizer, Transform):
                 tokenized_body += self._get_tile_grid_tokens(
                     patch_tokens_per_tile, aspect_ratio
                 )
-
-        if message.ipython:
-            tokenized_body = (
-                [self.python_start_id, self.tool_call_start]
-                + tokenized_body
-                + [self.tool_call_end, self.python_end_id]
-            )
 
         return tokenized_body
 
