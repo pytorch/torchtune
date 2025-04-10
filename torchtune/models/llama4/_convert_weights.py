@@ -224,29 +224,30 @@ def llama4_tune_to_hf(
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 
     for key, value in state_dict.items():
-        # Handle special cases for vision projection weights
+        # Handle special cases first
         if key in {
             "encoders.vision.projection.output.0.weight",
             "encoders.vision.projection.output.2.weight",
             "encoders.vision.projection.output.4.weight",
         }:
             new_key = inverted_mapping_dict[key]
-        # Handle experts gate projection by combining with up projection
         elif key.endswith("experts.gate_proj"):
+            # Combine gate projection with up projection
             new_key = get_mapped_key(key, inverted_mapping_dict)
             up_proj = state_dict[key.replace("gate", "up")]
             converted_state_dict[new_key] = torch.cat([value, up_proj], dim=-1)
             continue
-        # Skip up projection as it's already handled with gate projection
         elif key.endswith("experts.up_proj"):
+            # Skip as already handled with gate projection
             continue
-        # Reshape convolution weights
         elif "conv" in key:
-            dim = value.shape[0]
-            value = value.reshape(dim, -1)
+            # Reshape convolution weights
+            value = value.reshape(value.shape[0], -1)
+            new_key = get_mapped_key(key, inverted_mapping_dict)
+        else:
+            # Default case - just map the key
+            new_key = get_mapped_key(key, inverted_mapping_dict)
 
-        # Get the mapped key for all other cases
-        new_key = get_mapped_key(key, inverted_mapping_dict)
         converted_state_dict[new_key] = value
 
     return converted_state_dict
