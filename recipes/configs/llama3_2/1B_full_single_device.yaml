@@ -33,7 +33,7 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
 seed: null
 shuffle: True
