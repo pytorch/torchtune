@@ -92,15 +92,6 @@ def decoder_only_tp_training_plan(model: nn.Module) -> Dict[str, ParallelStyle]:
                 f"decoder.layers.{layer_id}.mlp.router.gate": NoParallel(),
                 # input Replicate, output Partial
                 f"decoder.layers.{layer_id}.mlp.experts": ExpertTensorParallel(),
-                f"decoder.layers.{layer_id}.mlp.shared_expert": PrepareModuleOutput(
-                    output_layouts=(Shard(1),),
-                    desired_output_layouts=(Replicate(),),
-                ),
-                f"decoder.layers.{layer_id}.mlp.shared_expert.w1": ColwiseParallel(),
-                f"decoder.layers.{layer_id}.mlp.shared_expert.w2": RowwiseParallel(
-                    output_layouts=Shard(1),
-                ),
-                f"decoder.layers.{layer_id}.mlp.shared_expert.w3": ColwiseParallel(),
             }
         else:
             mlp_plan = {

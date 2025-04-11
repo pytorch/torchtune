@@ -41,30 +41,20 @@ class RMSNorm(nn.Module):
         return x_normed * self.scale
 
 
-class L2Norm(nn.Module):
+def rms_norm(x: torch.Tensor, eps: float = 1e-6):
     """
-    This is just RMSNorm sans the trainable scale parameter.
+    This is just a functional RMSNorm without the trainable scale parameter.
 
     Args:
-        dim (int): embedding size
+        x (torch.Tensor): input tensor to normalize
         eps (float): small value to avoid division by zero. Default: 1e-6
+
+    Returns:
+        torch.Tensor: The normalized tensor having the same shape as ``x``.
+
     """
-
-    def __init__(self, dim: int, eps: float = 1e-6) -> None:
-        super().__init__()
-        self.normalized_shape = (dim,)
-        self.eps = eps
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x (torch.Tensor): input tensor to normalize
-        Returns:
-            torch.Tensor: The normalized and scaled tensor having the same shape as ``x``.
-        """
-        # computation is in fp32
-        x_fp32 = x.float()
-        x_normed = (
-            x_fp32 * torch.rsqrt(x_fp32.pow(2).mean(-1, keepdim=True) + self.eps)
-        ).type_as(x)
-        return x_normed
+    x_fp32 = x.float()
+    x_normed = (
+        x_fp32 * torch.rsqrt(x_fp32.pow(2).mean(-1, keepdim=True) + eps)
+    ).type_as(x)
+    return x_normed

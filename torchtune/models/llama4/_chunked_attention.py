@@ -30,12 +30,11 @@ def get_chunked_attention_mask(
     if mask is None:
         mask_mod = causal_mask_flex
         q_seq_len, kv_seq_len = seq_len, seq_len
+    elif isinstance(mask, BlockMask):
+        mask_mod = mask.mask_mod
+        q_seq_len, kv_seq_len = mask.seq_lengths
     else:
-        if isinstance(mask, BlockMask):
-            mask_mod = mask.mask_mod
-            q_seq_len, kv_seq_len = mask.seq_lengths
-        else:
-            raise ValueError("Unsupported mask type")
+        raise ValueError("Unsupported mask type")
 
     def chunked_attention_mask_mod(
         b: torch.Tensor, h: torch.Tensor, q_idx: torch.Tensor, kv_idx: torch.Tensor

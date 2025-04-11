@@ -660,7 +660,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         elif self._model_type == ModelType.LLAMA4:
             from torchtune.models.llama4._convert_weights import llama4_hf_to_tune
 
-            text_config = self._config.get("text_config")
             converted_state_dict[training.MODEL_KEY] = llama4_hf_to_tune(
                 merged_state_dict,
             )
@@ -772,7 +771,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             elif self._model_type == ModelType.LLAMA4:
                 from torchtune.models.llama4._convert_weights import llama4_tune_to_hf
 
-                text_config = self._config.get("text_config")
                 state_dict[training.MODEL_KEY] = llama4_tune_to_hf(
                     state_dict[training.MODEL_KEY],
                 )

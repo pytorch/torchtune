@@ -129,63 +129,6 @@ def llama4_maverick_17b_128e(
         num_kv_heads=8,
         embed_dim=decoder_embed_dim,
         hidden_dim=8192,
-        max_seq_len=10485760,
-        attn_dropout=0.0,
-        rope_base=500_000,
-        norm_eps=1e-5,
-        num_experts=16,
-        use_shared_expert=True,
-        skip_rope_interval=4,
-        attention_chunk_size=8192,
-    )
-    return EarlyFusionModel(
-        decoder,
-        encoders={"vision": vision_encoder},
-        encoder_tokens={
-            "vision": LLAMA4_SPECIAL_TOKENS["<|patch|>"],
-        },
-        encoders_trainable={
-            "vision": vision_encoder_trainable,
-        },
-        decoder_trainable=decoder_trainable,
-        fusion_trainable=fusion_trainable,
-    )
-
-
-# Note that this one does not use QK norm
-def llama4_17bx128e(
-    decoder_trainable: bool = True,
-    vision_encoder_trainable: bool = False,
-    fusion_trainable: bool = True,
-    image_size: int = 336,
-) -> EarlyFusionModel:
-    """
-    Builder for creating a 17B(active parameters) Llama4 MOE model.
-
-    Returns:
-        EarlyFusionModel: Instantiation of a 17B Llama4 MOE model with encoders.
-    """
-    decoder_embed_dim = 5120
-
-    vision_encoder = llama4_vision_encoder(
-        patch_size=14,
-        num_heads=16,
-        clip_embed_dim=1408,  # previously 1280 in llama3.2
-        clip_num_layers=34,  # previously 32 in llama3.2
-        decoder_embed_dim=decoder_embed_dim,
-        projection_embed_dim=4096,
-        tile_size=image_size,  # previously 560 in llama3.2
-        max_num_tiles=16,  # previously 4 in llama3.2
-        in_channels=3,
-    )
-
-    decoder = llama4_decoder(
-        vocab_size=202_048,
-        num_layers=48,
-        num_heads=40,
-        num_kv_heads=8,
-        embed_dim=decoder_embed_dim,
-        hidden_dim=8192,
         max_seq_len=1048576,
         attn_dropout=0.0,
         rope_base=500_000,

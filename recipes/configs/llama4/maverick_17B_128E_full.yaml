@@ -1,41 +1,34 @@
 # Config for multi-device full finetuning in full_finetune_distributed.py
 # using a Llama4 17Bx128E MoE model
 #
-# This config assumes that you've run the following command before launching
-# this run:
-#   tune download meta-llama/Llama-4-Maverick-17B-128E-Instruct --output-dir /tmp/ll-re/Llama-4-Maverick-17B-128E-Instruct
+# This config assumes that you've run the following command before launching:
+#   tune download meta-llama/Llama-4-Maverick-17B-128E-Instruct
 #
 # Full finetuning of Llama4 17Bx128E is only possible in a multi-node setting
-# To launch on 2 nodes w/ 8 devices on a SLURM cluster, run the following command:
-#   # TODO: generalize SLURM script to support Llama4
+# An example slurm script can be found under recipes/full_finetune_multinode.slurm.
+# Example usage:
 #   sbatch full_finetune_multinode.slurm
 #
-#
 # This config is only tested on 2 8xH100 nodes.
-#
 
 output_dir: /tmp/torchtune/llama4_17Bx128E/full
 
-# Tokenizer
+# Model arguments
+model:
+  _component_: torchtune.models.llama4.llama4_maverick_17b_128e
+
+tensor_parallel_dim: 8
+tensor_parallel_plan:
+  _component_: torchtune.models.llama4.decoder_only_tp_plan
+data_parallel_shard_dim: -1 # Will infer based on TP dim, effictively controls FSDP
+data_parallel_replicate_dim: 1
+
 tokenizer:
   _component_: torchtune.models.llama4.llama4_transform
   path: ${model_dir}/tokenizer.model
   max_seq_len: null
   max_num_tiles: 16
 
-# Dataset
-dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: False
-
-seed: null
-shuffle: True
-
-# Model Arguments
-model:
-  _component_: torchtune.models.llama4.llama4_maverick_17b_128e
-
-# Checkpointer
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-4-Maverick-17B-128E-Instruct
@@ -47,65 +40,47 @@ checkpointer:
   model_type: LLAMA4
 resume_from_checkpoint: False
 
-# Fine-tuning arguments
-batch_size: 1
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+  packed: False
+seed: null
+shuffle: True
+
+# Training arguments
 epochs: 1
+max_steps_per_epoch: null
+batch_size: 1
+gradient_accumulation_steps: 1 # Use to increase effective batch size
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
   fused: False
+optimizer_in_bwd: False
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
-clip_grad_norm: 1.0
-max_steps_per_epoch: 1000
-gradient_accumulation_steps: 1
-optimizer_in_bwd: False
+clip_grad_norm: null
 
-# Training env
+# cuda, cpu, rocm, xpu...
 device: cuda
 
-# Parallelism. For multi-node training we recommend tensor_parallel_dim=8
-tensor_parallel_dim: 8
-tensor_parallel_plan:
-  _component_: torchtune.models.llama4.decoder_only_tp_plan
-
-# Memory management
+# Memory management / performance
 enable_activation_checkpointing: True
 enable_activation_offloading: False
-fsdp_cpu_offload: False
+fsdp_cpu_offload: True
 compile: False # torch.compile, set to true for perf/memory improvement
 
 # Reduced precision
 dtype: bf16
 
-# Logging
+# Log metrics during training
 metric_logger:
-  _component_: torchtune.training.metric_logging.WandBLogger
+  _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
-# Profiler (disabled)
+# Useful for understanding how to optimize memory and performance
 profiler:
   _component_: torchtune.training.setup_torch_profiler
   enabled: False
-
-  #Output directory of trace artifacts
-  output_dir: ${output_dir}/profiling_outputs
-
-  #`torch.profiler.ProfilerActivity` types to trace
-  cpu: True
-  cuda: True
-
-  #trace options passed to `torch.profiler.profile`
-  profile_memory: True
-  with_stack: True
-  record_shapes: True
-  with_flops: False
-
-  # `torch.profiler.schedule` options:
-  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-  wait_steps: 1
-  warmup_steps: 2
-  active_steps: 1
-  num_cycles: 1

@@ -221,28 +221,32 @@ def llama4_tune_to_hf(
     state_dict: Dict[str, torch.Tensor],
 ) -> Dict[str, torch.Tensor]:
     converted_state_dict = {}
-    inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
+    inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 
     for key, value in state_dict.items():
-        # get the invert key name for vision adapter weights, get_mapped_key will not work as it will look up for {}
-        if (
-            key == "encoders.vision.projection.adapter.0.weight"
-            or key == "encoders.vision.projection.adapter.2.weight"
-            or key == "encoders.vision.projection.adapter.4.weight"
-        ):
+        # Handle special cases first
+        if key in {
+            "encoders.vision.projection.output.0.weight",
+            "encoders.vision.projection.output.2.weight",
+            "encoders.vision.projection.output.4.weight",
+        }:
             new_key = inverted_mapping_dict[key]
-        else:
+        elif key.endswith("experts.gate_proj"):
+            # Combine gate projection with up projection
             new_key = get_mapped_key(key, inverted_mapping_dict)
-        if "language_model" in key:
-            if key.endswith("experts.gate_proj"):
-                up_proj = state_dict[key.replace("gate", "up")]
-                converted_state_dict[new_key] = torch.cat([value, up_proj], dim=-1)
-                continue
-            elif key.endswith("experts.up_proj"):
-                continue
+            up_proj = state_dict[key.replace("gate", "up")]
+            converted_state_dict[new_key] = torch.cat([value, up_proj], dim=-1)
+            continue
+        elif key.endswith("experts.up_proj"):
+            # Skip as already handled with gate projection
+            continue
         elif "conv" in key:
-            dim = value.shape[0]
-            value = value.reshape(dim, -1)
+            # Reshape convolution weights
+            value = value.reshape(value.shape[0], -1)
+            new_key = get_mapped_key(key, inverted_mapping_dict)
+        else:
+            # Default case - just map the key
+            new_key = get_mapped_key(key, inverted_mapping_dict)
 
         converted_state_dict[new_key] = value
 

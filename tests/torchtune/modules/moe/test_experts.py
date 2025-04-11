@@ -63,9 +63,6 @@ class TestExperts:
         assert out.shape == (16, dim)
         assert_expected(out.mean().item(), 120.8260, atol=1e-3, rtol=1e-3)
 
-        # Check that the state_dict can be loaded back into the model
-        experts.load_state_dict(state_dict)
-
 
 class TestLoRAGroupedExperts:
     @pytest.fixture
