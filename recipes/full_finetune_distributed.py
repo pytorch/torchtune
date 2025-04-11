@@ -365,11 +365,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Setup validation dataloader if validation dataset is provided
         self._val_dataloader = None
-        if cfg.get("dataset_validation") is not None:
-            batch_size_validation = cfg.get("batch_size_validation", cfg.batch_size)
+        if cfg.get("dataset_val") is not None:
+            batch_size_val = cfg.get("batch_size_val", cfg.batch_size)
             self._val_dataloader = self._setup_data(
-                cfg_dataset=cfg.dataset_validation,
-                batch_size=batch_size_validation,
+                cfg_dataset=cfg.dataset_val,
+                batch_size=batch_size_val,
                 collate_fn=collate_name,
                 shuffle=False,
             )
