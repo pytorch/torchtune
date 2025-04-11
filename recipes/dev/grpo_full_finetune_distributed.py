@@ -820,6 +820,23 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         Pads the end of the specified dimension with the given value until the dimension reaches the target size.
         We need this to ensure, that trajectories are padded to the same size, and we will not get errors on torch.cat.
 
+        pad_idx variable might be confusing, so here is the brief explanation of what is happening.
+
+        This value is used to find the position in the padding list where the padding for the right side of the specified dimension should go.
+        The formula consists of the 3 key points:
+
+        1. Each dimension has two padding values: one for the left side and one for the right side. Hence, for a tensor with N dimensions, the padding list will have 2 * N elements.
+
+        2. The dimensions in the padding list are organized from the last dimension of the tensor towards the first.
+        To determine which pair (or position within that pair) corresponds to the given dimension dim, we need to calculate its offset in this reversed order.
+        Considering the first point we get the following expression:
+
+        2 * (tensor.ndim - dim)
+
+        3. To get the index for the right direction padding we subtract 1:
+
+        2 * (tensor.ndim - dim) - 1
+
         Args:
             tensor (torch.Tensor): Tensor related to the trajectory
             target_dim (int): Target size after padding
