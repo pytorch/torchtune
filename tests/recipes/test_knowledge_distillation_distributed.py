@@ -104,7 +104,7 @@ class TestKDDistributedRecipe:
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
