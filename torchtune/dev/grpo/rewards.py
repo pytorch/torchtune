@@ -5,14 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 
 import re
-from typing import Tuple
+from typing import Dict
 
 import torch
 
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
-def extract_tags(text: str) -> Tuple[str, str]:
+def extract_tags(text: str) -> Dict:
     """
     Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
     The values are lists of strings, with each string being the content of a tag.
@@ -23,7 +23,14 @@ def extract_tags(text: str) -> Tuple[str, str]:
     answer_match = re.search(answer_pattern, text, re.DOTALL)
     cot = think_match.group(1).strip() if think_match else ""
     potential_answer = answer_match.group(1).strip() if answer_match else ""
-    return cot, potential_answer
+    return {
+        "think": [
+            cot,
+        ],
+        "answer": [
+            potential_answer,
+        ],
+    }
 
 
 def shaped_correctness_reward(answer: str, completion: str) -> tuple[float, float]:
