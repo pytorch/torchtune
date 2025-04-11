@@ -213,6 +213,7 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
     @pytest.mark.integration_test
+    @pytest.mark.debugging
     @gpu_test(gpu_count=1)
     def test_meta_eval_vision(self, caplog, monkeypatch, tmpdir, expected_vision_acc):
         ckpt = "llama3_2_vision_meta"
@@ -253,6 +254,7 @@ class TestEleutherEval:
             assert math.isclose(float(accuracy), expected_vision_acc[task_name])
 
     @pytest.mark.integration_test
+    @pytest.mark.debugging
     @gpu_test(gpu_count=1)
     def test_hf_eval_vision(self, caplog, monkeypatch, tmpdir, expected_vision_acc):
         ckpt = "llama3_2_vision_hf"

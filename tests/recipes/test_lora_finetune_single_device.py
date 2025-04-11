@@ -127,6 +127,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
+    @pytest.mark.debugging
     @pytest.mark.parametrize(
         "dtype, compile, micro_batch_size, gradient_accumulation_steps",
         [

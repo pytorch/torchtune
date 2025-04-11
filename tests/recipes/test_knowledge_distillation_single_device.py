@@ -61,6 +61,7 @@ class TestKDSingleDeviceRecipe:
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
+    @pytest.mark.debugging
     @pytest.mark.parametrize(
         "micro_batch_size, gradient_accumulation_steps, compile",
         [(8, 1, False), (2, 4, True), (2, 4, False)],

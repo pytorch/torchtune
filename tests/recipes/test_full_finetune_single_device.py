@@ -63,6 +63,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
+    @pytest.mark.debugging
     @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
         "micro_batch_size, gradient_accumulation_steps, optimizer_in_bwd",

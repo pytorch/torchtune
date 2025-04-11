@@ -130,6 +130,7 @@ class TestFullFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
+    @pytest.mark.debugging
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd, tensor_parallel_dim",
         [
@@ -194,6 +195,8 @@ class TestFullFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values_multi_rank(model_type)
+
+        # assert expected_loss_values == pytest.approx(loss_values, 1e-4)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
