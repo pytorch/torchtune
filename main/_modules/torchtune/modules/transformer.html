@@ -472,6 +472,8 @@
 <span class="sd">        mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.</span>
 <span class="sd">        sa_scale (Optional[nn.Module]): Module to scale self-attention output.</span>
 <span class="sd">        mlp_scale (Optional[nn.Module]): Module to scale the feed-forward output.</span>
+<span class="sd">        mask_mod (Optional[Callable[[_MaskType, int, int, int], _MaskType]]): A callable</span>
+<span class="sd">            taking a _MaskType, bsz, and seq_len, and modifying the mask (e.g. for chunked attention).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -483,6 +485,7 @@
         <span class="n">mlp_norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sa_scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">mlp_scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask_mod</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">_MaskType</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">_MaskType</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">attn</span>
@@ -491,6 +494,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_norm</span> <span class="o">=</span> <span class="n">mlp_norm</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sa_scale</span> <span class="o">=</span> <span class="n">sa_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_scale</span> <span class="o">=</span> <span class="n">mlp_scale</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_mod</span> <span class="o">=</span> <span class="n">mask_mod</span> <span class="ow">or</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="TransformerSelfAttentionLayer.setup_caches"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.setup_caches">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">setup_caches</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -568,8 +572,11 @@
         <span class="c1"># [b, s, d]</span>
         <span class="c1"># Norm applied before self-attention</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_mod</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># With TP we need to use a replicated tensor here</span>
+            <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_mod</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">bsz</span><span class="o">=</span><span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span><span class="o">=</span><span class="n">seq_len</span><span class="p">)</span>
         <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
-
         <span class="c1"># Residual connection; shape: [batch_size, seq_length, embed_dim]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sa_scale</span><span class="p">(</span><span class="n">attn_out</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span>
 

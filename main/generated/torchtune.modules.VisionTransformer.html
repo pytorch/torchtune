@@ -639,8 +639,8 @@ So your input should have shape (bsz=2, n_imgs=2, num_tiles, n_channels, tile_si
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>images</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.6)"><em>torch.Tensor</em></a>) – torch.Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).</p></li>
-<li><p><strong>aspect_ratio</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.6)"><em>torch.Tensor</em></a><em>]</em>) – torch.Tensor with shape (bsz, n_imgs, 2). If all
-images have a single tile, i.e. they were not tile-cropped, it should be None.
+<li><p><strong>aspect_ratio</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.6)"><em>torch.Tensor</em></a><em>]</em>) – torch.Tensor with shape (bsz, n_imgs, 2). If there are no
+tile positional embeddings, i.e. they were not tile-cropped, it should be None.
 Used to calculate the positional embeddings for the tiles.</p></li>
 </ul>
 </dd>
@@ -655,9 +655,6 @@ hidden_states has shape is a list of len(out_indices) torch.tensor with shape
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.6)">torch.Tensor</a>, List[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.6)">torch.Tensor</a>]]</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If aspect_ratio is None, but n_tiles &gt; 1 in the batch.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>

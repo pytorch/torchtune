@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="llama3_3_70b" href="generated/torchtune.models.llama3_3.llama3_3_70b.html" />
+    <link rel="next" title="llama4_scout_17b_16e" href="generated/torchtune.models.llama4.llama4_scout_17b_16e.html" />
     <link rel="prev" title="get_position_ids_from_padding_mask" href="generated/torchtune.generation.get_position_ids_from_padding_mask.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -453,6 +453,50 @@
               
   <section id="torchtune-models">
 <span id="models"></span><h1>torchtune.models<a class="headerlink" href="#torchtune-models" title="Permalink to this heading">¶</a></h1>
+<section id="llama4">
+<h2>llama4<a class="headerlink" href="#llama4" title="Permalink to this heading">¶</a></h2>
+<p>Multimodal models from the Llama4 family that support text and image input.</p>
+<p>Important: You need to request access on Hugging Face before downloading it.</p>
+<p>To download the Llama-4-Maverick-17B-16E-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-4-Scout-17B-16E-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<p>To download the Llama-4-Maverick-17B-128E-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-4-Maverick-17B-128E-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.llama4_scout_17b_16e.html#torchtune.models.llama4.llama4_scout_17b_16e" title="torchtune.models.llama4.llama4_scout_17b_16e"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.llama4_scout_17b_16e</span></code></a></p></td>
+<td><p>Builder for creating an instance of the Llama4 Scout 17Bx16E model</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.llama4_maverick_17b_128e.html#torchtune.models.llama4.llama4_maverick_17b_128e" title="torchtune.models.llama4.llama4_maverick_17b_128e"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.llama4_maverick_17b_128e</span></code></a></p></td>
+<td><p>Builder for creating an instance of the Llama4 Maverick 17Bx128E model</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.llama4_vision_encoder.html#torchtune.models.llama4.llama4_vision_encoder" title="torchtune.models.llama4.llama4_vision_encoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.llama4_vision_encoder</span></code></a></p></td>
+<td><p>Build the Llama 4 vision encoder by combining the CLIP image model with an additional projection head fusion module.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.llama4_vision_projection_head.html#torchtune.models.llama4.llama4_vision_projection_head" title="torchtune.models.llama4.llama4_vision_projection_head"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.llama4_vision_projection_head</span></code></a></p></td>
+<td><p>Build the Llama 4 Vision Projection Head that maps the output of the CLIP encoder to embeddings that can be fed into the decoder.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.llama4_decoder.html#torchtune.models.llama4.llama4_decoder" title="torchtune.models.llama4.llama4_decoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.llama4_decoder</span></code></a></p></td>
+<td><p>Build the decoder associated with the MOE model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.Llama4VisionEncoder.html#torchtune.models.llama4.Llama4VisionEncoder" title="torchtune.models.llama4.Llama4VisionEncoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.Llama4VisionEncoder</span></code></a></p></td>
+<td><p>Vision encoder model for Llama 4.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.Llama4VisionProjectionHead.html#torchtune.models.llama4.Llama4VisionProjectionHead" title="torchtune.models.llama4.Llama4VisionProjectionHead"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.Llama4VisionProjectionHead</span></code></a></p></td>
+<td><p>Projection transformer to adapt the output of a pretrained frozen encoder (CLIP) to a pretrained decoder model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.Llama4Tokenizer.html#torchtune.models.llama4.Llama4Tokenizer" title="torchtune.models.llama4.Llama4Tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.Llama4Tokenizer</span></code></a></p></td>
+<td><p>tiktoken tokenizer configured with Llama4 Instruct's special tokens, as described in <a class="reference external" href="https://www.llama.com/docs/model-cards-and-prompt-formats/llama4_omni/">https://www.llama.com/docs/model-cards-and-prompt-formats/llama4_omni/</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama4.Llama4Transform.html#torchtune.models.llama4.Llama4Transform" title="torchtune.models.llama4.Llama4Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama4.Llama4Transform</span></code></a></p></td>
+<td><p>This transform combines the transforms for the different modalities of Llama 4.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="llama3-3">
 <h2>llama3.3<a class="headerlink" href="#llama3-3" title="Permalink to this heading">¶</a></h2>
 <p>Text-only models from the 3.3 version of <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
@@ -1121,7 +1165,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.models.llama3_3.llama3_3_70b.html" class="btn btn-neutral float-right" title="llama3_3_70b" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="generated/torchtune.models.llama4.llama4_scout_17b_16e.html" class="btn btn-neutral float-right" title="llama4_scout_17b_16e" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="generated/torchtune.generation.get_position_ids_from_padding_mask.html" class="btn btn-neutral" title="get_position_ids_from_padding_mask" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -1157,6 +1201,7 @@
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.models</a><ul>
+<li><a class="reference internal" href="#llama4">llama4</a></li>
 <li><a class="reference internal" href="#llama3-3">llama3.3</a></li>
 <li><a class="reference internal" href="#llama3-2">llama3.2</a></li>
 <li><a class="reference internal" href="#llama3-2-vision">llama3.2 vision</a></li>

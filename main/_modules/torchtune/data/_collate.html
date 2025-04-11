@@ -629,20 +629,22 @@
 
 
 <div class="viewcode-block" id="padded_collate_sft"><a class="viewcode-back" href="../../../generated/torchtune.data.padded_collate_sft.html#torchtune.data.padded_collate_sft">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">padded_collate_sft</span><span class="p">(</span>
-    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
     <span class="n">pad_to_multiple_of</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">stack_on_new_dim</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad a batch of sequences to the longest sequence length in the batch, and</span>
 <span class="sd">    convert integer lists to tensors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.</span>
+<span class="sd">        batch (List[Dict[str, Any]]): A list of dictionaries containing samples, including tokens and labels.</span>
 <span class="sd">        padding_idx (int): Padding index for input ids. Defaults to 0.</span>
 <span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
 <span class="sd">        pad_to_multiple_of (int): If &gt; 1, pad the sequence to a multiple of this number.</span>
 <span class="sd">            This is useful for proper sharding with e.g. SequenceParallel.</span>
+<span class="sd">        stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, torch.Tensor]: Collated input and label tensors.</span>
@@ -700,7 +702,15 @@
             <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_to_multiple_of</span> <span class="o">-</span> <span class="p">(</span><span class="n">labels_seq_len</span> <span class="o">%</span> <span class="n">pad_to_multiple_of</span><span class="p">)),</span>
             <span class="n">value</span><span class="o">=</span><span class="n">ignore_idx</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span></div>
+    <span class="n">batch_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="o">.</span><span class="n">long</span><span class="p">()}</span>
+    <span class="k">if</span> <span class="s2">&quot;encoder_input&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+        <span class="n">batched_encodings</span> <span class="o">=</span> <span class="n">_stack_encoder_input</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_dim</span><span class="o">=</span><span class="n">stack_on_new_dim</span><span class="p">)</span>
+        <span class="c1"># TODO: fix this hack</span>
+        <span class="n">batched_encodings</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batched_encodings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="p">{}}</span>
+        <span class="k">if</span> <span class="n">batched_encodings</span> <span class="o">!=</span> <span class="p">{}:</span>
+            <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batched_encodings</span>
+    <span class="k">return</span> <span class="n">batch_dict</span></div>
 
 
 <span class="c1"># TODO: Generalize this to support any type of encoder input, right now this assumes</span>
@@ -845,102 +855,143 @@
             <span class="p">)</span>
         <span class="p">}</span>
 
+    <span class="n">batch_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="s2">&quot;labels&quot;</span> <span class="ow">in</span> <span class="n">collated_text</span><span class="p">:</span>
+        <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span>
+
     <span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">bsz</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 
     <span class="c1"># TODO: Figure out how to make this more efficient or vectorized. Setting</span>
     <span class="c1"># max_num_tiles beforehand will save one nested for loop but may incur more</span>
     <span class="c1"># memory and compute costs in attention if max_num_tiles &gt; batch_max_num_tiles</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="s2">&quot;vision&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span>
+        <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;vision&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="p">):</span>
+        <span class="n">image_samples</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">image</span>
+            <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span>
+            <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;vision&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="k">elif</span> <span class="p">(</span>
+        <span class="s2">&quot;images&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span>
+        <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="p">):</span>
+        <span class="n">image_samples</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">image</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">image_samples</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># First loop: get max number of tiles in batch</span>
-    <span class="n">max_num_tiles</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-        <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span>
-        <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="o">&lt;</span> <span class="n">max_num_tiles</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;More tiles in image </span><span class="si">{</span><span class="n">max_num_tiles</span><span class="si">}</span><span class="s2">, than pad_max_tiles </span><span class="si">{</span><span class="n">pad_max_tiles</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-        <span class="n">max_num_tiles</span> <span class="o">=</span> <span class="n">pad_max_tiles</span>
+    <span class="k">if</span> <span class="n">image_samples</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_num_tiles</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">image_samples</span><span class="p">)</span>
 
-    <span class="c1"># Second loop: pad images and masks to max number of tiles, max text seq len in batch</span>
-    <span class="n">batch_images</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">batch_masks</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">batch_aspect_ratios</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
-        <span class="n">sample_images</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">sample_masks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">image</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-            <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_mask&quot;</span><span class="p">]</span>
-        <span class="p">):</span>
-            <span class="c1"># Single image in each sample has shape (n_tiles, c, h, w)</span>
-            <span class="n">n_tiles</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="c1"># Single mask in each sample corresponds to a single image and has shape (text_seq_len, image_seq_len)</span>
-            <span class="c1"># where image_seq_len = n_tiles * tokens_per_tile</span>
-            <span class="n">text_seq_len</span><span class="p">,</span> <span class="n">image_seq_len</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span>
-            <span class="n">tokens_per_tile</span> <span class="o">=</span> <span class="n">image_seq_len</span> <span class="o">//</span> <span class="n">n_tiles</span>
-            <span class="n">padding_tiles</span> <span class="o">=</span> <span class="n">max_num_tiles</span> <span class="o">-</span> <span class="n">n_tiles</span>
-            <span class="n">right_padding_text</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span> <span class="k">else</span> <span class="mi">0</span>
-            <span class="p">)</span>
-            <span class="n">left_padding_text</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span> <span class="k">else</span> <span class="mi">0</span>
-            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pad_max_tiles</span> <span class="o">&lt;</span> <span class="n">max_num_tiles</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;More tiles in image </span><span class="si">{</span><span class="n">max_num_tiles</span><span class="si">}</span><span class="s2">, than pad_max_tiles </span><span class="si">{</span><span class="n">pad_max_tiles</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">max_num_tiles</span> <span class="o">=</span> <span class="n">pad_max_tiles</span>
 
-            <span class="c1"># Image should now have shape (max_num_tiles, c, h, w)</span>
-            <span class="n">padded_image</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">padding_tiles</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="c1"># Mask should now have shape (max_seq_len, max_image_seq_len), where</span>
-            <span class="c1"># max_image_seq_len = max_num_tiles * tokens_per_tile</span>
-            <span class="n">padded_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
-                <span class="n">mask</span><span class="p">,</span>
-                <span class="p">(</span>
-                    <span class="mi">0</span><span class="p">,</span>
-                    <span class="n">padding_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span><span class="p">,</span>
-                    <span class="n">left_padding_text</span><span class="p">,</span>
-                    <span class="n">right_padding_text</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="c1"># Second loop: pad images and masks to max number of tiles, max text seq len in batch</span>
+        <span class="n">batch_images</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">batch_masks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">batch_aspect_ratios</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="n">sample_images</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">sample_masks</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">images</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;vision&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;vision&quot;</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span>
+                <span class="k">else</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
             <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">image</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">images</span><span class="p">):</span>
+                <span class="c1"># Single image in each sample has shape (n_tiles, c, h, w)</span>
+                <span class="n">n_tiles</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">padding_tiles</span> <span class="o">=</span> <span class="n">max_num_tiles</span> <span class="o">-</span> <span class="n">n_tiles</span>
+                <span class="c1"># Image should now have shape (max_num_tiles, c, h, w)</span>
+                <span class="n">padded_image</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                    <span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">padding_tiles</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span>
+                <span class="p">)</span>
+                <span class="n">sample_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_image</span><span class="p">)</span>
 
-            <span class="n">sample_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_image</span><span class="p">)</span>
-            <span class="n">sample_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_mask</span><span class="p">)</span>
-        <span class="c1"># Stack multiple images and masks per sample in num_images dimension</span>
-        <span class="n">batch_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample_images</span><span class="p">))</span>
-        <span class="n">batch_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample_masks</span><span class="p">))</span>
-        <span class="n">batch_aspect_ratios</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;aspect_ratio&quot;</span><span class="p">]))</span>
-    <span class="c1"># Finally, pad images, masks, aspect ratios to max number of images in batch</span>
-    <span class="c1"># (bsz, max_num_images, max_num_tiles, c, h, w)</span>
-    <span class="n">collated_images</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span><span class="n">batch_images</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="c1"># (bsz, max_num_images, max_seq_len, max_image_seq_len)</span>
-    <span class="n">collated_masks</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span><span class="n">batch_masks</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="c1"># (bsz, max_num_images, 2)</span>
-    <span class="n">collated_aspect_ratios</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
-        <span class="n">batch_aspect_ratios</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">1</span>
-    <span class="p">)</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_mask&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;encoder_mask&quot;</span> <span class="ow">in</span> <span class="n">sample</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Single mask in each sample corresponds to a single image and has shape (text_seq_len, image_seq_len)</span>
+                    <span class="c1"># where image_seq_len = n_tiles * tokens_per_tile</span>
+                    <span class="n">text_seq_len</span><span class="p">,</span> <span class="n">image_seq_len</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span>
+                    <span class="n">tokens_per_tile</span> <span class="o">=</span> <span class="n">image_seq_len</span> <span class="o">//</span> <span class="n">n_tiles</span>
+                    <span class="n">right_padding_text</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span> <span class="k">else</span> <span class="mi">0</span>
+                    <span class="p">)</span>
+                    <span class="n">left_padding_text</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">text_seq_len</span> <span class="k">if</span> <span class="n">pad_direction</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span> <span class="k">else</span> <span class="mi">0</span>
+                    <span class="p">)</span>
 
-    <span class="c1"># Concatenate masks for multiple images across image_seq_len dimension</span>
-    <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">collated_masks</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">pad_max_images</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">img_seq</span> <span class="o">=</span> <span class="n">concat_masks</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
-            <span class="n">concat_masks</span><span class="p">,</span>
-            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_max_images</span> <span class="o">*</span> <span class="n">max_num_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span> <span class="o">-</span> <span class="n">img_seq</span><span class="p">),</span>
+                    <span class="c1"># Mask should now have shape (max_seq_len, max_image_seq_len), where</span>
+                    <span class="c1"># max_image_seq_len = max_num_tiles * tokens_per_tile</span>
+                    <span class="n">padded_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">mask</span><span class="p">,</span>
+                        <span class="p">(</span>
+                            <span class="mi">0</span><span class="p">,</span>
+                            <span class="n">padding_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span><span class="p">,</span>
+                            <span class="n">left_padding_text</span><span class="p">,</span>
+                            <span class="n">right_padding_text</span><span class="p">,</span>
+                        <span class="p">),</span>
+                        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">sample_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_mask</span><span class="p">)</span>
+
+            <span class="c1"># Stack multiple images and masks per sample in num_images dimension</span>
+            <span class="n">batch_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample_images</span><span class="p">))</span>
+            <span class="k">if</span> <span class="s2">&quot;encoder_mask&quot;</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
+                <span class="n">batch_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sample_masks</span><span class="p">))</span>
+            <span class="n">batch_aspect_ratios</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                    <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;vision&quot;</span><span class="p">][</span><span class="s2">&quot;aspect_ratio&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="s2">&quot;vision&quot;</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span>
+                    <span class="k">else</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">][</span><span class="s2">&quot;aspect_ratio&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="c1"># Finally, pad images, masks, aspect ratios to max number of images in batch</span>
+        <span class="c1"># (bsz, max_num_images, max_num_tiles, c, h, w)</span>
+        <span class="n">collated_images</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span><span class="n">batch_images</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># (bsz, max_num_images, 2)</span>
+        <span class="n">collated_aspect_ratios</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+            <span class="n">batch_aspect_ratios</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">1</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;vision&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]:</span>
+            <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="n">collated_images</span><span class="p">,</span>
+                    <span class="s2">&quot;aspect_ratio&quot;</span><span class="p">:</span> <span class="n">collated_aspect_ratios</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="n">collated_images</span><span class="p">,</span>
+                <span class="s2">&quot;aspect_ratio&quot;</span><span class="p">:</span> <span class="n">collated_aspect_ratios</span><span class="p">,</span>
+            <span class="p">}</span>
 
-    <span class="n">batch_dict</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;encoder_input&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="n">collated_images</span><span class="p">,</span>
-            <span class="s2">&quot;aspect_ratio&quot;</span><span class="p">:</span> <span class="n">collated_aspect_ratios</span><span class="p">,</span>
-        <span class="p">},</span>
-        <span class="s2">&quot;encoder_mask&quot;</span><span class="p">:</span> <span class="n">concat_masks</span><span class="p">,</span>
-    <span class="p">}</span>
+        <span class="k">if</span> <span class="s2">&quot;encoder_mask&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="c1"># (bsz, max_num_images, max_seq_len, max_image_seq_len)</span>
+            <span class="n">collated_masks</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
+                <span class="n">batch_masks</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
 
-    <span class="k">if</span> <span class="s2">&quot;labels&quot;</span> <span class="ow">in</span> <span class="n">collated_text</span><span class="p">:</span>
-        <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">collated_text</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span>
-
+            <span class="c1"># Concatenate masks for multiple images across image_seq_len dimension</span>
+            <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">collated_masks</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pad_max_images</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">img_seq</span> <span class="o">=</span> <span class="n">concat_masks</span><span class="o">.</span><span class="n">shape</span>
+                <span class="n">concat_masks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                    <span class="n">concat_masks</span><span class="p">,</span>
+                    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_max_images</span> <span class="o">*</span> <span class="n">max_num_tiles</span> <span class="o">*</span> <span class="n">tokens_per_tile</span> <span class="o">-</span> <span class="n">img_seq</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;encoder_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">concat_masks</span>
     <span class="k">return</span> <span class="n">batch_dict</span></div>
 
 
@@ -1082,6 +1133,22 @@
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_stack_encoder_input</span><span class="p">(</span><span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">new_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Recursively traverse dict for list of tensors to stack or cat&quot;&quot;&quot;</span>
+    <span class="n">stacked_batch</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batch</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">i</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">stacked_batch</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">new_dim</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+            <span class="n">stacked_batch</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_stack_encoder_input</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">new_dim</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2"> for key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stacked_batch</span>
 </pre></div>
 
              </article>

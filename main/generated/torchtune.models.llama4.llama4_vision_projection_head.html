@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>llama3_3_70b &mdash; torchtune main documentation</title>
+  <title>llama4_vision_projection_head &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_llama3_3_70b" href="torchtune.models.llama3_3.lora_llama3_3_70b.html" />
-    <link rel="prev" title="Llama4Transform" href="torchtune.models.llama4.Llama4Transform.html" />
+    <link rel="next" title="llama4_decoder" href="torchtune.models.llama4.llama4_decoder.html" />
+    <link rel="prev" title="llama4_vision_encoder" href="torchtune.models.llama4.llama4_vision_encoder.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -417,13 +417,13 @@
         
           <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
         
-      <li>llama3_3_70b</li>
+      <li>llama4_vision_projection_head</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.models.llama3_3.llama3_3_70b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.models.llama4.llama4_vision_projection_head.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -453,13 +453,28 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="llama3-3-70b">
-<h1>llama3_3_70b<a class="headerlink" href="#llama3-3-70b" title="Permalink to this heading">¶</a></h1>
+  <section id="llama4-vision-projection-head">
+<h1>llama4_vision_projection_head<a class="headerlink" href="#llama4-vision-projection-head" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.llama3_3.llama3_3_70b">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama3_3.</span></span><span class="sig-name descname"><span class="pre">llama3_3_70b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="headerlink" href="#torchtune.models.llama3_3.llama3_3_70b" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating a Llama3.3 model initialized w/ the default 70B parameter values.
-Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
+<dt class="sig sig-object py" id="torchtune.models.llama4.llama4_vision_projection_head">
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama4.</span></span><span class="sig-name descname"><span class="pre">llama4_vision_projection_head</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder_embed_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip_embed_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_embed_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.models.llama4.Llama4VisionProjectionHead.html#torchtune.models.llama4.Llama4VisionProjectionHead" title="torchtune.models.llama4._encoder.Llama4VisionProjectionHead"><span class="pre">Llama4VisionProjectionHead</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/llama4/_component_builders.html#llama4_vision_projection_head"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama4.llama4_vision_projection_head" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the Llama 4 Vision Projection Head that maps the output of the CLIP encoder
+to embeddings that can be fed into the decoder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>decoder_embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – embedding dimension for the decoder.</p></li>
+<li><p><strong>clip_embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – embedding dimension for the CLIP encoder.</p></li>
+<li><p><strong>projection_embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – embedding dimension for the inner linear layers in the projection head.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Instantiation of Llama 4 vision projection head.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="torchtune.models.llama4.Llama4VisionProjectionHead.html#torchtune.models.llama4.Llama4VisionProjectionHead" title="torchtune.models.llama4.Llama4VisionProjectionHead">Llama4VisionProjectionHead</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -472,10 +487,10 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.llama3_3.lora_llama3_3_70b.html" class="btn btn-neutral float-right" title="lora_llama3_3_70b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.llama4.llama4_decoder.html" class="btn btn-neutral float-right" title="llama4_decoder" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.models.llama4.Llama4Transform.html" class="btn btn-neutral" title="Llama4Transform" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.models.llama4.llama4_vision_encoder.html" class="btn btn-neutral" title="llama4_vision_encoder" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -507,7 +522,7 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">llama3_3_70b</a></li>
+<li><a class="reference internal" href="#">llama4_vision_projection_head</a></li>
 </ul>
 
             </div>

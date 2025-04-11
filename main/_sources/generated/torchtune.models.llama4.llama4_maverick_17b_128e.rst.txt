@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.models.llama4
+
+
+llama4_maverick_17b_128e
+========================
+
+.. autofunction:: llama4_maverick_17b_128e

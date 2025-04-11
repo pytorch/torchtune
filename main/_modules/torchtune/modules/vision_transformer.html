@@ -726,8 +726,8 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            images (torch.Tensor): torch.Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).</span>
-<span class="sd">            aspect_ratio (Optional[torch.Tensor]): torch.Tensor with shape (bsz, n_imgs, 2). If all</span>
-<span class="sd">                images have a single tile, i.e. they were not tile-cropped, it should be None.</span>
+<span class="sd">            aspect_ratio (Optional[torch.Tensor]): torch.Tensor with shape (bsz, n_imgs, 2). If there are no</span>
+<span class="sd">                tile positional embeddings, i.e. they were not tile-cropped, it should be None.</span>
 <span class="sd">                Used to calculate the positional embeddings for the tiles.</span>
 
 <span class="sd">        Returns:</span>
@@ -735,9 +735,6 @@
 <span class="sd">                where x is a torch.tensor of shape (bsz, n_imgs, n_tiles, n_tokens, embed_dim) and</span>
 <span class="sd">                hidden_states has shape is a list of len(out_indices) torch.tensor with shape</span>
 <span class="sd">                (bsz, n_imgs, n_tiles, n_tokens, embed_dim).</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: If aspect_ratio is None, but n_tiles &gt; 1 in the batch.</span>
 
 <span class="sd">        Examples:</span>
 
@@ -795,18 +792,9 @@
         <span class="n">bsz</span><span class="p">,</span> <span class="n">n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">images</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">bsz_and_n_imgs</span> <span class="o">=</span> <span class="n">bsz</span> <span class="o">*</span> <span class="n">n_imgs</span>
 
-        <span class="c1"># if aspect_ratio is not provided, it defaults to one tile [1,1]</span>
-        <span class="k">if</span> <span class="n">aspect_ratio</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">aspect_ratio</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">images</span><span class="o">.</span><span class="n">device</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">n_tiles</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;aspect_ratio was not provided, but found n_tiles&gt;1 for </span><span class="si">{</span><span class="n">images</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">. Please provide aspect_ratio.&quot;</span>
-                <span class="p">)</span>
-
         <span class="n">images</span> <span class="o">=</span> <span class="n">images</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span> <span class="o">*</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
-        <span class="n">aspect_ratio</span> <span class="o">=</span> <span class="n">aspect_ratio</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">aspect_ratio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">aspect_ratio</span> <span class="o">=</span> <span class="n">aspect_ratio</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># patch embeddings (tokens)</span>
         <span class="c1"># A tile becomes a grid of patch_grid_size X patch_grid_size patches</span>

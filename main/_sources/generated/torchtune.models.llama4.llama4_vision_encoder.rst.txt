@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.models.llama4
+
+
+llama4_vision_encoder
+=====================
+
+.. autofunction:: llama4_vision_encoder

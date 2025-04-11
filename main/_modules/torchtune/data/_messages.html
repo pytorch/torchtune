@@ -494,7 +494,7 @@
 <span class="sd">            as follows::</span>
 
 <span class="sd">                [</span>
-<span class="sd">                    {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: &lt;PIL.Image.Image&gt;},</span>
+<span class="sd">                    {&quot;type&quot;: &quot;image&quot;, &quot;content&quot;: torch.Tensor},</span>
 <span class="sd">                    {&quot;type&quot;: &quot;text&quot;, &quot;content&quot;: &quot;What is in this image?&quot;},</span>
 <span class="sd">                ]</span>
 
@@ -510,8 +510,8 @@
 <span class="sd">            - All ipython messages (tool call returns) should set ``eot=False``.</span>
 
 <span class="sd">    Note:</span>
-<span class="sd">        Message class expects any image content to be in</span>
-<span class="sd">        `PIL Image format &lt;https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image&gt;`_.</span>
+<span class="sd">        Message class expects any image content to be a ``torch.Tensor``, as output</span>
+<span class="sd">        by e.g. :func:`~torchtune.data.load_image`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>

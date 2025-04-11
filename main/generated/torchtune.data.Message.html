@@ -473,7 +473,7 @@ for tool call returns.</p></li>
 you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
 as follows:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
-    <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">},</span>
     <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;What is in this image?&quot;</span><span class="p">},</span>
 <span class="p">]</span>
 </pre></div>
@@ -496,8 +496,8 @@ by assistant), only the last assistant message will have <code class="docutils l
 </dl>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Message class expects any image content to be in
-<a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image">PIL Image format</a>.</p>
+<p>Message class expects any image content to be a <code class="docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, as output
+by e.g. <a class="reference internal" href="torchtune.data.load_image.html#torchtune.data.load_image" title="torchtune.data.load_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_image()</span></code></a></p>
 </div>
 <dl class="py property">
 <dt class="sig sig-object py" id="torchtune.data.Message.contains_media">

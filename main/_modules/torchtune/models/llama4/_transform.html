@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.models.llama3_2_vision._transform &mdash; torchtune main documentation</title>
+  <title>torchtune.models.llama4._transform &mdash; torchtune main documentation</title>
   
 
   
@@ -414,7 +414,7 @@
         
           <li><a href="../../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.models.llama3_2_vision._transform</li>
+      <li>torchtune.models.llama4._transform</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -446,7 +446,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.models.llama3_2_vision._transform</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.models.llama4._transform</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -455,25 +455,28 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_TemplateType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_prompt_template</span><span class="p">,</span> <span class="n">_TemplateType</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.clip</span><span class="w"> </span><span class="kn">import</span> <span class="n">CLIPImageTransform</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama3_tokenizer</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span><span class="p">,</span> <span class="n">VisionCrossAttentionMask</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama4._tokenizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama4Tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">parse_hf_tokenizer_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">v2</span>
 
 
-<div class="viewcode-block" id="Llama3VisionTransform"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Llama3VisionTransform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
+<div class="viewcode-block" id="Llama4Transform"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4Transform.html#torchtune.models.llama4.Llama4Transform">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Llama4Transform</span><span class="p">(</span><span class="n">ModelTokenizer</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    This transform combines the transforms for the different modalities of Llama 3.2 Vision. It</span>
+<span class="sd">    This transform combines the transforms for the different modalities of Llama 4. It</span>
 <span class="sd">    is made up of the following transforms:</span>
-<span class="sd">    - :class:`torchtune.models.llama3.Llama3Tokenizer`</span>
+<span class="sd">    - :class:`torchtune.models.llama4.Llama4Tokenizer`</span>
 <span class="sd">    - :class:`torchtune.models.clip.CLIPImageTransform`</span>
-<span class="sd">    - :class:`torchtune.modules.transforms.VisionCrossAttentionMask`</span>
 
 <span class="sd">    This transform can be used as a drop-in replacement for tokenizers in recipes and generation</span>
-<span class="sd">    but handles additional transformations from the `__call__` method.</span>
+<span class="sd">    but handles additional transformations from the ``__call__`` method.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Path to pretrained tiktoken tokenizer file.</span>
@@ -483,8 +486,11 @@
 <span class="sd">        max_num_tiles (int): Only used if possible_resolutions is NOT given.</span>
 <span class="sd">            Maximum number of tiles to break an image into.</span>
 <span class="sd">            This will be used to generate possible_resolutions,</span>
-<span class="sd">            e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.</span>
+<span class="sd">            e.g. [(224, 224), (224, 448), (448, 224)] if ``max_num_tiles = 2`` and ``tile_size = 224``.</span>
 <span class="sd">            Default 4.</span>
+<span class="sd">        pixel_shuffle_scaling_factor (float): scaling factor for pixel shuffle. Default is 0.5. You must ensure this</span>
+<span class="sd">            matches the pixel shuffle scaling factor used in :class:`~torchtune.models.llama4.Llama4VisionProjectionHead`</span>
+<span class="sd">            if modified from default.</span>
 <span class="sd">        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face</span>
 <span class="sd">            model files that contains all registered special tokens, or a local json file</span>
 <span class="sd">            structured similarly. Default is None to use the canonical Llama3 special tokens.</span>
@@ -492,6 +498,7 @@
 <span class="sd">            after which the input will be truncated. Default is None.</span>
 <span class="sd">        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.</span>
 <span class="sd">        image_std (Optional[List[float]]): Standard deviations for each channel, used for normalization.</span>
+<span class="sd">        dtype (torch.dtype): Data type of transformed image. Default torch.bfloat16.</span>
 <span class="sd">        prompt_template (Optional[_TemplateType]): template used to format the messages based on their role. This is used</span>
 <span class="sd">            to add structured text around the actual messages. The structured text is used in three scenarios:</span>
 
@@ -503,7 +510,7 @@
 <span class="sd">            The extra text will still get tokenized as normal text, not as special tokens. Default is None.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; model_transform = Llama3VisionTransform(&quot;/path/to/tokenizer.model&quot;, tile_size=224, patch_size=14)</span>
+<span class="sd">        &gt;&gt;&gt; model_transform = Llama4VisionTransform(&quot;/path/to/tokenizer.model&quot;, tile_size=224, patch_size=14)</span>
 <span class="sd">        &gt;&gt;&gt; transformed_data = model_transform({&quot;messages&quot;: user_message, &quot;images&quot;: [img1, img2]})</span>
 <span class="sd">        &gt;&gt;&gt; print(transformed_data[&quot;tokens&quot;])</span>
 <span class="sd">        [1, 31587, 29644, 102, 2]</span>
@@ -518,19 +525,39 @@
         <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_num_tiles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">pixel_shuffle_scaling_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">special_tokens_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_mean</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_std</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
         <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TemplateType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span>
-            <span class="n">path</span><span class="p">,</span>
-            <span class="n">special_tokens_path</span><span class="o">=</span><span class="n">special_tokens_path</span><span class="p">,</span>
-            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-            <span class="n">prompt_template</span><span class="o">=</span><span class="n">prompt_template</span><span class="p">,</span>
+        <span class="n">special_tokens</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">parse_hf_tokenizer_json</span><span class="p">(</span><span class="n">special_tokens_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">special_tokens_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">transform_image</span> <span class="o">=</span> <span class="n">CLIPImageTransform</span><span class="p">(</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_get_prompt_template</span><span class="p">(</span><span class="n">prompt_template</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">prompt_template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">Llama4Tokenizer</span><span class="p">(</span>
+            <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">special_tokens</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">,</span>
+            <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">prompt_template</span><span class="o">=</span><span class="n">template</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thumbnail_transform</span> <span class="o">=</span> <span class="n">v2</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">v2</span><span class="o">.</span><span class="n">Resize</span><span class="p">((</span><span class="n">tile_size</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">)),</span>
+                <span class="n">v2</span><span class="o">.</span><span class="n">ToImage</span><span class="p">(),</span>
+                <span class="n">v2</span><span class="o">.</span><span class="n">ToDtype</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+                <span class="n">v2</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">image_mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">image_std</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip_transform</span> <span class="o">=</span> <span class="n">CLIPImageTransform</span><span class="p">(</span>
             <span class="n">image_mean</span><span class="o">=</span><span class="n">image_mean</span><span class="p">,</span>
             <span class="n">image_std</span><span class="o">=</span><span class="n">image_std</span><span class="p">,</span>
             <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">,</span>
@@ -538,18 +565,21 @@
             <span class="n">max_num_tiles</span><span class="o">=</span><span class="n">max_num_tiles</span><span class="p">,</span>
             <span class="n">resample</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
             <span class="n">resize_to_max_canvas</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">xattn_mask</span> <span class="o">=</span> <span class="n">VisionCrossAttentionMask</span><span class="p">(</span>
-            <span class="n">tile_size</span><span class="o">=</span><span class="n">tile_size</span><span class="p">,</span>
-            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
-            <span class="n">image_token_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">image_id</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">stop_tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">special_tokens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_num_tiles</span> <span class="o">=</span> <span class="n">max_num_tiles</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">image_seq_len</span> <span class="o">=</span> <span class="n">max_num_tiles</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xattn_mask</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">patch_grid_size</span> <span class="o">=</span> <span class="n">tile_size</span> <span class="o">//</span> <span class="n">patch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">=</span> <span class="n">patch_grid_size</span><span class="o">**</span><span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_seq_len</span> <span class="o">=</span> <span class="n">max_num_tiles</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span>  <span class="c1"># No CLS token</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span> <span class="o">=</span> <span class="n">pixel_shuffle_scaling_factor</span>
+        <span class="c1"># Number of patches in each tile in image tensor after accounting for pixel shuffling.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_tokens_per_tile</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span> <span class="o">=</span> <span class="n">prompt_template</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span>
 
@@ -561,6 +591,18 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">vocab_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform_image</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">tiles</span><span class="p">,</span> <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip_transform</span><span class="p">({</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">},</span> <span class="n">inference</span><span class="o">=</span><span class="n">inference</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="n">num_tiles</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">tiles</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># add thumbnail if there are multiple tiles</span>
+        <span class="k">if</span> <span class="n">num_tiles</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">thumbnail</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thumbnail_transform</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+            <span class="n">tiles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">tiles</span><span class="p">,</span> <span class="n">thumbnail</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tiles</span><span class="p">,</span> <span class="n">ar</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -569,7 +611,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="n">add_bos</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Llama3VisionTransform.decode"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
+<div class="viewcode-block" id="Llama4Transform.decode"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4Transform.html#torchtune.models.llama4.Llama4Transform.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">truncate_at_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -594,7 +636,7 @@
             <span class="n">skip_special_tokens</span><span class="o">=</span><span class="n">skip_special_tokens</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Llama3VisionTransform.tokenize_message"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_message">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_message</span><span class="p">(</span>
+<div class="viewcode-block" id="Llama4Transform.tokenize_message"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4Transform.html#torchtune.models.llama4.Llama4Transform.tokenize_message">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_message</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span>
         <span class="n">add_start_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -617,7 +659,7 @@
             <span class="n">add_end_tokens</span><span class="o">=</span><span class="n">add_end_tokens</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Llama3VisionTransform.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.Llama3VisionTransform.html#torchtune.models.llama3_2_vision.Llama3VisionTransform.tokenize_messages">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
+<div class="viewcode-block" id="Llama4Transform.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4Transform.html#torchtune.models.llama4.Llama4Transform.tokenize_messages">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -646,26 +688,30 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            sample (Mapping[str, Any]): A sample with a &quot;messages&quot; field.</span>
-<span class="sd">            inference (bool): Whether to run in inference mode. Default is False.</span>
+<span class="sd">            inference (bool): Whether to run in inference mode. Default is True.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Mapping[str, Any]: The transformed sample with the following fields:</span>
 <span class="sd">                - tokens: List[int] of tokenized messages</span>
 <span class="sd">                - mask: List[bool] of masks for the tokenized messages</span>
 <span class="sd">                - encoder_input: Dict[str, Any] of transformed images</span>
-<span class="sd">                - encoder_mask: List[bool] of masks for the transformed images</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">encoder_input</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;aspect_ratio&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="n">encoder_input</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;images&quot;</span><span class="p">:</span> <span class="p">[]}}</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">get_media</span><span class="p">():</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_image</span><span class="p">({</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">},</span> <span class="n">inference</span><span class="o">=</span><span class="n">inference</span><span class="p">)</span>
-                <span class="n">encoder_input</span><span class="p">[</span><span class="s2">&quot;images&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">])</span>
-                <span class="n">encoder_input</span><span class="p">[</span><span class="s2">&quot;aspect_ratio&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;aspect_ratio&quot;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">content</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;image&quot;</span><span class="p">:</span>
+                    <span class="n">image</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>
+                    <span class="n">tiles</span><span class="p">,</span> <span class="n">ar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">inference</span><span class="o">=</span><span class="n">inference</span><span class="p">)</span>
+                    <span class="n">encoder_input</span><span class="p">[</span><span class="s2">&quot;vision&quot;</span><span class="p">][</span><span class="s2">&quot;images&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tiles</span><span class="p">)</span>
+
+                    <span class="c1"># Add number of patch tokens, tiles, and aspect ratio to metadata</span>
+                    <span class="c1"># so tokenizer can add the corresponding special tokens</span>
+                    <span class="n">content</span><span class="p">[</span><span class="s2">&quot;patch_tokens_per_tile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_tokens_per_tile</span>
+                    <span class="n">content</span><span class="p">[</span><span class="s2">&quot;aspect_ratio&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ar</span>
 
         <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoder_input</span>
         <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">inference</span><span class="o">=</span><span class="n">inference</span><span class="p">)</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xattn_mask</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">inference</span><span class="o">=</span><span class="n">inference</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sample</span></div>
 </pre></div>
 

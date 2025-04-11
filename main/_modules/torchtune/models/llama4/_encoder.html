@@ -7,11 +7,10 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>llama3_3_70b &mdash; torchtune main documentation</title>
+  <title>torchtune.models.llama4._encoder &mdash; torchtune main documentation</title>
   
 
   
@@ -27,21 +26,19 @@
 
   
 
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_llama3_3_70b" href="torchtune.models.llama3_3.lora_llama3_3_70b.html" />
-    <link rel="prev" title="Llama4Transform" href="torchtune.models.llama4.Llama4Transform.html" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -52,16 +49,16 @@
   
 
   
-  <script src="../_static/js/modernizr.min.js"></script>
+  <script src="../../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -299,7 +296,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -316,65 +313,65 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Finetuning Recipes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/recipes_overview.html">Recipes Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../recipes/dpo.html">Direct Preference Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/recipes_overview.html">Recipes Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/lora_finetune_single_device.html">LoRA Single Device Finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/qat_distributed.html">Distributed Quantization-Aware Training (QAT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../recipes/dpo.html">Direct Preference Optimization</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Basics</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../basics/datasets_overview.html">Datasets Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/chat_datasets.html">Chat Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/instruct_datasets.html">Instruct Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/preference_datasets.html">Preference Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/model_transforms.html">Multimodal Transforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/messages.html">Messages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/message_transforms.html">Message Transforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/tokenizers.html">Tokenizers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/prompt_templates.html">Prompt Templates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/packing.html">Sample packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../basics/custom_components.html">Custom Components and Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/datasets_overview.html">Datasets Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/chat_datasets.html">Chat Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/instruct_datasets.html">Instruct Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/multimodal_datasets.html">Multimodal Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/preference_datasets.html">Preference Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/text_completion_datasets.html">Text-completion Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/model_transforms.html">Multimodal Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/messages.html">Messages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/message_transforms.html">Message Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/tokenizers.html">Tokenizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/prompt_templates.html">Prompt Templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/packing.html">Sample packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../basics/custom_components.html">Custom Components and Recipes</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/multinode.html">Multi-node finetuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-Tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Fine-Tuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Fine-Tuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qat_finetune.html">Fine-Tuning Llama3 with QAT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama_kd_tutorial.html">Distilling Llama3.1 8B into Llama3.2 1B using Knowledge Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/memory_optimizations.html">Memory Optimization Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/multinode.html">Multi-node finetuning</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/comet_logging.html">Logging to Comet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/comet_logging.html">Logging to Comet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_generation.html">torchtune.generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_rlhf.html">torchtune.rlhf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_training.html">torchtune.training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -407,7 +404,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../index.html">
+        <a href="../../../../index.html">
           
             Docs
           
@@ -415,16 +412,12 @@
       </li>
 
         
-          <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
+          <li><a href="../../../index.html">Module code</a> &gt;</li>
         
-      <li>llama3_3_70b</li>
+      <li>torchtune.models.llama4._encoder</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
-        
-            
-            <a href="../_sources/generated/torchtune.models.llama3_3.llama3_3_70b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
-          
         
       </li>
     
@@ -453,31 +446,145 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="llama3-3-70b">
-<h1>llama3_3_70b<a class="headerlink" href="#llama3-3-70b" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.llama3_3.llama3_3_70b">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama3_3.</span></span><span class="sig-name descname"><span class="pre">llama3_3_70b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="headerlink" href="#torchtune.models.llama3_3.llama3_3_70b" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating a Llama3.3 model initialized w/ the default 70B parameter values.
-Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
-</dd></dl>
+  <h1>Source code for torchtune.models.llama4._encoder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-</section>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_fusion_module</span>
+
+
+<div class="viewcode-block" id="Llama4VisionProjectionHead"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4VisionProjectionHead.html#torchtune.models.llama4.Llama4VisionProjectionHead">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Llama4VisionProjectionHead</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Projection transformer to adapt the output of a</span>
+<span class="sd">    pretrained frozen encoder (CLIP) to a pretrained decoder model.</span>
+<span class="sd">    For example, ``nn.Sequential(CLIP(), Llama4VisionProjectionHead())``.</span>
+
+<span class="sd">    Note: this module assumes the CLS token embedding is added at the end</span>
+<span class="sd">    of the sequence.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output (nn.Module): output layer, typically an MLP.</span>
+<span class="sd">        pixel_shuffle_scaling_factor (float): scaling factor for pixel shuffle.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">output</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">pixel_shuffle_scaling_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span> <span class="o">=</span> <span class="n">pixel_shuffle_scaling_factor</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_pixel_shuffle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">n</span><span class="p">,</span>
+            <span class="n">w</span><span class="p">,</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">c</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">n</span><span class="p">,</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span><span class="p">),</span>
+            <span class="nb">int</span><span class="p">(</span>
+                <span class="n">c</span>
+                <span class="o">/</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span>
+                    <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shuffle_scaling_factor</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+<div class="viewcode-block" id="Llama4VisionProjectionHead.forward"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4VisionProjectionHead.html#torchtune.models.llama4.Llama4VisionProjectionHead.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): input tensor with shape [b, e, d]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: output tensor of a sequence of embeddings [b, s, d * pixel_shuffle_factor ** 2]</span>
+
+<span class="sd">        Notation used for tensor shapes:</span>
+<span class="sd">            - b: batch size</span>
+<span class="sd">            - e: number of embeds per tile (e.g. CLS embed + patch embeds, etc.)</span>
+<span class="sd">            - s: sequence length computed by t * (e - 1) // (pixel_shuffle_factor ** 2)</span>
+<span class="sd">            - d: embed dim</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Remove cls token - assumes it is the last token in the sequence</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">bsz</span><span class="p">,</span> <span class="n">embeds</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># apply pixel shuffle</span>
+        <span class="n">h_patches</span> <span class="o">=</span> <span class="n">w_patches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">embeds</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">h_patches</span><span class="p">,</span> <span class="n">w_patches</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_shuffle</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">new_h_patches</span><span class="p">,</span> <span class="n">new_w_patches</span><span class="p">,</span> <span class="n">new_dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1"># shape: [bsz, embeds // factor ** 2, dim * factor ** 2)]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">new_h_patches</span> <span class="o">*</span> <span class="n">new_w_patches</span><span class="p">,</span> <span class="n">new_dim</span><span class="p">)</span>
+        <span class="c1"># apply output - shape [bsz, embeds // factor ** 2, output_dim]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="Llama4VisionEncoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4VisionEncoder.html#torchtune.models.llama4.Llama4VisionEncoder">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Llama4VisionEncoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Vision encoder model for Llama 4. This combines a pretrained</span>
+<span class="sd">    vision encoder with a learnable projection head. The projection head</span>
+<span class="sd">    is converted to a fusion module and supports fusion utils.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        clip (nn.Module): CLIP encoder vision model</span>
+<span class="sd">        projection_head (nn.Module): ``projection_head`` that takes embeddings</span>
+<span class="sd">            with dimension ``encoder_dim`` as input and outputs embeddings of</span>
+<span class="sd">            size ``decoder_dim``. See :func:`torchtune.models.llama4.llama4_vision_projection_head`</span>
+<span class="sd">            as an example.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clip</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">projection_head</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip</span> <span class="o">=</span> <span class="n">clip</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">projection_head</span>
+        <span class="n">register_fusion_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Llama4VisionEncoder.forward"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4VisionEncoder.html#torchtune.models.llama4.Llama4VisionEncoder.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            images (torch.Tensor): Image tensor with shape [b x c x w x h]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: output tensor of a sequence of embeddings ``[b x s x d]``</span>
+<span class="sd">                where sequence length (``s``) is ``(num_imgs*num_tiles)+num_embeds``</span>
+
+<span class="sd">         Notation used for tensor shapes:</span>
+<span class="sd">            - b: batch size, equal to flatten(batch x images x tiles)</span>
+<span class="sd">            - c: number of image channels (e.g. rgb = 3)</span>
+<span class="sd">            - w: image width</span>
+<span class="sd">            - h: image height</span>
+<span class="sd">            - s: sequence length computed by i*t*clip_embeds_per_tile</span>
+<span class="sd">            - d: embed dim</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">images</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+</pre></div>
 
              </article>
              
             </div>
             <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="torchtune.models.llama3_3.lora_llama3_3_70b.html" class="btn btn-neutral float-right" title="lora_llama3_3_70b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
-      
-      
-        <a href="torchtune.models.llama4.Llama4Transform.html" class="btn btn-neutral" title="Llama4Transform" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
-      
-    </div>
   
 
   
@@ -506,10 +613,7 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              <ul>
-<li><a class="reference internal" href="#">llama3_3_70b</a></li>
-</ul>
-
+              
             </div>
           </div>
         </div>
@@ -522,23 +626,23 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-         <script src="../_static/jquery.js"></script>
-         <script src="../_static/underscore.js"></script>
-         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../_static/doctools.js"></script>
-         <script src="../_static/clipboard.min.js"></script>
-         <script src="../_static/copybutton.js"></script>
-         <script src="../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+         <script src="../../../../_static/jquery.js"></script>
+         <script src="../../../../_static/underscore.js"></script>
+         <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../_static/doctools.js"></script>
+         <script src="../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../_static/copybutton.js"></script>
+         <script src="../../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -659,7 +763,7 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -810,7 +914,7 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

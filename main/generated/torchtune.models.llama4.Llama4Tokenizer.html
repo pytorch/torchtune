@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>llama3_3_70b &mdash; torchtune main documentation</title>
+  <title>Llama4Tokenizer &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_llama3_3_70b" href="torchtune.models.llama3_3.lora_llama3_3_70b.html" />
-    <link rel="prev" title="Llama4Transform" href="torchtune.models.llama4.Llama4Transform.html" />
+    <link rel="next" title="Llama4Transform" href="torchtune.models.llama4.Llama4Transform.html" />
+    <link rel="prev" title="Llama4VisionProjectionHead" href="torchtune.models.llama4.Llama4VisionProjectionHead.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -417,13 +417,13 @@
         
           <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
         
-      <li>llama3_3_70b</li>
+      <li>Llama4Tokenizer</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.models.llama3_3.llama3_3_70b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.models.llama4.Llama4Tokenizer.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -453,13 +453,125 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="llama3-3-70b">
-<h1>llama3_3_70b<a class="headerlink" href="#llama3-3-70b" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.llama3_3.llama3_3_70b">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.llama3_3.</span></span><span class="sig-name descname"><span class="pre">llama3_3_70b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="headerlink" href="#torchtune.models.llama3_3.llama3_3_70b" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating a Llama3.3 model initialized w/ the default 70B parameter values.
-Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
+  <section id="llama4tokenizer">
+<h1>Llama4Tokenizer<a class="headerlink" href="#llama4tokenizer" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.models.llama4.Llama4Tokenizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.models.llama4.</span></span><span class="sig-name descname"><span class="pre">Llama4Tokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">special_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface" title="torchtune.data._prompt_templates.PromptTemplateInterface"><span class="pre">PromptTemplateInterface</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/models/llama4/_tokenizer.html#Llama4Tokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama4.Llama4Tokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>tiktoken tokenizer configured with Llama4 Instruct’s special tokens, as described in
+<a class="reference external" href="https://www.llama.com/docs/model-cards-and-prompt-formats/llama4_omni/">https://www.llama.com/docs/model-cards-and-prompt-formats/llama4_omni/</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to pretrained tiktoken tokenizer file.</p></li>
+<li><p><strong>special_tokens</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em>) – mapping containing special text tokens and
+their registered token IDs. If left as None, this will be set to the canonical
+Llama4 special tokens.</p></li>
+<li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – maximum sequence length for tokenizing a single list of messages,
+after which the input will be truncated. Default is None.</p></li>
+<li><p><strong>prompt_template</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface" title="torchtune.data.PromptTemplateInterface"><em>PromptTemplateInterface</em></a><em>]</em>) – <p>template used to format the messages based on their role. This is used
+to add structured text around the actual messages. The structured text is used in three scenarios:</p>
+<ul>
+<li><p>Task-specific templates to gear models for a particular task that it will expect after training</p></li>
+<li><p>Model-specific templates that are required whenever the model is prompted, such as the [INST]
+tags in Llama2 and in Mistral</p></li>
+<li><p>Community standardized templates, such as <a class="reference internal" href="torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate" title="torchtune.data.ChatMLTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatMLTemplate</span></code></a></p></li>
+</ul>
+<p>The extra text will still get tokenized as normal text, not as special tokens. Default is None.</p>
+</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">Llama4Tokenizer</span><span class="p">(</span><span class="s2">&quot;/path/to/tt_model&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenized_text</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;Hello world!&quot;</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">tokenized_text</span><span class="p">)</span>
+<span class="go">[1, 31587, 29644, 102, 2]</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.models.llama4.Llama4Tokenizer.decode">
+<span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">truncate_at_eos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_special_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/llama4/_tokenizer.html#Llama4Tokenizer.decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama4.Llama4Tokenizer.decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decode a list of token ids into a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token_ids</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – The list of token ids.</p></li>
+<li><p><strong>truncate_at_eos</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to truncate the string at the end of
+sequence token. Default is True.</p></li>
+<li><p><strong>skip_special_tokens</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to show or skip special tokens in the decoded string.
+Default is True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The decoded string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.models.llama4.Llama4Tokenizer.tokenize_message">
+<span class="sig-name descname"><span class="pre">tokenize_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._messages.Message"><span class="pre">Message</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_start_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_end_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/models/llama4/_tokenizer.html#Llama4Tokenizer.tokenize_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama4.Llama4Tokenizer.tokenize_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tokenize a message into a list of token ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> (<a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><em>Message</em></a>) – The message to tokenize.</p></li>
+<li><p><strong>add_start_tokens</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to prepend a tokenized header to the message. Default is True.</p></li>
+<li><p><strong>add_end_tokens</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to append eot or eom id at the end of the message. Default is True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of token ids.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.models.llama4.Llama4Tokenizer.tokenize_messages">
+<span class="sig-name descname"><span class="pre">tokenize_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._messages.Message"><span class="pre">Message</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_end_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/models/llama4/_tokenizer.html#Llama4Tokenizer.tokenize_messages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.llama4.Llama4Tokenizer.tokenize_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tokenize a list of messages into a list of token ids and masks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>messages</strong> (<em>List</em><em>[</em><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><em>Message</em></a><em>]</em>) – The list of messages to tokenize.</p></li>
+<li><p><strong>add_end_tokens</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Whether to append end tokens ids (end-of-seq, end-of-turn, end-of-message) at the end of the
+last assistant message. This value should be set to False for generation. Default is True.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Tokenize a list of messages with default settings</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">... </span>    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Hello world!&quot;</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;How are you?&quot;</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">Llama3Tokenizer</span><span class="p">(</span><span class="s2">&quot;/path/to/tt_model&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+<span class="go">([1, 31587, 29644, 102, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, True])</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Tokenize a list of messages with add_end_tokens set to False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">add_end_tokens</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The list of token ids and the list of masks.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>], List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -472,10 +584,10 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.llama3_3.lora_llama3_3_70b.html" class="btn btn-neutral float-right" title="lora_llama3_3_70b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.llama4.Llama4Transform.html" class="btn btn-neutral float-right" title="Llama4Transform" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.models.llama4.Llama4Transform.html" class="btn btn-neutral" title="Llama4Transform" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.models.llama4.Llama4VisionProjectionHead.html" class="btn btn-neutral" title="Llama4VisionProjectionHead" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -507,7 +619,7 @@ Please see <cite>llama3_1_70b</cite> for full API arguments.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">llama3_3_70b</a></li>
+<li><a class="reference internal" href="#">Llama4Tokenizer</a></li>
 </ul>
 
             </div>

@@ -729,6 +729,7 @@
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">cpu_offload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">use_distributed_state_dict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_IncompatibleKeys</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting full state dict into a sharded state dict</span>
@@ -739,7 +740,8 @@
 <span class="sd">        device (torch.device): device used to move full state dict tensors</span>
 <span class="sd">        strict (bool): flag to check if to load the model in strict mode</span>
 <span class="sd">        cpu_offload (bool): flag to check if offload to CPU is enabled</span>
-
+<span class="sd">        use_distributed_state_dict (bool): Whether to use set_model_state_dict for loading</span>
+<span class="sd">            state dict. Default: False. (TODO: this should be True once 3.2 Vision is fixed)</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:</span>
 <span class="sd">            * **missing_keys** is a list of str containing the missing keys</span>
@@ -761,7 +763,9 @@
     <span class="n">meta_sharded_sd</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
     <span class="c1"># NF4Tensor is not supported in `set_model_state_dict` right now, running with the previous logic right</span>
     <span class="c1"># now, would support in the future and remove the following code</span>
-    <span class="k">if</span> <span class="n">_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has_nf4</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has_nf4</span>
+    <span class="p">)</span> <span class="ow">or</span> <span class="n">use_distributed_state_dict</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="n">full_sd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">sharded_meta_param</span> <span class="o">=</span> <span class="n">meta_sharded_sd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">param_name</span><span class="p">)</span>
             <span class="n">full_sd</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_sd</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>

@@ -587,8 +587,6 @@
 <span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches.</span>
 <span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
 <span class="sd">            the size of the full input image. In this case, the function will consider your image as a single tile.</span>
-<span class="sd">        max_num_tiles (int): The maximum number of tiles in the image. This is used to unfold the input sequence</span>
-<span class="sd">            length into sequence length per tile so RoPE can be applied to each tile separately.</span>
 <span class="sd">        dim (int): Embedding dimension. Unlike :class:`~torchtune.modules.RotaryPositionalEmbeddings`, this is</span>
 <span class="sd">            usually set to the dim of each head in the attention module divided by 2, computed as</span>
 <span class="sd">            ``embed_dim // num_heads // 2``. The divide by 2 accounts for x and y positions.</span>
@@ -602,14 +600,13 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_num_tiles</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
         <span class="n">append_cls_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span> <span class="o">=</span> <span class="n">tile_size</span> <span class="o">//</span> <span class="n">patch_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_num_tiles</span> <span class="o">=</span> <span class="n">max_num_tiles</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span> <span class="o">=</span> <span class="n">append_cls_token</span>
@@ -618,7 +615,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span>
-            <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+            <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">build_rope_cache</span><span class="p">()</span>
@@ -649,7 +646,7 @@
         <span class="n">patch_y_pos</span> <span class="o">=</span> <span class="n">patch_idx</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_grid_size</span>
 
         <span class="c1"># Outer product of theta and position index; output tensor has</span>
-        <span class="c1"># a shape of [patches_per_tile + 1, dim // 2]</span>
+        <span class="c1"># a shape of [patches_per_tile + 1, dim // 4]</span>
         <span class="n">x_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;i, j -&gt; ij&quot;</span><span class="p">,</span> <span class="n">patch_x_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
         <span class="n">y_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;i, j -&gt; ij&quot;</span><span class="p">,</span> <span class="n">patch_y_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
 
@@ -677,9 +674,6 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: output tensor with shape ``[b, s, n_h, h_d]``</span>
 
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if sequence length of input tensor does not match the 2D RoPE cache&#39;s sequence length</span>
-
 <span class="sd">        Notation used for tensor shapes:</span>
 <span class="sd">            - b: batch size</span>
 <span class="sd">            - s: sequence length</span>
@@ -692,16 +686,10 @@
         <span class="c1"># Split tile dimension from the sequence dimension</span>
         <span class="c1"># Cast to float to match the reference implementation</span>
         <span class="c1"># tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]</span>
-        <span class="n">xshaped</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_h</span><span class="p">,</span> <span class="n">h_d</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">seq_len</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Input sequence length </span><span class="si">{</span><span class="n">seq_len</span><span class="si">}</span><span class="s2"> does not match 2D RoPE cache sequence length </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span>
-            <span class="p">)</span>
+        <span class="n">xshaped</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">n_h</span><span class="p">,</span> <span class="n">h_d</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># reshape the cache for broadcasting</span>
-        <span class="n">rope_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h_d</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">rope_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h_d</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># tensor has shape [b, max_num_tiles, s // max_num_tiles, n_h, h_d // 2, 2]</span>
         <span class="n">x_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
@@ -715,7 +703,7 @@
         <span class="p">)</span>
 
         <span class="c1"># Squash tile dimension back into sequence dimension - tensor has shape [b, s, n_h, h_d]</span>
-        <span class="n">x_out</span> <span class="o">=</span> <span class="n">x_out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_tiles</span> <span class="o">*</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">n_h</span><span class="p">,</span> <span class="n">h_d</span><span class="p">)</span>
+        <span class="n">x_out</span> <span class="o">=</span> <span class="n">x_out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_h</span><span class="p">,</span> <span class="n">h_d</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">x_out</span><span class="o">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </pre></div>
 
