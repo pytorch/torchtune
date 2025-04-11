@@ -55,6 +55,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "seed=9",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
+            "lr_scheduler.num_warmup_steps=0",
+            "lr_scheduler.num_cycles=0",
             "log_every_n_steps=1",
             "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
@@ -123,19 +125,20 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = [
-            1.0403,
-            0.9495,
-            0.9084,
-            1.0494,
-            0.9609,
-            0.8846,
-            1.0282,
-            0.9390,
-            0.8915,
-            1.0166,
-            0.9231,
-            0.9352,
+            1.0403811931610107,
+            0.9495404958724976,
+            0.90840744972229,
+            1.0494484901428223,
+            0.9609842896461487,
+            0.8846424221992493,
+            1.0282150506973267,
+            0.939055323600769,
+            0.891597330570221,
+            1.0166869163513184,
+            0.9231593608856201,
+            0.9352758526802063,
         ]
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )

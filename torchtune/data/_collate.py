@@ -180,20 +180,22 @@ def padded_collate(
 
 
 def padded_collate_sft(
-    batch: List[Dict[str, List[int]]],
+    batch: List[Dict[str, Any]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     pad_to_multiple_of: int = 1,
+    stack_on_new_dim: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
 
     Args:
-        batch (List[Dict[str, List[int]]]): A list of dictionaries containing input, label pairs.
+        batch (List[Dict[str, Any]]): A list of dictionaries containing samples, including tokens and labels.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
             This is useful for proper sharding with e.g. SequenceParallel.
+        stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False
 
     Returns:
         Dict[str, torch.Tensor]: Collated input and label tensors.
@@ -251,7 +253,15 @@ def padded_collate_sft(
             (0, pad_to_multiple_of - (labels_seq_len % pad_to_multiple_of)),
             value=ignore_idx,
         )
-    return {"tokens": input_ids.long(), "labels": labels.long()}
+    batch_dict = {"tokens": input_ids.long(), "labels": labels.long()}
+    if "encoder_input" in batch[0]:
+        x = [x["encoder_input"] for x in batch]
+        batched_encodings = _stack_encoder_input(x, new_dim=stack_on_new_dim)
+        # TODO: fix this hack
+        batched_encodings = {k: v for k, v in batched_encodings.items() if v != {}}
+        if batched_encodings != {}:
+            batch_dict["encoder_input"] = batched_encodings
+    return batch_dict
 
 
 # TODO: Generalize this to support any type of encoder input, right now this assumes
@@ -396,102 +406,143 @@ def padded_collate_tiled_images_and_mask(
             )
         }
 
+    batch_dict = {
+        "tokens": collated_text["tokens"],
+    }
+    if "labels" in collated_text:
+        batch_dict["labels"] = collated_text["labels"]
+
     max_seq_len = collated_text["tokens"].shape[-1]
     bsz = len(batch)
 
     # TODO: Figure out how to make this more efficient or vectorized. Setting
     # max_num_tiles beforehand will save one nested for loop but may incur more
     # memory and compute costs in attention if max_num_tiles > batch_max_num_tiles
+    if (
+        "vision" in batch[0]["encoder_input"]
+        and len(batch[0]["encoder_input"]["vision"]["images"]) > 0
+    ):
+        image_samples = [
+            image
+            for sample in batch
+            for image in sample["encoder_input"]["vision"]["images"]
+        ]
+    elif (
+        "images" in batch[0]["encoder_input"]
+        and len(batch[0]["encoder_input"]["images"]) > 0
+    ):
+        image_samples = [
+            image for sample in batch for image in sample["encoder_input"]["images"]
+        ]
+    else:
+        image_samples = None
 
     # First loop: get max number of tiles in batch
-    max_num_tiles = max(
-        image.shape[0]
-        for sample in batch
-        for image in sample["encoder_input"]["images"]
-    )
-    if pad_max_tiles is not None:
-        if pad_max_tiles < max_num_tiles:
-            raise ValueError(
-                f"More tiles in image {max_num_tiles}, than pad_max_tiles {pad_max_tiles}"
-            )
-        max_num_tiles = pad_max_tiles
+    if image_samples is not None:
+        max_num_tiles = max(image.shape[0] for image in image_samples)
 
-    # Second loop: pad images and masks to max number of tiles, max text seq len in batch
-    batch_images = []
-    batch_masks = []
-    batch_aspect_ratios = []
-    for sample in batch:
-        sample_images = []
-        sample_masks = []
-        for image, mask in zip(
-            sample["encoder_input"]["images"], sample["encoder_mask"]
-        ):
-            # Single image in each sample has shape (n_tiles, c, h, w)
-            n_tiles = image.shape[0]
-            # Single mask in each sample corresponds to a single image and has shape (text_seq_len, image_seq_len)
-            # where image_seq_len = n_tiles * tokens_per_tile
-            text_seq_len, image_seq_len = mask.shape
-            tokens_per_tile = image_seq_len // n_tiles
-            padding_tiles = max_num_tiles - n_tiles
-            right_padding_text = (
-                max_seq_len - text_seq_len if pad_direction == "right" else 0
-            )
-            left_padding_text = (
-                max_seq_len - text_seq_len if pad_direction == "left" else 0
-            )
+        if pad_max_tiles is not None:
+            if pad_max_tiles < max_num_tiles:
+                raise ValueError(
+                    f"More tiles in image {max_num_tiles}, than pad_max_tiles {pad_max_tiles}"
+                )
+            max_num_tiles = pad_max_tiles
 
-            # Image should now have shape (max_num_tiles, c, h, w)
-            padded_image = F.pad(image, (0, 0, 0, 0, 0, 0, 0, padding_tiles), value=0)
-            # Mask should now have shape (max_seq_len, max_image_seq_len), where
-            # max_image_seq_len = max_num_tiles * tokens_per_tile
-            padded_mask = F.pad(
-                mask,
-                (
-                    0,
-                    padding_tiles * tokens_per_tile,
-                    left_padding_text,
-                    right_padding_text,
-                ),
-                value=0,
+        # Second loop: pad images and masks to max number of tiles, max text seq len in batch
+        batch_images = []
+        batch_masks = []
+        batch_aspect_ratios = []
+        for sample in batch:
+            sample_images = []
+            sample_masks = []
+            images = (
+                sample["encoder_input"]["vision"]["images"]
+                if "vision" in sample["encoder_input"]
+                else sample["encoder_input"]["images"]
             )
+            for i, image in enumerate(images):
+                # Single image in each sample has shape (n_tiles, c, h, w)
+                n_tiles = image.shape[0]
+                padding_tiles = max_num_tiles - n_tiles
+                # Image should now have shape (max_num_tiles, c, h, w)
+                padded_image = F.pad(
+                    image, (0, 0, 0, 0, 0, 0, 0, padding_tiles), value=0
+                )
+                sample_images.append(padded_image)
 
-            sample_images.append(padded_image)
-            sample_masks.append(padded_mask)
-        # Stack multiple images and masks per sample in num_images dimension
-        batch_images.append(torch.stack(sample_images))
-        batch_masks.append(torch.stack(sample_masks))
-        batch_aspect_ratios.append(torch.stack(sample["encoder_input"]["aspect_ratio"]))
-    # Finally, pad images, masks, aspect ratios to max number of images in batch
-    # (bsz, max_num_images, max_num_tiles, c, h, w)
-    collated_images = pad_sequence(batch_images, batch_first=True, padding_value=0)
-    # (bsz, max_num_images, max_seq_len, max_image_seq_len)
-    collated_masks = pad_sequence(batch_masks, batch_first=True, padding_value=0)
-    # (bsz, max_num_images, 2)
-    collated_aspect_ratios = pad_sequence(
-        batch_aspect_ratios, batch_first=True, padding_value=1
-    )
+                mask = sample["encoder_mask"][i] if "encoder_mask" in sample else None
+                if mask is not None:
+                    # Single mask in each sample corresponds to a single image and has shape (text_seq_len, image_seq_len)
+                    # where image_seq_len = n_tiles * tokens_per_tile
+                    text_seq_len, image_seq_len = mask.shape
+                    tokens_per_tile = image_seq_len // n_tiles
+                    right_padding_text = (
+                        max_seq_len - text_seq_len if pad_direction == "right" else 0
+                    )
+                    left_padding_text = (
+                        max_seq_len - text_seq_len if pad_direction == "left" else 0
+                    )
 
-    # Concatenate masks for multiple images across image_seq_len dimension
-    concat_masks = collated_masks.view(bsz, max_seq_len, -1)
-    if pad_max_images is not None:
-        _, _, img_seq = concat_masks.shape
-        concat_masks = F.pad(
-            concat_masks,
-            (0, pad_max_images * max_num_tiles * tokens_per_tile - img_seq),
+                    # Mask should now have shape (max_seq_len, max_image_seq_len), where
+                    # max_image_seq_len = max_num_tiles * tokens_per_tile
+                    padded_mask = F.pad(
+                        mask,
+                        (
+                            0,
+                            padding_tiles * tokens_per_tile,
+                            left_padding_text,
+                            right_padding_text,
+                        ),
+                        value=0,
+                    )
+                    sample_masks.append(padded_mask)
+
+            # Stack multiple images and masks per sample in num_images dimension
+            batch_images.append(torch.stack(sample_images))
+            if "encoder_mask" in sample:
+                batch_masks.append(torch.stack(sample_masks))
+            batch_aspect_ratios.append(
+                torch.stack(
+                    sample["encoder_input"]["vision"]["aspect_ratio"]
+                    if "vision" in sample["encoder_input"]
+                    else sample["encoder_input"]["aspect_ratio"]
+                )
+            )
+        # Finally, pad images, masks, aspect ratios to max number of images in batch
+        # (bsz, max_num_images, max_num_tiles, c, h, w)
+        collated_images = pad_sequence(batch_images, batch_first=True, padding_value=0)
+        # (bsz, max_num_images, 2)
+        collated_aspect_ratios = pad_sequence(
+            batch_aspect_ratios, batch_first=True, padding_value=1
         )
+        if "vision" in batch[0]["encoder_input"]:
+            batch_dict["encoder_input"] = {
+                "vision": {
+                    "images": collated_images,
+                    "aspect_ratio": collated_aspect_ratios,
+                }
+            }
+        else:
+            batch_dict["encoder_input"] = {
+                "images": collated_images,
+                "aspect_ratio": collated_aspect_ratios,
+            }
 
-    batch_dict = {
-        "tokens": collated_text["tokens"],
-        "encoder_input": {
-            "images": collated_images,
-            "aspect_ratio": collated_aspect_ratios,
-        },
-        "encoder_mask": concat_masks,
-    }
+        if "encoder_mask" in batch[0]:
+            # (bsz, max_num_images, max_seq_len, max_image_seq_len)
+            collated_masks = pad_sequence(
+                batch_masks, batch_first=True, padding_value=0
+            )
 
-    if "labels" in collated_text:
-        batch_dict["labels"] = collated_text["labels"]
-
+            # Concatenate masks for multiple images across image_seq_len dimension
+            concat_masks = collated_masks.view(bsz, max_seq_len, -1)
+            if pad_max_images is not None:
+                _, _, img_seq = concat_masks.shape
+                concat_masks = F.pad(
+                    concat_masks,
+                    (0, pad_max_images * max_num_tiles * tokens_per_tile - img_seq),
+                )
+            batch_dict["encoder_mask"] = concat_masks
     return batch_dict
 
 
@@ -633,3 +684,19 @@ def padded_collate_dpo(
         )
 
     return concatenated_input_ids, concatenated_labels
+
+
+def _stack_encoder_input(batch: List[Dict[str, Any]], new_dim=False) -> Dict[str, Any]:
+    """Recursively traverse dict for list of tensors to stack or cat"""
+    stacked_batch = {}
+    for k, v in batch[0].items():
+        if isinstance(v, list) and all(isinstance(x, torch.Tensor) for x in v):
+            v = [j for i in batch for j in i[k]]
+            if len(v) > 0:
+                stacked_batch[k] = torch.stack(v) if new_dim else torch.cat(v)
+        elif isinstance(v, dict):
+            v = [i[k] for i in batch]
+            stacked_batch[k] = _stack_encoder_input(v, new_dim)
+        else:
+            raise ValueError(f"Unsupported type {type(v)} for key {k}")
+        return stacked_batch
