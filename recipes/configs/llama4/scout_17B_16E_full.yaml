@@ -20,8 +20,8 @@ model:
 
 tensor_parallel_dim: 2 # For multi-node training we recommend tensor_parallel_dim: 8
 tensor_parallel_plan:
-  _component_: torchtune.models.llama4.decoder_only_tp_plan
-data_parallel_shard_dim: -1 # Will infer based on TP dim, effictively controls FSDP
+  _component_: torc/home/ebs/l4_final_test.outhtune.models.llama4.decoder_only_tp_plan
+data_parallel_shard_dim: -1 # Will infer based on TP dim, effectively controls FSDP
 data_parallel_replicate_dim: 1
 
 tokenizer:
