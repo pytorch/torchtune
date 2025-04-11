@@ -34,7 +34,8 @@ class GRPOLoss(nn.Module):
         b_positive: float = 0.1,
         a_negative: float = 0.1,
         b_negative: float = 0.1,
-        min_: bool = True
+        min_: bool = True,
+        ignore_index: int = -100
     ):
         super().__init__()
         self.epsilon = epsilon
@@ -44,6 +45,7 @@ class GRPOLoss(nn.Module):
         self.a_negative = a_negative
         self.b_negative = b_negative
         self.min_=min_
+        self.ignore_index=ignore_index
 
     def forward(
         self,
@@ -141,6 +143,7 @@ class GRPOCompletionLoss(nn.Module):
         change_to_reinforce: bool = False,
         take_min: bool = True,
         take_clipped: bool = True,
+        ignore_index: int = -100
 
     ):
         super().__init__()
@@ -152,6 +155,7 @@ class GRPOCompletionLoss(nn.Module):
         self.change_to_reinforce=change_to_reinforce
         self.take_min=take_min
         self.take_clipped=take_clipped
+        self.ignore_index=ignore_index
 
     def forward(
         self,
@@ -339,6 +343,7 @@ class GRPOTaperLoss(nn.Module):
         a_negative: float = 0.1,
         b_negative: float = 10.0,
         kl_coeff: float = 0.1,
+        ignore_index: int = -100
     ):
         super().__init__()
         self.a_positive = a_positive
@@ -346,6 +351,7 @@ class GRPOTaperLoss(nn.Module):
         self.a_negative = a_negative
         self.b_negative = b_negative
         self.kl_coeff = kl_coeff
+        self.ignore_index=ignore_index
 
     def taper_function(self, x: torch.Tensor, a: float, b: float) -> torch.Tensor:
         """

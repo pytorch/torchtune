@@ -1098,6 +1098,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self._model.train()
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             grpo_stats = []
+            num_tokens=0
 
             # Batch loop
             for idx, batch in enumerate(self._dataloader):
@@ -1127,6 +1128,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     response_tokens= batch["response_tokens"],
                 )
 
+                current_num_tokens = (
+                    trajectory.response_tokens != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
+
                 step_stats = self.grpo_step(trajectory)
 
                 all_policy_losses.append(step_stats.policy_loss.detach().cpu().numpy().item())
@@ -1152,6 +1158,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                             self._model.parameters(),
                             max_norm=float(self._clip_grad_norm),
                         )
+                    torch.distributed.all_reduce(num_tokens)
+                    training.scale_grads(self._model, 1 / num_tokens)
 
                     # Optimization step - keep this the same
                     torch.distributed.barrier()
@@ -1180,14 +1188,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                                 step_type="accumulated",  # Add this to distinguish from per-step logs
                                 **extra_metrics,
                             )
-                    if self._is_rank_zero:
-                        self.log_aggregated_histograms(
-                            all_policy_losses,
-                            all_ratios,
-                            all_advantages,
-                            all_signs,
-                            step=self.global_step
-                        )
 
                     # Cleanup after step - keep this the same
                     self.cleanup_after_step(trajectory, grpo_stats)
@@ -1200,6 +1200,14 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self.epochs_run += 1
             if self.epochs_run % self._save_every_n_epochs == 0:
                 self.save_checkpoint(curr_epoch)
+        if self._is_rank_zero:
+            self.log_aggregated_histograms(
+                all_policy_losses,
+                all_ratios,
+                all_advantages,
+                all_signs,
+                step=self.global_step
+            )
 
         # Finalize training - keep this the same
         self._profiler.stop()
@@ -1228,10 +1236,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         policy_loss_all = np.array(policy_losses_list)
         ratios_all = np.array(ratios_list)
         advantages_all = np.array(advantages_list)
-        
-        # z-score them
-
-        
 
         log_dict = {}
     
@@ -1287,9 +1291,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 title=chart_title
             )
 
-        
         # Finally, log everything in one go
-        self._metric_logger.log_dict(log_dict, step=step if step is not None else self.global_step)
+        self._metric_logger.log_dict(log_dict, step= self.global_step)
 
 def zscore(x):
     mean = x.mean()
