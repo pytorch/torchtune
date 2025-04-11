@@ -36,7 +36,7 @@ shuffle: True
 batch_size: 4
 
 # Validation
-run_val_every_n_steps=None  # Change to an integer to enable validation every N steps
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
 dataset_val:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
   split: train[95%:]
