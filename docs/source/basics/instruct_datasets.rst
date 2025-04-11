@@ -42,8 +42,8 @@ Here is an example of an instruct dataset to fine-tune for a grammar correction 
         source="csv",
         data_files="data/my_data.csv",
         split="train",
-        # By default, user prompt is ignored in loss. Set to True to include it
-        train_on_input=True,
+        # By default, user prompt is ignored in loss. Set to train_on_all to include it
+        masking_strategy="train_on_all",
         # Prepend a system message to every sample
         new_system_prompt="You are an AI assistant. ",
         # Use columns in our dataset instead of default
@@ -69,7 +69,7 @@ Here is an example of an instruct dataset to fine-tune for a grammar correction 
       source: csv
       data_files: data/my_data.csv
       split: train
-      train_on_input: True
+      masking_strategy: train_on_all
       new_system_prompt: You are an AI assistant.
       column_map:
         input: incorrect

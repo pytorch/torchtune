@@ -33,7 +33,7 @@ class TestFullDPODistributedRecipe:
             "enable_activation_checkpointing=True",
             "enable_activation_offloading=True",
             f"dtype={dtype_str}",
-            "dataset.train_on_input=False",
+            "dataset.masking_strategy='train_on_assistant'",
             "seed=9",
             f"epochs={epochs}",
             "max_steps_per_epoch=2",
