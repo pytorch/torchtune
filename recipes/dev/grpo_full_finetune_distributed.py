@@ -887,7 +887,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                         traj.query_responses, max_p_plus_l, 1, dim=1
                     ),
                     logprobs=self._pad_tensor(traj.logprobs, max_l, -1e9, dim=1),
-                    ref_logprobs=self._pad_tensor(traj.ref_logprobs, max_l, -1e9, dim=1),
+                    ref_logprobs=self._pad_tensor(
+                        traj.ref_logprobs, max_l, -1e9, dim=1
+                    ),
                     rewards=traj.rewards,
                     successes=traj.successes,
                     advantages=traj.advantages,
