@@ -28,13 +28,13 @@ from torchtune.training._distributed import (
 from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._model_util import disable_dropout
 from torchtune.training._profiler import (
-    DEFAULT_PROFILE_DIR,
-    DEFAULT_PROFILER_ACTIVITIES,
-    DEFAULT_SCHEDULE,
-    DEFAULT_TRACE_OPTS,
-    DummyProfiler,
+    # DEFAULT_PROFILE_DIR,
+    # DEFAULT_PROFILER_ACTIVITIES,
+    # DEFAULT_SCHEDULE,
+    # DEFAULT_TRACE_OPTS,
+    # DummyProfiler,
     PROFILER_KEY,
-    setup_torch_profiler,
+    # setup_torch_profiler,
 )
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing import (
