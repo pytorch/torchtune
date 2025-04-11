@@ -816,13 +816,26 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
     def _pad_tensor(
         self, tensor: torch.Tensor, target_dim: int, pad_value: float, dim: int = 1
     ) -> torch.Tensor:
+        """
+        Pads the end of the specified dimension with the given value until the dimension reaches the target size.
+        We need this to ensure, that trajectories are padded to the same size, and we will not get errors on torch.cat.
+
+        Args:
+            tensor (torch.Tensor): Tensor related to the trajectory
+            target_dim (int): Target size after padding
+            pad_value (int): Value to use for padding elements
+            dim (int): Dimension index to pad (follows the PyTorch dimension ordering)
+
+        Returns:
+            torch.Tensor: Padded trajectory tensor to the max size.
+        """
         pad_size = target_dim - tensor.shape[dim]
         if pad_size <= 0:
             return tensor
 
+        pad_idx = 2 * (tensor.ndim - dim) - 1
         pad = [0] * (2 * tensor.ndim)
-        pad[-2 * (dim + 1)] = 0
-        pad[-2 * (dim + 1) + 1] = pad_size
+        pad[pad_idx] = pad_size
         return torch.nn.functional.pad(tensor, pad, value=pad_value)
 
     def generate_trajectory_batched(
@@ -873,8 +886,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     query_responses=self._pad_tensor(
                         traj.query_responses, max_p_plus_l, 1, dim=1
                     ),
-                    logprobs=self._pad_tensor(traj.logprobs, max_l, 1.0, dim=1),
-                    ref_logprobs=self._pad_tensor(traj.ref_logprobs, max_l, 1.0, dim=1),
+                    logprobs=self._pad_tensor(traj.logprobs, max_l, -1e9, dim=1),
+                    ref_logprobs=self._pad_tensor(traj.ref_logprobs, max_l, -1e9, dim=1),
                     rewards=traj.rewards,
                     successes=traj.successes,
                     advantages=traj.advantages,
