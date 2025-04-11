@@ -18,6 +18,7 @@ from ._model_builders import (
     llama4_maverick_17b_128e,
     llama4_scout_17b_16e,
     llama4_transform,
+    lora_llama4_scout_17b_16e,
 )
 from ._parallelism import decoder_only_tp_plan
 from ._position_embeddings import Llama4ScaledRoPE
