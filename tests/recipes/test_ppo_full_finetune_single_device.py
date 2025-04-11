@@ -62,6 +62,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         ] + dummy_text_completion_alpaca_dataset_config()
 
     @pytest.mark.integration_test
+    @pytest.mark.debugging
     @mps_ignored_test()
     def test_loss(self, tmpdir, monkeypatch):
 
@@ -138,7 +139,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             0.9231593608856201,
             0.9352758526802063,
         ]
-
+        # assert expected_loss_values == pytest.approx(loss_values, 1e-4)
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )
