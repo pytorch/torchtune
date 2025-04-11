@@ -316,11 +316,12 @@ class CheckpointClient:
         # Hack to properly initialize the learning rate scheduler
         # TODO: Find a better way to do this, possibly by including the following
         # code in _init_optim_state
-        for param_group in optim_state_dict["param_groups"]:
-            if param_group.get("initial_lr") is None:
-                param_group[
-                    "initial_lr"
-                ] = 0.0  # This will get overriden by the actual value in optimizer
+        if "param_groups" in optim_state_dict:
+            for param_group in optim_state_dict["param_groups"]:
+                if param_group.get("initial_lr") is None:
+                    param_group[
+                        "initial_lr"
+                    ] = 0.0  # This will get overriden by the actual value in optimizer
 
         checkpoint_dict.update(
             {
