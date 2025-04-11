@@ -73,6 +73,8 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if verbose:
         log.info("Compiling loss with torch.compile...")
+
+    # TODO: Delete all of this loss specific code for next release
     if isinstance(loss, CEWithChunkedOutputLoss):
         loss.compute_cross_entropy = torch.compile(
             loss.compute_cross_entropy, backend=backend
@@ -83,6 +85,9 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
         loss.rkl_loss = torch.compile(loss.rkl_loss, backend=backend)
     elif isinstance(loss, SymmetricKLWithChunkedOutputLoss):
         loss.sym_kl_loss = torch.compile(loss.sym_kl_loss, backend=backend)
+    elif hasattr(loss, "forward"):
+        loss.forward = torch.compile(loss.forward, backend=backend)
     else:
         loss = torch.compile(loss, backend=backend)
+
     return loss
