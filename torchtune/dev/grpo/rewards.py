@@ -4,28 +4,31 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from xml.etree import ElementTree as ET
+import re
+from typing import Dict
 
 import torch
 
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
-def extract_tags(text: str) -> dict[str, list[str]]:
+def extract_tags(text: str) -> Dict:
     """
     Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
     The values are lists of strings, with each string being the content of a tag.
     """
-    xml_string = f"<root>{text}</root>"
-    root = ET.fromstring(xml_string)
-
+    think_pattern = r"<think>(.*?)</think>"
+    answer_pattern = r"<answer>(.*?)</answer>"
+    think_match = re.search(think_pattern, text, re.DOTALL)
+    answer_match = re.search(answer_pattern, text, re.DOTALL)
+    cot = think_match.group(1).strip() if think_match else ""
+    potential_answer = answer_match.group(1).strip() if answer_match else ""
     return {
         "think": [
-            elem.text if elem.text is not None else "" for elem in root.findall("think")
+            cot,
         ],
         "answer": [
-            elem.text if elem.text is not None else ""
-            for elem in root.findall("answer")
+            potential_answer,
         ],
     }
 
