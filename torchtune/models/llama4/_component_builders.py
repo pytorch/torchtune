@@ -328,7 +328,7 @@ def llama4_moe(
     dim: int,
     hidden_dim: int,
     num_experts: int = 8,
-    experts_per_token: int = 2,
+    experts_per_token: int = 1,
     use_shared_expert: bool = True,
 ) -> MoE:
     """
@@ -517,7 +517,7 @@ def lora_llama4_decoder(
     rope_base: int = 500_000,
     norm_eps: float = 1e-5,
     num_experts: int = 8,
-    experts_per_token: int = 2,
+    experts_per_token: int = 1,
     use_shared_expert: bool = True,
     use_expert_choice: bool = True,
     # LoRA parameters
@@ -559,7 +559,7 @@ def lora_llama4_decoder(
         rope_base (int): base for the rotary positional embeddings. Default: 500_000
         norm_eps (float): epsilon in RMS norms. Default: 1e-5
         num_experts (int): Number of experts in each moe layer. Default: 8
-        experts_per_token (int): Number of experts each token will choose in Token Choice. Default: 2
+        experts_per_token (int): Number of experts each token will choose in Token Choice. Default: 1
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation

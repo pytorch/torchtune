@@ -124,7 +124,6 @@ class MoE(nn.Module):
 
         # shape (bs*slen*experts_per_token, dim)
         token_indices = token_indices.reshape(-1, 1).expand(-1, dim)
-        torch.distributed.breakpoint()
         # shape (bs*slen*experts_per_token, dim)
         routed_input = torch.gather(
             x.view(-1, dim),
@@ -132,10 +131,8 @@ class MoE(nn.Module):
             index=token_indices,
         )
         routed_input = routed_input * top_scores.reshape(-1, 1)
-        torch.distributed.breakpoint()
         # shape (bs*slen*top_k, dim)
         routed_output = self.experts(routed_input, num_tokens_per_expert)
-        torch.distributed.breakpoint()
         # shared expert
         if self.shared_expert is not None:
             out = self.shared_expert(x).reshape(bs * slen, dim)

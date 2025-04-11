@@ -226,25 +226,32 @@ class LoRAGroupedExperts(nn.Module, AdapterModule):
                 self.gate_proj[expert_idx],
                 self.down_proj[expert_idx],
             )
+            lora_gate_a, lora_gate_b, lora_down_a, lora_down_b = (
+                self.lora_gate_a[expert_idx],
+                self.lora_gate_b[expert_idx],
+                self.lora_down_a[expert_idx],
+                self.lora_down_b[expert_idx],
+            )
             h = self.act_fn(
                 self._lora_tc_layer_forward(
-                    x_expert, gate_proj, self.lora_gate_a, self.lora_gate_b
+                    x_expert, gate_proj, lora_gate_a, lora_gate_b
                 )
             )
 
             if self.up_proj is not None:
                 up_proj = self.up_proj[expert_idx]
+                lora_up_a, lora_up_b = (
+                    self.lora_up_a[expert_idx],
+                    self.lora_up_b[expert_idx],
+                )
                 h = h * self._lora_tc_layer_forward(
-                    x_expert, up_proj, self.lora_up_a, self.lora_up_b
+                    x_expert, up_proj, lora_up_a, lora_up_b
                 )
 
-            h = self._lora_tc_layer_forward(
-                h, down_proj, self.lora_down_a, self.lora_down_b
-            )
+            h = self._lora_tc_layer_forward(h, down_proj, lora_down_a, lora_down_b)
 
             # h shape (tokens_per_expert(varying), hidden_dim)
             out_experts_splits.append(h)
-        torch.distributed.breakpoint()
         out = torch.cat(out_experts_splits, dim=0)
 
         return out
