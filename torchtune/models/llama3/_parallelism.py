@@ -6,6 +6,8 @@
 
 from typing import Dict
 
+from torch import nn
+
 from torch.distributed.tensor import Replicate, Shard
 from torch.distributed.tensor.parallel import (
     ColwiseParallel,
@@ -15,9 +17,8 @@ from torch.distributed.tensor.parallel import (
 )
 from torch.distributed.tensor.parallel.style import ParallelStyle
 
-
 # Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
-BASE_LLAMA_TP_PLAN = {
+BASE_LLAMA_TP_TRAINING_PLAN = {
     "tok_embeddings": RowwiseParallel(
         input_layouts=Replicate(), output_layouts=Shard(1)
     ),
@@ -42,12 +43,30 @@ BASE_LLAMA_TP_PLAN = {
     "layers.*.mlp.w3": ColwiseParallel(),
 }
 
+BASE_LLAMA_TP_INFERENCE_PLAN = {
+    "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
+    "output": ColwiseParallel(output_layouts=Replicate()),
+    "layers.*.attn.q_proj": ColwiseParallel(),
+    "layers.*.attn.k_proj": ColwiseParallel(),
+    "layers.*.attn.v_proj": ColwiseParallel(),
+    "layers.*.attn.output_proj": RowwiseParallel(),
+    "layers.*.mlp.w1": ColwiseParallel(),
+    "layers.*.mlp.w2": RowwiseParallel(),
+    "layers.*.mlp.w3": ColwiseParallel(),
+}
 
-def base_llama_tp_plan() -> Dict[str, ParallelStyle]:
+
+def base_llama_tp_plan(
+    model: nn.Module, inference: bool = False
+) -> Dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
+
+    Args:
+        model (nn.Module): Model to generate plan for (no-op)
+        inference (bool): Whether running inference or not.
 
     Returns:
         Dict[str, Any]: The tensor parallel plan for Llama3 model.
     """
-    return BASE_LLAMA_TP_PLAN
+    return BASE_LLAMA_TP_INFERENCE_PLAN if inference else BASE_LLAMA_TP_TRAINING_PLAN
