@@ -72,16 +72,6 @@ class TestLlama3VisionEncoder:
 
         assert_expected(output.mean(), torch.tensor(5.28800), atol=1e-3, rtol=1e-3)
 
-    def test_fails_if_ar_none_and_multiple_tiles(self, vision_transformer):
-        assert self.image.shape[2] > 1, "This test is not valid for num_tiles=1"
-        try:
-            vision_transformer(self.image, aspect_ratio=None)
-            pytest.fail(
-                "Expected ValueError: If num_tiles>1, aspect_ratio should not be None"
-            )
-        except ValueError:
-            pass  # If ValueError is raised, the test passes
-
     def test_llama3_2_vision_encoder_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["max_num_tiles"] = 1

@@ -280,6 +280,7 @@ def load_from_full_model_state_dict(
     device: torch.device,
     strict: bool = False,
     cpu_offload: bool = False,
+    use_distributed_state_dict: bool = False,
 ) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
@@ -290,7 +291,8 @@ def load_from_full_model_state_dict(
         device (torch.device): device used to move full state dict tensors
         strict (bool): flag to check if to load the model in strict mode
         cpu_offload (bool): flag to check if offload to CPU is enabled
-
+        use_distributed_state_dict (bool): Whether to use set_model_state_dict for loading
+            state dict. Default: False. (TODO: this should be True once 3.2 Vision is fixed)
     Returns:
         ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
             * **missing_keys** is a list of str containing the missing keys
@@ -312,7 +314,9 @@ def load_from_full_model_state_dict(
     meta_sharded_sd = model.state_dict()
     # NF4Tensor is not supported in `set_model_state_dict` right now, running with the previous logic right
     # now, would support in the future and remove the following code
-    if _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4:
+    if (
+        _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4
+    ) or use_distributed_state_dict:
         for param_name in full_sd.keys():
             sharded_meta_param = meta_sharded_sd.get(param_name)
             full_sd[param_name] = full_sd[param_name].to(sharded_meta_param.dtype)
