@@ -457,7 +457,9 @@ def get_recipe_checkpoint_path(
             output_dir, RECIPE_STATE_DIRNAME, "recipe_state.pt"
         )
 
-    if not recipe_checkpoint_path or not os.path.exists(recipe_checkpoint_path):
+    fs, _ = url_to_fs(recipe_checkpoint_path)
+
+    if not recipe_checkpoint_path or not fs.exists(recipe_checkpoint_path):
         raise ValueError(
             "If `should_load_recipe_state=True`, recipe_checkpoint file must be provided. "
             f"Could not find it at {recipe_checkpoint_path}."
@@ -495,7 +497,8 @@ def get_adapter_checkpoint_path(
 
     if adapter_checkpoint:
         adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
-        if not os.path.exists(adapter_checkpoint_path):
+        fs, _ = url_to_fs(adapter_checkpoint_path)
+        if not fs.exists(adapter_checkpoint_path):
             raise ValueError(
                 f"Adapter checkpoint file {adapter_checkpoint_path} does not exist."
             )
@@ -512,7 +515,8 @@ def get_adapter_checkpoint_path(
         tentative_adapter_checkpoint_path = os.path.join(
             output_dir, largest_iter_folder, "adapter_model.pt"
         )
-        if os.path.exists(tentative_adapter_checkpoint_path):
+        fs, _ = url_to_fs(tentative_adapter_checkpoint_path)
+        if fs.exists(tentative_adapter_checkpoint_path):
             adapter_checkpoint_path = tentative_adapter_checkpoint_path
 
     return adapter_checkpoint_path if adapter_checkpoint_path else None
