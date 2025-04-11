@@ -185,6 +185,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
 
+        self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
+        if self._run_val_every_n_steps is not None:
+            assert (
+                cfg.get("dataset_val") is not None
+            ), "run_val_every_n_steps is set but dataset_val is not configured"
+
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
             if self._clip_grad_norm is not None:
@@ -401,9 +407,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Add validation config parameters
-        self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
 
         # Used to ignore labels for loss computation
         bsz_cache = (
@@ -795,9 +798,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Run validation loop and return average validation loss.
         """
-        if self._val_dataloader is None:
-            return {"val_loss": 0.0}
-
         self._model.eval()
         total_val_loss = torch.tensor(0.0, device=self._device)
         total_val_tokens = torch.tensor(0.0, device=self._device)

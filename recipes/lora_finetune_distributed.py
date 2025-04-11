@@ -165,6 +165,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
+        self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
+        if self._run_val_every_n_steps is not None:
+            assert (
+                cfg.get("dataset_val") is not None
+            ), "run_val_every_n_steps is set but dataset_val is not provided"
+
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
@@ -370,8 +376,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.ignore_labels_cache = torch.full(
             (bsz_cache, 1), self._loss_fn.ignore_index, device=self._device
         )
-
-        self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -928,8 +932,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Run validation loop and return average validation loss.
         """
-        if self._val_dataloader is None:
-            return {"val_loss": 0.0}
 
         self._model.eval()
         total_val_loss = torch.tensor(0.0, device=self._device)
