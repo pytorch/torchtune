@@ -136,7 +136,7 @@ class GRPO_Dataset(Dataset):
             "advantages": torch.tensor(advantages, device=self._device).unsqueeze(0),
             "response_padding_masks": response_padding_masks,
             "query_len": len(query_tokens),
-            "type": torch.tensor(sample["completion_reward"]),
+            "type": torch.tensor([1,]),
             "response_tokens": response_tokens
         }
         

@@ -1040,7 +1040,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             ref_logprobs=trajectory.ref_logprobs,
             advantages=trajectory.advantages,
             padding_masks=~trajectory.response_padding_masks,
-            type_=trajectory.type
         )
 
         torch.cuda.empty_cache()
@@ -1165,6 +1164,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.barrier()
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
+                    num_tokens=0
 
                     # Update global step - keep this the same
                     self.global_step += 1
