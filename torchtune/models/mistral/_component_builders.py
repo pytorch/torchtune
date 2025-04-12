@@ -46,6 +46,7 @@ def mistral(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
     rope_base: int = 10_000,
+    head_dim: int = None,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the mistral model. This includes:
@@ -72,11 +73,13 @@ def mistral(
             Default: 0.0
         norm_eps (float): epsilon in RMS norms
         rope_base (int): base for the rotary positional embeddings. Default: 10_000
+        head_dim (int): the attention head dimension. Default: None
 
     Returns:
         TransformerDecoder: Instantiation of mistral model.
     """
-    head_dim = embed_dim // num_heads
+    output_proj_dim = num_heads * head_dim if head_dim else embed_dim
+    head_dim = head_dim or embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = RotaryPositionalEmbeddings(
@@ -92,7 +95,7 @@ def mistral(
             q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(output_proj_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=None,
             max_seq_len=max_seq_len,

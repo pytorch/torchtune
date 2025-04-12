@@ -16,6 +16,7 @@ from torchtune.data._prompt_templates import _get_prompt_template
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.mistral._tokenizer import MistralTokenizer
+from torchtune.models.mistral._tekken_tokenizer import MistralTekkenTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
 
@@ -216,3 +217,46 @@ Builder for creating a Mistral reward 7B model with QLoRA enabled. Base model we
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
 Please see `lora_mistral_reward_7b` for full API arguments.
 """
+
+def mistral_nemo_12b() -> TransformerDecoder:
+    """
+    Builder for creating a Mistral Nemo 12B model initialized w/ the parameter values
+    from https://huggingface.co/mistralai/Mistral-Nemo-Base-2407
+
+    Returns:
+        TransformerDecoder: Instantiation of Mistral Nemo 12B model
+    """
+    return mistral(
+        vocab_size=131072,
+        num_layers=40,
+        num_heads=32,
+        num_kv_heads=8,
+        embed_dim=5120,
+        intermediate_dim=14336,
+        max_seq_len=131072,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+        rope_base=1_000_000,
+        head_dim=128,
+    )
+
+def mistral_tekken_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.mistral.MistralChatTemplate", truncation_type: str = "right",) -> MistralTekkenTokenizer:
+    """
+    Tekken tokenizer for Mistral Nemo models.
+
+    Args:
+        path (str): path to the tekken.json tokenizer file
+        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
+            after which the input will be truncated. Default is None.
+        prompt_template (Optional[_TemplateType]): optional specified prompt template.
+            If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
+            class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
+            prepend/append tags. Default is :class:`~torchtune.models.mistral.MistralChatTemplate`.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
+
+    Returns:
+        MistralTekkenTokenizer: Instantiation of the Mistral Tekken tokenizer
+    """
+    return MistralTekkenTokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None, truncation_type=truncation_type)
+

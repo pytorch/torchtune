@@ -18,6 +18,8 @@ from ._model_builders import (
     mistral_tokenizer,
     qlora_mistral_7b,
     qlora_mistral_reward_7b,
+    mistral_tekken_tokenizer,
+    mistral_nemo_12b,
 )
 from ._prompt_template import MistralChatTemplate
 from ._tokenizer import MistralTokenizer
@@ -36,4 +38,6 @@ __all__ = [
     "mistral_tokenizer",
     "qlora_mistral_7b",
     "qlora_mistral_reward_7b",
+    "mistral_tekken_tokenizer",
+    "mistral_nemo_12b",
 ]
