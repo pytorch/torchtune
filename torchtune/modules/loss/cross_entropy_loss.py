@@ -98,8 +98,8 @@ class ChunkedCrossEntropyLoss(nn.Module, SFTLossWithProjection):
         total_elements = mask.sum()
 
         # Chunk along sequence dimension
-        hidden_chunks = outputs.chunk(self.num_output_chunks, dim=1)
-        target_chunks = targets.chunk(self.num_output_chunks, dim=1)
+        hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
+        target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
 
         # Compute cross-entropy loss for the chunks
         total_loss = 0.0
