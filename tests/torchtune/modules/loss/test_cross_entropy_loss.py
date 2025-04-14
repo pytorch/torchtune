@@ -19,6 +19,9 @@ def random():
 
 class TestCEWithChunkedOutputLoss:
     def test_chunked_cross_entropy_loss(self):
+        """
+        Compares torchtune implementation vs standard F.cross_entropy
+        """
 
         # Set up test parameters
         batch_size = 2

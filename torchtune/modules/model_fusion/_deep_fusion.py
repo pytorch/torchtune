@@ -102,7 +102,7 @@ class DeepFusionModel(nn.Module):
         This should be called before the first forward pass, in the recipe."""
         msg = (
             "'set_num_output_chunks' is deprecated and will be removed in future versions. "
-            "Please use self.skip_output_projection(True) and do the chunking in your loss instead, "
+            "Please use self.skip_output_projection=True and do the chunking in your loss instead, "
             "e.g. loss(weight, input, label)."
         )
         log_once(logger=logger, msg=msg, level=logging.WARNING)
@@ -159,18 +159,18 @@ class DeepFusionModel(nn.Module):
         """
         self.decoder.reset_caches()
 
-    def get_output_weight(self) -> torch.Tensor:
+    def get_output_proj_weights(self) -> torch.Tensor:
         """Returns the output weight matrix."""
-        return self.decoder.get_output_weight()
+        return self.decoder.get_output_proj_weights()
 
     @property
     def skip_output_projection(self) -> bool:
-        """Returns whether to skip output layer in the decoder and return hidden states."""
+        """Returns whether to skip output layer projection and return hidden states instead."""
         return self.decoder.skip_output_projection
 
     @skip_output_projection.setter
     def skip_output_projection(self, skip: bool) -> None:
-        """Set whether to skip output layer in the decoder and return hidden states."""
+        """Set whether to skip output layer projection and return hidden states instead."""
         self.decoder.skip_output_projection = skip
 
     def forward(

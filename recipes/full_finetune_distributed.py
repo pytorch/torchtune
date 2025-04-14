@@ -807,7 +807,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 )
 
                 if self.use_output_weight_in_loss:
-                    weight = self._model.get_output_weight()
+                    weight = self._model.get_output_proj_weights()
                     current_loss = self._loss_fn(weight, outputs, labels)
                 else:
                     labels = labels.reshape(-1)

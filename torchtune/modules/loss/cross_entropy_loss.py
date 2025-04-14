@@ -13,7 +13,8 @@ from .loss_protocols import SFTLossWithProjection
 
 class ChunkedCrossEntropyLoss(nn.Module, SFTLossWithProjection):
     """Cross-entropy loss that incrementally computes loss for chunks of tokens
-    by masking, calculating logits and then applying cross-entropy loss"""
+    by masking ignored tokens, calculating logits and then applying cross-entropy loss
+    """
 
     def __init__(
         self,

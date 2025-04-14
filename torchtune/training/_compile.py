@@ -67,8 +67,6 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
 
     if hasattr(loss, "apply_compile_strategy"):
         loss = loss.apply_compile_strategy(backend=backend)
-    elif hasattr(loss, "forward"):
-        loss.forward = torch.compile(loss.forward, backend=backend)
     else:
         loss = torch.compile(loss, backend=backend)
 

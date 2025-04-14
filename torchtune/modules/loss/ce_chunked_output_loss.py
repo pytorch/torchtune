@@ -36,8 +36,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         super().__init__()
         msg = (
             "'CEWithChunkedOutputLoss' is deprecated and will be removed in future versions. "
-            "Please set in your config use_output_weight_in_loss=True and use "
-            "`torchtune.sft_losses.ChunkedCrossEntropyLoss` instead."
+            "Please use `torchtune.modules.loss.ChunkedCrossEntropyLoss` instead."
         )
         log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.num_output_chunks = num_output_chunks
