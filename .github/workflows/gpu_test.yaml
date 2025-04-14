@@ -11,7 +11,8 @@ on:
 
 concurrency:
   group: gpu-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
-  cancel-in-progress: true
+  # TODO: debugging
+  cancel-in-progress: false
 
 permissions:
   id-token: write
@@ -56,6 +57,6 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval>=0.4.5
       - name: Run recipe and unit tests with coverage
-        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration
+        run: pytest tests/recipes/test_lora_dpo_distributed.py --with-integration
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
