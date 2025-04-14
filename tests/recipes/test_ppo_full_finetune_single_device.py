@@ -24,6 +24,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    gpu_test,
     mps_ignored_test,
 )
 
@@ -44,7 +45,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "num_steps=16",
             "temperature=1.0",
             "gradient_accumulation_steps=1",
-            "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "enable_activation_offloading=False",
@@ -63,6 +63,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     @mps_ignored_test()
+    @gpu_test(gpu_count=1)
     def test_loss(self, tmpdir, monkeypatch):
 
         reward_ckpt = "llama2_reward_hf"
@@ -144,6 +145,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state correctly saved and restored after training."""
 
@@ -272,6 +274,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_training_state_on_resume_with_optimizer_in_bwd(self, tmpdir, monkeypatch):
         """Test whether the recipe state correctly saves and restores optimizer state
         when using ``optimizer_in_bwd``, since the optimizer checkpoint dict will include

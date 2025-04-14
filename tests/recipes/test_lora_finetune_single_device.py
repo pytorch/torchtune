@@ -23,6 +23,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    gpu_test,
     TOKENIZER_PATHS,
 )
 from torchtune import config
@@ -39,7 +40,6 @@ from torchtune.training.checkpointing._utils import (
 class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
-            "device=cpu",
             f"dtype={dtype_str}",
             "dataset.train_on_input=False",
             "seed=9",
@@ -72,6 +72,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, False),
         ],
     )
+    @gpu_test(gpu_count=1)
     def test_loss(
         self,
         compile,
@@ -136,6 +137,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             ("bf16", False, 8, 1),
         ],
     )
+    @gpu_test(gpu_count=1)
     def test_loss_qlora(
         self,
         dtype,
@@ -190,6 +192,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_training_state_on_resume(
         self, tmpdir, monkeypatch, save_adapter_weights_only
     ):
@@ -279,6 +282,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.parametrize("use_dora", [False, True])
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch, use_dora):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
