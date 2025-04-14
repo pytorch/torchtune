@@ -817,44 +817,39 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self, tensor: torch.Tensor, target_dim: int, pad_value: float, dim: int = 1
     ) -> torch.Tensor:
         """
-        Pads the end of the specified dimension with the given value until the dimension reaches the target size.
-        We need this to ensure, that trajectories are padded to the same size, and we will not get errors on torch.cat.
-
-        pad_idx variable might be confusing, so here is the brief explanation of what is happening.
-
-        This value is used to find the position in the padding list where the padding for
-        the right side of the specified dimension should go. The formula consists of the 3 key points:
-
-        1. Each dimension has two padding values: one for the left side and one for the right side.
-        Hence, for a tensor with N dimensions, the padding list will have 2 * N elements.
-
-        2. The dimensions in the padding list are organized from the last dimension of the tensor towards the first.
-        To determine which pair (or position within that pair) corresponds to the given dimension dim,
-        we need to calculate its offset in this reversed order. Considering the first point we get the following expression:
-
-        2 * (tensor.ndim - dim)
-
-        3. To get the index for the right direction padding we subtract 1:
-
-        2 * (tensor.ndim - dim) - 1
-
+        Pads the specified dimension of a tensor with a given value up to the target size.
+    
         Args:
-            tensor (torch.Tensor): Tensor related to the trajectory
-            target_dim (int): Target size after padding
-            pad_value (int): Value to use for padding elements
-            dim (int): Dimension index to pad (follows the PyTorch dimension ordering)
-
+            tensor (torch.Tensor): Input tensor to pad.
+            target_dim (int): Desired size of the specified dimension after padding.
+            pad_value (float): Value used for padding.
+            dim (int): Dimension to pad (default is 1).
+    
         Returns:
-            torch.Tensor: Padded trajectory tensor to the max size.
+            torch.Tensor: Padded tensor.
+    
+        Example:
+            >>> tensor = torch.tensor([[1, 2], [3, 4]])
+            >>> padded = _pad_tensor(tensor, target_dim=3, pad_value=0, dim=1)
+            >>> print(padded)
+            tensor([[1, 2, 0],
+                    [3, 4, 0]])
         """
         pad_size = target_dim - tensor.shape[dim]
         if pad_size <= 0:
             return tensor
-
+    
+        # Padding list is [left_N, right_N, ..., left_1, right_1], a pair for each dim;
+        # right padding for dim is at 2*(N - dim) - 1
+        # check torch.nn.functional.pad docs for details
         pad_idx = 2 * (tensor.ndim - dim) - 1
-        pad = [0] * (2 * tensor.ndim)
-        pad[pad_idx] = pad_size
-        return torch.nn.functional.pad(tensor, pad, value=pad_value)
+
+        # Initialize padding for left/right for each dim, therefore (2 * tensor.ndim) numbers
+        padding_list = [0] * (2 * tensor.ndim)
+
+        # replace only pad_right
+        padding_list[pad_idx] = pad_size
+        return torch.nn.functional.pad(tensor, padding_list, value=pad_value)
 
     def generate_trajectory_batched(
         self, input_ids: torch.Tensor, answers: List[str]
@@ -886,42 +881,45 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 )
                 torch.cuda.empty_cache()
 
-        # We need to pad, to ensure that concation will not fail with error
-        max_p_plus_l = max(t.query_responses.shape[1] for t in trajectories)
-        max_l = max(t.logprobs.shape[1] for t in trajectories)
-
+        # Determine maximum lengths for padding, necessary when concatenating.
+        max_total_length = max(t.query_responses.shape[1] for t in trajectories)
+        max_response_length = max(t.logprobs.shape[1] for t in trajectories)
+    
         padded_trajectories = []
         for traj in trajectories:
+            # Pad masks along two dimensions (assuming 3D tensor)
             padded_masks = self._pad_tensor(
-                self._pad_tensor(traj.masks, max_p_plus_l, 0, dim=2),
-                max_p_plus_l,
+                self._pad_tensor(traj.masks, max_total_length, 0, dim=2),
+                max_total_length,
                 0,
                 dim=1,
             )
-
+    
             padded_trajectories.append(
                 GRPOTrajectory(
                     query_responses=self._pad_tensor(
-                        traj.query_responses, max_p_plus_l, 1, dim=1
+                        traj.query_responses, max_total_length, 1, dim=1
                     ),
-                    logprobs=self._pad_tensor(traj.logprobs, max_l, -1e9, dim=1),
+                    logprobs=self._pad_tensor(
+                        traj.logprobs, max_response_length, -1e9, dim=1
+                    ),
                     ref_logprobs=self._pad_tensor(
-                        traj.ref_logprobs, max_l, -1e9, dim=1
+                        traj.ref_logprobs, max_response_length, -1e9, dim=1
                     ),
                     rewards=traj.rewards,
                     successes=traj.successes,
                     advantages=traj.advantages,
                     masks=padded_masks,
                     position_ids=self._pad_tensor(
-                        traj.position_ids, max_p_plus_l, 0, dim=1
+                        traj.position_ids, max_total_length, 0, dim=1
                     ),
                     response_padding_masks=self._pad_tensor(
-                        traj.response_padding_masks, max_l, False, dim=1
+                        traj.response_padding_masks, max_response_length, False, dim=1
                     ),
                     seq_lens=traj.seq_lens,
                 )
             )
-
+    
         return GRPOTrajectory(*map(torch.cat, zip(*padded_trajectories)))
 
     def grpo_step(
