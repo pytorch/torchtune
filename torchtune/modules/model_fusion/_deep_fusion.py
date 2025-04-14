@@ -160,7 +160,9 @@ class DeepFusionModel(nn.Module):
         self.decoder.reset_caches()
 
     def get_output_proj_weights(self) -> torch.Tensor:
-        """Returns the output weight matrix."""
+        """Returns the output weight matrix. Useful when a finer control of the output projection is needed,
+        for example when using a custom loss function or when interested in applying it to only some tokens.
+        """
         return self.decoder.get_output_proj_weights()
 
     @property
