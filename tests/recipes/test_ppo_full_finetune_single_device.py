@@ -139,7 +139,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             0.9464712738990784,
             0.8943937420845032,
         ]
-
+        print(loss_values)
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )
