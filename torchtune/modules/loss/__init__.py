@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 from .ce_chunked_output_loss import CEWithChunkedOutputLoss
+
+from .cross_entropy_loss import ChunkedCrossEntropyLoss
 from .kd_losses import (
     ForwardKLLoss,
     ForwardKLWithChunkedOutputLoss,
@@ -13,8 +15,6 @@ from .kd_losses import (
     SymmetricKLLoss,
     SymmetricKLWithChunkedOutputLoss,
 )
-
-from .sft_losses import ChunkedCrossEntropyLoss, ChunkedCrossEntropywithAutogradLoss
 
 __all__ = [
     "CEWithChunkedOutputLoss",
@@ -25,5 +25,4 @@ __all__ = [
     "SymmetricKLLoss",
     "SymmetricKLWithChunkedOutputLoss",
     "ChunkedCrossEntropyLoss",
-    "ChunkedCrossEntropywithAutogradLoss",
 ]

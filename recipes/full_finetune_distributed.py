@@ -347,9 +347,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        # skip final output multiplication, since the loss takes the hidden input instead of logits
-        self.use_output_weight_in_loss = cfg.get("use_output_weight_in_loss", False)
-        self._model.set_skip_output_projection(self.use_output_weight_in_loss)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.use_output_weight_in_loss = getattr(
+            self._loss_fn, "use_output_proj_in_loss", False
+        )
+        self._model.skip_output_projection = self.use_output_weight_in_loss
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
