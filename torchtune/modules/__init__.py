@@ -24,7 +24,7 @@ from .position_embeddings import (  # noqa
     RotaryPositionalEmbeddings,
     VisionRotaryPositionalEmbeddings,
 )
-from .rms_norm import RMSNorm  # noqa
+from .rms_norm import rms_norm, RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
 from .tied_linear import TiedLinear  # noqa
 from .transformer import (  # noqa
@@ -60,4 +60,5 @@ __all__ = [
     "LayerDropout",
     "prepare_layer_dropout",
     "classifier_model",
+    "rms_norm",
 ]

@@ -27,6 +27,8 @@ class TransformerSelfAttentionLayer(nn.Module):
         mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.
         sa_scale (Optional[nn.Module]): Module to scale self-attention output.
         mlp_scale (Optional[nn.Module]): Module to scale the feed-forward output.
+        mask_mod (Optional[Callable[[_MaskType, int, int, int], _MaskType]]): A callable
+            taking a _MaskType, bsz, and seq_len, and modifying the mask (e.g. for chunked attention).
     """
 
     def __init__(
@@ -38,6 +40,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         mlp_norm: Optional[nn.Module] = None,
         sa_scale: Optional[nn.Module] = None,
         mlp_scale: Optional[nn.Module] = None,
+        mask_mod: Optional[Callable[[_MaskType, int, int, int], _MaskType]] = None,
     ) -> None:
         super().__init__()
         self.attn = attn
@@ -46,6 +49,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.mlp_norm = mlp_norm or nn.Identity()
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
+        self.mask_mod = mask_mod or None
 
     def setup_caches(
         self,
@@ -123,8 +127,11 @@ class TransformerSelfAttentionLayer(nn.Module):
         # [b, s, d]
         # Norm applied before self-attention
         h = self.sa_norm(x)
+        if self.mask_mod is not None:
+            # With TP we need to use a replicated tensor here
+            bsz, seq_len, *_ = h.shape
+            mask = self.mask_mod(mask=mask, bsz=bsz, seq_len=seq_len)
         attn_out = self.attn(h, h, mask=mask, input_pos=input_pos)
-
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.sa_scale(attn_out) + x
 
@@ -527,7 +534,7 @@ class TransformerDecoder(nn.Module):
         log_once(logger=logger, msg=msg, level=logging.WARNING)
         return [
             self.output(chunk)
-            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+            for chunk in last_hidden_state.tensor_split(self.num_output_chunks, dim=1)
         ]
 
     def _validate_inputs(

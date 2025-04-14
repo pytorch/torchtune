@@ -981,7 +981,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     # Step the learning rate scheduler
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
-                    loss_to_log = running_loss.item()
+                    loss_to_log = running_loss.detach().item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
