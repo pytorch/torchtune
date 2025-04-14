@@ -280,7 +280,9 @@ class WandBLogger(MetricLoggerInterface):
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         if self._wandb.run:
+            
             metrics = {**payload, "global_step": step}
+            metrics = {f'torchtune/{k}':v for k,v in metrics}
             # Add seed to the log data for identification
             if self.seed is not None:
                 metrics["seed"] = self.seed

@@ -139,6 +139,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
+        self.max_bsize = cfg.max_bsize
         # extract information from output_dir
         path_parts = self._output_dir.split('/')        
         self.method = cfg.method
@@ -1234,6 +1235,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         training.scale_grads(self._model, 1 / num_tokens)
+                        #scale grads by max_batchsize and real_batchsize
+                        if self.max_bsize:
+                            training.scale_grads(self._model, torch.tensor( running_loss.shape[0]/self.max_bsize))
+                        
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
