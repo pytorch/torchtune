@@ -814,26 +814,32 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
     def _pad_tensor(
-        self, tensor: torch.Tensor, target_dim: int, pad_value: float, dim: int = 1
+        self, tensor: torch.Tensor, target_dim: int, pad_value: float, dim: int = 1, pad_right: bool = True
     ) -> torch.Tensor:
         """
-        Pads the specified dimension of a tensor with a given value up to the target size.
+        Pads the specified dimension of a tensor with a given value up to the target size, either on the right or left side.
     
         Args:
             tensor (torch.Tensor): Input tensor to pad.
             target_dim (int): Desired size of the specified dimension after padding.
             pad_value (float): Value used for padding.
-            dim (int): Dimension to pad (default is 1).
+            dim (int): Dimension to pad. Default: 1.
+            pad_right (bool): If True, pads on the right side; if False, pads on the left side.
+                Default: True
     
         Returns:
             torch.Tensor: Padded tensor.
     
         Example:
             >>> tensor = torch.tensor([[1, 2], [3, 4]])
-            >>> padded = _pad_tensor(tensor, target_dim=3, pad_value=0, dim=1)
-            >>> print(padded)
+            >>> padded_right = _pad_tensor(tensor, target_dim=3, pad_value=0, dim=1, pad_right=True)
+            >>> print(padded_right)
             tensor([[1, 2, 0],
                     [3, 4, 0]])
+            >>> padded_left = _pad_tensor(tensor, target_dim=3, pad_value=0, dim=1, pad_right=False)
+            >>> print(padded_left)
+            tensor([[0, 1, 2],
+                    [0, 3, 4]])
         """
         pad_size = target_dim - tensor.shape[dim]
         if pad_size <= 0:
@@ -841,14 +847,19 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
     
         # Padding list is [left_N, right_N, ..., left_1, right_1], a pair for each dim;
         # right padding for dim is at 2*(N - dim) - 1
-        # check torch.nn.functional.pad docs for details
-        pad_idx = 2 * (tensor.ndim - dim) - 1
-
-        # Initialize padding for left/right for each dim, therefore (2 * tensor.ndim) numbers
+        # left padding for dim is at 2*(N - dim) - 2
+        pad_idx_right = 2 * (tensor.ndim - dim) - 1
+        pad_idx_left = 2 * (tensor.ndim - dim) - 2
+    
+        # Initialize padding list for left/right for each dim, therefore (2 * tensor.ndim) numbers
         padding_list = [0] * (2 * tensor.ndim)
-
-        # replace only pad_right
-        padding_list[pad_idx] = pad_size
+    
+        # Set new pad_size for the specified dim
+        if pad_right:
+            padding_list[pad_idx_right] = pad_size
+        else:
+            padding_list[pad_idx_left] = pad_size
+    
         return torch.nn.functional.pad(tensor, padding_list, value=pad_value)
 
     def generate_trajectory_batched(
