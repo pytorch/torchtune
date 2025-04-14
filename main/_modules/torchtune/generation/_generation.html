@@ -759,9 +759,17 @@
 
     <span class="n">q</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">num_embeddings</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">exponential_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="n">uniform_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span>
+            <span class="n">bsz</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">num_embeddings</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">uniform_val</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="n">uniform_val</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">epsilon</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="o">-</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">uniform_val</span><span class="p">))</span>
+
     <span class="n">tokens</span><span class="p">,</span> <span class="n">generated_logits</span> <span class="o">=</span> <span class="n">generate_next_token</span><span class="p">(</span>
         <span class="n">model</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">[:,</span> <span class="p">:</span><span class="n">prompt_length</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span>
@@ -819,9 +827,16 @@
 
         <span class="n">q</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">num_embeddings</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">exponential_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+            <span class="n">uniform_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span>
+                <span class="n">bsz</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">num_embeddings</span><span class="p">,</span>
+                <span class="n">generator</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">epsilon</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">uniform_val</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="n">condition</span> <span class="o">=</span> <span class="n">uniform_val</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">epsilon</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="o">-</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">uniform_val</span><span class="p">))</span>
+
         <span class="n">tokens</span><span class="p">,</span> <span class="n">logits</span> <span class="o">=</span> <span class="n">custom_generate_next_token</span><span class="p">(</span>
             <span class="n">model</span><span class="p">,</span>
             <span class="n">input_pos</span><span class="o">=</span><span class="n">curr_input_pos</span><span class="p">,</span>
