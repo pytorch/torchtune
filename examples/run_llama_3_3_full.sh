@@ -1,8 +1,6 @@
 
 #!/bin/bash
 
-# sample usage: COMPILE=False MAX_STEPS=10 EPOCHS=1 SAVE_WEIGHTS=False bash aramco.sh
-# compile is currently known to be broken in our environment.
 
 CONFIG="${CONFIG:-/workspace/torchtune/recipes/configs/llama3_3/70B_full.yaml}"
 MODEL_DIR="${MODEL_DIR:-./models/Llama-3.3-70B-Instruct}"
