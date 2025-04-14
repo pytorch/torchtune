@@ -5,9 +5,8 @@ This section describes finetuning llama models with full-weight/LoRA/qLoRA using
 ### Environment Setup and Sample Examples Commands
 
 ```bash
-docker pull  rocm/pytorch-training-private:20250324_ROCm634_Triton320_pyt6374332
-
-docker run -it --device /dev/dri --device /dev/kfd --network host --ipc host --group-add video --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged -v  $HOME/.ssh:/root/.ssh -v /home/amd:/home/amd --shm-size 128G --name YOUR_NAME_HERE  rocm/pytorch-training-private:20250324_ROCm634_Triton320_pyt6374332
+docker pull  rocm/pytorch-training:v25.5
+docker run -it --device /dev/dri --device /dev/kfd --network host --ipc host --group-add video --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged -v  $HOME/.ssh:/root/.ssh -v /home/amd:/home/amd --shm-size 128G --name YOUR_NAME_HERE  rocm/pytorch-training:v25.5
 
 # This is the main branch
 git clone https://github.com/AMD-AIG-AIMA/torchtune.git
