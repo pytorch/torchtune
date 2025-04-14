@@ -24,14 +24,15 @@ defaults:
 jobs:
   gpu_test:
     if: github.repository_owner == 'pytorch'
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: linux.g4dn.12xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
         torch-version: ["stable", "nightly"]
         # Do not run against nightlies on PR
-        exclude:
-          - torch-version: ${{ github.event_name == 'pull_request' && 'nightly' }}
+        # TODO: debugging
+        # exclude:
+        #   - torch-version: ${{ github.event_name == 'pull_request' && 'nightly' }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
@@ -55,6 +56,6 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval>=0.4.5
       - name: Run recipe and unit tests with coverage
-        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
