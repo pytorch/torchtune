@@ -310,9 +310,17 @@ def generate(
 
     q = None
     if rng is not None:
-        q = torch.empty(
-            (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-        ).exponential_(1, generator=rng)
+
+        uniform_val = torch.rand(
+            bsz,
+            model.tok_embeddings.num_embeddings,
+            generator=rng,
+            device=prompt.device,
+        )
+        epsilon = torch.finfo(uniform_val.dtype).eps / 2
+        condition = uniform_val >= 1.0 - epsilon
+        q = -torch.where(condition, -epsilon, torch.log(uniform_val))
+
     tokens, generated_logits = generate_next_token(
         model,
         input_pos=input_pos[:, :prompt_length].squeeze(),
@@ -370,9 +378,16 @@ def generate(
 
         q = None
         if rng is not None:
-            q = torch.empty(
-                (bsz, model.tok_embeddings.num_embeddings), device=prompt.device
-            ).exponential_(1, generator=rng)
+            uniform_val = torch.rand(
+                bsz,
+                model.tok_embeddings.num_embeddings,
+                generator=rng,
+                device=prompt.device,
+            )
+            epsilon = torch.finfo(uniform_val.dtype).eps / 2
+            condition = uniform_val >= 1.0 - epsilon
+            q = -torch.where(condition, -epsilon, torch.log(uniform_val))
+
         tokens, logits = custom_generate_next_token(
             model,
             input_pos=curr_input_pos,
