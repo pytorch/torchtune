@@ -851,7 +851,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
-                    loss_to_log = running_loss.item() / num_tokens
+                    loss_to_log = running_loss.detach().item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
