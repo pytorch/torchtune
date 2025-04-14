@@ -15,17 +15,37 @@ class ChunkedCrossEntropyLoss(nn.Module, SFTLossWithProjection):
     """Cross-entropy loss that incrementally computes loss for chunks of tokens
     by masking, calculating logits and then applying cross-entropy loss"""
 
-    def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
+    def __init__(
+        self,
+        num_output_chunks: int = 8,
+        ignore_index: int = -100,
+        mask_pre_projection: bool = True,
+    ):
         super().__init__()
+        """
+        Args:
+            num_output_chunks (int): Number of chunks to split the output tensor into. Default is 8.
+            ignore_index (int): Index to ignore in the target tensor. Default is -100.
+            mask_pre_projection (bool): Whether to mask the output tensor before projection, avoiding
+                computing it for tokens that will be ignored during CE anyway. Default is True.
+        """
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
+        self.mask_pre_projection = mask_pre_projection
+
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile only to the compute_cross_entropy function.
+        If compiling CE + chunking operation together, memory requirement is higher."""
+        self.compute_cross_entropy = torch.compile(
+            self.compute_cross_entropy, *args, **kwargs
+        )
+        return self
 
     def compute_cross_entropy(
         self,
         weight: torch.Tensor,
         hidden_chunk: torch.Tensor,
         target_chunk: torch.Tensor,
-        mask_chunk: torch.Tensor,
     ) -> torch.Tensor:
         """Computes cross-entropy by masking tokens, calculating logits and then applying cross-entropy loss.
 
@@ -33,15 +53,19 @@ class ChunkedCrossEntropyLoss(nn.Module, SFTLossWithProjection):
             weight (torch.Tensor): [vocab_size, embed_dim]
             hidden_chunk (torch.Tensor): [batch_size, chunk_size, embed_dim]
             target_chunk (torch.Tensor): [batch_size, chunk_size]
-            mask_chunk (torch.Tensor): [batch_size, chunk_size]
         Returns:
             torch.Tensor: Sum of cross-entropy loss for non-ignored tokens in the chunk
         """
         # Select hidden states and targets where mask is True
-        hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
-        target_chunk = target_chunk[mask_chunk]  # [num_valid]
+        if self.mask_pre_projection:
+            mask_chunk = target_chunk != self.ignore_index
+            hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
+            target_chunk = target_chunk[mask_chunk]  # [num_valid]
+        else:
+            hidden_chunk = hidden_chunk.reshape(-1, hidden_chunk.shape[-1])
+            target_chunk = target_chunk.reshape(-1)
 
-        # Project only selected hidden states: [num_valid, embed_dim] @ [embed_dim, vocab_size]
+        # [num_valid, embed_dim] @ [embed_dim, vocab_size]
         logits = F.linear(hidden_chunk, weight)  # [num_valid, vocab_size]
 
         return F.cross_entropy(
@@ -76,13 +100,14 @@ class ChunkedCrossEntropyLoss(nn.Module, SFTLossWithProjection):
         # Chunk along sequence dimension
         hidden_chunks = outputs.chunk(self.num_output_chunks, dim=1)
         target_chunks = targets.chunk(self.num_output_chunks, dim=1)
-        mask_chunks = mask.chunk(self.num_output_chunks, dim=1)
 
+        # Compute cross-entropy loss for the chunks
         total_loss = 0.0
         for idx in range(len(hidden_chunks)):
-            # Compute cross-entropy loss for the chunk
             total_loss += self.compute_cross_entropy(
-                weight, hidden_chunks[idx], target_chunks[idx], mask_chunks[idx]
+                weight,
+                hidden_chunks[idx],
+                target_chunks[idx],
             )
 
         return total_loss / total_elements
