@@ -287,13 +287,22 @@ class RayGRPORecipe:
 
     def _set_metric_logger_to_actors(self):
         self.metric_logger = MetricLoggerActor.remote(self.cfg)
-        # Pass the logger handle to each worker
+
+        # Collect object references for all remote calls
+        set_logger_handles = []
         for worker in self.rollout_workers:
-            worker.set_metric_logger.remote(self.metric_logger)
+            handle = worker.set_metric_logger.remote(self.metric_logger)
+            set_logger_handles.append(handle)
         for worker in self.ref_workers:
-            worker.set_metric_logger.remote(self.metric_logger)
+            handle = worker.set_metric_logger.remote(self.metric_logger)
+            set_logger_handles.append(handle)
         for worker in self.actor_workers:
-            worker.set_metric_logger.remote(self.metric_logger)
+            handle = worker.set_metric_logger.remote(self.metric_logger)
+            set_logger_handles.append(handle)
+
+        # Wait for all set_metric_logger calls to complete
+        ray.get(set_logger_handles)
+        log.info("Set metric logger to all actors.")
 
     def _create_fsdp_group(
         self,
@@ -381,7 +390,8 @@ class RayGRPORecipe:
 
             collector = (
                 ray.remote(
-                    num_cpus=0, num_gpus=self.cfg.vllm.tp_size,
+                    num_cpus=0,
+                    num_gpus=self.cfg.vllm.tp_size,
                 )(SyncLLMCollector)
                 .options(max_concurrency=5)
                 .remote(
