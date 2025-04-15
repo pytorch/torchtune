@@ -55,7 +55,6 @@ save_adapter_weights_only: False
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Qwen2.5-14B-Instruct
-
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
     max_filename: "00050"
