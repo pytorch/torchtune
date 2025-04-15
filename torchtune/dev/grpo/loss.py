@@ -304,19 +304,16 @@ class GRPOWithChunkedOutputLoss(nn.Module):
         ref_logprobs_chunk: torch.Tensor,  # [B*G, chunk_size]
         advantages: torch.Tensor,  # [B*G]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        # Compute pi_logprobs using cross_entropy
-        pi_logits_flat = pi_logits_chunk.reshape(
-            -1, pi_logits_chunk.size(-1)
-        )  # Fixed line
-        targets_flat = targets_chunk.reshape(-1)  # Consistent use of reshape
+
+        # CE
+        pi_logits_flat = pi_logits_chunk.reshape(-1, pi_logits_chunk.size(-1))
+        targets_flat = targets_chunk.reshape(-1)
         pi_logprobs_chunk = -F.cross_entropy(
             pi_logits_flat.float(), targets_flat, reduction="none"
         )
-        pi_logprobs_chunk = pi_logprobs_chunk.view_as(
-            targets_chunk
-        )  # view_as is safe here
+        pi_logprobs_chunk = pi_logprobs_chunk.view_as(targets_chunk)
 
-        # Detach for efficiency
+        # Detach
         pi_logprobs_detached = pi_logprobs_chunk.detach()
         ref_logprobs_detached = ref_logprobs_chunk.detach()
 

@@ -4,11 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import NamedTuple
+
+from typing import NamedTuple, Optional
 
 import torch
-
-# from tensordict.tensorclass import TensorClass
 
 
 class GRPOTrajectory(NamedTuple):
@@ -47,6 +46,7 @@ class GRPOStats(NamedTuple):
         ratios (torch.Tensor): The ratio between the current and old policy probabilities.
         clipfrac (torch.Tensor): The fraction of ratios that were clipped.
         approx_policy_kls (torch.Tensor): Average estimated KL divergence between the policy before and after the optimization step.
+        metadata (Optional[dict]): Additional metadata to be logged.
     """
 
     loss: torch.Tensor
@@ -55,3 +55,4 @@ class GRPOStats(NamedTuple):
     ratios: torch.Tensor
     clipfrac: torch.Tensor
     approx_policy_kls: torch.Tensor
+    metadata: Optional[dict] = None

@@ -12,7 +12,7 @@ from omegaconf import DictConfig, ListConfig
 
 from ray.util.queue import Full as QueueFull
 
-from tensordict import lazy_stack, TensorDictBase
+from tensordict import lazy_stack, NonTensorStack, TensorDictBase
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchrl.collectors import (
@@ -60,6 +60,7 @@ class SyncLLMCollector(SyncDataCollector):
 
         self.tp_size = self.cfg.vllm.tp_size
         self.batch_size = self.cfg.vllm.batch_size
+        self._sequence_counter = 0  # Used to assign unique sequence IDs to each sample
 
         self.inference_server = LLM(
             model="Qwen/Qwen2.5-3B",
@@ -157,6 +158,18 @@ class SyncLLMCollector(SyncDataCollector):
         seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
         del response_padding_masks
 
+        # Generate unique sequence IDs for the batch
+        # FIXME: it outputs a List[List[str]] when sampling from replay buffer, with shape num_samples X 16.
+        # It should have shape num_samplesX1, so we can log a single sequence_id per sequence.
+        batch_size = query_responses.shape[0]
+        sequence_ids = NonTensorStack(
+            *[
+                f"worker{self.worker_id}_{self._sequence_counter + i}"
+                for i in range(batch_size)
+            ]
+        )
+        self._sequence_counter += batch_size
+
         postprocessed_results = Trajectory(
             query_responses=query_responses,
             responses=response_tokens,
@@ -170,6 +183,7 @@ class SyncLLMCollector(SyncDataCollector):
             advantages=None,
             successes=None,
             reward_metadata=None,
+            sequence_ids=sequence_ids,
         )
 
         total_generated_tokens = seq_lens.sum().item()
