@@ -814,11 +814,16 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
     def _pad_tensor(
-        self, tensor: torch.Tensor, target_dim: int, pad_value: float, dim: int = 1, pad_right: bool = True
+        self,
+        tensor: torch.Tensor,
+        target_dim: int,
+        pad_value: float,
+        dim: int = 1,
+        pad_right: bool = True,
     ) -> torch.Tensor:
         """
         Pads the specified dimension of a tensor with a given value up to the target size, either on the right or left side.
-    
+
         Args:
             tensor (torch.Tensor): Input tensor to pad.
             target_dim (int): Desired size of the specified dimension after padding.
@@ -826,10 +831,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             dim (int): Dimension to pad. Default: 1.
             pad_right (bool): If True, pads on the right side; if False, pads on the left side.
                 Default: True
-    
+
         Returns:
             torch.Tensor: Padded tensor.
-    
+
         Example:
             >>> tensor = torch.tensor([[1, 2], [3, 4]])
             >>> padded_right = _pad_tensor(tensor, target_dim=3, pad_value=0, dim=1, pad_right=True)
@@ -844,22 +849,22 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         pad_size = target_dim - tensor.shape[dim]
         if pad_size <= 0:
             return tensor
-    
+
         # Padding list is [left_N, right_N, ..., left_1, right_1], a pair for each dim;
         # right padding for dim is at 2*(N - dim) - 1
         # left padding for dim is at 2*(N - dim) - 2
         pad_idx_right = 2 * (tensor.ndim - dim) - 1
         pad_idx_left = 2 * (tensor.ndim - dim) - 2
-    
+
         # Initialize padding list for left/right for each dim, therefore (2 * tensor.ndim) numbers
         padding_list = [0] * (2 * tensor.ndim)
-    
+
         # Set new pad_size for the specified dim
         if pad_right:
             padding_list[pad_idx_right] = pad_size
         else:
             padding_list[pad_idx_left] = pad_size
-    
+
         return torch.nn.functional.pad(tensor, padding_list, value=pad_value)
 
     def generate_trajectory_batched(
@@ -895,7 +900,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # Determine maximum lengths for padding, necessary when concatenating.
         max_total_length = max(t.query_responses.shape[1] for t in trajectories)
         max_response_length = max(t.logprobs.shape[1] for t in trajectories)
-    
+
         padded_trajectories = []
         for traj in trajectories:
             # Pad masks along two dimensions (assuming 3D tensor)
@@ -905,7 +910,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 0,
                 dim=1,
             )
-    
+
             padded_trajectories.append(
                 GRPOTrajectory(
                     query_responses=self._pad_tensor(
@@ -930,7 +935,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     seq_lens=traj.seq_lens,
                 )
             )
-    
+
         return GRPOTrajectory(*map(torch.cat, zip(*padded_trajectories)))
 
     def grpo_step(
