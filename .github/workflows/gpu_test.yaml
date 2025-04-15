@@ -62,6 +62,6 @@ jobs:
         run:
           mkdir -p /tmp/data-gym-cache && rm -r /tmp/data-gym-cache
       - name: Run recipe and unit tests with coverage
-        run: pytest tests --with-integration
+        run: pytest tests/recipes --with-integration -v
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

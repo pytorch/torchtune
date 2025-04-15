@@ -272,7 +272,7 @@ class TestEleutherEval:
             ~checkpointer.checkpoint_files.max_filename \
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA3_VISION \
-            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3_04_15_25.model \
+            tokenizer.path=/tmp/test-artifacts/tokenizer_llama3.model \
             tokenizer.prompt_template=null \
             limit=3 \
             dtype=bf16 \
