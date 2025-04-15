@@ -44,7 +44,6 @@ checkpointer:
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
     max_filename: "00050"
-
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: QWEN2
