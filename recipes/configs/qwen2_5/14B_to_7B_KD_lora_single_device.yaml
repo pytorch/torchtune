@@ -59,7 +59,8 @@ save_adapter_weights_only: False
 # Teacher checkpoint
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ./Qwen2.5-14B-Instruct
+  checkpoint_dir: /tmp/Qwen2.5-14B-Instruct
+
   checkpoint_files: [
     model-00001-of-00008.safetensors,
     model-00002-of-00008.safetensors,
