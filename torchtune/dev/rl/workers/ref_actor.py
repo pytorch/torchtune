@@ -315,6 +315,7 @@ class RefActor:
                 ),  # (B, G, num_funcs)
                 reward_metadata=reward_metadata,
                 batch_size=batch_size * group_size,
+                sequence_ids=trajectory.sequence_ids,
             )
 
             log.info(f"Constructed trajectory: {trajectory}")

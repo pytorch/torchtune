@@ -129,6 +129,9 @@ metric_logger:
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
+debug_logging_enabled: True
+debug_num_samples_per_step: 1
+
 # Profiler (disabled)
 profiler:
   _component_: torchtune.training.setup_torch_profiler
