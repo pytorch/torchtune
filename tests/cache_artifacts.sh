@@ -25,7 +25,6 @@ SMALL_MODEL_URLS=(
 FULL_MODEL_URL=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
 TOKENIZER_URLS=(
     "https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer.model"
-    "https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer_llama3.model"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer_llama3_04_15_25.model" # TODO: change path
 )
 
