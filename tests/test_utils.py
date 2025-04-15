@@ -40,7 +40,7 @@ CKPT_MODEL_PATHS = {
 
 TOKENIZER_PATHS = {
     "llama2": "/tmp/test-artifacts/tokenizer.model",
-    "llama3": "/tmp/test-artifacts/tokenizer_llama3.model",
+    "llama3": "/tmp/test-artifacts/tokenizer_llama3_04_15_25.model",
 }
 
 # Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
