@@ -32,9 +32,10 @@ SPECIAL_TOKENS = {
     "<|image|>": 128256,
     "<|video|>": 128012,
     "<|reserved_special_token_244|>": 128011,
+    "<|reserved_special_token_245|>": 128255,
 }
 
-NUM_RESERVED_SPECIAL_TOKENS = 257
+NUM_RESERVED_SPECIAL_TOKENS = 256
 
 RESERVED_TOKENS = {
     f"<|reserved_special_token_{2 + i}|>": 128013 + i
