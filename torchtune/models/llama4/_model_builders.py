@@ -198,7 +198,6 @@ def llama4_transform(
     )
 
 
-# TODO: check these
 def lora_llama4_scout_17b_16e(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     *,
@@ -254,7 +253,6 @@ def lora_llama4_scout_17b_16e(
     ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama4_scout_17b_16e if you need full finetuning"
 
     decoder_embed_dim = 5120
-    adapter_embed_dim = 4096
 
     vision_encoder = lora_llama4_vision_encoder(
         encoder_lora=vision_encoder_type == LoRATrainable.LORA,
@@ -264,12 +262,12 @@ def lora_llama4_scout_17b_16e(
         apply_lora_to_output=apply_lora_to_output,
         patch_size=14,
         num_heads=16,
-        clip_embed_dim=1408,  # previously 1280 in llama3.2
-        clip_num_layers=34,  # previously 32 in llama3.2
+        clip_embed_dim=1408,
+        clip_num_layers=34,
         decoder_embed_dim=decoder_embed_dim,
-        adapter_embed_dim=adapter_embed_dim,
-        tile_size=image_size,  # previously 560 in llama3.2
-        max_num_tiles=1,  # previously 4 in llama3.2
+        projection_embed_dim=4096,
+        tile_size=image_size,
+        max_num_tiles=16,
         in_channels=3,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
@@ -281,7 +279,7 @@ def lora_llama4_scout_17b_16e(
     decoder = lora_llama4_decoder(
         decoder_lora=decoder_type == LoRATrainable.LORA,
         lora_attn_modules=lora_attn_modules,
-        apply_lora_to_moe=apply_lora_to_mlp,
+        apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
         vocab_size=202_048,
         num_layers=48,
@@ -289,13 +287,15 @@ def lora_llama4_scout_17b_16e(
         num_kv_heads=8,
         embed_dim=decoder_embed_dim,
         hidden_dim=8192,
-        max_seq_len=8192,
+        max_seq_len=10485760,
         attn_dropout=0.0,
         rope_base=500_000,
         norm_eps=1e-5,
         num_experts=16,
         use_shared_expert=True,
-        use_expert_choice=True,
+        skip_rope_interval=4,
+        attention_chunk_size=8192,
+        use_scaled_rope=True,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,

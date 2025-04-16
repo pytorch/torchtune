@@ -78,8 +78,16 @@ class TestLoRAGroupedExperts:
         return 8
 
     @pytest.fixture
-    def inputs(self, dim, num_experts) -> torch.Tensor:
-        inputs = torch.randn(num_experts, SEQ_LEN, dim)
+    def experts_per_token(self) -> int:
+        return 2
+
+    @pytest.fixture
+    def num_tokens_per_expert(self, num_experts) -> int:
+        return torch.tensor([1, 2, 1, 4, 3, 1, 2, 2], dtype=torch.int)
+
+    @pytest.fixture
+    def inputs(self, dim, num_experts, experts_per_token) -> torch.Tensor:
+        inputs = torch.randn(num_experts * experts_per_token, SEQ_LEN, dim)
         return inputs
 
     @pytest.fixture
@@ -130,35 +138,25 @@ class TestLoRAGroupedExperts:
         expected = lora(inputs[0])
         assert_expected(actual, expected, rtol=1e-6, atol=1e-4)
 
-    def test_lora_ec_layer_forward(self, lora_linear, lora_experts, inputs):
-        """Compare EC forward with multiple LoRALinear as reference"""
-        loras = [lora_linear() for _ in range(lora_experts.num_experts)]
-        base_weight = torch.stack([lora.weight.data.T for lora in loras], dim=0)
-        lora_a_weight = torch.stack(
-            [lora.lora_a.weight.data.T for lora in loras], dim=0
-        )
-        lora_b_weight = torch.stack(
-            [lora.lora_b.weight.data.T for lora in loras], dim=0
-        )
-
-        actual = lora_experts._lora_ec_layer_forward(
-            inputs,
-            base_weight,
-            lora_a_weight,
-            lora_b_weight,
-        )
-        expected = torch.stack([lora(inputs[i]) for i, lora in enumerate(loras)], dim=0)
-        assert_expected(actual, expected, rtol=1e-6, atol=1e-4)
-
-    def test_forward_disabled(self, experts, lora_experts, inputs):
+    def test_forward_disabled(
+        self, experts, lora_experts, inputs, num_tokens_per_expert
+    ):
         """Test forward with lora layers disabled and comparing with GroupedExperts"""
         lora_experts.disabled = True
-        actual = lora_experts(inputs)
-        expected = experts(inputs)
+        actual = lora_experts(inputs, num_tokens_per_expert)
+        expected = experts(inputs, num_tokens_per_expert)
         assert_expected(actual, expected, rtol=1e-6, atol=1e-4)
 
-    def test_forward(self, lora_experts, inputs, num_experts, dim) -> None:
-        expected = torch.tensor(0.212279)
-        actual = lora_experts(inputs)
-        assert actual.shape == (num_experts, SEQ_LEN, dim)
+    def test_forward(
+        self,
+        lora_experts,
+        inputs,
+        num_experts,
+        experts_per_token,
+        dim,
+        num_tokens_per_expert,
+    ) -> None:
+        expected = torch.tensor(0.441491)
+        actual = lora_experts(inputs, num_tokens_per_expert)
+        assert actual.shape == (num_experts * experts_per_token, SEQ_LEN, dim)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)

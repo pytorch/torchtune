@@ -22,6 +22,7 @@ from torchtune.models.llama4._position_embeddings import Llama4ScaledRoPE
 from torchtune.modules import (
     FeedForward,
     FrozenNF4Linear,
+    moe,
     MultiHeadAttention,
     rms_norm,
     RMSNorm,
@@ -293,7 +294,6 @@ def llama4_decoder(
         )
         is_moe = moe_every_n_layers is None or (i + 1) % moe_every_n_layers == 0
         if is_moe:
-            # TODO: check this
             mlp_layer = llama4_moe(
                 dim=embed_dim,
                 hidden_dim=hidden_dim,
@@ -403,7 +403,7 @@ def lora_llama4_vision_encoder(
     clip_num_layers: int,
     clip_hidden_states: Optional[List[int]] = None,
     # projection parameters
-    adapter_embed_dim: int,
+    projection_embed_dim: int,
     decoder_embed_dim: int,
     # image parameters
     tile_size: int,
@@ -489,6 +489,7 @@ def lora_llama4_vision_encoder(
         "output_cls_projection": False,
         "append_cls_token": True,
         "use_rope": True,
+        "use_tile_pos_embed": False,
     }
     if encoder_lora:
         clip = lora_clip_vision_encoder(**clip_options, **lora_options)
@@ -499,7 +500,7 @@ def lora_llama4_vision_encoder(
     projection_options = {
         "decoder_embed_dim": decoder_embed_dim,
         "clip_embed_dim": clip_embed_dim,
-        "adapter_embed_dim": adapter_embed_dim,
+        "projection_embed_dim": projection_embed_dim,
     }
     if fusion_lora:
         lora_options.pop("lora_modules")
@@ -527,7 +528,7 @@ def lora_llama4_vision_encoder(
 def lora_llama4_decoder(
     decoder_lora: bool,
     lora_attn_modules: List[LORA_ATTN_MODULES],
-    apply_lora_to_moe: bool = False,
+    apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
     # decoder params
@@ -541,10 +542,19 @@ def lora_llama4_decoder(
     attn_dropout: float = 0.0,
     rope_base: int = 500_000,
     norm_eps: float = 1e-5,
-    num_experts: int = 8,
+    num_experts: int = 16,
     experts_per_token: int = 1,
     use_shared_expert: bool = True,
-    use_expert_choice: bool = True,
+    use_qk_norm: bool = True,
+    moe_every_n_layers: Optional[int] = None,
+    mlp_hidden_dim: Optional[int] = None,
+    skip_rope_interval: Optional[int] = None,
+    attention_chunk_size: Optional[int] = None,
+    use_scaled_rope: bool = False,
+    rope_scale_factor: Optional[float] = 16.0,
+    rope_low_freq_factor: Optional[float] = 1.0,
+    rope_high_freq_factor: Optional[float] = 1.0,
+    old_context_len: Optional[int] = 8192,
     # LoRA parameters
     lora_rank: int = 8,
     lora_alpha: float = 16,
@@ -564,8 +574,8 @@ def lora_llama4_decoder(
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
-        apply_lora_to_moe (bool): whether to apply LoRA to the MoE in each transformer layer.
-            Default: False
+        apply_lora_to_mlp (bool): whether to apply LoRA to MLPs in each transformer layer. Note that
+            this includes both vanilla MLP layers and MoE layers. Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
             Default: False
         vocab_size (int): number of tokens in vocabulary.
@@ -586,6 +596,25 @@ def lora_llama4_decoder(
         num_experts (int): Number of experts in each moe layer. Default: 8
         experts_per_token (int): Number of experts each token will choose in Token Choice. Default: 1
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
+        use_qk_norm (bool): Whether to use qk norm in RoPE layers. Default: True
+        moe_every_n_layers (Optional[int]): Frequency of inserting MoE layers in the decoder.
+            If set, every nth layer will be an MoE layer. Default: MoE every layer
+        mlp_hidden_dim (Optional[int]): Hidden dim for any MLP (i.e. non-MoE) layers.
+            Only applicable if moe_every_n_layers is not None.
+        skip_rope_interval (Optional[int]): Frequency of inserting local attention layers in the decoder.
+            If set, every nth layer will use local attention. Default is to always use vanilla attention
+        attention_chunk_size (Optional[int]): Size of chunks for local attention.
+            Required if `skip_rope_interval` is set.
+        use_scaled_rope (bool): Whether to use scaled RoPE or not. Scaled RoPE is used for Llama4 Scout
+            model, but not Maverick model. Default: False
+        rope_scale_factor (Optional[float]): scaling factor for RoPE. Only applicable if use_scaled_rope=True.
+            Default: 16.0
+        rope_low_freq_factor (Optional[float]): scaling factor for low frequency RoPE. Only applicable if
+            use_scaled_rope=True. Default: 1.0
+        rope_high_freq_factor (Optional[float]): scaling factor for high frequency RoPE. Only applicable if
+            use_scaled_rope=True. Default: 1.0
+        old_context_len (Optional[int]): old context length for scaling theta. Only applicable if
+            use_scaled_rope=True. Default: 8192
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -598,13 +627,42 @@ def lora_llama4_decoder(
     Returns:
         TransformerDecoder: Instantiation of Llama 4 decoder.
     """
+    if skip_rope_interval is not None and attention_chunk_size is None:
+        raise ValueError(
+            "Must pass local_chunk_size when enabling local chunked attention"
+        )
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    rope = RotaryPositionalEmbeddings(
-        dim=head_dim, max_seq_len=max_seq_len, base=rope_base
-    )
+    if use_scaled_rope:
+        rope = Llama4ScaledRoPE(
+            dim=head_dim,
+            max_seq_len=max_seq_len,
+            base=rope_base,
+            scale_factor=rope_scale_factor,
+            low_freq_factor=rope_low_freq_factor,
+            high_freq_factor=rope_high_freq_factor,
+            old_context_len=old_context_len,
+        )
+    else:
+        rope = RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=max_seq_len, base=rope_base
+        )
     layers = []
-    for _ in range(num_layers):
+    for i in range(num_layers):
+
+        mask_mod = None
+        if skip_rope_interval is not None and (i + 1) % skip_rope_interval != 0:
+            mask_mod = partial(
+                get_chunked_attention_mask, chunk_size=attention_chunk_size
+            )
+            # Note: this is the value in llama-models, which doesn't match the config
+            pos_embeddings = rope
+
+            q_norm = partial(rms_norm, eps=norm_eps) if use_qk_norm else None
+            k_norm = partial(rms_norm, eps=norm_eps) if use_qk_norm else None
+        else:
+            pos_embeddings, q_norm, k_norm = None, None, None
+
         if decoder_lora:
             self_attn = lora_llama4_self_attention(
                 lora_modules=lora_attn_modules,
@@ -612,7 +670,9 @@ def lora_llama4_decoder(
                 num_heads=num_heads,
                 num_kv_heads=num_kv_heads,
                 head_dim=head_dim,
-                pos_embeddings=rope,
+                pos_embeddings=pos_embeddings,
+                q_norm=q_norm,
+                k_norm=k_norm,
                 max_seq_len=max_seq_len,
                 attn_dropout=attn_dropout,
                 lora_rank=lora_rank,
@@ -631,36 +691,56 @@ def lora_llama4_decoder(
                 k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
                 v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
                 output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
-                pos_embeddings=rope,
+                pos_embeddings=pos_embeddings,
+                q_norm=q_norm,
+                k_norm=k_norm,
                 max_seq_len=max_seq_len,
                 attn_dropout=attn_dropout,
             )
 
-        if apply_lora_to_moe and decoder_lora:
-            moe_layer = lora_llama4_moe(
-                dim=embed_dim,
-                hidden_dim=hidden_dim,
-                lora_rank=lora_rank,
-                lora_alpha=lora_alpha,
-                lora_dropout=lora_dropout,
-                num_experts=num_experts,
-                experts_per_token=experts_per_token,
-                use_shared_expert=use_shared_expert,
-            )
+        is_moe = moe_every_n_layers is None or (i + 1) % moe_every_n_layers == 0
+        if is_moe:
+            if apply_lora_to_mlp and decoder_lora:
+                mlp_layer = lora_llama4_moe(
+                    dim=embed_dim,
+                    hidden_dim=hidden_dim,
+                    lora_rank=lora_rank,
+                    lora_alpha=lora_alpha,
+                    lora_dropout=lora_dropout,
+                    num_experts=num_experts,
+                    experts_per_token=experts_per_token,
+                    use_shared_expert=use_shared_expert,
+                )
+            else:
+                mlp_layer = llama4_moe(
+                    dim=embed_dim,
+                    hidden_dim=hidden_dim,
+                    num_experts=num_experts,
+                    experts_per_token=experts_per_token,
+                    use_shared_expert=use_shared_expert,
+                )
         else:
-            moe_layer = llama4_moe(
-                dim=embed_dim,
-                hidden_dim=hidden_dim,
-                num_experts=num_experts,
-                experts_per_token=experts_per_token,
-                use_shared_expert=use_shared_expert,
-            )
+            if apply_lora_to_mlp and decoder_lora:
+                mlp_layer = lora_llama4_mlp(
+                    dim=embed_dim,
+                    hidden_dim=hidden_dim,
+                    lora_rank=lora_rank,
+                    lora_alpha=lora_alpha,
+                    quantize_base=quantize_base,
+                    lora_dropout=lora_dropout,
+                    use_dora=use_dora,
+                )
+            else:
+                mlp_layer = llama3_mlp(
+                    dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base
+                )
 
         layer = TransformerSelfAttentionLayer(
             attn=self_attn,
-            mlp=moe_layer,
+            mlp=mlp_layer,
             sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+            mask_mod=mask_mod,
         )
         layers.append(layer)
 
@@ -705,7 +785,7 @@ def lora_llama4_vision_projection_head(
     # projection head parameters
     decoder_embed_dim: int,
     clip_embed_dim: int,
-    adapter_embed_dim: int,
+    projection_embed_dim: int,
     # LoRA args
     apply_lora_to_output: bool,
     lora_rank: int,
@@ -721,7 +801,7 @@ def lora_llama4_vision_projection_head(
     Args:
         decoder_embed_dim (int): embedding dimension for the decoder.
         clip_embed_dim (int): embedding dimension for the CLIP encoder.
-        adapter_embed_dim (int): embedding dimension for the adapter linear layer in the projection head.
+        projection_embed_dim (int): embedding dimension for the adapter linear layer in the projection head.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
         lora_rank (int): rank of each low-rank approximation
@@ -741,7 +821,7 @@ def lora_llama4_vision_projection_head(
             peft_cls(
                 # Account for the pixel shuffle scaling factor ** 2
                 in_dim=int(clip_embed_dim // (pixel_shuffle_scaling_factor**2)),
-                out_dim=adapter_embed_dim,
+                out_dim=projection_embed_dim,
                 rank=lora_rank,
                 alpha=lora_alpha,
                 dropout=lora_dropout,
@@ -751,8 +831,8 @@ def lora_llama4_vision_projection_head(
             ),
             nn.GELU(),
             peft_cls(
-                in_dim=adapter_embed_dim,
-                out_dim=adapter_embed_dim,
+                in_dim=projection_embed_dim,
+                out_dim=projection_embed_dim,
                 rank=lora_rank,
                 alpha=lora_alpha,
                 dropout=lora_dropout,
@@ -762,7 +842,7 @@ def lora_llama4_vision_projection_head(
             ),
             nn.GELU(),
             peft_cls(
-                adapter_embed_dim,
+                projection_embed_dim,
                 decoder_embed_dim,
                 rank=lora_rank,
                 alpha=lora_alpha,
@@ -777,13 +857,13 @@ def lora_llama4_vision_projection_head(
             nn.Linear(
                 # Account for the pixel shuffle scaling factor ** 2
                 int(clip_embed_dim // (pixel_shuffle_scaling_factor**2)),
-                adapter_embed_dim,
+                projection_embed_dim,
                 bias=False,
             ),
             nn.GELU(),
-            nn.Linear(adapter_embed_dim, adapter_embed_dim, bias=False),
+            nn.Linear(projection_embed_dim, projection_embed_dim, bias=False),
             nn.GELU(),
-            nn.Linear(adapter_embed_dim, decoder_embed_dim, bias=False),
+            nn.Linear(projection_embed_dim, decoder_embed_dim, bias=False),
         )
 
     return Llama4VisionProjectionHead(
@@ -795,6 +875,8 @@ def lora_llama4_vision_projection_head(
 def lora_llama4_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     pos_embeddings: nn.Module,
+    q_norm: Optional[nn.Module] = None,
+    k_norm: Optional[nn.Module] = None,
     *,
     # MultiHeadAttention args
     head_dim: int,
@@ -927,6 +1009,8 @@ def lora_llama4_self_attention(
         v_proj=v_proj,
         output_proj=output_proj,
         pos_embeddings=pos_embeddings,
+        q_norm=q_norm,
+        k_norm=k_norm,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
@@ -981,7 +1065,7 @@ def lora_llama4_moe(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
-    num_experts: int = 8,
+    num_experts: int = 16,
     experts_per_token: int = 1,
     use_shared_expert: bool = True,
 ) -> MoE:
@@ -996,9 +1080,7 @@ def lora_llama4_moe(
         lora_dropout (float): LoRA dropout probability. Default: 0.0
         num_experts (int): Number of experts in each MoE layer. Default: 8
         experts_per_token (int): Number of experts each token will be routed to in Token Choice.
-        capacity_factor (float): Capacity factor determines how many tokens each expert can choose. Default: 1.0
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
-        use_expert_choice (bool): True uses expert choice routing, False uses token choice routing. Default: True
 
     Returns:
         MoE: Instantiation of MoE layer.
@@ -1017,12 +1099,16 @@ def lora_llama4_moe(
         alpha=lora_alpha,
         dropout=lora_dropout,
     )
-    shared_expert = lora_llama4_mlp(
-        dim=dim,
-        hidden_dim=hidden_dim,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=lora_dropout,
+    shared_expert = (
+        lora_llama4_mlp(
+            dim=dim,
+            hidden_dim=hidden_dim,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+        )
+        if use_shared_expert
+        else None
     )
 
     return MoE(

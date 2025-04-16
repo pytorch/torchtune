@@ -155,6 +155,7 @@ def lora_llama3(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
+    apply_lora_to_moe: bool = False,
     *,
     # llama3 args
     vocab_size: int,
@@ -183,9 +184,12 @@ def lora_llama3(
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
-        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
-            Default: False
+        apply_lora_to_mlp (bool): whether to apply LoRA to any MLP layers. Note that for Llama4 Scout
+            this is a no-op as all transformer layers use MoE, but for Maverick it takes effect
+            every other layer. Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
+            Default: False
+        apply_lora_to_moe (bool): whether to apply LoRA to any MoE layers. Default: False
             Default: False
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
