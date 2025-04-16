@@ -204,7 +204,7 @@ def gemma3_12b() -> TransformerDecoder:
         num_layers=48,
         num_heads=16,
         head_dim=256,
-        num_kv_heads=4,
+        num_kv_heads=8,
         embed_dim=3840,
         intermediate_dim=15360, # (embed_dim * 8) // 2
         max_seq_len=128_000,
@@ -251,7 +251,7 @@ def lora_gemma3_12b(
         num_layers=48,
         num_heads=16,
         head_dim=256,
-        num_kv_heads=4,
+        num_kv_heads=8,
         embed_dim=3840,
         intermediate_dim=15360, # (embed_dim * 8) // 2
         max_seq_len=128_000,
@@ -338,7 +338,7 @@ def lora_gemma3_27b(
         head_dim=256,
         num_kv_heads=16,
         embed_dim=5376,
-        intermediate_dim=86016, # (embed_dim * 8) // 2
+        intermediate_dim=21504, # (embed_dim * 8) // 2
         max_seq_len=128_000,
         attn_dropout=0.0,
         norm_eps=1e-6,
