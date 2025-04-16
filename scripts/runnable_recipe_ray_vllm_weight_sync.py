@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 """
 README!! What's going on in this script?
 
@@ -71,9 +72,9 @@ from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchrl.collectors import (
-    LocalWeightUpdaterBase,
-    RemoteWeightUpdaterBase,
     SyncDataCollector,
+    WeightUpdateReceiverBase,
+    WeightUpdateSenderBase,
 )
 from torchrl.data import LazyStackStorage, RayReplayBuffer
 from torchtune import config, generation, modules, rlhf, utils
@@ -198,7 +199,7 @@ def _get_output_tokens_and_log_probs(
 # =============================================================================================
 
 
-class VLLMHFLocalWeightUpdater(LocalWeightUpdaterBase):
+class VLLMHFWeightUpdateReceiver(WeightUpdateReceiverBase):
     def __init__(self, master_address, master_port, model_metadata):
         self.master_address = master_address
         self.master_port = master_port
@@ -379,8 +380,8 @@ class RayGRPORecipe:
         vllm_addresses = self.vllm_addresses
         vllm_ports = self.vllm_ports
 
-        local_weight_updaters = [
-            VLLMHFLocalWeightUpdater(
+        weight_update_receivers = [
+            VLLMHFWeightUpdateReceiver(
                 vllm_master_address, vllm_update_port, self.model_metadata
             )
             for vllm_master_address, vllm_update_port in zip(vllm_addresses, vllm_ports)
@@ -403,8 +404,8 @@ class RayGRPORecipe:
                     total_dialog_turns=1000,
                     reset_at_each_iter=True,
                     queue=self.rollout_queue,
-                    local_weight_updater=local_weight_updaters[i],
-                    remote_weight_updater=self.param_server,
+                    weight_update_receiver=weight_update_receivers[i],
+                    weight_update_sender=self.param_server,
                 )
             )
             # TODO: Currently we register a handle to the collector to the parameter server
