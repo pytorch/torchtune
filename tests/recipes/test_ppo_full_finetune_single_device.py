@@ -98,7 +98,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
     @pytest.mark.debugging
     @pytest.mark.integration_test
     @pytest.mark.skipif(
-        torch.cuda.get_device_capability() not in ((7, 5), (9, 0)),
+        not torch.cuda.is_available()
+        or torch.cuda.get_device_capability() not in ((7, 5), (9, 0)),
         reason="Unexpected device type",
     )
     @mps_ignored_test()

@@ -55,7 +55,12 @@ class TestKDDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.8316, 11.7520, 11.7642, 11.7664],
+            "llama3": [
+                11.777642250061035,
+                11.760451793670654,
+                11.755887508392334,
+                11.76237678527832,
+            ],
         }
         return loss_values_map[model_type]
 
@@ -83,7 +88,6 @@ class TestKDDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             metric_logger.filename={log_file} \
-            batch_size=2 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama3_lora"]
@@ -100,6 +104,7 @@ class TestKDDistributedRecipe:
         num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
         loss_values = loss_values[0::num_losses]
         expected_loss_values = self._fetch_expected_loss_values("llama3")
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
