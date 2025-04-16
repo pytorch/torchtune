@@ -35,6 +35,7 @@ dependencies = [
 
     # Multimodal
     "Pillow>=9.4.0",
+    "math-verify[antlr4_9_3]"
 ]
 dynamic = ["version"]
 

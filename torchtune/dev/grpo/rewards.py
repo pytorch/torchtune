@@ -16,6 +16,7 @@ import torch
 
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
+import math_verify
 
 def extract_tags(text: str) -> Tuple[str, str]:
     """
@@ -47,7 +48,10 @@ def math_response_correct(
     """Did it get the right answer?"""
     if potential_answer is None:
         return 0.0, 0.0  # (reward, success)
-    if answer == potential_answer:
+    gold = math_verify.parse(answer)
+    attempt = math_verify.parse(potential_answer)
+
+    if math_verify.verify(gold, attempt):
         return 100.0, 1.0
     if answer in potential_answer:
         return 50.0, 0.0
