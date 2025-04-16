@@ -17,7 +17,7 @@ with a short description of each.
 .. code-block:: bash
 
     $ tune --help
-    usage: tune [-h] {download,ls,cp,run,validate} ...
+    usage: tune [-h] {download,ls,cp,run,validate,cat} ...
 
     Welcome to the torchtune CLI!
 
@@ -25,7 +25,7 @@ with a short description of each.
     -h, --help            show this help message and exit
 
     subcommands:
-      {download,ls,cp,run,validate}
+      {download,ls,cp,run,validate,cat}
         download            Download a model from the Hugging Face Hub.
         ls                  List all built-in recipes and configs
         ...
@@ -233,3 +233,72 @@ The ``tune validate <config>`` command will validate that your config is formatt
     # If you've copied over a built-in config and want to validate custom changes
     $ tune validate my_configs/llama3/8B_full.yaml
     Config is well-formed!
+
+.. _tune_cat_cli_label:
+
+Inspect a config
+---------------------
+
+The ``tune cat <config>`` command pretty prints a configuration file, making it easy to use ``tune run`` with confidence. This command is useful for inspecting the structure and contents of a config file before running a recipe, ensuring that all parameters are correctly set.
+
+You can also use the ``--sort`` option to print the config in sorted order, which can help in quickly locating specific keys.
+
+.. list-table::
+   :widths: 30 60
+
+   * - \--sort
+     - Print the config in sorted order.
+
+**Workflow Example**
+
+1. **List all available configs:**
+
+   Use the ``tune ls`` command to list all the built-in recipes and configs within torchtune.
+
+   .. code-block:: bash
+
+       $ tune ls
+       RECIPE                                   CONFIG
+       full_finetune_single_device              llama2/7B_full_low_memory
+                                                code_llama2/7B_full_low_memory
+                                                llama3/8B_full_single_device
+                                                mistral/7B_full_low_memory
+                                                phi3/mini_full_low_memory
+       full_finetune_distributed                llama2/7B_full
+                                                llama2/13B_full
+                                                llama3/8B_full
+                                                llama3/70B_full
+       ...
+
+2. **Inspect the contents of a config:**
+
+   Use the ``tune cat`` command to pretty print the contents of a specific config. This helps you understand the structure and parameters of the config.
+
+   .. code-block:: bash
+
+       $ tune cat llama2/7B_full
+       output_dir: /tmp/torchtune/llama2_7B/full
+       tokenizer:
+           _component_: torchtune.models.llama2.llama2_tokenizer
+           path: /tmp/Llama-2-7b-hf/tokenizer.model
+           max_seq_len: null
+       ...
+
+   You can also print the config in sorted order:
+
+   .. code-block:: bash
+
+       $ tune cat llama2/7B_full --sort
+
+3. **Run a recipe with parameter override:**
+
+   After inspecting the config, you can use the ``tune run`` command to run a recipe with the config. You can also override specific parameters directly from the command line. For example, to override the `output_dir` parameter:
+
+   .. code-block:: bash
+
+       $ tune run full_finetune_distributed --config llama2/7B_full output_dir=./
+
+   Learn more about config overrides :ref:`here  <cli_override>`.
+
+.. note::
+    You can find all the cat-able configs via the ``tune ls`` command.

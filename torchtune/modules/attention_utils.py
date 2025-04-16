@@ -22,7 +22,26 @@ if _SUPPORTS_FLEX_ATTENTION:
         flex_attention,
     )
 
-    flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+    def compile_flex_attention():
+        try:
+            return torch.compile(flex_attention, dynamic=False)
+        except Exception as e:
+            # It may fail on some combinations of hardware/versions. Using max-autotune fixes this issue.
+            # Context: https://github.com/pytorch/torchtune/issues/2113
+            _log.info(
+                f"Compiling flex_attention failed with error '{e}'. Retrying with mode='max-autotune'."
+            )
+            try:
+                return torch.compile(flex_attention, dynamic=False, mode="max-autotune")
+            except Exception as e:
+                _log.info(
+                    f"Compiling flex_attention failed with error: '{e}', "
+                    "Updating your pytorch version to nightlies may solve it, or you can set"
+                    "in your config dataset.packed=False to avoid using flex attention."
+                )
+                raise
+
+    flex_attention_compiled = compile_flex_attention()
 
     # We cannot do nested compile, but flex attention only has perf benefits
     # when compiled. To insulate it from the compiler, we wrap it with
@@ -247,3 +266,50 @@ def _sdpa_or_flex_attention() -> Callable:
             )
 
     return _attention_call
+
+
+def kv_offset_mask_flex(b, h, q_idx, kv_idx, offset):
+    """
+    Mask mod for autoregressive generation to be used by flex attention. See https://pytorch.org/blog/flexattention/#mask-mods.
+
+    This mask mod can be passed to :func:`~torch.nn.attention.flex_attention.create_block_mask` to create a BlockMask
+    to generate a single token where all past tokens are unmasked.
+
+    Example::
+        >>> from torch.nn.attention.flex_attention import create_block_mask
+        >>> current_token_idx, input_tokens, token_to_generate = 3, 5, 8
+        >>> total_response_length = input_tokens + tokens_to_generate
+        >>> create_block_mask(
+        >>>     mask_mod=partial(kv_offset_mask_flex, offset=current_token_idx),
+        >>>     B=1,
+        >>>     H=None,
+        >>>     Q_LEN=1,
+        >>>     KV_LEN=total_response_length,
+        >>> )
+    """
+    return kv_idx <= offset
+
+
+def causal_mask_flex(b, h, q_idx, kv_idx):
+    """
+    Mask mod for a standard causal mask to be used by flex attention. See https://pytorch.org/blog/flexattention/#mask-mods.
+
+    This mask mod can be passed to :func:`~torch.nn.attention.flex_attention.create_block_mask` to create a BlockMask
+    equivalent of a causal mask.
+
+    Example::
+        >>> # Construct a causal mask for prefill stage of autoregressive generation
+        >>> from torch.nn.attention.flex_attention import create_block_mask
+        >>> bsz, input_tokens, token_to_generate = 2, 3, 5
+        >>> total_response_length = input_tokens + tokens_to_generate
+        >>> create_block_mask(
+        >>>     mask_mod=causal_mask_flex
+        >>>     B=bsz,
+        >>>     H=None,
+        >>>     Q_LEN=input_tokens,
+        >>>     KV_LEN=total_response_length,
+        >>> )
+
+    """
+
+    return q_idx >= kv_idx

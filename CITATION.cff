@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "torchtune: PyTorch's finetuning library"
+title: "torchtune: PyTorch's post-training library"
 message: "If you use this software, please cite it as below."
 type: software
 authors:

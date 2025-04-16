@@ -42,7 +42,7 @@ def llama2_7b() -> TransformerDecoder:
     )
 
 
-def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.llama2.Llama2ChatTemplate") -> Llama2Tokenizer:
+def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = "torchtune.models.llama2.Llama2ChatTemplate", truncation_type: str = "right") -> Llama2Tokenizer:
     """
     Tokenizer for Llama2.
 
@@ -54,11 +54,12 @@ def llama2_tokenizer(path: str, max_seq_len: Optional[int] = None, prompt_templa
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
             prepend/append tags. Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
-
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
     Returns:
         Llama2Tokenizer: Instantiation of the Llama2 tokenizer
     """
-    return Llama2Tokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None)
+    return Llama2Tokenizer(path=path, max_seq_len=max_seq_len, prompt_template=_get_prompt_template(prompt_template) if prompt_template is not None else None, truncation_type=truncation_type)
 
 
 def lora_llama2_7b(

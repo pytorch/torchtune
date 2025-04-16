@@ -24,13 +24,14 @@ from torchtune.modules.attention_utils import _SUPPORTS_FLEX_ATTENTION
 
 
 class TestPaddedCollateSFT:
-    def test_batch_pad_sequence(self):
-        """
-        Tests that shorter input, label sequences are padded to the max seq len.
-        """
-        padding_idx = -8
-        ignore_idx = -9
-        token_pairs = [
+    # Shared test constants
+    padding_idx = -8
+    ignore_idx = -9
+
+    # Common test batch data
+    @pytest.fixture
+    def test_batch(self):
+        return [
             {
                 "tokens": [1, 2, 3],
                 "labels": [4, 5, 6],
@@ -40,19 +41,86 @@ class TestPaddedCollateSFT:
                 "labels": [10],
             },
         ]
-        padded = padded_collate_sft(
-            batch=token_pairs,
-            padding_idx=padding_idx,
-            ignore_idx=ignore_idx,
+
+    def test_batch_pad_sequence(self, test_batch):
+        """
+        Tests that shorter input, label sequences are padded to the max seq len.
+        """
+        # Apply padding via the collate function
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
         )
-        padded_input = padded["tokens"][1]
-        padded_label = padded["labels"][1]
+
+        # Extract the padded sequences for the second item (shorter sequence)
+        padded_tokens = padded_result["tokens"][1]
+        padded_labels = padded_result["labels"][1]
+
+        # Verify padding was applied correctly
         torch.testing.assert_close(
-            padded_input, torch.tensor([7, padding_idx, padding_idx])
+            padded_tokens, torch.tensor([7, self.padding_idx, self.padding_idx])
         )
         torch.testing.assert_close(
-            padded_label, torch.tensor([10, ignore_idx, ignore_idx])
+            padded_labels, torch.tensor([10, self.ignore_idx, self.ignore_idx])
         )
+
+    def test_batch_pad_sequence_encoding(self, test_batch):
+        for row in test_batch:
+            row["encoder_input"] = {"vision": {"images": [torch.ones(2, 3, 2, 2)]}}
+
+        # Apply padding via the collate function
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
+        )
+
+        # Verify padding was applied correctly
+        imgs = padded_result["encoder_input"]["vision"]["images"]
+        assert imgs.shape == (4, 3, 2, 2)
+
+        # Apply padding via the collate function
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
+            stack_on_new_dim=True,
+        )
+
+        # Verify padding was applied correctly
+        imgs = padded_result["encoder_input"]["vision"]["images"]
+        assert imgs.shape == (2, 2, 3, 2, 2)
+
+    def test_batch_pad_sequence_to_multiple_of(self, test_batch):
+        """Test that padding to a multiple of X works as expected."""
+        # Apply padding with multiple-of-5 requirement
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
+            pad_to_multiple_of=5,
+        )
+
+        # Expected padded tokens (padded to length 5)
+        expected_tokens = torch.stack(
+            [
+                torch.tensor([1, 2, 3, self.padding_idx, self.padding_idx]),
+                torch.tensor([7] + [self.padding_idx] * 4),
+            ]
+        )
+
+        # Expected padded labels (padded to length 5)
+        expected_labels = torch.stack(
+            [
+                torch.tensor([4, 5, 6, self.ignore_idx, self.ignore_idx]),
+                torch.tensor([10] + [self.ignore_idx] * 4),
+            ]
+        )
+
+        # Verify padding was applied correctly
+        torch.testing.assert_close(padded_result["tokens"], expected_tokens)
+        torch.testing.assert_close(padded_result["labels"], expected_labels)
 
 
 class TestPaddedCollateTiledImagesAndMask:
@@ -83,6 +151,40 @@ class TestPaddedCollateTiledImagesAndMask:
                 "encoder_mask": [torch.ones(2, s * 4)],
             },
         ]
+
+    def test_raises_error_with_pad_multiple_provided_and_pad_direction_is_left(
+        self, batch
+    ):
+        # We don't support padding to a multiple of X with left padding (inference)
+        with pytest.raises(
+            ValueError,
+            match="pad_to_multiple_of=5 is not supported for pad_direction='left'",
+        ):
+            padded_collate_tiled_images_and_mask(
+                batch=batch,
+                padding_idx=0,
+                ignore_idx=-100,
+                pad_to_multiple_of=5,
+                pad_direction="left",
+            )
+
+    def test_padding_to_multiple(self, batch):
+        actual = padded_collate_tiled_images_and_mask(
+            batch=batch,
+            padding_idx=0,
+            ignore_idx=-100,
+            pad_to_multiple_of=5,
+        )
+
+        # Make sure tokens & labels are padded to a multiple of 5
+        expected_tokens = torch.tensor([[1, 2, 1, 3, 0], [1, 4, 0, 0, 0]])
+        expected_labels = torch.tensor([[4, 5, 6, 7, -100], [8, 9, -100, -100, -100]])
+        assert torch.allclose(actual["tokens"], expected_tokens)
+        assert torch.allclose(actual["labels"], expected_labels)
+
+        # We don't have to ensure images look any different b/c they are padded differently
+        # But we do need to make sure the masks are padded to a multiple of 5
+        assert actual["encoder_mask"].size(1) % 5 == 0
 
     def test_right_pad_sequence(self, batch):
         actual = padded_collate_tiled_images_and_mask(
@@ -312,6 +414,51 @@ class TestLeftPadSequence:
 
 
 class TestPaddedCollate:
+    def test_throws_error_with_pad_direction_left_and_pad_to_multiple_of(self):
+        batch = [
+            {"tokens": [1, 2, 3], "labels": [4, 5, 6]},
+        ]
+        with pytest.raises(
+            ValueError,
+            match="pad_to_multiple_of=7 is not supported for pad_direction='left'",
+        ):
+            padded_collate(
+                batch,
+                pad_direction="left",
+                keys_to_pad=["tokens"],
+                padding_idx=-10,
+                pad_to_multiple_of=7,
+            )
+
+    def test_padded_collate_with_multiple_of(self):
+        batch = [
+            {"tokens": [1, 2, 3], "labels": [4, 5, 6]},
+            {"tokens": [4, 5, 6, 7], "labels": [8, 9, 10, 11]},
+            {"tokens": [8, 9, 10, 11, 12], "labels": [13, 14, 15, 16, 17]},
+        ]
+        result = padded_collate(
+            batch,
+            pad_direction="right",
+            keys_to_pad=["tokens", "labels"],
+            padding_idx=-10,
+            pad_to_multiple_of=7,
+        )
+        expected_tokens = torch.tensor(
+            [
+                [1, 2, 3, -10, -10, -10, -10],
+                [4, 5, 6, 7, -10, -10, -10],
+                [8, 9, 10, 11, 12, -10, -10],
+            ]
+        )
+        expected_labels = torch.tensor(
+            [
+                [4, 5, 6, -10, -10, -10, -10],
+                [8, 9, 10, 11, -10, -10, -10],
+                [13, 14, 15, 16, 17, -10, -10],
+            ]
+        )
+        assert torch.equal(result["tokens"], expected_tokens)
+
     def test_padded_collate_classifier_labels(self):
         batch = [
             {"tokens": [1, 2, 3], "labels": 1},
@@ -384,8 +531,9 @@ class TestPaddedCollate:
 
 
 class TestPaddedCollateDPO:
-    def test_dpo_collate(self):
-        batch = [
+    @pytest.fixture
+    def batch(self):
+        return [
             {
                 "chosen_input_ids": [1, 2, 3],
                 "chosen_labels": [4, 5, 6],
@@ -399,6 +547,34 @@ class TestPaddedCollateDPO:
                 "rejected_labels": [18, 19, 20],
             },
         ]
+
+    def test_dpo_collate_with_pad_to_multiple_of(self, batch):
+        input_ids, labels = padded_collate_dpo(
+            batch,
+            padding_idx=0,
+            ignore_idx=-100,
+            pad_to_multiple_of=7,
+        )
+        expected_input_ids = torch.tensor(
+            [
+                [1, 2, 3, 0, 0, 0, 0],
+                [11, 12, 0, 0, 0, 0, 0],
+                [7, 8, 0, 0, 0, 0, 0],
+                [15, 16, 17, 0, 0, 0, 0],
+            ],
+        )
+        expected_labels = torch.tensor(
+            [
+                [4, 5, 6, -100, -100, -100, -100],
+                [13, 14, -100, -100, -100, -100, -100],
+                [9, 10, -100, -100, -100, -100, -100],
+                [18, 19, 20, -100, -100, -100, -100],
+            ]
+        )
+        assert torch.equal(input_ids, expected_input_ids)
+        assert torch.equal(labels, expected_labels)
+
+    def test_dpo_collate(self, batch):
         input_ids, labels = padded_collate_dpo(batch, padding_idx=0, ignore_idx=-100)
         expected_input_ids = torch.tensor(
             [[1, 2, 3], [11, 12, 0], [7, 8, 0], [15, 16, 17]]

@@ -11,6 +11,7 @@ from typing import Tuple
 
 import pytest
 
+import safetensors
 import torch
 from torch import randn
 
@@ -160,6 +161,12 @@ class TestHFLlama2FullModelCheckpointer:
 
         torch.save(state_dict_1, checkpoint_file_1)
         torch.save(state_dict_2, checkpoint_file_2)
+        safetensors.torch.save_file(
+            state_dict_1, checkpoint_dir / "model-00001-of-00002.safetensors"
+        )
+        safetensors.torch.save_file(
+            state_dict_2, checkpoint_dir / "model-00002-of-00002.safetensors"
+        )
 
         config = {
             "hidden_size": 64,
@@ -169,6 +176,14 @@ class TestHFLlama2FullModelCheckpointer:
         config_file = Path.joinpath(checkpoint_dir, "config.json")
         with config_file.open("w") as f:
             json.dump(config, f)
+        metadata_file = Path.joinpath(checkpoint_dir, "model.safetensors.index.json")
+        metadata = {"weight_map": {}}
+        for key in state_dict_1.keys():
+            metadata["weight_map"][key] = "model-00001-of-00002.safetensors"
+        for key in state_dict_2.keys():
+            metadata["weight_map"][key] = "model-00002-of-00002.safetensors"
+        with metadata_file.open("w") as f:
+            json.dump(metadata, f)
 
         return (checkpoint_file_1, checkpoint_file_2)
 
@@ -411,6 +426,7 @@ class TestHFLlama2FullModelCheckpointer:
             lora_attn_modules=lora_attn_modules,
             apply_lora_to_mlp=apply_lora_to_mlp,
             apply_lora_to_output=apply_lora_to_output,
+            state_dict_keys=model.state_dict().keys(),
             base_missing=missing,
             base_unexpected=unexpected,
         )
@@ -503,6 +519,85 @@ class TestHFLlama2FullModelCheckpointer:
                 torch.testing.assert_close(
                     actual_adapter_state_dict[k], expected_adapter_state_dict[new_k]
                 )
+
+    def test_save_load_checkpoint_multiple_file_with_dcp(
+        self,
+        multi_file_checkpointer: FullModelHFCheckpointer,
+        llama2_hf_checkpoints: Tuple[Path, Path],
+    ):
+        """
+        Test ``load_checkpoint`` method within the FullModelCheckpointer for multiple
+        checkpoint files with DCP enabled.
+
+        We test:
+        * ``load_checkpoint`` loads the right sets of keys
+        * Internal state of the checkpointer is correctly updated
+        * Converted checkpoint can be loaded into the llama2 torchtune implementation
+        """
+
+        multi_file_checkpointer._enable_dcp = True
+        # Read the state dict directly from files
+        checkpoint_file_1, checkpoint_file_2 = llama2_hf_checkpoints
+        orig_state_dict_1 = safe_torch_load(checkpoint_file_1)
+        orig_state_dict_2 = safe_torch_load(checkpoint_file_2)
+
+        state_dict = {}
+        # merged state dict from checkpointer
+        try:
+            state_dict = multi_file_checkpointer.load_checkpoint()
+        except ImportError:
+            pytest.skip("DCP HF classes not available")
+
+        # We ignore inv_freq as is standard practice
+        assert len(state_dict["model"].keys()) + 2 == len(
+            orig_state_dict_1.keys()
+        ) + len(orig_state_dict_2.keys())
+
+        # the keys in the weight_map should match up with the keys in the weight_map
+        for key in orig_state_dict_1.keys():
+            if "inv_freq" in key:
+                continue
+            assert key in multi_file_checkpointer._weight_map
+
+        for key in orig_state_dict_2.keys():
+            if "inv_freq" in key:
+                continue
+            assert key in multi_file_checkpointer._weight_map
+
+        # finally loading into the model should work
+        model = llama2.llama2(
+            vocab_size=_VOCAB_SIZE,
+            num_layers=2,
+            num_heads=_NUM_HEADS,
+            num_kv_heads=_NUM_KV_HEADS,
+            embed_dim=_DIM,
+            max_seq_len=128,
+        )
+        model.load_state_dict(state_dict["model"])
+
+        try:
+            multi_file_checkpointer.save_checkpoint(state_dict, epoch=3)
+        except ImportError:
+            pytest.skip("DCP HF classes not available")
+
+        # Reload the output checkpoint file and compare to the original checkpoint. This
+        # assumes we know what the name of the file is. This is fine, breaking this logic
+        # should be something we capture through this test
+        output_file_1 = Path.joinpath(
+            checkpoint_file_1.parent.parent / "output_dir",
+            "epoch_3",
+            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="2".zfill(5)),
+        ).with_suffix(".safetensors")
+        output_file_2 = Path.joinpath(
+            checkpoint_file_2.parent.parent / "output_dir",
+            "epoch_3",
+            SHARD_FNAME.format(cpt_idx="2".zfill(5), num_shards="2".zfill(5)),
+        ).with_suffix(".safetensors")
+        output_state_dict_1 = safe_torch_load(output_file_1)
+        output_state_dict_2 = safe_torch_load(output_file_2)
+
+        assert len(output_state_dict_1.keys()) + 1 == len(orig_state_dict_1.keys())
+        assert len(output_state_dict_2.keys()) + 1 == len(orig_state_dict_2.keys())
 
 
 class TestHFMistralRewardModelFullModelCheckpointer:
