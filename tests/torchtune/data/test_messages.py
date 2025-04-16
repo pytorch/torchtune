@@ -14,15 +14,11 @@ from tests.test_utils import (
     assert_dialogue_equal,
     CHAT_SAMPLE,
     MESSAGE_SAMPLE,
-    MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT,
     MESSAGE_SAMPLE_TRAIN_ON_INPUT,
-    MESSAGE_SAMPLE_TRAIN_ON_LAST,
 )
 from torchtune.data._messages import (
-    AlpacaToMessages,
     ChosenRejectedToMessages,
     InputOutputToMessages,
-    mask_messages,
     Message,
     OpenAIToMessages,
     ShareGPTToMessages,
@@ -190,33 +186,6 @@ class TestInputOutputToMessages:
         ]
         assert_dialogue_equal(actual["messages"], expected)
 
-    @pytest.mark.parametrize(
-        "masking_strategy, expected_masks",
-        [
-            ("train_on_all", [False, False]),
-            ("train_on_assistant", [True, False]),
-            ("train_on_last", [True, False]),
-        ],
-    )
-    def test_call_masking_strategy(self, sample, masking_strategy, expected_masks):
-        transform = InputOutputToMessages(
-            column_map={"input": "maybe_input", "output": "maybe_output"},
-            masking_strategy=masking_strategy,
-        )
-        actual = transform(sample)
-        expected = [
-            Message(
-                role="user", content="hello world", masked=expected_masks[0], eot=True
-            ),
-            Message(
-                role="assistant",
-                content="hello world",
-                masked=expected_masks[1],
-                eot=True,
-            ),
-        ]
-        assert_dialogue_equal(actual["messages"], expected)
-
     def test_system_prompt(self, sample):
         transform = InputOutputToMessages(
             column_map={"input": "maybe_input", "output": "maybe_output"},
@@ -254,23 +223,6 @@ class TestChosenRejectedToMessages:
             "maybe_rejected": [
                 {"role": "user", "content": "hello world"},
                 {"role": "assistant", "content": "bye world"},
-            ],
-        }
-
-    @pytest.fixture
-    def multi_turn_sample(self):
-        return {
-            "maybe_chosen": [
-                {"role": "user", "content": "hello world"},
-                {"role": "assistant", "content": "hello world"},
-                {"role": "user", "content": "hello again world"},
-                {"role": "assistant", "content": "hello again world"},
-            ],
-            "maybe_rejected": [
-                {"role": "user", "content": "hello world"},
-                {"role": "assistant", "content": "bye world"},
-                {"role": "user", "content": "hello again world"},
-                {"role": "assistant", "content": "bye again world"},
             ],
         }
 
@@ -312,136 +264,6 @@ class TestChosenRejectedToMessages:
         expected_rejected = [
             Message(role="user", content="hello world", masked=False, eot=True),
             Message(role="assistant", content="bye world", masked=False, eot=True),
-        ]
-        assert_dialogue_equal(actual["rejected"], expected_rejected)
-
-    @pytest.mark.parametrize(
-        "masking_strategy, expected_masks",
-        [
-            ("train_on_all", [[False, False], [False, False]]),
-            ("train_on_assistant", [[True, False], [True, False]]),
-            ("train_on_last", [[True, False], [True, False]]),
-        ],
-    )
-    def test_call_masking_strategy(self, sample, masking_strategy, expected_masks):
-        transform = ChosenRejectedToMessages(
-            column_map={
-                "chosen": "maybe_chosen",
-                "rejected": "maybe_rejected",
-            },
-            masking_strategy=masking_strategy,
-        )
-        actual = transform(sample)
-        expected_chosen = [
-            Message(
-                role="user",
-                content="hello world",
-                masked=expected_masks[0][0],
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content="hello world",
-                masked=expected_masks[0][1],
-                eot=True,
-            ),
-        ]
-        assert_dialogue_equal(actual["chosen"], expected_chosen)
-
-        expected_rejected = [
-            Message(
-                role="user",
-                content="hello world",
-                masked=expected_masks[1][0],
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content="bye world",
-                masked=expected_masks[1][1],
-                eot=True,
-            ),
-        ]
-        assert_dialogue_equal(actual["rejected"], expected_rejected)
-
-    @pytest.mark.parametrize(
-        "masking_strategy, expected_masks",
-        [
-            (
-                "train_on_all",
-                [[False, False, False, False], [False, False, False, False]],
-            ),
-            (
-                "train_on_assistant",
-                [[True, False, True, False], [True, False, True, False]],
-            ),
-            ("train_on_last", [[True, True, True, False], [True, True, True, False]]),
-        ],
-    )
-    def test_call_masking_strategy_multi_turn(
-        self, multi_turn_sample, masking_strategy, expected_masks
-    ):
-        transform = ChosenRejectedToMessages(
-            column_map={
-                "chosen": "maybe_chosen",
-                "rejected": "maybe_rejected",
-            },
-            masking_strategy=masking_strategy,
-        )
-        actual = transform(multi_turn_sample)
-        expected_chosen = [
-            Message(
-                role="user",
-                content="hello world",
-                masked=expected_masks[0][0],
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content="hello world",
-                masked=expected_masks[0][1],
-                eot=True,
-            ),
-            Message(
-                role="user",
-                content="hello again world",
-                masked=expected_masks[0][2],
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content="hello again world",
-                masked=expected_masks[0][3],
-                eot=True,
-            ),
-        ]
-        assert_dialogue_equal(actual["chosen"], expected_chosen)
-
-        expected_rejected = [
-            Message(
-                role="user",
-                content="hello world",
-                masked=expected_masks[1][0],
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content="bye world",
-                masked=expected_masks[1][1],
-                eot=True,
-            ),
-            Message(
-                role="user",
-                content="hello again world",
-                masked=expected_masks[1][2],
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content="bye again world",
-                masked=expected_masks[1][3],
-                eot=True,
-            ),
         ]
         assert_dialogue_equal(actual["rejected"], expected_rejected)
 
@@ -498,30 +320,6 @@ class TestShareGPTToMessages:
             },
         ]
     }
-    multi_turn_samples = {
-        "conversations": [
-            {
-                "from": "system",
-                "value": CHAT_SAMPLE["system"],
-            },
-            {
-                "from": "human",
-                "value": CHAT_SAMPLE["user"],
-            },
-            {
-                "from": "gpt",
-                "value": CHAT_SAMPLE["assistant"],
-            },
-            {
-                "from": "human",
-                "value": CHAT_SAMPLE["user"],
-            },
-            {
-                "from": "gpt",
-                "value": CHAT_SAMPLE["assistant"],
-            },
-        ]
-    }
 
     def test_call(self):
         transform = ShareGPTToMessages()
@@ -534,31 +332,6 @@ class TestShareGPTToMessages:
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
-
-    @pytest.mark.parametrize(
-        "masking_strategy, expected_message",
-        [
-            ("train_on_all", MESSAGE_SAMPLE_TRAIN_ON_INPUT),
-            ("train_on_assistant", MESSAGE_SAMPLE),
-            ("train_on_last", MESSAGE_SAMPLE),
-        ],
-    )
-    def test_call_masking_strategy(self, masking_strategy, expected_message):
-        transform = ShareGPTToMessages(masking_strategy=masking_strategy)
-        converted_messages = transform(self.samples)
-        assert_dialogue_equal(converted_messages["messages"], expected_message)
-
-    @pytest.mark.parametrize(
-        "masking_strategy, expected_message",
-        [
-            ("train_on_assistant", MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT),
-            ("train_on_last", MESSAGE_SAMPLE_TRAIN_ON_LAST),
-        ],
-    )
-    def test_call_masking_strategy_multi_turn(self, masking_strategy, expected_message):
-        transform = ShareGPTToMessages(masking_strategy=masking_strategy)
-        converted_messages = transform(self.multi_turn_samples)
-        assert_dialogue_equal(converted_messages["messages"], expected_message)
 
     def test_system_prompt(self):
         transform = ShareGPTToMessages(new_system_prompt="you are a robot")
@@ -638,31 +411,6 @@ class TestOpenAIToMessages:
         ],
     }
 
-    multi_turn_samples = {
-        "messages": [
-            {
-                "role": "system",
-                "content": CHAT_SAMPLE["system"],
-            },
-            {
-                "role": "user",
-                "content": CHAT_SAMPLE["user"],
-            },
-            {
-                "role": "assistant",
-                "content": CHAT_SAMPLE["assistant"],
-            },
-            {
-                "role": "user",
-                "content": CHAT_SAMPLE["user"],
-            },
-            {
-                "role": "assistant",
-                "content": CHAT_SAMPLE["assistant"],
-            },
-        ],
-    }
-
     def test_call(self):
         transform = OpenAIToMessages()
         converted_messages = transform(self.samples)
@@ -674,57 +422,6 @@ class TestOpenAIToMessages:
         assert_dialogue_equal(
             converted_messages["messages"], MESSAGE_SAMPLE_TRAIN_ON_INPUT
         )
-
-    @mock.patch("torchtune.data._messages.load_image")
-    @pytest.mark.parametrize(
-        "masking_strategy, is_multimodal, expected_message",
-        [
-            ("train_on_all", False, MESSAGE_SAMPLE_TRAIN_ON_INPUT),
-            ("train_on_assistant", False, MESSAGE_SAMPLE),
-            ("train_on_last", False, MESSAGE_SAMPLE),
-            ("train_on_all", True, None),
-            ("train_on_assistant", True, None),
-            ("train_on_last", True, None),
-        ],
-    )
-    def test_call_masking_strategy(
-        self, mock_load_image, masking_strategy, is_multimodal, expected_message
-    ):
-        test_img = Image.new(mode="RGB", size=(4, 4))
-        mock_load_image.return_value = test_img
-        transform = OpenAIToMessages(masking_strategy=masking_strategy)
-        if is_multimodal:
-            converted_messages = transform(self.image_samples)
-            assert_dialogue_equal(
-                converted_messages["messages"],
-                [
-                    MESSAGE_SAMPLE[0],
-                    Message(
-                        role="user",
-                        content=[
-                            {"type": "text", "content": CHAT_SAMPLE["user"]},
-                            {"type": "image", "content": test_img},
-                        ],
-                        masked=True,
-                    ),
-                    MESSAGE_SAMPLE[2],
-                ],
-            )
-        else:
-            converted_messages = transform(self.samples)
-            assert_dialogue_equal(converted_messages["messages"], expected_message)
-
-    @pytest.mark.parametrize(
-        "masking_strategy, expected_message",
-        [
-            ("train_on_assistant", MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT),
-            ("train_on_last", MESSAGE_SAMPLE_TRAIN_ON_LAST),
-        ],
-    )
-    def test_call_masking_strategy_multi_turn(self, masking_strategy, expected_message):
-        transform = OpenAIToMessages(masking_strategy=masking_strategy)
-        converted_messages = transform(self.multi_turn_samples)
-        assert_dialogue_equal(converted_messages["messages"], expected_message)
 
     def test_system_prompt(self):
         transform = OpenAIToMessages(new_system_prompt="you are a robot")
@@ -819,200 +516,6 @@ class TestOpenAIToMessages:
         )
 
 
-class TestAlpacaToMessages:
-    template = {
-        "prompt_input": (
-            "Below is an instruction that describes a task, paired with an input that provides further context. "
-            "Write a response that appropriately completes the request.\n\n"
-            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
-        ),
-        "prompt_no_input": (
-            "Below is an instruction that describes a task. "
-            "Write a response that appropriately completes the request.\n\n"
-            "### Instruction:\n{instruction}\n\n### Response:\n"
-        ),
-    }
-
-    @pytest.fixture
-    def sample(self):
-        return {
-            "maybe_instruction": "hello world",
-            "maybe_input": "this is some input",
-            "maybe_output": "this is some output",
-        }
-
-    @pytest.fixture
-    def sample_with_no_input(self):
-        return {
-            "maybe_instruction": "hello world",
-            "maybe_output": "this is some output",
-        }
-
-    def test_call(self, sample, sample_with_no_input):
-        # input in column_map and in sample
-        transform = AlpacaToMessages(
-            column_map={
-                "instruction": "maybe_instruction",
-                "input": "maybe_input",
-                "output": "maybe_output",
-            }
-        )
-        actual = transform(sample)
-        expected = [
-            Message(
-                role="user",
-                content=self.template["prompt_input"].format(
-                    instruction="hello world", input="this is some input"
-                ),
-                masked=False,
-                eot=True,
-            ),
-            Message(
-                role="assistant", content="this is some output", masked=False, eot=True
-            ),
-        ]
-        assert_dialogue_equal(actual["messages"], expected)
-
-        # input not in column_map and not in sample
-        transform = AlpacaToMessages(
-            column_map={"instruction": "maybe_instruction", "output": "maybe_output"}
-        )
-        actual = transform(sample_with_no_input)
-        expected = [
-            Message(
-                role="user",
-                content=self.template["prompt_no_input"].format(
-                    instruction="hello world"
-                ),
-                masked=False,
-                eot=True,
-            ),
-            Message(
-                role="assistant", content="this is some output", masked=False, eot=True
-            ),
-        ]
-        assert_dialogue_equal(actual["messages"], expected)
-
-        # input not in column_map but in sample
-        transform = AlpacaToMessages(
-            column_map={"instruction": "maybe_instruction", "output": "maybe_output"}
-        )
-        actual = transform(sample)
-        expected = [
-            Message(
-                role="user",
-                content=self.template["prompt_no_input"].format(
-                    instruction="hello world"
-                ),
-                masked=False,
-                eot=True,
-            ),
-            Message(
-                role="assistant", content="this is some output", masked=False, eot=True
-            ),
-        ]
-        assert_dialogue_equal(actual["messages"], expected)
-
-        # input in column_map but not in sample
-        transform = AlpacaToMessages(
-            column_map={
-                "instruction": "maybe_instruction",
-                "input": "maybe_input",
-                "output": "maybe_output",
-            }
-        )
-        actual = transform(sample_with_no_input)
-        expected = [
-            Message(
-                role="user",
-                content=self.template["prompt_no_input"].format(
-                    instruction="hello world"
-                ),
-                masked=False,
-                eot=True,
-            ),
-            Message(
-                role="assistant", content="this is some output", masked=False, eot=True
-            ),
-        ]
-        assert_dialogue_equal(actual["messages"], expected)
-
-    def test_call_train_on_input(self, sample_with_no_input):
-        transform = AlpacaToMessages(
-            column_map={
-                "instruction": "maybe_instruction",
-                "input": "maybe_input",
-                "output": "maybe_output",
-            },
-            train_on_input=True,
-        )
-        actual = transform(sample_with_no_input)
-        expected = [
-            Message(
-                role="user",
-                content=self.template["prompt_no_input"].format(
-                    instruction="hello world",
-                ),
-                masked=False,
-                eot=True,
-            ),
-            Message(
-                role="assistant", content="this is some output", masked=False, eot=True
-            ),
-        ]
-        assert_dialogue_equal(actual["messages"], expected)
-
-    @pytest.mark.parametrize(
-        "masking_strategy, expected_masks",
-        [
-            ("train_on_all", [False, False]),
-            ("train_on_assistant", [True, False]),
-            ("train_on_last", [True, False]),
-        ],
-    )
-    def test_call_masking_strategy(self, sample, masking_strategy, expected_masks):
-        transform = AlpacaToMessages(
-            column_map={
-                "instruction": "maybe_instruction",
-                "input": "maybe_input",
-                "output": "maybe_output",
-            }
-        )
-        actual = transform(sample)
-        expected = [
-            Message(
-                role="user",
-                content=self.template["prompt_input"].format(
-                    instruction="hello world", input="this is some input"
-                ),
-                masked=expected_masks[0],
-                eot=True,
-            ),
-            Message(
-                role="assistant",
-                content="this is some output",
-                masked=expected_masks[1],
-                eot=True,
-            ),
-        ]
-        assert_dialogue_equal(actual["messages"], expected)
-
-    def test_raise_value_error_when_instruction_not_in_column_map(self):
-        with pytest.raises(ValueError, match="Expected a key of 'instruction'"):
-            AlpacaToMessages(
-                column_map={"bananas": "maybe_instruction", "output": "maybe_output"},
-            )
-
-    def test_raise_value_error_when_output_not_in_column_map(self):
-        with pytest.raises(ValueError, match="Expected a key of 'output'"):
-            AlpacaToMessages(
-                column_map={
-                    "instruction": "maybe_instruction",
-                    "bananas": "maybe_output",
-                },
-            )
-
-
 def test_validate_messages():
     messages = [
         Message(role="system", content="hello"),
@@ -1101,39 +604,3 @@ def test_validate_messages():
         match="Tool or ipython message at index 2 must follow an ipython message",
     ):
         validate_messages(messages)
-
-
-@pytest.mark.parametrize(
-    "masking_strategy, messages_count, expected_masks",
-    [
-        ("train_on_all", 3, [True, False, False]),
-        ("train_on_assistant", 3, [True, True, False]),
-        ("train_on_last", 3, [True, True, False]),
-        ("train_on_all", 5, [True, False, False, False, False]),
-        ("train_on_assistant", 5, [True, True, False, True, False]),
-        ("train_on_last", 5, [True, True, True, True, False]),
-        ("some_invalid_strategy", 3, None),
-    ],
-)
-def test_mask_messages(masking_strategy, messages_count, expected_masks):
-    messages = [
-        Message(role="system", content="hello"),
-        Message(role="user", content="hello"),
-        Message(role="assistant", content="world"),
-        Message(role="user", content="hello"),
-        Message(role="assistant", content="world"),
-    ]
-
-    input_messages = messages[:messages_count]
-    if masking_strategy == "some_invalid_strategy":
-        with pytest.raises(
-            ValueError,
-            match="'some_invalid_strategy' is not a valid MaskingStrategy",
-        ):
-            mask_messages(input_messages, masking_strategy=masking_strategy)
-    else:
-        mask_messages(input_messages, masking_strategy=masking_strategy)
-        expected_messages = messages[:messages_count]
-        for index in range(messages_count):
-            expected_messages[index].masked = expected_masks[index]
-        assert_dialogue_equal(input_messages, expected_messages)

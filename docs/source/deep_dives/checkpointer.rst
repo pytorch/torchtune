@@ -419,18 +419,17 @@ Resuming from checkpoint - LoRA Finetuning
 ------------------------------------------
 
 Similarly to full finetuning, we will also only need to modify two fields: ``resume_from_checkpoint``
-and ``adapter_checkpoint``, which will be loaded from ``output_dir``. We do NOT have to modify ``checkpoint_files``,
-because the base model being loaded is still the same. You can optionally leave ``adapter_checkpoint`` empty.
-In this case, we will look for it in the last saved epoch folder.
+and ``adapter_checkpoint``, which will be loaded from output_dir. We do not have to modify ``checkpoint_files``,
+because the base model being loaded is still the same.
 
 .. code-block:: yaml
 
     checkpointer:
         # [... rest of the config...]
 
-        # adapter_checkpoint. You will need to update this with the intermediate checkpoint files.
-        # It can be empty if resuming from last epoch.
-        adapter_checkpoint: epoch_{YOUR_EPOCH}/adapter_model.pt
+        # adapter_checkpoint. Note that you will need to update this
+        # section of the config with the intermediate checkpoint files
+        adapter_checkpoint: epoch_{YOUR_EPOCH}/adapter_model.safetensors
 
     # set to True if restarting training
     resume_from_checkpoint: True

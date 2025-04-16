@@ -147,14 +147,6 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/90B_full",
                 file_path="llama3_2_vision/90B_full.yaml",
             ),
-            Config(
-                name="llama4/scout_17B_16E_full",
-                file_path="llama4/scout_17B_16E_full.yaml",
-            ),
-            Config(
-                name="llama4/maverick_17B_128E_full",
-                file_path="llama4/maverick_17B_128E_full.yaml",
-            ),
         ],
         supports_distributed=True,
     ),
@@ -446,12 +438,12 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
-        name="dev/lora_finetune_distributed_multi_dataset",
-        file_path="dev/lora_finetune_distributed_multi_dataset.py",
+        name="lora_finetune_distributed_multi_dataset",
+        file_path="lora_finetune_distributed_multi_dataset.py",
         configs=[
             Config(
-                name="dev/11B_lora_multi_dataset",
-                file_path="dev/11B_lora_multi_dataset.yaml",
+                name="llama3_2_vision/11B_lora_multi_dataset",
+                file_path="llama3_2_vision/11B_lora_multi_dataset.yaml",
             ),
         ],
         supports_distributed=True,
@@ -494,10 +486,6 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_3/70B_generation_distributed",
                 file_path="llama3_3/70B_generation_distributed.yaml",
-            ),
-            Config(
-                name="llama4/scout_17B_16E_generation_distributed",
-                file_path="llama4/scout_17B_16E_generation_distributed.yaml",
             ),
         ],
         supports_distributed=True,

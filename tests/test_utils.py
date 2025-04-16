@@ -51,17 +51,14 @@ MESSAGE_SAMPLE_TRAIN_ON_INPUT = [
     Message(
         role="system",
         content=CHAT_SAMPLE["system"],
-        masked=True,
     ),
     Message(
         role="user",
         content=CHAT_SAMPLE["user"],
-        masked=False,
     ),
     Message(
         role="assistant",
         content=CHAT_SAMPLE["assistant"],
-        masked=False,
     ),
 ]
 
@@ -71,24 +68,7 @@ MESSAGE_SAMPLE = [
     Message(
         role="assistant",
         content=CHAT_SAMPLE["assistant"],
-        masked=False,
     ),
-]
-
-MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT = [
-    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
-    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
-    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
-    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
-    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
-]
-
-MESSAGE_SAMPLE_TRAIN_ON_LAST = [
-    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
-    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
-    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=True),
-    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
-    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
 ]
 
 
@@ -261,15 +241,6 @@ def assert_expected(
         check_device=check_device,
         msg=f"actual: {actual}, expected: {expected}",
     )
-
-
-def assert_expected_dict(actual_dict, expected_dict, rtol=1e-5, atol=1e-8):
-    for k in expected_dict:
-        if isinstance(expected_dict[k], dict):
-            assert k in actual_dict and isinstance(actual_dict[k], dict)
-            assert_expected_dict(actual_dict[k], expected_dict[k])
-        else:
-            assert_expected(actual_dict[k], expected_dict[k])
 
 
 @contextmanager
