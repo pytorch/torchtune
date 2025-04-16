@@ -1,0 +1,49 @@
+name: Build Linux Wheels
+
+on:
+  push:
+    branches:
+      - nightly
+      - release/*
+    tags:
+      # NOTE: Binary build pipelines should only get triggered on release candidate builds
+      # Release candidate tags look like: v1.11.0-rc1
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  generate-matrix:
+    if: github.repository_owner == 'pytorch'
+    uses: pytorch/test-infra/.github/workflows/generate_binary_build_matrix.yml@main
+    with:
+      package-type: wheel
+      os: linux
+      test-infra-repository: pytorch/test-infra
+      test-infra-ref: main
+      with-cuda: enable
+      with-rocm: enable
+      with-xpu: enable
+      build-python-only: enable
+  build:
+    needs: generate-matrix
+    name: ${{ matrix.repository }}
+    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
+    strategy:
+      fail-fast: false
+    with:
+      repository: pytorch/torchtune
+      ref: ""
+      test-infra-repository: pytorch/test-infra
+      test-infra-ref: main
+      package-name: torchtune
+      build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
+      pre-script: .github/scripts/pre_build_script.sh
+      trigger-event: ${{ github.event_name }}
+      build-platform: 'python-build-package'
+      pip-install-torch-extra-args:
+        torchvision
+        torchao

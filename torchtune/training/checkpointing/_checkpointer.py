@@ -657,6 +657,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             converted_state_dict[training.MODEL_KEY] = t5_encoder_hf_to_tune(
                 merged_state_dict,
             )
+        elif self._model_type == ModelType.LLAMA4:
+            from torchtune.models.llama4._convert_weights import llama4_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = llama4_hf_to_tune(
+                merged_state_dict,
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -761,6 +767,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     num_kv_heads=self._config["num_key_value_heads"],
                     dim=self._config["hidden_size"],
                     head_dim=self._config.get("head_dim", None),
+                )
+            elif self._model_type == ModelType.LLAMA4:
+                from torchtune.models.llama4._convert_weights import llama4_tune_to_hf
+
+                state_dict[training.MODEL_KEY] = llama4_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
                 )
             else:
                 state_dict[training.MODEL_KEY] = convert_weights.tune_to_hf(
@@ -1115,6 +1127,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             state_dict[training.MODEL_KEY] = llama3_vision_meta_to_tune(
                 model_state_dict
             )
+        elif self._model_type == ModelType.LLAMA4:
+            from torchtune.models.llama4._convert_weights import llama4_meta_to_tune
+
+            state_dict[training.MODEL_KEY] = llama4_meta_to_tune(model_state_dict)
         else:
             state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(
                 model_state_dict
@@ -1171,6 +1187,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 state_dict[training.MODEL_KEY] = llama3_vision_tune_to_meta(
                     model_state_dict
                 )
+            elif self._model_type == ModelType.LLAMA4:
+                from torchtune.models.llama4._convert_weights import llama4_tune_to_meta
+
+                state_dict[training.MODEL_KEY] = llama4_tune_to_meta(model_state_dict)
             else:
                 # llama3_2 has tied weights, so we need to add the output.weight key
                 if (

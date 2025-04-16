@@ -7,9 +7,15 @@
 import pytest
 import torch
 from torchtune.modules.transforms import VisionCrossAttentionMask
+from torchtune.training.seed import set_seed
 
 
 IMAGE_TOKEN_ID = 1
+
+
+@pytest.fixture(autouse=True)
+def random():
+    set_seed(16)
 
 
 class TestVisionCrossAttentionMask:

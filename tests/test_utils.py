@@ -267,6 +267,15 @@ def assert_expected(
     )
 
 
+def assert_expected_dict(actual_dict, expected_dict, rtol=1e-5, atol=1e-8):
+    for k in expected_dict:
+        if isinstance(expected_dict[k], dict):
+            assert k in actual_dict and isinstance(actual_dict[k], dict)
+            assert_expected_dict(actual_dict[k], expected_dict[k])
+        else:
+            assert_expected(actual_dict[k], expected_dict[k])
+
+
 @contextmanager
 def single_box_init(init_pg: bool = True):
     env_vars = ["MASTER_ADDR", "MASTER_PORT", "LOCAL_RANK", "RANK", "WORLD_SIZE"]

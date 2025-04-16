@@ -65,6 +65,33 @@ class TestPaddedCollateSFT:
             padded_labels, torch.tensor([10, self.ignore_idx, self.ignore_idx])
         )
 
+    def test_batch_pad_sequence_encoding(self, test_batch):
+        for row in test_batch:
+            row["encoder_input"] = {"vision": {"images": [torch.ones(2, 3, 2, 2)]}}
+
+        # Apply padding via the collate function
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
+        )
+
+        # Verify padding was applied correctly
+        imgs = padded_result["encoder_input"]["vision"]["images"]
+        assert imgs.shape == (4, 3, 2, 2)
+
+        # Apply padding via the collate function
+        padded_result = padded_collate_sft(
+            batch=test_batch,
+            padding_idx=self.padding_idx,
+            ignore_idx=self.ignore_idx,
+            stack_on_new_dim=True,
+        )
+
+        # Verify padding was applied correctly
+        imgs = padded_result["encoder_input"]["vision"]["images"]
+        assert imgs.shape == (2, 2, 3, 2, 2)
+
     def test_batch_pad_sequence_to_multiple_of(self, test_batch):
         """Test that padding to a multiple of X works as expected."""
         # Apply padding with multiple-of-5 requirement
@@ -77,34 +104,18 @@ class TestPaddedCollateSFT:
 
         # Expected padded tokens (padded to length 5)
         expected_tokens = torch.stack(
-            (
+            [
                 torch.tensor([1, 2, 3, self.padding_idx, self.padding_idx]),
-                torch.tensor(
-                    [
-                        7,
-                        self.padding_idx,
-                        self.padding_idx,
-                        self.padding_idx,
-                        self.padding_idx,
-                    ]
-                ),
-            )
+                torch.tensor([7] + [self.padding_idx] * 4),
+            ]
         )
 
         # Expected padded labels (padded to length 5)
         expected_labels = torch.stack(
-            (
+            [
                 torch.tensor([4, 5, 6, self.ignore_idx, self.ignore_idx]),
-                torch.tensor(
-                    [
-                        10,
-                        self.ignore_idx,
-                        self.ignore_idx,
-                        self.ignore_idx,
-                        self.ignore_idx,
-                    ]
-                ),
-            )
+                torch.tensor([10] + [self.ignore_idx] * 4),
+            ]
         )
 
         # Verify padding was applied correctly
