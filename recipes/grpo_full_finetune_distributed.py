@@ -11,10 +11,15 @@ import time
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
-
+import pprint
+import os
+import re
 import torch
+import random
+import string
+import numpy as np
 from omegaconf import DictConfig, ListConfig
-
+import matplotlib.pyplot as plt
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
@@ -31,6 +36,7 @@ from torchtune.training.lr_schedulers import get_lr
 from torchtune.rlhf import GRPOTrajectory, GRPOStats
 from tqdm import tqdm
 import random
+import wandb
 
 log = utils.get_logger("DEBUG")
 
@@ -155,8 +161,34 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self.add_sampling_temperature=cfg.add_sampling_temperature
+        self._total_steps = cfg.num_steps
+        self._temperature = cfg.temperature
+        self.sampling_temperature= cfg.sampling_temperature
+        self._save_every_n_epochs = cfg.save_every_n_epochs
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        path_parts = self._output_dir.split('/') 
+        date_run_pattern = None
+        for part in path_parts:
+            match = re.search(r'(\d{8}_\d{6})_(.*)', part)
+            if match:
+                date_run_pattern = match
+                break          
+        if not date_run_pattern:
+            # Fallback if pattern not found
+            log.warning(f"Could not extract date_run pattern from path: {self._output_dir}")
+            date_part = "unknown_date"
+            run_name_part = "unknown_run"
+        else:
+            date_part = date_run_pattern.group(1)
+            run_name_part = date_run_pattern.group(2)
+        
+        # Extract epoch and seed
+        epoch_match = re.search(r'epoch_(\d+)', path_parts[-2])
+        self.epoch = int(epoch_match.group(1) if epoch_match else "0")
+        # Construct run_id using date, run_name, epoch and seed
+        self.run_id = f"{date_part}_{run_name_part}"
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
@@ -320,15 +352,26 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if self.fsdp_cpu_offload:
             training.set_torch_num_threads()
         if self._is_rank_zero:
-            # the run id should be the same as the ref run id
             wandb_kwargs = {
-                "run_id": cfg.get("run_id", None),
-                "resume": cfg.get("resume", False),
+                'epoch': self.epoch,  # Not resuming but creating new run with constructed ID
+                'run_id': self.run_id,
+                'project': cfg.get("wandb_project", None),
+                'log_dir': cfg.metric_logger.get("log_dir", None),
+                'seed' : self.seed
             }
             self._metric_logger = config.instantiate(cfg.metric_logger, **wandb_kwargs)
-
-            # log config with parameter override
-            self._metric_logger.log_config(cfg)
+            
+            # Check if wandb is being used in the logger
+            wandb_logger = None
+            if hasattr(self._metric_logger, '_wandb') and self._metric_logger._wandb.run:
+                # Direct WandBLogger
+                wandb_logger = self._metric_logger
+            elif hasattr(self._metric_logger, 'loggers'):
+                # HybridLogger - check if any of the contained loggers is a WandBLogger
+                for logger in self._metric_logger.loggers:
+                    if hasattr(logger, '_wandb') and logger._wandb.run:
+                        wandb_logger = logger
+                        break
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
         ref_checkpoint_dict = self.load_ref_checkpoint(
@@ -775,6 +818,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
+
         world_size, rank = training.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
@@ -785,7 +829,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
-            ds = config.instantiate(cfg_dataset, self._tokenizer, self._ref_model)
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer, ref_model=self._ref_model, temperature=self.sampling_temperature)
             packed = cfg_dataset.get("packed", False)
 
         # Instantiate collate_fn
@@ -958,6 +1002,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))
+        
+        # Finally, log the dictionary
         if self._is_rank_zero:
             self._metric_logger.log_dict(log_dict, step=self.global_step)
 
@@ -967,7 +1013,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> GRPOStats:
         # estimate logprobs from the policy at the current optimisation step
         torch.cuda.empty_cache()
-        self._temperature = 1.0
 
         pi_logits = self._model(
             trajectory.query_responses,
@@ -999,7 +1044,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             ref_logprobs=trajectory.ref_logprobs,
             advantages=trajectory.advantages,
             padding_masks=~trajectory.response_padding_masks,
-            type_=trajectory.type,
         )
 
         torch.cuda.empty_cache()
@@ -1041,19 +1085,24 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         training.cleanup_before_training()
         world_size, rank = training.get_world_size_and_rank()
         self._optimizer.zero_grad()
-        training_completed = False
         self._profiler.start()
         n_samples = len(self._dataloader)
         n_gpus = torch.distributed.get_world_size()
         number_leftover_samples = (
             n_samples * n_gpus
         ) % self._gradient_accumulation_steps
+        all_policy_losses = []
+        all_ratios = []
+        all_advantages = []
+        all_signs=[]
+
         # Training loop
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             self._sampler.set_epoch(curr_epoch)
             self._model.train()
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             grpo_stats = []
+            num_tokens=0
 
             # Batch loop
             for idx, batch in enumerate(self._dataloader):
@@ -1086,6 +1135,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     response_tokens=batch["response_tokens"],
                 )
 
+                current_num_tokens = (
+                    trajectory.response_tokens != self._loss_fn.ignore_index
+                ).sum()
+                num_tokens += current_num_tokens
+
                 step_stats = self.grpo_step(trajectory)
 
                 # LOG EVERY STEP - Add this to log every step
@@ -1095,6 +1149,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     "epoch": curr_epoch + 1,
                 }
                 self.log_metrics(trajectory, step_stats, **extra_metrics)
+                all_policy_losses.append(step_stats.policy_loss.detach().cpu().numpy().item())
+                all_ratios.append(step_stats.ratios.detach().cpu().numpy().item())
+                all_advantages.append(trajectory.advantages.detach().cpu().numpy().item())
+                all_signs.append(batch["type"])
 
                 grpo_stats.append(step_stats)
 
@@ -1116,6 +1174,18 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                             self._model.parameters(),
                             max_norm=float(self._clip_grad_norm),
                         )
+                    torch.distributed.all_reduce(num_tokens)
+                    training.scale_grads(self._model, 1 / num_tokens)
+
+                    if self.max_bsize and (idx + 1) == n_samples:
+                        # should be bsize/number of gpus
+                        training.scale_grads(
+                            self._model,
+                            torch.tensor(number_leftover_samples / self.max_bsize),
+                        )
+                        log.info(
+                            f"Scaling gradients by {number_leftover_samples/self.max_bsize} Original bsize = {number_leftover_samples}"
+                        )
 
                     if self.max_bsize and (idx + 1) == n_samples:
                         # should be bsize/number of gpus
@@ -1131,6 +1201,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.barrier()
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
+                    num_tokens=0
 
                     # Update global step - keep this the same
                     self.global_step += 1
@@ -1171,9 +1242,14 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             self.epochs_run += 1
             if self.epochs_run % self._save_every_n_epochs == 0:
                 self.save_checkpoint(curr_epoch)
-
-            if training_completed:
-                break
+        if self._is_rank_zero:
+            self.log_aggregated_histograms(
+                all_policy_losses,
+                all_ratios,
+                all_advantages,
+                all_signs,
+                step=self.global_step
+            )
 
         # Finalize training - keep this the same
         self._profiler.stop()
@@ -1182,6 +1258,92 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             self._metric_logger.close()
         destroy_process_group()
+    
+    def log_aggregated_histograms(
+        self,
+        policy_losses_list,
+        ratios_list,
+        advantages_list,
+        sign_list,
+        step=None):
+        """
+        Concatenate all collected data, compute zscore, and log as histograms.
+        Logging at *every* step may be large, so consider a smaller window or log less frequently.
+        """
+        # Skip logging if lists are empty
+        if not policy_losses_list or not ratios_list or not advantages_list:
+            return
+            
+        # Convert lists of scalars to numpy arrays
+        policy_loss_all = np.array(policy_losses_list)
+        ratios_all = np.array(ratios_list)
+        advantages_all = np.array(advantages_list)
+
+        log_dict = {}
+    
+    # 2) If we have valid positive values, we can create a log-scale histogram
+
+        if len(advantages_all) > 0:
+    # Generate a random name
+            random_name = random_string()
+            
+            # Construct the key and optional random title
+            key_name = f"advantages_line_plot_{random_name}"
+            chart_title = f"Advantages (Line Plot) - {random_name}"
+
+            table_advantages = wandb.Table(
+                data=list(zip(range(len(advantages_all)), advantages_all)),
+                columns=["Index", "Advantages"]
+            )
+            log_dict[key_name] = wandb.plot.line(
+                table_advantages,
+                x="Index",
+                y="Advantages",
+                title=chart_title,
+            )
+
+        if len(policy_loss_all) > 0:
+            random_name = random_string()
+            key_name = f"policy_loss_line_plot_{random_name}"
+            chart_title = f"Policy Loss (Line Plot) - {random_name}"
+
+            table_policy = wandb.Table(
+                data=list(zip(range(len(policy_loss_all)), policy_loss_all)),
+                columns=["Index", "Policy Loss"]
+            )
+            log_dict[key_name] = wandb.plot.line(
+                table_policy,
+                x="Index",
+                y="Policy Loss",
+                title=chart_title,
+            )
+
+        if len(ratios_all) > 0:
+            random_name = random_string()
+            key_name = f"aggregated_ratios_colored_scatter_{random_name}"
+            chart_title = f"Aggregated Ratios vs Index (Colored by Sign) - {random_name}"
+
+            data_for_table = list(zip(range(len(ratios_all)), ratios_all, sign_list))
+            table = wandb.Table(data=data_for_table, columns=["Index", "Ratio", "Sign"])
+
+            log_dict[key_name] = wandb.plot.scatter(
+                table,
+                x="Index",
+                y="Ratio",
+                title=chart_title
+            )
+
+        # Finally, log everything in one go
+        self._metric_logger.log_dict(log_dict, step= self.global_step)
+
+def zscore(x):
+    mean = x.mean()
+    std = x.std() + 1e-8
+    return (x - mean) / std
+
+def random_string(length=8):
+    """Generate a random string of fixed length."""
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 @config.parse

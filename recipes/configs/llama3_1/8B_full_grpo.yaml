@@ -93,7 +93,7 @@ optimizer:
   
 loss:
   _component_: torchtune.rlhf.loss.grpo.GRPOSimpleLoss
-  kl_coeff: 0.01
+  kl_coeff: 0.00
   epsilon: 0.2
 
 # Training env

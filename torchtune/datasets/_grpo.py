@@ -31,6 +31,7 @@ class GRPO_Dataset(Dataset):
         message_transform: Transform,
         tokenizer: ModelTokenizer,
         ref_model=None,
+        temperature= 0.5, 
         filter_fn: Optional[Callable] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
@@ -38,7 +39,7 @@ class GRPO_Dataset(Dataset):
         self._message_transform = message_transform
         self._data = load_dataset(source, **load_dataset_kwargs)
         self.ref_model = ref_model
-        self._temperature = 0.8
+        self._temperature = temperature
         # Pre-compute and move stop_token_ids to GPU once instead of every __getitem__ call
         self._stop_token_ids = torch.tensor(self._tokenizer.stop_tokens, device="cuda")
 
@@ -62,33 +63,35 @@ class GRPO_Dataset(Dataset):
         # Tokenize the messages
         tokenized_dict = self._tokenizer(transformed_sample)
         
-        # Create more efficient numpy arrays early to avoid list conversions
-        tokens = np.array(tokenized_dict["tokens"][:-1])  # Remove last element directly
-        mask = np.array(tokenized_dict["mask"][:-1])  # Remove last element directly
+        query_response_tokens = np.array(tokenized_dict["tokens"])
+        mask = np.array(tokenized_dict["mask"])
         
-        # Use vectorized operations instead of list comprehension
-        query_tokens = tokens[mask != 0]
+        labels = np.where(
+            tokenized_dict["mask"],
+            CROSS_ENTROPY_IGNORE_IDX,
+            tokenized_dict["tokens"],
+        )
         
-        # Convert tokens to GPU tensors directly where needed
         response_tokens = torch.tensor(
-            np.concatenate([sample["tokens"]]), 
-            dtype=torch.long, 
+            labels[labels != -100], 
+            dtype=torch.long,
             device=self._device
         ).unsqueeze(0)
         
+        # Use your provided logic to extract query tokens
+        query_tokens = query_response_tokens[mask][:-1]
+        
         # Create query_response_tokens directly as tensors
-        query_response_tokens = torch.tensor(
-            np.concatenate([query_tokens, sample["tokens"], [128001]]),
+        query_response_tokens_tensor = torch.tensor(
+            query_response_tokens,
             dtype=torch.long,
             device=self._device
         ).unsqueeze(0)
         
         # Combine logic for logprobs without intermediate lists
-        response_logprobs = np.concatenate([sample["log_probs"]])
-
         
         # Create padding masks efficiently
-        query_response_padding_masks = query_response_tokens != self._tokenizer.pad_id
+        query_response_padding_masks = query_response_tokens_tensor != self._tokenizer.pad_id
         
         # Generate position IDs from padding mask
         position_ids = generation.get_position_ids_from_padding_mask(query_response_padding_masks)
@@ -96,10 +99,10 @@ class GRPO_Dataset(Dataset):
         # Create attention masks from the padding mask
         masks = generation.get_causal_mask_from_padding_mask(query_response_padding_masks)
         
-        # Compute ref_logprobs using the reference model - now with pre-allocated GPU tensors
-        with torch.no_grad():  # Add no_grad to save memory during inference
+        # Compute ref_logprobs using the reference model
+        with torch.no_grad():
             ref_logits = self.ref_model(
-                query_response_tokens, 
+                query_response_tokens_tensor, 
                 input_pos=position_ids, 
                 mask=masks
             )
@@ -110,6 +113,8 @@ class GRPO_Dataset(Dataset):
             response_tokens, 
             self._temperature
         )
+
+        response_logprobs=ref_logprobs
         
         # Truncate sequences at the first stop token
         response_padding_masks, response_tokens = rlhf.truncate_sequence_at_first_stop_token(
@@ -121,12 +126,9 @@ class GRPO_Dataset(Dataset):
         # Get advantages directly from sample
         advantages = sample["advantage"]
         
-        # Get sequence lengths from response padding masks
-
-        
         # Package everything into a trajectory dictionary - convert logprobs to tensor
         trajectory = {
-            "query_responses": query_response_tokens,
+            "query_responses": query_response_tokens_tensor,
             "position_ids": position_ids,
             "masks": masks,
             "logprobs": torch.tensor(response_logprobs, device=self._device).unsqueeze(0),
@@ -134,7 +136,7 @@ class GRPO_Dataset(Dataset):
             "advantages": torch.tensor(advantages, device=self._device).unsqueeze(0),
             "response_padding_masks": response_padding_masks,
             "query_len": len(query_tokens),
-            "type": torch.tensor(sample["original_reward"]),
+            "type": torch.tensor([1,]),
             "response_tokens": response_tokens
         }
         
