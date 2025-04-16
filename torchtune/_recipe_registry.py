@@ -24,6 +24,14 @@ class Recipe:
 
 _ALL_RECIPES = [
     Recipe(
+        name="dev/grpo_full_finetune_distributed",
+        file_path="dev/grpo_full_finetune_distributed.py",
+        configs=[
+            Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="full_finetune_single_device",
         file_path="full_finetune_single_device.py",
         configs=[
@@ -60,8 +68,8 @@ _ALL_RECIPES = [
                 file_path="phi3/mini_full_low_memory.yaml",
             ),
             Config(
-                name="phi4/full_low_memory",
-                file_path="phi4/full_low_memory.yaml",
+                name="phi4/14B_full_low_memory",
+                file_path="phi4/14B_full_low_memory.yaml",
             ),
             Config(
                 name="qwen2/7B_full_single_device",
@@ -102,6 +110,7 @@ _ALL_RECIPES = [
         name="full_finetune_distributed",
         file_path="full_finetune_distributed.py",
         configs=[
+            Config(name="dev/3B_grpo_sft", file_path="dev/3B_grpo_sft.yaml"),
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
             Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
@@ -122,7 +131,7 @@ _ALL_RECIPES = [
             Config(name="gemma2/9B_full", file_path="gemma2/9B_full.yaml"),
             Config(name="gemma2/27B_full", file_path="gemma2/27B_full.yaml"),
             Config(name="phi3/mini_full", file_path="phi3/mini_full.yaml"),
-            Config(name="phi4/full", file_path="phi4/full.yaml"),
+            Config(name="phi4/14B_full", file_path="phi4/14B_full.yaml"),
             Config(name="qwen2/7B_full", file_path="qwen2/7B_full.yaml"),
             Config(name="qwen2/0.5B_full", file_path="qwen2/0.5B_full.yaml"),
             Config(name="qwen2/1.5B_full", file_path="qwen2/1.5B_full.yaml"),
@@ -137,6 +146,14 @@ _ALL_RECIPES = [
             Config(
                 name="llama3_2_vision/90B_full",
                 file_path="llama3_2_vision/90B_full.yaml",
+            ),
+            Config(
+                name="llama4/scout_17B_16E_full",
+                file_path="llama4/scout_17B_16E_full.yaml",
+            ),
+            Config(
+                name="llama4/maverick_17B_128E_full",
+                file_path="llama4/maverick_17B_128E_full.yaml",
             ),
         ],
         supports_distributed=True,
@@ -262,12 +279,12 @@ _ALL_RECIPES = [
                 file_path="phi3/mini_qlora_single_device.yaml",
             ),
             Config(
-                name="phi4/lora_single_device",
-                file_path="phi4/lora_single_device.yaml",
+                name="phi4/14B_lora_single_device",
+                file_path="phi4/14B_lora_single_device.yaml",
             ),
             Config(
-                name="phi4/qlora_single_device",
-                file_path="phi4/qlora_single_device.yaml",
+                name="phi4/14B_qlora_single_device",
+                file_path="phi4/14B_qlora_single_device.yaml",
             ),
             Config(
                 name="qwen2/7B_lora_single_device",
@@ -399,7 +416,7 @@ _ALL_RECIPES = [
             Config(name="gemma2/9B_lora", file_path="gemma2/9B_lora.yaml"),
             Config(name="gemma2/27B_lora", file_path="gemma2/27B_lora.yaml"),
             Config(name="phi3/mini_lora", file_path="phi3/mini_lora.yaml"),
-            Config(name="phi4/lora", file_path="phi4/lora.yaml"),
+            Config(name="phi4/14B_lora", file_path="phi4/14B_lora.yaml"),
             Config(name="qwen2/7B_lora", file_path="qwen2/7B_lora.yaml"),
             Config(name="qwen2/0.5B_lora", file_path="qwen2/0.5B_lora.yaml"),
             Config(name="qwen2/1.5B_lora", file_path="qwen2/1.5B_lora.yaml"),
@@ -429,12 +446,12 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
-        name="lora_finetune_distributed_multi_dataset",
-        file_path="lora_finetune_distributed_multi_dataset.py",
+        name="dev/lora_finetune_distributed_multi_dataset",
+        file_path="dev/lora_finetune_distributed_multi_dataset.py",
         configs=[
             Config(
-                name="llama3_2_vision/11B_lora_multi_dataset",
-                file_path="llama3_2_vision/11B_lora_multi_dataset.yaml",
+                name="dev/11B_lora_multi_dataset",
+                file_path="dev/11B_lora_multi_dataset.yaml",
             ),
         ],
         supports_distributed=True,
@@ -478,6 +495,10 @@ _ALL_RECIPES = [
                 name="llama3_3/70B_generation_distributed",
                 file_path="llama3_3/70B_generation_distributed.yaml",
             ),
+            Config(
+                name="llama4/scout_17B_16E_generation_distributed",
+                file_path="llama4/scout_17B_16E_generation_distributed.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
@@ -512,6 +533,10 @@ _ALL_RECIPES = [
             Config(
                 name="gemma/evaluation",
                 file_path="gemma/evaluation.yaml",
+            ),
+            Config(
+                name="phi4/evaluation",
+                file_path="phi4/evaluation.yaml",
             ),
             Config(
                 name="phi3/evaluation",

@@ -8,22 +8,19 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
-from torch.distributed import (
-    destroy_process_group,
-    init_device_mesh,
-    init_process_group,
-)
+from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -145,19 +142,31 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Initialize distributed variables
         self.world_size, self.rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
-        self.tensor_parallel_plan = config.instantiate(
-            cfg.get("tensor_parallel_plan", None)
-        )
-        self.tensor_parallel_dim = cfg.get("tensor_parallel_dim", 1)
-        if self.tensor_parallel_dim > 1 and self.tensor_parallel_plan is None:
+        self.tp_plan = cfg.get("tensor_parallel_plan", None)
+        self.tp_degree = cfg.get("tensor_parallel_dim", 1)
+        if self.tp_degree > 1 and self.tp_plan is None:
             raise ValueError(
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
-        if self.world_size % self.tensor_parallel_dim != 0:
-            raise ValueError(
-                f"world_size {self.world_size} must be divisible by tensor_parallel_dim {self.tensor_parallel_dim}"
+        data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
+        data_replicate = cfg.get("data_parallel_replicate_dim", 1)
+
+        # Set up n-d device mesh
+        self.parallel_dims = training.ParallelDims(
+            dp_replicate=data_replicate,
+            dp_shard=data_shard,
+            tp=self.tp_degree,
+            world_size=self.world_size,
+        )
+        self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
+        if self.parallel_dims.dp_enabled:
+            dp_mesh = self.world_mesh["dp"]
+            self.dp_degree, self.dp_rank = (
+                dp_mesh.size(),
+                dp_mesh.get_local_rank(),
             )
-        self.data_parallel_dim = self.world_size // self.tensor_parallel_dim
+        else:
+            self.dp_degree, self.dp_rank = 1, 0
 
         # Logging attributes
         self._output_dir = cfg.output_dir
@@ -175,6 +184,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
+
+        self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
+        if self._run_val_every_n_steps is not None:
+            assert (
+                cfg.get("dataset_val") is not None
+            ), "run_val_every_n_steps is set but dataset_val is not configured"
 
         # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
         if self._optimizer_in_bwd:
@@ -347,12 +362,23 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
         )
+
+        # Setup validation dataloader if validation dataset is provided
+        self._val_dataloader = None
+        if cfg.get("dataset_val") is not None:
+            batch_size_val = cfg.get("batch_size_val", cfg.batch_size)
+            self._val_dataloader = self._setup_data(
+                cfg_dataset=cfg.dataset_val,
+                batch_size=batch_size_val,
+                collate_fn=collate_name,
+                shuffle=False,
+            )
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -383,8 +409,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
         # Used to ignore labels for loss computation
+        bsz_cache = (
+            cfg.batch_size
+            if self._val_dataloader is None
+            else max(cfg.batch_size, self._val_dataloader.batch_size)
+        )
         self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
+            (bsz_cache, 1), self._loss_fn.ignore_index, device=self._device
         )
 
     def _setup_lr_scheduler(
@@ -536,22 +567,23 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        device_mesh = init_device_mesh(
-            self._device.type,
-            mesh_shape=(self.data_parallel_dim, self.tensor_parallel_dim),
-            mesh_dim_names=("dp", "tp"),
-        )
-        self.dp_size = device_mesh["dp"].size()
-        self.dp_rank = device_mesh["dp"].get_local_rank()
-
         # Apply tensor parallelism to the model
-        if self.tensor_parallel_dim > 1:
+        if self.parallel_dims.tp_enabled:
+            if not self.parallel_dims.dp_enabled and self.fsdp_cpu_offload:
+                raise ValueError(
+                    "Tensor parallelism is not supported with FSDP CPU offloading when data parallelism is disabled."
+                )
             # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
-            model = training.prepare_mha_for_tp(model, device_mesh["tp"])
+            model = training.prepare_mha_for_tp(model, self.world_mesh["tp"])
+            if self.tp_plan is not None:
+                self.tp_plan = config.instantiate(
+                    self.tp_plan,
+                    model=model,
+                )
             parallelize_module(
                 model,
-                device_mesh["tp"],
-                parallelize_plan=self.tensor_parallel_plan,
+                self.world_mesh["tp"],
+                parallelize_plan=self.tp_plan,
             )
 
         # We currently have two versions of activation checkpointing in this recipe
@@ -574,19 +606,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         # Apply Fully Sharded Data Parallelism to the model
-        if self.data_parallel_dim > 1:
+        if self.parallel_dims.dp_shard_enabled:
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,
                     names_to_match=custom_sharded_layers,
                 )
             ]
+
+            if self.parallel_dims.dp_replicate_enabled:
+                dp_mesh_dim_names = ("dp_replicate", "dp_shard")
+            else:
+                dp_mesh_dim_names = ("dp_shard",)
+
             training.shard_model(
                 model=model,
                 shard_conditions=fsdp_shard_conditions,
                 cpu_offload=fsdp_cpu_offload,
                 reshard_after_forward=reshard_after_forward,
-                dp_mesh=device_mesh["dp"],
+                dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -623,7 +661,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             training.log_memory_stats(memory_stats)
 
         # synchronize before training begins
-        torch.distributed.barrier()
+        torch.distributed.barrier(device_ids=[self._device.index])
 
         return model
 
@@ -686,11 +724,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+    ) -> StatefulDataLoader:
         """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
+        All data related setup happens here. This recipe currently supports only
+        map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
+        it is loaded into the dataloader.
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -708,29 +747,96 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=self.dp_size, rank=self.dp_rank, shuffle=shuffle, seed=0
+        sampler = StatefulDistributedSampler(
+            ds, num_replicas=self.dp_degree, rank=self.dp_rank, shuffle=shuffle, seed=0
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
             collate_fn=(
                 partial(
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
+                    pad_to_multiple_of=self.tp_degree,
                 )
                 if not packed
                 else padded_collate_packed
             ),
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
         )
 
-        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
+        return dataloader
 
-        return sampler, dataloader
+    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+        # Shape [b, s], needed for the loss not the model
+        labels = batch.pop("labels")
+
+        with self.activations_handling_ctx:
+            logits = self._model(**batch)
+
+        # Shift labels to compute loss
+        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
+        # But this way we dont need to slice the logits. We just add an ignore index to labels.
+        labels = torch.hstack(
+            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
+        )
+        if not isinstance(logits, list):
+            labels = labels.reshape(-1)
+            logits = logits.reshape(-1, logits.size(-1))
+
+        # Compute loss
+        loss = self._loss_fn(logits, labels)
+        # free logits otherwise it peaks backward memory
+        del logits
+
+        return loss
+
+    def validate(self) -> Dict[str, float]:
+        """
+        Run validation loop and return average validation loss.
+        """
+        self._model.eval()
+        total_val_loss = torch.tensor(0.0, device=self._device)
+        total_val_tokens = torch.tensor(0.0, device=self._device)
+
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(self._val_dataloader):
+                utils.batch_to_device(batch, self._device)
+
+                # Count tokens excluding padding
+                current_num_tokens = (
+                    batch["labels"] != self._loss_fn.ignore_index
+                ).sum()
+
+                # Compute loss
+                val_loss = self._loss_step(batch) * current_num_tokens
+
+                total_val_loss += val_loss
+                total_val_tokens += current_num_tokens
+
+        # Aggregate validation metrics across all ranks
+        torch.distributed.all_reduce(total_val_loss)
+        torch.distributed.all_reduce(total_val_tokens)
+
+        avg_val_loss = (
+            (total_val_loss / total_val_tokens).item()
+            if total_val_tokens > 0
+            else float("inf")
+        )
+        log_dict = {"val_loss": avg_val_loss}
+
+        if self._is_rank_zero:
+            log.info(f"Validation loss: {avg_val_loss:.4f}")
+            self._metric_logger.log_dict(
+                log_dict,
+                step=self.global_step,
+            )
+
+        self._model.train()
+        return log_dict
 
     def train(self) -> None:
         """
@@ -754,19 +860,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -776,6 +872,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
+
                 utils.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
@@ -785,30 +882,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ).sum()
                 num_tokens += current_num_tokens
 
-                # Shape [b, s], needed for the loss not the model
-                labels = batch.pop("labels")
-
-                with self.activations_handling_ctx:
-                    logits = self._model(**batch)
-
-                # Shift labels to compute loss
-                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                labels = torch.hstack(
-                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-                )
-                if not isinstance(logits, list):
-                    labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1))
-
-                # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens
-
-                # free logits otherwise it peaks backward memory
-                del logits
-
+                current_loss = self._loss_step(batch) * current_num_tokens
                 running_loss += current_loss
 
                 # For optimizer in backward, we need to normalize before calling backward
@@ -816,13 +892,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if self._optimizer_in_bwd:
                     torch.distributed.all_reduce(num_tokens)
                     torch.distributed.all_reduce(running_loss)
-
-                    # We multiply by world_size to undo FSDP2 gradient normalization.
-                    current_loss = current_loss * (self.world_size / num_tokens)
+                    current_loss = current_loss * (self.dp_degree / num_tokens)
 
                 current_loss.backward()
-
-                # Step with optimizer
+                # Optimizer step (if not fused in backward call)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
@@ -830,8 +903,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
-                        # We multiply by world_size to undo FSDP2 gradient normalization.
-                        training.scale_grads(self._model, self.world_size / num_tokens)
+                        training.scale_grads(self._model, self.dp_degree / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
@@ -850,7 +922,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
-                    loss_to_log = running_loss.item() / num_tokens
+                    loss_to_log = running_loss.detach().item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -908,6 +980,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
 
+                    # Run validation after gradient update
+                    if (
+                        self._run_val_every_n_steps is not None
+                        and self.global_step % self._run_val_every_n_steps == 0
+                    ):
+                        pbar.refresh()
+                        self.validate()
+
+                if (
+                    (idx + 1) // self._gradient_accumulation_steps
+                ) == self.max_steps_per_epoch:
+                    break
+
             self.epochs_run += 1
             self._checkpoint_client.save_checkpoint(
                 model=self._model,
@@ -921,6 +1006,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     epochs_run=self.epochs_run,
                     total_epochs=self.total_epochs,
                     max_steps_per_epoch=self.max_steps_per_epoch,
+                    dataloader_state_dict=self._dataloader.state_dict(),
                 ),
                 epoch=curr_epoch,
             )

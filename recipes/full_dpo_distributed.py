@@ -15,11 +15,13 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.rlhf import ChosenRejectedOutputs
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
@@ -311,7 +313,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are initialized
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -664,11 +666,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
+        All data related setup happens here. This recipe currently supports only
+        map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
+        it is loaded into the dataloader.
         """
 
         if isinstance(cfg_dataset, ListConfig):
@@ -680,11 +682,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
+        sampler = StatefulDistributedSampler(
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle
         )
 
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
@@ -700,7 +702,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             log.info("Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self,
@@ -780,6 +782,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
@@ -797,7 +800,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         model: nn.Module,
         batch: Tuple[torch.Tensor, torch.Tensor],
         activations_handling: Optional[bool] = True,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> ChosenRejectedOutputs:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
@@ -806,7 +809,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
 
         Returns:
-            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
+            Dataclass of chosen log probs, rejected log probs, chosen logits, rejected logits.
         """
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
@@ -836,7 +839,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
 
-        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+        return ChosenRejectedOutputs(
+            chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits
+        )
 
     def train(self) -> None:
         """
@@ -871,9 +876,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -884,36 +889,35 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
                 # batch is input_ids, labels
                 num_tokens += torch.tensor(batch[0].numel())
-                (
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    policy_chosen_logits,
-                    policy_rejected_logits,
-                ) = self.concatenated_forward(self._model, batch)
+                policy_chosen_rejected_outputs = self.concatenated_forward(
+                    self._model, batch
+                )
 
-                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
-                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
+                policy_chosen_logits_mean = (
+                    policy_chosen_rejected_outputs.chosen_logits.detach().mean()
+                )
+                policy_rejected_logits_mean = (
+                    policy_chosen_rejected_outputs.rejected_logits.detach().mean()
+                )
 
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
-                del policy_chosen_logits, policy_rejected_logits
+                del (
+                    policy_chosen_rejected_outputs.chosen_logits,
+                    policy_chosen_rejected_outputs.rejected_logits,
+                )
 
                 with torch.no_grad():
-                    (
-                        reference_chosen_log_probs,
-                        reference_rejected_log_probs,
-                        reference_chosen_logits,
-                        reference_rejected_logits,
-                    ) = self.concatenated_forward(
+                    reference_chosen_rejected_outputs = self.concatenated_forward(
                         self._ref_model, batch, activations_handling=False
                     )
 
-                del reference_chosen_logits, reference_rejected_logits
+                del (
+                    reference_chosen_rejected_outputs.chosen_logits,
+                    reference_chosen_rejected_outputs.rejected_logits,
+                )
 
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_log_probs,
-                    policy_rejected_log_probs,
-                    reference_chosen_log_probs,
-                    reference_rejected_log_probs,
+                    policy_chosen_rejected_outputs, reference_chosen_rejected_outputs
                 )
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
@@ -936,10 +940,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     scaling_factor * reward_accuracies.mean()
                 )
                 running_metrics["log_probs/chosen"] += (
-                    scaling_factor * policy_chosen_log_probs.detach().mean()
+                    scaling_factor
+                    * policy_chosen_rejected_outputs.chosen_logps.detach().mean()
                 )
                 running_metrics["log_probs/rejected"] += (
-                    scaling_factor * policy_rejected_log_probs.detach().mean()
+                    scaling_factor
+                    * policy_chosen_rejected_outputs.rejected_logps.detach().mean()
                 )
                 running_metrics["logits/chosen"] += (
                     scaling_factor * policy_chosen_logits_mean
@@ -975,7 +981,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     # Step the learning rate scheduler
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
-                    loss_to_log = running_loss.item()
+                    loss_to_log = running_loss.detach().item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"

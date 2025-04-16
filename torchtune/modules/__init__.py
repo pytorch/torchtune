@@ -6,6 +6,9 @@
 
 from .attention import MultiHeadAttention  # noqa
 from .attention_utils import create_block_causal_mask, packed_block_causal_mask
+
+from .classifier import classifier_model
+
 from .common_utils import (
     delete_kv_caches,
     disable_kv_cache,
@@ -21,7 +24,7 @@ from .position_embeddings import (  # noqa
     RotaryPositionalEmbeddings,
     VisionRotaryPositionalEmbeddings,
 )
-from .rms_norm import RMSNorm  # noqa
+from .rms_norm import rms_norm, RMSNorm  # noqa
 from .tanh_gate import TanhGate  # noqa
 from .tied_linear import TiedLinear  # noqa
 from .transformer import (  # noqa
@@ -31,7 +34,6 @@ from .transformer import (  # noqa
 )
 from .vision_transformer import VisionTransformer
 from .vq_embeddings import VectorQuantizedEmbeddings
-
 
 __all__ = [
     "MultiHeadAttention",
@@ -57,4 +59,6 @@ __all__ = [
     "disable_kv_cache",
     "LayerDropout",
     "prepare_layer_dropout",
+    "classifier_model",
+    "rms_norm",
 ]

@@ -258,6 +258,31 @@ class TestTransformerDecoder:
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
     @pytest.fixture
+    def input_chunked_to_test_tensor_split(
+        self, input_params: Tuple[int, int, int]
+    ) -> torch.Tensor:
+        """Emulates 49 len sequence which should be split into 8 tensors list (not 7).
+
+        seq_len 7, 14, 21, 28, 35, 42, 49 previously caused timeout crash
+        because torch.chunk/torch.split funcs previously used in chunked_output
+        don't guarantee requested number of chunks.
+
+        Related issue: https://github.com/pytorch/torchtune/issues/2554
+        """
+        batch_size, _, vocab_size = input_params
+        seq_len = 49
+        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
+    def input_chunked_less_data_than_num_output_chunks(
+        self, input_params: Tuple[int, int, int]
+    ) -> torch.Tensor:
+        """Emulates 7 seq_len which should be split into 8 chunks."""
+        batch_size, _, vocab_size = input_params
+        seq_len = 7
+        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
     def causal_mask(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, _ = input_params
         return (
@@ -368,6 +393,66 @@ class TestTransformerDecoder:
             output = decoder(input)
         assert_expected(output.mean(), torch.tensor(20.4800), atol=1e-8, rtol=1e-6)
         assert_expected(output.shape, torch.Size([batch_size, seq_len, vocab_size]))
+
+    @mps_ignored_test()
+    def test_forward_output_chunks(
+        self,
+        input: torch.Tensor,
+        input_params: Tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks chunked output simple case."""
+        batch_size, seq_len, vocab_size = input_params
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+
+    @mps_ignored_test()
+    def test_forward_output_chunks_exact_amount_of_chunks(
+        self,
+        input_chunked_to_test_tensor_split: torch.Tensor,
+        input_params: Tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks output of chunked_output to be exactly num_output_chunks.
+
+        seq_len 7, 14, 21, 28, 35, 42, 49 previously caused timeout crash
+        because torch.chunk/torch.split funcs previously used in chunked_output
+        don't guarantee requested number of chunks.
+
+        Related issue: https://github.com/pytorch/torchtune/issues/2554
+        """
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input_chunked_to_test_tensor_split)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+        outputs_seq_len = [x.size(1) for x in output]
+        assert outputs_seq_len == [7, 6, 6, 6, 6, 6, 6, 6]
+
+    @mps_ignored_test()
+    def test_forward_output_chunks_less_data_than_num_output_chunks(
+        self,
+        input_chunked_less_data_than_num_output_chunks: torch.Tensor,
+        input_params: Tuple[int, int, int],
+        decoder: TransformerDecoder,
+    ) -> None:
+        """Checks that seq_len=7 data is still split into 8 chunks."""
+        num_output_chunks = 8
+        with torch.no_grad():
+            decoder.set_num_output_chunks(num_output_chunks)
+            output = decoder(input_chunked_less_data_than_num_output_chunks)
+
+        assert isinstance(output, list)
+        assert len(output) == num_output_chunks
+        outputs_seq_len = [x.size(1) for x in output]
+        assert outputs_seq_len == [1, 1, 1, 1, 1, 1, 1, 0]
 
     def test_max_seq_len_exceeded(
         self,
@@ -503,3 +588,17 @@ class TestTransformerDecoder:
         assert len(rms_norms) > 0
         for rms_norm in rms_norms:
             assert rms_norm.eps == rms_norm_eps
+
+    def test_pass_input_embeds(
+        self,
+        input: torch.Tensor,
+        causal_mask: torch.Tensor,
+        input_pos: torch.Tensor,
+        decoder: TransformerDecoder,
+    ):
+        embeds = decoder.tok_embeddings(input)
+        skip_tok_embed_outs = decoder(
+            tokens=None, mask=causal_mask, input_pos=input_pos, input_embeds=embeds
+        )
+        full_transformer_outs = decoder(input, mask=causal_mask, input_pos=input_pos)
+        assert_expected(skip_tok_embed_outs, full_transformer_outs)

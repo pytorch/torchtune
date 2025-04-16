@@ -7,6 +7,7 @@
 
 import logging
 import os
+from dataclasses import dataclass
 from itertools import chain
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
@@ -24,8 +25,8 @@ from torch.distributed.checkpoint.state_dict import (
     set_optimizer_state_dict,
     StateDictOptions,
 )
-from torch.distributed.device_mesh import DeviceMesh
-from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
+from torch.distributed.fsdp import FSDPModule, ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -45,6 +46,81 @@ torch_version = torch.__version__
 #     "dev" not in torch_version and torch_version_ge("2.6.0")
 # ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = False
+
+
+@dataclass
+class ParallelDims:
+    dp_replicate: int
+    dp_shard: int
+    tp: int
+    world_size: int
+
+    def __post_init__(self):
+        self._validate()
+
+    def _validate(self):
+        dp_replicate, dp_shard, tp = (
+            self.dp_replicate,
+            self.dp_shard,
+            self.tp,
+        )
+        for d in (dp_replicate, tp):
+            assert d >= 1, "Parallelism degree should be >= 1, except for dp_shard"
+
+        assert dp_shard == -1 or dp_shard >= 1, " dp_shard must -1 or >=1."
+        if dp_shard < 0:
+            self.dp_shard = dp_shard = self.world_size // (dp_replicate * tp)
+        assert dp_shard >= 1
+
+        assert dp_replicate * dp_shard * tp == self.world_size, (
+            f"Invalid parallel dims: dp_replicate({dp_replicate}) * dp_shard({dp_shard}) * "
+            f"tp({tp}) != WORLD_SIZE({self.world_size})"
+        )
+
+    def build_mesh(self, device_type):
+        dims = []
+        names = []
+        for d, name in zip(
+            [self.dp_replicate, self.dp_shard, self.tp],
+            ["dp_replicate", "dp_shard", "tp"],
+        ):
+            if d > 1:
+                dims.append(d)
+                names.append(name)
+
+        names = tuple(names)
+        mesh = init_device_mesh(device_type, dims, mesh_dim_names=names)
+
+        # Create all the submesh here to ensure all required process groups are
+        # initialized:
+        # Mesh for data loading (no communication on this mesh)
+        dp_mesh_dim_names = []
+
+        if self.dp_replicate_enabled:
+            dp_mesh_dim_names.append("dp_replicate")
+        if self.dp_shard_enabled:
+            dp_mesh_dim_names.append("dp_shard")
+
+        if dp_mesh_dim_names != []:
+            mesh[tuple(dp_mesh_dim_names)]._flatten(mesh_dim_name="dp")
+
+        return mesh
+
+    @property
+    def dp_enabled(self):
+        return self.dp_replicate > 1 or self.dp_shard > 1
+
+    @property
+    def dp_replicate_enabled(self):
+        return self.dp_replicate > 1
+
+    @property
+    def dp_shard_enabled(self):
+        return self.dp_shard > 1
+
+    @property
+    def tp_enabled(self):
+        return self.tp > 1
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -204,6 +280,7 @@ def load_from_full_model_state_dict(
     device: torch.device,
     strict: bool = False,
     cpu_offload: bool = False,
+    use_distributed_state_dict: bool = False,
 ) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
@@ -214,7 +291,8 @@ def load_from_full_model_state_dict(
         device (torch.device): device used to move full state dict tensors
         strict (bool): flag to check if to load the model in strict mode
         cpu_offload (bool): flag to check if offload to CPU is enabled
-
+        use_distributed_state_dict (bool): Whether to use set_model_state_dict for loading
+            state dict. Default: False. (TODO: this should be True once 3.2 Vision is fixed)
     Returns:
         ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
             * **missing_keys** is a list of str containing the missing keys
@@ -236,7 +314,9 @@ def load_from_full_model_state_dict(
     meta_sharded_sd = model.state_dict()
     # NF4Tensor is not supported in `set_model_state_dict` right now, running with the previous logic right
     # now, would support in the future and remove the following code
-    if _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4:
+    if (
+        _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE and not has_nf4
+    ) or use_distributed_state_dict:
         for param_name in full_sd.keys():
             sharded_meta_param = meta_sharded_sd.get(param_name)
             full_sd[param_name] = full_sd[param_name].to(sharded_meta_param.dtype)

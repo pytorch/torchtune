@@ -2,7 +2,7 @@
 # using a Llama3.1 70B Instruct model
 #
 # This config assumes that you've run the following command before launching:
-#   tune download meta-llama/Llama-3.3-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+#   tune download meta-llama/Llama-3.3-70B-Instruct --ignore-patterns "original/consolidated*" --output-dir /tmp/Llama-3.3-70B-Instruct --hf-token <HF_TOKEN>
 #
 # To launch, run the following command from root torchtune directory:
 #    tune run --nproc_per_node 8 dev/generate_v2_distributed --config llama3_3/70B_generation_distributed

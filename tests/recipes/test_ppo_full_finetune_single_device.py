@@ -55,6 +55,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "seed=9",
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
+            "lr_scheduler.num_warmup_steps=0",
+            "lr_scheduler.num_cycles=0",
             "log_every_n_steps=1",
             "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
@@ -96,7 +98,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
     @pytest.mark.debugging
     @pytest.mark.integration_test
     @pytest.mark.skipif(
-        torch.cuda.get_device_capability() not in ((7, 5), (9, 0)),
+        not torch.cuda.is_available()
+        or torch.cuda.get_device_capability() not in ((7, 5), (9, 0)),
         reason="Unexpected device type",
     )
     @mps_ignored_test()

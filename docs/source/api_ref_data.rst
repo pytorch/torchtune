@@ -78,3 +78,4 @@ Miscellaneous helper functions used in modifying data.
     truncate
     load_image
     format_content_with_images
+    mask_messages

@@ -197,7 +197,16 @@ class TestFullFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values_multi_rank(model_type)
+
+        # For tp_dim = 2, we have dp_dim = 2, so 2x global batch size.
+        # For tp_dim = 4 there is no data parallelism (since there are 4 workers).
+        # This means we expect the multi-rank loss for tp_dim=2 but single-rank loss for tp_dim=4.
+        expected_loss_values = (
+            self._fetch_expected_loss_values_multi_rank(model_type)
+            if tensor_parallel_dim == 2
+            else self._fetch_expected_loss_values_single_rank(model_type)
+        )
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )

@@ -19,6 +19,21 @@ from torchtune.config._utils import _has_component
 from torchtune.modules import RMSNorm
 
 
+class Spice:
+    __slots__ = ["heat_level"]
+
+    def __init__(self, heat_level):
+        self.heat_level = heat_level
+
+
+class Food:
+    __slots__ = ["seed", "ingredient"]
+
+    def __init__(self, seed, ingredient):
+        self.seed = seed
+        self.ingredient = ingredient
+
+
 class TestInstantiate:
     @pytest.fixture
     def config(self):
@@ -58,11 +73,6 @@ class TestInstantiate:
         assert isinstance(actual, RMSNorm)
         assert self.get_dim(actual) == self.get_dim(expected)
 
-        with pytest.raises(
-            InstantiationError, match="Cannot instantiate specified object"
-        ):
-            _ = _instantiate_node(config.a)
-
     def test_instantiate(self, config, module):
         actual = instantiate(config.test)
         expected = module
@@ -72,6 +82,18 @@ class TestInstantiate:
         # Test passing in kwargs
         actual = instantiate(config.test, eps=1e-4)
         assert actual.eps == expected.eps
+
+        # should raise error if _component_ is not specified
+        with pytest.raises(
+            InstantiationError, match="Cannot instantiate specified object"
+        ):
+            _ = instantiate(config)
+
+        with pytest.raises(
+            ValueError,
+            match="instantiate only supports DictConfigs or dicts, got <class 'str'>",
+        ):
+            _ = instantiate(config.a)
 
         # Test passing in positional args
         del config.test.dim
@@ -92,3 +114,33 @@ class TestInstantiate:
 
         tokenizer = instantiate(config.tokenizer)
         assert tokenizer.max_seq_len is None
+
+    def test_nested_instantiation(self) -> None:
+        s = dedent(
+            """\
+        food:
+          _component_: Food
+          seed: 0
+          ingredient:
+            _component_: Spice
+            heat_level: 5
+        """
+        )
+        config = OmegaConf.create(s)
+
+        # Test successful nested instantiation
+        food = instantiate(config.food)
+        assert food.seed == 0
+        assert isinstance(food.ingredient, Spice)
+        assert food.ingredient.heat_level == 5
+
+        # Test overriding parameters
+        food = instantiate(config.food, seed=42)
+        assert food.seed == 42
+        assert food.ingredient.heat_level == 5
+
+        # Test overriding parameters of nested config
+        food = instantiate(
+            config.food, ingredient={"_component_": "Spice", "heat_level": 10}
+        )
+        assert food.ingredient.heat_level == 10
