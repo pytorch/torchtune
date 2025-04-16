@@ -61,6 +61,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
 
+    @pytest.mark.debugging
     @pytest.mark.integration_test
     @mps_ignored_test()
     @gpu_test(gpu_count=1)
@@ -139,9 +140,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             0.9588900208473206,
             0.950813889503479,
         ]
-        import pdb
-
-        pdb.set_trace()
+        log.error(loss_values)
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )

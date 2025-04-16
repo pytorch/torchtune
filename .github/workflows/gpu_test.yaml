@@ -57,10 +57,6 @@ jobs:
         run: |
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval>=0.4.5
-      # TODO: this is a hack for testing
-      - name: Clear tiktoken cache
-        run:
-          mkdir -p /tmp/data-gym-cache && rm -r /tmp/data-gym-cache
       - name: Run recipe and unit tests with coverage
         run: pytest tests/recipes --with-integration -v
       - name: Upload Coverage to Codecov
