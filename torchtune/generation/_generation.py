@@ -59,7 +59,12 @@ def sample(
 
     # if q is None, we use the default softmax sampling trick
     if q is None:
-        q = torch.empty_like(probs).exponential_(1)
+        # alternative to torch.empty_like(probs).exponential_(1)
+        # so it is reproducible in stable and nightly
+        uniform_val = torch.rand_like(probs)
+        epsilon = torch.finfo(uniform_val.dtype).eps / 2
+        condition = uniform_val >= 1.0 - epsilon
+        q = -torch.where(condition, -epsilon, torch.log(uniform_val))
 
     return multinomial_sample_one(probs, q)
 

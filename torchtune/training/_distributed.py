@@ -26,7 +26,7 @@ from torch.distributed.checkpoint.state_dict import (
     StateDictOptions,
 )
 from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
-from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.fsdp import FSDPModule, ShardingStrategy
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -646,17 +646,6 @@ def shard_model(
 
     # Finally shard the entire model to account for any stragglers
     fully_shard(model, **fsdp_kwargs)
-
-
-def recursive_reshard(module: nn.Module):
-    """
-    Manually reshard all modules in the model.
-    This might be useful for memory management when a model isn't automatically resharded after forward.
-    """
-    for n, m in reversed(list(module.named_modules())):
-        module.reshard()
-
-    module.reshard()
 
 
 def prepare_mha_for_tp(
