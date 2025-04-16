@@ -55,12 +55,17 @@ class TestKDDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.8316, 11.7520, 11.7642, 11.7664],
+            "llama3": [
+                11.777642250061035,
+                11.760451793670654,
+                11.755887508392334,
+                11.76237678527832,
+            ],
         }
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "llama3_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -69,7 +74,7 @@ class TestKDDistributedRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS["llama3"])
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 knowledge_distillation_distributed \
             --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -99,12 +104,13 @@ class TestKDDistributedRecipe:
         num_losses = int(len(loss_values) / 4)  # 2 steps per epoch, 2 epochs
         loss_values = loss_values[0::num_losses]
         expected_loss_values = self._fetch_expected_loss_values("llama3")
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -127,7 +133,7 @@ class TestKDDistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 knowledge_distillation_distributed \
             --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -157,7 +163,7 @@ class TestKDDistributedRecipe:
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 knowledge_distillation_distributed \
             --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.training.FullModelTorchTuneCheckpointer \
@@ -196,7 +202,7 @@ class TestKDDistributedRecipe:
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt_type = "tune"
         model_type = "llama3"
@@ -208,7 +214,7 @@ class TestKDDistributedRecipe:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 knowledge_distillation_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 knowledge_distillation_distributed \
             --config llama3_2/8B_to_1B_KD_lora_distributed \
             output_dir={tmpdir} \
             checkpointer._component_={ckpt_component} \
