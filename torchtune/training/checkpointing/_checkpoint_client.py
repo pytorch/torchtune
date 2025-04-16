@@ -6,7 +6,7 @@
 
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 from omegaconf import DictConfig
@@ -33,6 +33,7 @@ class TrainingProgress:
     epochs_run: int
     total_epochs: int
     max_steps_per_epoch: int
+    dataloader_state_dict: Optional[Dict[str, Any]] = None
 
     def state_dict(self) -> Dict[str, object]:
         return {
@@ -40,6 +41,7 @@ class TrainingProgress:
             training.EPOCHS_KEY: self.epochs_run,
             training.TOTAL_EPOCHS_KEY: self.total_epochs,
             training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+            training.DATALOADER_KEY: self.dataloader_state_dict,
         }
 
 
@@ -72,7 +74,7 @@ class CheckpointClient:
         self._optimizer_in_bwd = self._cfg.get("optimizer_in_bwd", False)
         self._device = utils.get_device(device=self._cfg.device)
 
-        _, self._rank = training.get_world_size_and_rank()
+        _, self._rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self._rank == 0
 
     def _get_checkpointer(self):

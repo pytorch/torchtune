@@ -26,6 +26,7 @@ jobs:
       test-infra-ref: main
       with-cuda: enable
       with-rocm: enable
+      with-xpu: enable
       build-python-only: enable
   build:
     needs: generate-matrix

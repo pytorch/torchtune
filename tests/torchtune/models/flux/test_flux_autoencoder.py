@@ -6,6 +6,7 @@
 
 import pytest
 import torch
+from tests.test_utils import mps_ignored_test
 
 from torchtune.models.flux import flux_1_autoencoder
 from torchtune.training.seed import set_seed
@@ -51,6 +52,7 @@ class TestFluxAutoencoder:
     def z(self):
         return torch.randn(BSZ, CH_Z, RES_Z, RES_Z)
 
+    @mps_ignored_test()
     def test_forward(self, model, img):
         actual = model(img)
         assert actual.shape == (BSZ, CH_IN, RESOLUTION, RESOLUTION)
@@ -64,6 +66,7 @@ class TestFluxAutoencoder:
         loss = y.mean()
         loss.backward()
 
+    @mps_ignored_test()
     def test_encode(self, model, img):
         actual = model.encode(img)
         assert actual.shape == (BSZ, CH_Z, RES_Z, RES_Z)

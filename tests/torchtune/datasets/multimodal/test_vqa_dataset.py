@@ -5,10 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from PIL.PngImagePlugin import PngImageFile
+
+import torch
 from tests.common import ASSETS
 from tests.test_utils import DummyTokenizer
-
 from torchtune.datasets.multimodal import vqa_dataset
 
 
@@ -46,7 +46,7 @@ class TestMultimodalInstructDataset:
             )
             assert prompt == expected_tokens[i]
             assert label == expected_labels[i]
-            assert isinstance(image[0], PngImageFile)
+            assert isinstance(image[0], torch.Tensor)
 
     def test_dataset_fails_with_packed(self, tokenizer):
         with pytest.raises(

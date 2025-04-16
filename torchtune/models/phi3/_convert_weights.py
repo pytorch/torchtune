@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 
@@ -24,22 +24,40 @@ _PHI3_MINI = {
 }
 
 
-def phi3_hf_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def phi3_hf_to_tune(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: Optional[int],
+    num_kv_heads: Optional[int],
+    dim: Optional[int],
+) -> Dict[str, torch.Tensor]:
     """
     Convertor from HF state dict to torchtune state dict. This handles:
     - Splitting the fused q,k and v matrix
     - Splitting the fused gate and up projection matrix
     """
     converted_state_dict = {}
+    if dim is not None:
+        if num_heads is None or num_kv_heads is None:
+            raise ValueError(
+                "Phi models with GQA require dim, num_heads and num_kv_heads to be specified"
+            )
+        q_dim = dim
+        k_dim = q_dim * num_kv_heads // num_heads
+        v_dim = q_dim * num_kv_heads // num_heads
+    else:
+        q_dim, k_dim, v_dim = None, None, None
 
     for key, value in state_dict.items():
         new_key = get_mapped_key(key, _PHI3_MINI)
         if "qkv" in key:
-            (
-                q,
-                k,
-                v,
-            ) = value.chunk(3, dim=0)
+            if q_dim is not None:
+                q, k, v = torch.split(value, [q_dim, k_dim, v_dim], dim=0)
+            else:
+                (
+                    q,
+                    k,
+                    v,
+                ) = value.chunk(3, dim=0)
             converted_state_dict[new_key] = q
             converted_state_dict[new_key.replace("q_proj", "k_proj")] = k
             converted_state_dict[new_key.replace("q_proj", "v_proj")] = v

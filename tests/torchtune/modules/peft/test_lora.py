@@ -9,13 +9,12 @@ from functools import partial
 import pytest
 
 import torch
-from tests.test_utils import fixed_init_model
+from tests.test_utils import fixed_init_model, mps_ignored_test
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import LoRALinear, QATLoRALinear
-from torchtune.training.quantization import _torchao_0_7_supported
 from torchtune.training.seed import set_seed
 
 
@@ -159,6 +158,7 @@ class TestLoRALinear:
         "use_bias, dtype",
         [(False, torch.bfloat16), (True, torch.float32), (False, torch.float32)],
     )
+    @mps_ignored_test()
     def test_qlora_parity(self, use_bias, dtype, qlora_linear, lora_linear):
         qlora_linear = qlora_linear(
             use_bias=use_bias, dtype=dtype, in_dim=512, out_dim=512
@@ -236,7 +236,6 @@ class TestLoRALinear:
             lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
         )
 
-    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
     def test_qat_lora_forward(self, inputs, lora_linear, out_dim) -> None:
         lora_linear = lora_linear(use_bias=True, dtype=torch.float32)
         qat_lora_linear = QATLoRALinear.from_lora_linear(lora_linear)
