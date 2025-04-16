@@ -65,7 +65,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         ] + dummy_text_completion_alpaca_dataset_config()
 
     # Unfortunately we get different values on different hardware.
-    # This is a hack to allow us to run CI on T4s and still run tests locally
+    # This is a hack to allow us to run CI on T4s/A10Gs and still run tests locally
     def _get_expected_loss_values(self, device_capability):
         if device_capability == (7, 5):
             return [

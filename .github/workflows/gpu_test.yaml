@@ -11,8 +11,6 @@ on:
 
 concurrency:
   group: gpu-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
-  # TODO: debugging
-  #
   cancel-in-progress: true
 
 permissions:
@@ -32,9 +30,8 @@ jobs:
         python-version: ['3.9', '3.10', '3.11']
         torch-version: ["stable", "nightly"]
         # Do not run against nightlies on PR
-        # TODO: debugging
-        # exclude:
-        #   - torch-version: ${{ github.event_name == 'pull_request' && 'nightly' }}
+        exclude:
+          - torch-version: ${{ github.event_name == 'pull_request' && 'nightly' }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
@@ -58,6 +55,6 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval>=0.4.5
       - name: Run recipe and unit tests with coverage
-        run: pytest tests/recipes --with-integration -vv
+        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
