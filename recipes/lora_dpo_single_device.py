@@ -16,8 +16,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
+from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
@@ -247,7 +246,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        self._dataloader = self._setup_data(
+        self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -315,7 +314,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
-            state_dict_keys=model.state_dict().keys(),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -374,7 +372,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-    ) -> StatefulDataLoader:
+    ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
         Map-style Datasets which fit into memory and an option for random shuffling.
@@ -389,13 +387,14 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = StatefulDistributedSampler(
+        sampler = DistributedSampler(
             ds,
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
+            seed=0,
         )
-        dataloader = StatefulDataLoader(
+        dataloader = DataLoader(
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
@@ -409,7 +408,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         )
         log.info("Dataset and Sampler are initialized.")
 
-        return dataloader
+        return sampler, dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -434,7 +433,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     training.EPOCHS_KEY: self.epochs_run,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
 
@@ -465,6 +463,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             "peft_type": "LORA",
         }
         ckpt_dict.update({training.ADAPTER_CONFIG: adapter_config})
+
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
@@ -525,8 +524,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
+            self._sampler.set_epoch(curr_epoch)
             pbar = tqdm(total=self._steps_per_epoch)
-            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -579,7 +578,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.detach().item()
+                    loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"

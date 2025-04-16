@@ -103,8 +103,7 @@ def llama2_test_config() -> List[str]:
 
 def llama2_classifier_test_config() -> List[str]:
     return [
-        "model._component_=torchtune.modules.classifier_model",
-        "model.base_model_path=torchtune.models.llama2.llama2",
+        "model._component_=torchtune.models.llama2.llama2_classifier",
         "model.num_classes=1",
         "model.vocab_size=32_000",
         "model.num_layers=4",
