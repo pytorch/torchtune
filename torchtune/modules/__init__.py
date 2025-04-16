@@ -6,9 +6,6 @@
 
 from .attention import MultiHeadAttention  # noqa
 from .attention_utils import create_block_causal_mask, packed_block_causal_mask
-
-from .classifier import classifier_model
-
 from .common_utils import (
     delete_kv_caches,
     disable_kv_cache,
@@ -35,6 +32,7 @@ from .transformer import (  # noqa
 from .vision_transformer import VisionTransformer
 from .vq_embeddings import VectorQuantizedEmbeddings
 
+
 __all__ = [
     "MultiHeadAttention",
     "TanhGate",
@@ -59,5 +57,4 @@ __all__ = [
     "disable_kv_cache",
     "LayerDropout",
     "prepare_layer_dropout",
-    "classifier_model",
 ]

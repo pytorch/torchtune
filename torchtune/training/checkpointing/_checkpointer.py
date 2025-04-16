@@ -43,7 +43,7 @@ from torchtune.training.checkpointing._utils import (
     SUFFIXES_TO_NOT_COPY,
     TORCH_INDEX_FNAME,
 )
-from torchtune.utils import get_logger, get_world_size_and_rank, log_rank_zero
+from torchtune.utils._logging import get_logger, log_rank_zero
 
 logger = get_logger("DEBUG")
 
@@ -530,27 +530,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
-        if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
+        if self._model_type == ModelType.PHI3_MINI:
             log_rank_zero(
                 logger=logger,
-                msg="Converting Phi weights from HF format."
+                msg="Converting Phi-3 Mini weights from HF format."
                 "Note that conversion of adapter weights into PEFT format is not supported.",
             )
             from torchtune.models.phi3._convert_weights import phi3_hf_to_tune
 
-            num_heads = self._config["num_attention_heads"]
-            num_kv_heads = self._config["num_key_value_heads"]
-            dim = self._config["hidden_size"]
-
-            # Should only pass num_heads, num_kv_heads, dim for GQA
-            if num_heads == num_kv_heads:
-                num_heads, num_kv_heads, dim = None, None, None
-
             converted_state_dict[training.MODEL_KEY] = phi3_hf_to_tune(
-                merged_state_dict,
-                num_heads=num_heads,
-                num_kv_heads=num_kv_heads,
-                dim=dim,
+                merged_state_dict
             )
         elif self._model_type == ModelType.REWARD:
             from torchtune.rlhf.utils import reward_hf_to_tune
@@ -661,7 +650,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         """
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
-            if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
+            if self._model_type == ModelType.PHI3_MINI:
                 from torchtune.models.phi3._convert_weights import phi3_tune_to_hf
 
                 state_dict[training.MODEL_KEY] = phi3_tune_to_hf(
@@ -817,9 +806,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
 
-            if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
+            if self._model_type == ModelType.PHI3_MINI:
                 logger.warning(
-                    "Saving Phi adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                    "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             elif self._model_type == ModelType.LLAMA3_VISION:
                 logger.warning(
@@ -860,9 +849,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         if training.ADAPTER_CONFIG in state_dict:
-            if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
+            if self._model_type == ModelType.PHI3_MINI:
                 logger.warning(
-                    "PEFT integration for Phi is not supported, skipping adapter config save"
+                    "PEFT integration for Phi-3 Mini is not supported, skipping adapter config save"
                 )
             elif self._model_type == ModelType.LLAMA3_VISION:
                 logger.warning(
@@ -1204,7 +1193,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         self._checkpoint_future = None
         self._checkpoint_dir_prefix = "dist_epoch"
         self._metadata_file = ".metadata"
-        _, self._rank = get_world_size_and_rank()
+        _, self._rank = training.get_world_size_and_rank()
         self._process_group: Optional[dist.ProcessGroup] = process_group
 
     def _get_latest_intermediate_checkpoint(self) -> Optional[str]:

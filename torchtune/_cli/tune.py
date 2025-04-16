@@ -6,8 +6,6 @@
 
 import argparse
 
-from torchtune._cli.cat import Cat
-
 from torchtune._cli.cp import Copy
 from torchtune._cli.download import Download
 from torchtune._cli.ls import List
@@ -35,7 +33,6 @@ class TuneCLIParser:
         Copy.create(subparsers)
         Run.create(subparsers)
         Validate.create(subparsers)
-        Cat.create(subparsers)
 
     def parse_args(self) -> argparse.Namespace:
         """Parse CLI arguments"""

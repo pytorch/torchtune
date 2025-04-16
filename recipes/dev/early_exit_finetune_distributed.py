@@ -233,9 +233,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(
-            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
-        )
+        self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -610,7 +608,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                 for param in opt_state_dict.keys():
                     try:
                         training.load_from_full_optimizer_state_dict(
-                            self._optim_ckpt_wrapper.optim_map[param],
+                            self._optim_ckpt_wrapper.state_dict()[param],
                             opt_state_dict[param],
                             self._device,
                         )

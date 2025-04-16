@@ -138,12 +138,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize(
-        "optimizer_in_bwd",
-        [True, False],
-    )
     @gpu_test(gpu_count=1)
-    def test_training_state_on_resume(self, tmpdir, monkeypatch, optimizer_in_bwd):
+    def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
@@ -155,7 +151,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         ckpt = "llama2_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
-        first_log_file = gen_log_file_name(tmpdir, suffix="first")
+        log_file = gen_log_file_name(tmpdir)
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
@@ -175,8 +171,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
-            metric_logger.filename={first_log_file} \
-            optimizer_in_bwd={optimizer_in_bwd} \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2"]
@@ -186,15 +180,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # Sanity check that the loss values are expected for the initial run
-        expected_loss_values = self._fetch_expected_loss_values("llama2")
-        loss_values = get_loss_values_from_metric_logger(first_log_file)
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
-        )
-
         # Resume training
-        log_file = gen_log_file_name(tmpdir, suffix="resume")
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         suffix = ".safetensors"
@@ -216,7 +202,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
-            optimizer_in_bwd={optimizer_in_bwd} \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config

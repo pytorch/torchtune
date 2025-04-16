@@ -1,17 +1,15 @@
 # ---- All project specifications ---- #
 [project]
 name = "torchtune"
-description = "PyTorch native post-training library"
+description = "A native-PyTorch library for LLM fine-tuning"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
 authors = [
     { name = "PyTorch Team", email = "packages@pytorch.org" },
 ]
-keywords = ["pytorch", "post-training", "rlhf", "finetuning", "llm"]
+keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
-    # Stable torchdata (no nightly support)
-    "torchdata",
 
     # Hugging Face integrations
     "datasets",
@@ -25,7 +23,6 @@ dependencies = [
     "sentencepiece",
     "tiktoken",
     "blobfile>=2",
-    "tokenizers",
 
     # Miscellaneous
     "numpy",
@@ -35,6 +32,7 @@ dependencies = [
 
     # Multimodal
     "Pillow>=9.4.0",
+
 ]
 dynamic = ["version"]
 
@@ -50,7 +48,6 @@ tune = "torchtune._cli.tune:main"
 dev = [
     "bitsandbytes>=0.43.0",
     "comet_ml>=3.44.2",
-    "mlflow",
     "pre-commit",
     "pytest==7.4.0",
     "pytest-cov",

@@ -25,7 +25,6 @@ Modeling Components and Building Blocks
     VisionTransformer
     LayerDropout
     prepare_layer_dropout
-    classifier_model
 
 Losses
 ------
@@ -51,7 +50,6 @@ model specific tokenizers.
 
     transforms.tokenizers.SentencePieceBaseTokenizer
     transforms.tokenizers.TikTokenBaseTokenizer
-    transforms.tokenizers.HuggingFaceBaseTokenizer
     transforms.tokenizers.ModelTokenizer
     transforms.tokenizers.BaseTokenizer
 

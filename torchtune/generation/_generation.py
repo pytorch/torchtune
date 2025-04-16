@@ -7,7 +7,6 @@
 from typing import Callable, List, Optional, Tuple
 
 import torch
-
 from torchtune.modules.transformer import TransformerDecoder
 
 

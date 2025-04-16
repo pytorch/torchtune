@@ -40,9 +40,7 @@ class InferenceRecipe:
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = training.get_quantizer_mode(self._quantizer)
 
-        training.set_seed(
-            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
-        )
+        training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
         checkpointer = config.instantiate(cfg.checkpointer)
