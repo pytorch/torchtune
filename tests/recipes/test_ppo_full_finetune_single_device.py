@@ -82,7 +82,22 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
                 0.9574834704399109,
                 0.8822144865989685,
             ]
-        else:
+        elif device_capability == (8, 6):
+            return [
+                1.0133672952651978,
+                0.924409806728363,
+                0.8895752429962158,
+                1.0592315196990967,
+                0.9643043279647827,
+                0.9492722153663635,
+                1.0353240966796875,
+                0.9405008554458618,
+                0.9482318758964539,
+                1.0426965951919556,
+                0.945842981338501,
+                0.9685366153717041,
+            ]
+        elif device_capability == (9, 0):
             return [
                 1.0266655683517456,
                 0.9376769661903381,
@@ -97,6 +112,8 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
                 0.9588900208473206,
                 0.950813889503479,
             ]
+        else:
+            raise ValueError("Unsupported device")
 
     @pytest.mark.debugging
     @pytest.mark.integration_test
