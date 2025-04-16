@@ -141,28 +141,30 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self.max_bsize = cfg.max_bsize
         # extract information from output_dir
-        path_parts = self._output_dir.split('/')        
+        path_parts = self._output_dir.split("/")
         self.method = cfg.method
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         # Look for the date_run pattern in all path segments
         date_run_pattern = None
         for part in path_parts:
-            match = re.search(r'(\d{8}_\d{6})_(.*)', part)
+            match = re.search(r"(\d{8}_\d{6})_(.*)", part)
             if match:
                 date_run_pattern = match
-                break          
+                break
         if not date_run_pattern:
             # Fallback if pattern not found
-            log.warning(f"Could not extract date_run pattern from path: {self._output_dir}")
+            log.warning(
+                f"Could not extract date_run pattern from path: {self._output_dir}"
+            )
             date_part = "unknown_date"
             run_name_part = "unknown_run"
         else:
             date_part = date_run_pattern.group(1)
             run_name_part = date_run_pattern.group(2)
-        
+
         # Extract epoch and seed
-        epoch_match = re.search(r'epoch_(\d+)', path_parts[-2])
+        epoch_match = re.search(r"epoch_(\d+)", path_parts[-2])
         self.epoch = int(epoch_match.group(1) if epoch_match else "0")
         # Construct run_id using date, run_name, epoch and seed
         self.run_id = f"{date_part}_{run_name_part}"
@@ -316,23 +318,26 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         if self._is_rank_zero:
             wandb_kwargs = {
-                'epoch': self.epoch,  # Not resuming but creating new run with constructed ID
-                'run_id': self.run_id,
-                'project': cfg.get("wandb_project", None),
-                'log_dir': cfg.metric_logger.get("log_dir", None),
-                'seed' : self.seed
+                "epoch": self.epoch,  # Not resuming but creating new run with constructed ID
+                "run_id": self.run_id,
+                "project": cfg.get("wandb_project", None),
+                "log_dir": cfg.metric_logger.get("log_dir", None),
+                "seed": self.seed,
             }
             self._metric_logger = config.instantiate(cfg.metric_logger, **wandb_kwargs)
-            
+
             # Check if wandb is being used in the logger
             wandb_logger = None
-            if hasattr(self._metric_logger, '_wandb') and self._metric_logger._wandb.run:
+            if (
+                hasattr(self._metric_logger, "_wandb")
+                and self._metric_logger._wandb.run
+            ):
                 # Direct WandBLogger
                 wandb_logger = self._metric_logger
-            elif hasattr(self._metric_logger, 'loggers'):
+            elif hasattr(self._metric_logger, "loggers"):
                 # HybridLogger - check if any of the contained loggers is a WandBLogger
                 for logger in self._metric_logger.loggers:
-                    if hasattr(logger, '_wandb') and logger._wandb.run:
+                    if hasattr(logger, "_wandb") and logger._wandb.run:
                         wandb_logger = logger
                         break
             # log config with parameter override
@@ -483,18 +488,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             try:
                 # Get the current run
                 run = wandb_logger._wandb.run
-                
+
                 # Try to get the latest global_step by querying the summary
                 last_step = run.step
                 log.info(f"Found last step in wandb summary: {last_step}")
                 if last_step > 0:
                     self.global_step = last_step
-                    log.info(f"Setting global_step to last wandb step: {self.global_step}")
+                    log.info(
+                        f"Setting global_step to last wandb step: {self.global_step}"
+                    )
                 else:
                     log.info("No step information found in wandb run summary")
             except Exception as e:
                 log.info(f"Failed to get last step from wandb run: {e}")
-        else: 
+        else:
             if self._is_rank_zero:
                 self.global_step = self.epoch * self._steps_per_epoch
         # Broadcast global_step from rank 0 to all other ranks to ensure consistency
@@ -1153,8 +1160,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
             # NOTE: added by us - counter to account for samples that are too long
             idx = 0
+            n_samples = len(self._dataloader)
+            n_gpus = torch.distributed.get_world_size()
+            number_leftover_samples = (
+                n_samples * n_gpus
+            ) % self._gradient_accumulation_steps
             for _, batch in enumerate(self._dataloader):
-                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
+                if ((idx // self._gradient_accumulation_steps)) >= (
+                    self._steps_per_epoch
+                ) and not self.max_bsize:
                     break
 
                 # NOTE: added by us
@@ -1223,11 +1237,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(num_tokens)
                     torch.distributed.all_reduce(running_loss)
                     current_loss = current_loss / num_tokens
-
                 current_loss.backward()
-
                 # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if (idx + 1) % self._gradient_accumulation_steps == 0 or (
+                    (idx + 1) == n_samples
+                ):
+
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
                         torch.distributed.all_reduce(num_tokens)
@@ -1235,16 +1250,24 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         training.scale_grads(self._model, 1 / num_tokens)
-                        #scale grads by max_batchsize and real_batchsize
-                        if self.max_bsize:
-                            training.scale_grads(self._model, torch.tensor( running_loss.shape[0]/self.max_bsize))
-                        
+                        # scale grads by max_batchsize and real_batchsize
+                        if self.max_bsize and (idx + 1) == n_samples:
+                            # should be bsize/number of gpus
+                            training.scale_grads(
+                                self._model,
+                                torch.tensor(number_leftover_samples / self.max_bsize),
+                            )
+                            log.info(
+                                f"Scaling gradients by {number_leftover_samples/self.max_bsize} Original bsize = {number_leftover_samples}"
+                            )
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
                                 max_norm=float(self._clip_grad_norm),
                             )
                         self._optimizer.step()
+                        log.info(f"optimizer step")
+
                         self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
