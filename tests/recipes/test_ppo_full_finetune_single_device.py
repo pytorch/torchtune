@@ -64,8 +64,46 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             "compile=False",
         ] + dummy_text_completion_alpaca_dataset_config()
 
+    # Unfortunately we get different values on different hardware.
+    # This is a hack to allow us to run CI on T4s and still run tests locally
+    def _get_expected_loss_values(self, device_capability):
+        if device_capability == (7, 5):
+            return [
+                1.0030436515808105,
+                0.9150941967964172,
+                0.8794946074485779,
+                1.0626529455184937,
+                0.964613676071167,
+                0.980392575263977,
+                1.0056356191635132,
+                0.9202911853790283,
+                0.8534448146820068,
+                1.045704960823059,
+                0.9574834704399109,
+                0.8822144865989685,
+            ]
+        else:
+            return [
+                1.0266655683517456,
+                0.9376769661903381,
+                0.8898855447769165,
+                1.0626059770584106,
+                0.966614842414856,
+                0.9599114656448364,
+                1.0275567770004272,
+                0.9341378211975098,
+                0.9341893196105957,
+                1.0539714097976685,
+                0.9588900208473206,
+                0.950813889503479,
+            ]
+
     @pytest.mark.debugging
     @pytest.mark.integration_test
+    @pytest.mark.skipif(
+        torch.cuda.device_capability() not in ((7, 5), (9, 0)),
+        reason="Unexpected device type",
+    )
     @mps_ignored_test()
     @gpu_test(gpu_count=1)
     def test_loss(self, tmpdir, monkeypatch):
@@ -129,21 +167,11 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = [
-            1.0266655683517456,
-            0.9376769661903381,
-            0.8898855447769165,
-            1.0626059770584106,
-            0.966614842414856,
-            0.9599114656448364,
-            1.0275567770004272,
-            0.9341378211975098,
-            0.9341893196105957,
-            1.0539714097976685,
-            0.9588900208473206,
-            0.950813889503479,
-        ]
         log.error(loss_values)
+        log.error(torch.cuda.get_device_capability())
+        expected_loss_values = self._get_expected_loss_values(
+            torch.cuda.get_device_capability()
+        )
         torch.testing.assert_close(
             loss_values, expected_loss_values, atol=1e-4, rtol=1e-5
         )
