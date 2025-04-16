@@ -58,7 +58,6 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval>=0.4.5
       - name: Run recipe and unit tests with coverage
-        run: pytest -m integration_test tests/recipes -vv
-        # run: pytest -m integration_test tests/recipes/test_lora_dpo_distributed.py tests/recipes/test_knowledge_distillation_distributed.py -vv
+        run: pytest tests/recipes --with-integration -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
