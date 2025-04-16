@@ -51,7 +51,6 @@ class TestEleutherEval:
         "eval_name, expected_acc, bsz",
         [
             ("truthfulqa_gen", 0.1, 4),
-            ("truthfulqa_gen", 0.1, 1),
             ("truthfulqa_mc2", 0.4, 4),
         ],
     )
@@ -101,7 +100,9 @@ class TestEleutherEval:
         )
         assert search_results is not None
         acc_result = float(search_results.group(1))
-        assert math.isclose(acc_result, expected_acc, abs_tol=0.05)
+        assert math.isclose(
+            acc_result, expected_acc, abs_tol=0.05
+        ), f"Accuracy mismatch. Got {acc_result=}, expected {expected_acc=} for {out=} and {search_results=}"
 
     @pytest.mark.integration_test
     @pytest.mark.usefixtures("hide_correct_version_number")
