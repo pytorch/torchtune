@@ -181,7 +181,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-        logger.error(f"Loss values: {loss_values}")
+
         expected_loss_values = self._get_expected_loss_values(
             torch.cuda.get_device_capability()
         )
