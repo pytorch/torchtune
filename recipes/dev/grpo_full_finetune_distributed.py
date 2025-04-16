@@ -417,7 +417,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
                 self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
                 self.profiler_active_steps = profiler_cfg["active_steps"]
-                self.profiler_num_cycles = profiler_cfg["num_cycles"]
 
         return profiler
 
@@ -740,6 +739,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 return_logits=False,
             )
 
+        torch.distributed.barrier()
+        training._distributed.recursive_reshard(self._model)
+        torch.cuda.empty_cache()
+
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
@@ -819,60 +822,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             seq_lens=seq_lens,
         )
 
-    def _pad_tensor(
-        self,
-        tensor: torch.Tensor,
-        target_dim: int,
-        pad_value: float,
-        dim: int = 1,
-        pad_right: bool = True,
-    ) -> torch.Tensor:
-        """
-        Pads the specified dimension of a tensor with a given value up to the target size, either on the right or left side.
-
-        Args:
-            tensor (torch.Tensor): Input tensor to pad.
-            target_dim (int): Desired size of the specified dimension after padding.
-            pad_value (float): Value used for padding.
-            dim (int): Dimension to pad. Default: 1.
-            pad_right (bool): If True, pads on the right side; if False, pads on the left side.
-                Default: True
-
-        Returns:
-            torch.Tensor: Padded tensor.
-
-        Example:
-            >>> tensor = torch.tensor([[1, 2], [3, 4]])
-            >>> padded_right = _pad_tensor(tensor, target_dim=3, pad_value=0, dim=1, pad_right=True)
-            >>> print(padded_right)
-            tensor([[1, 2, 0],
-                    [3, 4, 0]])
-            >>> padded_left = _pad_tensor(tensor, target_dim=3, pad_value=0, dim=1, pad_right=False)
-            >>> print(padded_left)
-            tensor([[0, 1, 2],
-                    [0, 3, 4]])
-        """
-        pad_size = target_dim - tensor.shape[dim]
-        if pad_size <= 0:
-            return tensor
-
-        # Padding list is [left_N, right_N, ..., left_1, right_1], a pair for each dim;
-        # right padding for dim is at 2*(N - dim) - 1
-        # left padding for dim is at 2*(N - dim) - 2
-        pad_idx_right = 2 * (tensor.ndim - dim) - 1
-        pad_idx_left = 2 * (tensor.ndim - dim) - 2
-
-        # Initialize padding list for left/right for each dim, therefore (2 * tensor.ndim) numbers
-        padding_list = [0] * (2 * tensor.ndim)
-
-        # Set new pad_size for the specified dim
-        if pad_right:
-            padding_list[pad_idx_right] = pad_size
-        else:
-            padding_list[pad_idx_left] = pad_size
-
-        return torch.nn.functional.pad(tensor, padding_list, value=pad_value)
-
     def generate_trajectory_batched(
         self, input_ids: torch.Tensor, answers: List[str]
     ) -> GRPOTrajectory:
@@ -902,47 +851,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     self.generate_trajectory(batch_input_ids, batch_answers)
                 )
                 torch.cuda.empty_cache()
-
-        # Determine maximum lengths for padding, necessary when concatenating.
-        max_total_length = max(t.query_responses.shape[1] for t in trajectories)
-        max_response_length = max(t.logprobs.shape[1] for t in trajectories)
-
-        padded_trajectories = []
-        for traj in trajectories:
-            # Pad masks along two dimensions (assuming 3D tensor)
-            padded_masks = self._pad_tensor(
-                self._pad_tensor(traj.masks, max_total_length, 0, dim=2),
-                max_total_length,
-                0,
-                dim=1,
-            )
-
-            padded_trajectories.append(
-                GRPOTrajectory(
-                    query_responses=self._pad_tensor(
-                        traj.query_responses, max_total_length, 1, dim=1
-                    ),
-                    logprobs=self._pad_tensor(
-                        traj.logprobs, max_response_length, -1e9, dim=1
-                    ),
-                    ref_logprobs=self._pad_tensor(
-                        traj.ref_logprobs, max_response_length, -1e9, dim=1
-                    ),
-                    rewards=traj.rewards,
-                    successes=traj.successes,
-                    advantages=traj.advantages,
-                    masks=padded_masks,
-                    position_ids=self._pad_tensor(
-                        traj.position_ids, max_total_length, 0, dim=1
-                    ),
-                    response_padding_masks=self._pad_tensor(
-                        traj.response_padding_masks, max_response_length, False, dim=1
-                    ),
-                    seq_lens=traj.seq_lens,
-                )
-            )
-
-        return GRPOTrajectory(*map(torch.cat, zip(*padded_trajectories)))
+        return GRPOTrajectory(*map(torch.cat, zip(*trajectories)))
 
     def grpo_step(
         self,
@@ -1040,7 +949,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
-                    and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
 
@@ -1075,19 +983,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
-                # Stop tracking CUDA memory now that active steps are complete
-                if (
-                    self._is_rank_zero
-                    and curr_epoch == 0
-                    and self.profiler_profile_memory
-                    and idx
-                    == self.profiler_wait_steps
-                    + self.profiler_warmup_steps
-                    + self.profiler_active_steps
-                    and self._device.type == "cuda"
-                ):
-                    torch.cuda.memory._record_memory_history(enabled=None)
-
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
                     extra_metrics = {}
@@ -1102,8 +997,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     )
 
                 self.cleanup_after_step(trajectory, grpo_stats)
-                self._profiler.step()
-
                 pbar.update(1)
 
                 if self._steps_run == self._total_steps:
