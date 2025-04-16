@@ -129,7 +129,6 @@ class TestFullFinetuneDistributedRecipe:
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
-    @pytest.mark.debugging
     @pytest.mark.skipif(
         torch.__version__ < "2.7.0", reason="2D parallel test requires PyTorch >= 2.7"
     )

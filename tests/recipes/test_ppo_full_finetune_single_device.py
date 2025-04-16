@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 import os
 
 import runpy
@@ -34,8 +33,6 @@ from torchtune.training.checkpointing._utils import (
     RECIPE_STATE_DIRNAME,
     SHARD_FNAME,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class TestPPOFullFinetuneSingleDeviceRecipe:
@@ -115,7 +112,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
         else:
             raise ValueError("Unsupported device")
 
-    @pytest.mark.debugging
     @pytest.mark.integration_test
     @pytest.mark.skipif(
         not torch.cuda.is_available()
