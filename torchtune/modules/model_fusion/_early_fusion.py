@@ -120,14 +120,33 @@ class EarlyFusionModel(nn.Module):
         This should be called before the first forward pass, in the recipe."""
         self.decoder.set_num_output_chunks(num_output_chunks)
 
-    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
+    def setup_caches(
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: Optional[int] = None,
+        decoder_max_seq_len: Optional[int] = None,
+    ) -> None:
+        """
+        Setup key value caches for attention calculation.
+        For each layer in ``self.decoder.layers``:
+        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
+            decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
-        self.decoder.setup_caches(batch_size, dtype)
+        self.decoder.setup_caches(
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
+        )
 
     def caches_are_setup(self) -> bool:
         """
@@ -214,11 +233,12 @@ class EarlyFusionModel(nn.Module):
             - d_e: encoder embed dim
             - m_s: max seq len
         """
-        if encoder_input is not None and encoder_input.keys() != self.encoders.keys():
-            raise ValueError(
-                f"Found mismatched keys in encoder_input and instantiated encoders. "
-                f"Got {encoder_input.keys()}, expected {self.encoders.keys()}."
-            )
+        if encoder_input is not None:
+            if any(key not in self.encoders.keys() for key in encoder_input):
+                raise ValueError(
+                    f"Found missing keys of encoder_input in instantiated encoders. "
+                    f"Got {self.encoders.keys()}, expected {encoder_input.keys()}."
+                )
 
         bsz, seq_len = tokens.shape
         # is_text: [bsz, seq_len], text_embeds: [num_text, embed_dim]
@@ -229,7 +249,7 @@ class EarlyFusionModel(nn.Module):
         fused_embeds = torch.empty(
             bsz, seq_len, embed_dim, dtype=text_embeds.dtype, device=text_embeds.device
         )
-        # Place the text-only embeddings
+        # Place the text-only embeddings, fused_embeds: [bsz, seq_len, embed_dim]
         fused_embeds = fused_embeds.masked_scatter(is_text.unsqueeze(-1), text_embeds)
 
         encoder_input = encoder_input or {}
@@ -241,6 +261,8 @@ class EarlyFusionModel(nn.Module):
             # [bsz, seq_len, 1]
             encoder_mask = (tokens == self.encoder_tokens[encoder]).unsqueeze(-1)
             # At locations where encoder token is found, replace with encoder embedding
+            # Note: the encoder mask will account for the embeddings padding since we only
+            # add encoder tokens to text tokens for the non-padding part.
             fused_embeds = fused_embeds.masked_scatter(encoder_mask, encoder_embeds)
 
         output = self.decoder(
