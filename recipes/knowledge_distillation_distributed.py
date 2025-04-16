@@ -881,16 +881,16 @@ class KDRecipeDistributed(FTRecipeInterface):
                     # Manually scale the gradients from unnormalized loss by total # of tokens
                     # We multiply by world_size to undo FSDP2 gradient normalization.
                     training.scale_grads(self._model, self.world_size / num_tokens)
-                    class_loss_to_log = running_class_loss.item() / num_tokens
-                    kd_loss_to_log = running_kd_loss.item() / num_tokens
+                    class_loss_to_log = running_class_loss.detach().item() / num_tokens
+                    kd_loss_to_log = running_kd_loss.detach().item() / num_tokens
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
                     self._lr_scheduler.step()
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    class_loss_to_log = class_loss.item()
-                    kd_loss_to_log = kd_loss.item()
+                    class_loss_to_log = class_loss.detach().item()
+                    kd_loss_to_log = kd_loss.detach().item()
                     loss_to_log = (
                         1 - self._kd_ratio
                     ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log

@@ -6,17 +6,20 @@
 import itertools
 import sys
 import time
+from functools import partial
 from typing import Any, Dict, List
 
 import torch
 import torch.distributed as dist
 from omegaconf import DictConfig, OmegaConf
 from torch.distributed.tensor.parallel import parallelize_module
+from torch.nn.attention.flex_attention import create_block_mask
 
 from torchtune import config, training, utils
 from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
 
 from torchtune.generation import sample
+from torchtune.modules.attention_utils import causal_mask_flex, kv_offset_mask_flex
 
 from torchtune.modules.transforms import Transform
 
@@ -111,7 +114,9 @@ class InferenceRecipe:
         parallelize_module(
             model,
             tp_device_mesh,
-            parallelize_plan=config.instantiate(cfg.tensor_parallel_plan),
+            parallelize_plan=config.instantiate(
+                cfg.tensor_parallel_plan, model=model, inference=True
+            ),
         )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -128,9 +133,11 @@ class InferenceRecipe:
             device=self._device,
             strict=True,
             cpu_offload=False,
+            use_distributed_state_dict=cfg.get("use_distributed_state_dict", False),
         )
 
         self.model = model
+        self.model.eval()
         if self._is_rank_zero:
             self._logger.info(
                 f"Model was initialized with precision {self._dtype} and TP degree {tp_degree}."
@@ -212,7 +219,19 @@ class InferenceRecipe:
             prompt = torch.tensor(
                 model_inputs["tokens"], device=self._device
             ).unsqueeze(0)
-        batch["mask"] = causal_mask[None, :seq_len]
+        use_flex = cfg.get("use_flex", False)
+        if use_flex:
+            batch["mask"] = create_block_mask(
+                causal_mask_flex,
+                1,
+                None,
+                seq_len,
+                total_response_length,
+                device="cuda",
+            )
+        else:
+            batch["mask"] = causal_mask[None, :seq_len]
+
         batch["input_pos"] = input_pos[None, :seq_len]
         utils.batch_to_device(batch, self._device)
 
@@ -234,7 +253,17 @@ class InferenceRecipe:
 
             # Update position and mask for incremental decoding
             batch["input_pos"] = input_pos[None, seq_len]
-            batch["mask"] = causal_mask[None, seq_len, None, :]
+            if use_flex:
+                batch["mask"] = create_block_mask(
+                    partial(kv_offset_mask_flex, offset=seq_len),
+                    1,
+                    None,
+                    1,
+                    total_response_length,
+                    device="cuda",
+                )
+            else:
+                batch["mask"] = causal_mask[None, seq_len, None, :]
 
             if token.item() in self.model_transform.stop_tokens:
                 break
@@ -263,6 +292,7 @@ def main(cfg: DictConfig) -> None:
     recipe = InferenceRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.generate(cfg=cfg)
+    dist.destroy_process_group()
 
 
 if __name__ == "__main__":
