@@ -19,11 +19,6 @@
 
 output_dir: /tmp/torchtune/llama3_70B/full # /tmp may be deleted by your system. Change it to your preference.
 
-# Parallelism
-tensor_parallel_dim: 1
-tensor_parallel_plan:
-  _component_: torchtune.models.llama3.base_llama_tp_plan
-
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
@@ -59,7 +54,7 @@ epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
-  fused: False
+  fused: True
 
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss

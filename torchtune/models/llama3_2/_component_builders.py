@@ -52,7 +52,6 @@ def llama3_2(
     intermediate_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
     scale_factor: int = 32,
-    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the Llama3.2 model. This includes:
@@ -79,7 +78,6 @@ def llama3_2(
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         norm_eps (float): epsilon in RMS norms.
         scale_factor (int): scaling factor for RoPE. Default: 32
-        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 model.
@@ -114,11 +112,7 @@ def llama3_2(
         layers.append(layer)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    if tie_word_embeddings:
-        output_proj = TiedLinear(tok_embeddings)
-    else:
-        output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
-
+    output_proj = TiedLinear(tok_embeddings)
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,
@@ -167,7 +161,6 @@ def lora_llama3_2(
     use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
-    tie_word_embeddings: bool = True,
 ) -> TransformerDecoder:
     """
     Return a version of Llama3.2 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -204,7 +197,6 @@ def lora_llama3_2(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
-        tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 model with LoRA applied to
@@ -262,11 +254,7 @@ def lora_llama3_2(
             "apply_lora_to_output is currently not supporting in llama3.2 1b and 3b,"
             "as the projection layer weights are tied to the embeddings"
         )
-    if tie_word_embeddings:
-        output_proj = TiedLinear(tok_embeddings)
-    else:
-        output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
-        
+    output_proj = TiedLinear(tok_embeddings)
     model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layers=layers,

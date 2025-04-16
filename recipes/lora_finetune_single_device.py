@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -17,8 +17,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
+from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -145,9 +144,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(
-            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
-        )
+        self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -306,16 +303,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._dataloader = self._setup_data(
+        self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            dataloader_state_dict=(
-                checkpoint_dict[training.DATALOADER_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -468,7 +460,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
-            state_dict_keys=model.state_dict().keys(),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -525,12 +516,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> StatefulDataLoader:
+    ) -> Tuple[DistributedSampler, DataLoader]:
         """
-        All data related setup happens here. This recipe currently supports only
-        map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
-        it is loaded into the dataloader.
+        All data related setup happens here. Currently this recipe only supports
+        Map-style Datasets which fit into memory and an option for random shuffling.
+        Samplers, iterable datasets, and streaming datasets are not supported.
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -548,17 +538,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
-        sampler = StatefulDistributedSampler(
+        sampler = DistributedSampler(
             ds,
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
             seed=0,
         )
-        dataloader = StatefulDataLoader(
+        dataloader = DataLoader(
             dataset=ds,
-            batch_size=batch_size,
             sampler=sampler,
+            batch_size=batch_size,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=(
                 partial(
                     collate_fn,
@@ -568,11 +560,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if not packed
                 else padded_collate_packed
             ),
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
         )
 
-        return dataloader
+        log.info("Dataset and Sampler are initialized.")
+
+        return sampler, dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -597,7 +589,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.EPOCHS_KEY: self.epochs_run,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
 
@@ -679,9 +670,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
+                # Update the sampler to ensure data is correctly shuffled across epochs
+                # in case shuffle is True
+                self._sampler.set_epoch(curr_epoch)
+
                 pbar = tqdm(total=self._steps_per_epoch)
-                self._dataloader.sampler.set_epoch(curr_epoch)
                 for idx, batch in enumerate(self._dataloader):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
+
                     # Start tracking CUDA memory for active steps for just the first epoch
                     if (
                         curr_epoch == 0
@@ -720,7 +721,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
 
-                        loss_to_log = running_loss.detach().item() / num_tokens
+                        loss_to_log = running_loss.item() / num_tokens
                         pbar.update(1)
                         pbar.set_description(
                             f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -769,11 +770,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # Note we are stepping each batch, which might not include optimizer step in the trace
                     # if the schedule cycle doesn't align with gradient accumulation.
                     prof.step()
-
-                    if (
-                        (idx + 1) // self._gradient_accumulation_steps
-                    ) == self.max_steps_per_epoch:
-                        break
 
                 self.epochs_run += 1
                 start_save_checkpoint = time.perf_counter()

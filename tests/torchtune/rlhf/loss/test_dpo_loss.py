@@ -6,7 +6,6 @@
 
 import pytest
 import torch
-from torchtune.rlhf._types import ChosenRejectedOutputs
 from torchtune.rlhf.loss import DPOLoss, RSOLoss
 
 
@@ -40,16 +39,11 @@ class TestDPOLosses:
         ref_chosen_logprobs = torch.tensor([-0.5, -10.1, -0.1])
         ref_rejected_logprobs = torch.tensor([-0.1, -20.1, -0.1])
 
-        return ChosenRejectedOutputs(
+        return (
             policy_chosen_logprobs,
             policy_rejected_logprobs,
-            torch.tensor(0),
-            torch.tensor(0),
-        ), ChosenRejectedOutputs(
             ref_chosen_logprobs,
             ref_rejected_logprobs,
-            torch.tensor(0),
-            torch.tensor(0),
         )
 
     def test_dpo_loss(self, dpo_loss, loss_inputs):

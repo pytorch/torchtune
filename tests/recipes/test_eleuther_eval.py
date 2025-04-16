@@ -51,11 +51,11 @@ class TestEleutherEval:
         "eval_name, expected_acc, bsz",
         [
             ("truthfulqa_gen", 0.1, 4),
+            ("truthfulqa_gen", 0.1, 1),
             ("truthfulqa_mc2", 0.4, 4),
         ],
     )
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
     def test_torchtune_checkpoint_eval_results(
         self, caplog, monkeypatch, tmpdir, eval_name, expected_acc, bsz
     ):
@@ -78,6 +78,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=11 \
             dtype=fp32 \
+            device=cpu \
             tasks=[{eval_name}]\
             batch_size={bsz} \
         """.split()
@@ -100,13 +101,10 @@ class TestEleutherEval:
         )
         assert search_results is not None
         acc_result = float(search_results.group(1))
-        assert math.isclose(
-            acc_result, expected_acc, abs_tol=0.05
-        ), f"Accuracy mismatch. Got {acc_result=}, expected {expected_acc=} for {out=} and {search_results=}"
+        assert math.isclose(acc_result, expected_acc, abs_tol=0.05)
 
     @pytest.mark.integration_test
     @pytest.mark.usefixtures("hide_correct_version_number")
-    @gpu_test(gpu_count=1)
     def test_eval_recipe_errors_without_lm_eval(self, monkeypatch, tmpdir):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -125,6 +123,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
+            device=cpu \
         """.split()
 
         model_config = llama2_test_config()
@@ -139,7 +138,6 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
     def test_eval_recipe_errors_with_quantization_hf_checkpointer(
         self, monkeypatch, tmpdir
     ):
@@ -163,6 +161,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
+            device=cpu \
             quantizer._component_=torchtune.training.quantization.Int8DynActInt4WeightQuantizer \
             quantizer.groupsize=256 \
         """.split()
@@ -179,7 +178,6 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
     def test_eval_recipe_errors_with_qat_quantizer(self, monkeypatch, tmpdir):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -198,6 +196,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=1 \
             dtype=fp32 \
+            device=cpu \
             quantizer._component_=torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer \
             quantizer.groupsize=32\
         """.split()
@@ -234,6 +233,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=3 \
             dtype=bf16 \
+            device=cuda \
         """.split()
 
         model_config = llama3_2_vision_test_config()
@@ -276,6 +276,7 @@ class TestEleutherEval:
             tokenizer.prompt_template=null \
             limit=3 \
             dtype=bf16 \
+            device=cuda \
         """.split()
 
         model_config = llama3_2_vision_test_config()

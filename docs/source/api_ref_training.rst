@@ -53,7 +53,6 @@ Utilities for enabling and working with distributed training.
     init_distributed
     is_distributed
     gather_cpu_state_dict
-    get_distributed_backend
 
 .. _ac_label:
 
@@ -102,7 +101,6 @@ Various logging utilities.
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
-    metric_logging.MLFlowLogger
 
 .. _perf_profiling_label:
 
@@ -128,5 +126,4 @@ Miscellaneous
     :nosignatures:
 
     get_unmasked_sequence_lengths
-    disable_dropout
     set_seed

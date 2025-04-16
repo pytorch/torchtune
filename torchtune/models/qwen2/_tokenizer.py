@@ -107,8 +107,6 @@ class Qwen2Tokenizer(ModelTokenizer):
             large for long running processes (esp. for texts of language that do not use space between
             word, e.g. Chinese); technically not a memory leak but appears as one.
             By default, we set the cache size equals to size of the official Qwen2 tokenizer.
-        truncation_type (str): type of truncation to apply, either "left" or "right".
-            Default is "right".
 
     Example:
         >>> tokenizer = Qwen2Tokenizer(
@@ -127,12 +125,11 @@ class Qwen2Tokenizer(ModelTokenizer):
         *,
         prompt_template: Optional[PromptTemplate] = None,
         errors: str = "replace",
-        unk_token: Optional[str] = None,
+        unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
-        eos_token: str = IM_END,
+        eos_token: str = ENDOFTEXT,
         pad_token: Optional[str] = ENDOFTEXT,
         bpe_cache_size: int = DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
-        truncation_type: str = "right",
     ):
         with open(path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)
@@ -163,7 +160,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         self.pad_id = None if pad_token is None else self.special_tokens[pad_token]
         self.im_start_id = self.special_tokens[IM_START]
         self.im_end_id = self.special_tokens[IM_END]
-        self.stop_tokens = [self.eos_id, self.pad_id]
+        self.stop_tokens = [self.eos_id, self.im_end_id]
 
         # Pattern for special tokens.
         self._pattern_split_special_tokens = re.compile(
@@ -171,8 +168,8 @@ class Qwen2Tokenizer(ModelTokenizer):
         )
 
         self.max_seq_len = max_seq_len
+
         self.prompt_template = prompt_template
-        self.truncation_type = truncation_type
 
     def _bpe_without_cache(self, token):
         word = tuple(token)
@@ -405,17 +402,9 @@ class Qwen2Tokenizer(ModelTokenizer):
         # Finally, truncate if necessary
         if self.max_seq_len:
             tokenized_messages = truncate(
-                tokens=tokenized_messages,
-                max_seq_len=self.max_seq_len,
-                eos_id=self.eos_id if add_eos else None,
-                truncation_type=self.truncation_type,
+                tokenized_messages, self.max_seq_len, self.eos_id if add_eos else None
             )
-            mask = truncate(
-                tokens=mask,
-                max_seq_len=self.max_seq_len,
-                eos_id=True if add_eos else None,
-                truncation_type=self.truncation_type,
-            )
+            mask = truncate(mask, self.max_seq_len, True if add_eos else None)
 
         return tokenized_messages, mask
 
