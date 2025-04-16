@@ -1187,16 +1187,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                             f"Scaling gradients by {number_leftover_samples/self.max_bsize} Original bsize = {number_leftover_samples}"
                         )
 
-                    if self.max_bsize and (idx + 1) == n_samples:
-                        # should be bsize/number of gpus
-                        training.scale_grads(
-                            self._model,
-                            torch.tensor(number_leftover_samples / self.max_bsize),
-                        )
-                        log.info(
-                            f"Scaling gradients by {number_leftover_samples/self.max_bsize} Original bsize = {number_leftover_samples}"
-                        )
-
                     # Optimization step - keep this the same
                     torch.distributed.barrier()
                     self._optimizer.step()
