@@ -16,7 +16,7 @@ from warnings import warn
 import torch
 from fsspec.core import url_to_fs
 from huggingface_hub import HfFileSystem
-from safetensors import safe_open
+from safetensors.torch import load
 
 from torchtune.utils._logging import get_logger
 
@@ -90,7 +90,6 @@ class ModelType(Enum):
         LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
         LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`
         LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_decoder`
-        LLAMA4 (str): Llama4 family of models. See :func:`~torchtune.models.llama4.llama4`
         MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`
         PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`
         PHI4 (str): Phi-4 family of models. See :func:`~torchtune.models.phi4.phi4`
@@ -115,7 +114,6 @@ class ModelType(Enum):
     LLAMA3: str = "llama3"
     LLAMA3_2: str = "llama3_2"
     LLAMA3_VISION: str = "llama3_vision"
-    LLAMA4: str = "llama4"
     MISTRAL: str = "mistral"
     PHI3_MINI: str = "phi3_mini"
     PHI4: str = "phi4"
@@ -250,10 +248,8 @@ def safe_torch_load(
             True if str(checkpoint_path).endswith(".safetensors") else False
         )
         if is_safetensors_file:
-            state_dict = {}
-            with safe_open(checkpoint_path, framework="pt", device="cpu") as f:
-                for k in f.keys():
-                    state_dict[k] = f.get_tensor(k)
+            with fs.open(checkpoint_path, "rb") as checkpoint_file:
+                state_dict = load(checkpoint_file.read())
         else:
             if isinstance(fs, HfFileSystem):
                 # HfFileSystem does not support mmap
