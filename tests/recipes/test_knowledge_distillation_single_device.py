@@ -23,7 +23,6 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
-    gpu_test,
     TOKENIZER_PATHS,
 )
 from torchtune import config
@@ -41,6 +40,7 @@ class TestKDSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
             "batch_size=8",
+            "device=cpu",
             f"dtype={dtype_str}",
             "enable_activation_checkpointing=False",
             "enable_activation_offloading=False",
@@ -65,7 +65,6 @@ class TestKDSingleDeviceRecipe:
         "micro_batch_size, gradient_accumulation_steps, compile",
         [(8, 1, False), (2, 4, True), (2, 4, False)],
     )
-    @gpu_test(gpu_count=1)
     def test_loss(
         self,
         micro_batch_size,
@@ -138,7 +137,6 @@ class TestKDSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -242,7 +240,6 @@ class TestKDSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=1)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt_type = "tune"
         model_type = "llama3"

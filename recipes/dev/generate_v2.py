@@ -78,9 +78,7 @@ class InferenceRecipe:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._logger = utils.get_logger(cfg.log_level)
-        training.set_seed(
-            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
-        )
+        training.set_seed(seed=cfg.seed)
 
     def setup(self, cfg: DictConfig) -> None:
         """Setup the model and transforms."""
@@ -93,10 +91,7 @@ class InferenceRecipe:
             model = config.instantiate(cfg.model)
         model.load_state_dict(_ckpt_dict[training.MODEL_KEY])
         self.model = model
-        self.model.eval()
-        self._logger.info(
-            f"Model was initialized with precision {self._dtype} and put into eval mode."
-        )
+        self._logger.info(f"Model was initialized with precision {self._dtype}.")
 
         # Instantiate transforms
         self.model_transform = config.instantiate(cfg.tokenizer)
@@ -131,7 +126,7 @@ class InferenceRecipe:
         """The main entry point for generating tokens from a prompt."""
         # 1. Convert input to messages
         messages = self.to_messages(OmegaConf.to_container(cfg.prompt))
-        is_image_input = any([m.contains_media for m in messages])
+        is_multimodal_input = any([m.contains_media for m in messages])
 
         # 2. Apply model transform
         model_inputs = self.model_transform({"messages": messages}, inference=True)
@@ -144,7 +139,7 @@ class InferenceRecipe:
                 batch_size=1,
                 dtype=self._dtype,
                 encoder_max_seq_len=(
-                    self.model_transform.image_seq_len if is_image_input else None
+                    self.model_transform.image_seq_len if is_multimodal_input else None
                 ),
                 decoder_max_seq_len=total_response_length,
             )
@@ -161,7 +156,7 @@ class InferenceRecipe:
 
         # 5. Collate to batch size of 1 and tensor-ify
         batch = {}
-        if is_image_input:
+        if is_multimodal_input:
             batch = padded_collate_tiled_images_and_mask(
                 [model_inputs],
                 pad_direction="left",
@@ -185,7 +180,7 @@ class InferenceRecipe:
         token = sample(logits, temperature=cfg.temperature, top_k=cfg.top_k)
         generated_tokens.append(token.item())
 
-        if is_image_input:
+        if is_multimodal_input:
             # Don't need image info b/c we only support 1 image and it's been
             # processed by the model now
             batch.pop("encoder_input")

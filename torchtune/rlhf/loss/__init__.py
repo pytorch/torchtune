@@ -8,8 +8,4 @@
 from .dpo import DPOLoss, RSOLoss
 from .ppo import PPOLoss
 
-__all__ = [
-    "DPOLoss",
-    "RSOLoss",
-    "PPOLoss",
-]
+__all__ = ["DPOLoss", "RSOLoss", "PPOLoss"]

@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -18,8 +18,7 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
+from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
@@ -36,6 +35,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -135,9 +135,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        self.world_size, self.rank = utils.get_world_size_and_rank()
+        _, rank = utils.get_world_size_and_rank()
 
-        self._is_rank_zero = self.rank == 0
+        self._is_rank_zero = rank == 0
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -152,9 +152,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
-        self.seed = training.set_seed(
-            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
-        )
+        self.seed = training.set_seed(seed=cfg.seed)
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -309,16 +307,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._dataloader = self._setup_data(
+        self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            dataloader_state_dict=(
-                checkpoint_dict[training.DATALOADER_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -521,7 +514,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
-            state_dict_keys=model.state_dict().keys(),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -585,13 +577,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> StatefulDataLoader:
+    ) -> Tuple[DistributedSampler, DataLoader]:
         """
-        All data related setup happens here. This recipe currently supports only
-        map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
-        it is loaded into the dataloader.
+        All data related setup happens here. Currently this recipe only supports the
+        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
+        iterable datasets and streaming datasets are not supported.
         """
+        world_size, rank = utils.get_world_size_and_rank()
+
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
                 config.instantiate(single_cfg_dataset, self._tokenizer)
@@ -608,16 +601,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
-        sampler = StatefulDistributedSampler(
-            ds,
-            num_replicas=self.world_size,
-            rank=self.rank,
-            shuffle=shuffle,
+        sampler = DistributedSampler(
+            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
         )
-        dataloader = StatefulDataLoader(
+
+        dataloader = DataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
+            # dropping last avoids shape issues with compile + flex attention
+            drop_last=True,
             collate_fn=(
                 partial(
                     collate_fn,
@@ -627,11 +620,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 if not packed
                 else padded_collate_packed
             ),
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
         )
 
-        return dataloader
+        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
+
+        return sampler, dataloader
 
     def save_checkpoint(
         self,
@@ -719,7 +712,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
@@ -751,6 +743,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
+        world_size, rank = utils.get_world_size_and_rank()
+
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -762,9 +756,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
-            self._dataloader.sampler.set_epoch(curr_epoch)
+
+            # Update the sampler to ensure data is correctly shuffled across epochs
+            # in case shuffle is True
+            self._sampler.set_epoch(curr_epoch)
+
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
             for idx, batch in enumerate(self._dataloader):
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                ):
+                    break
+
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -819,7 +824,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    training.scale_grads(self._model, self.world_size / num_tokens)
+                    training.scale_grads(self._model, world_size / num_tokens)
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
@@ -832,7 +837,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.detach().item() / num_tokens
+                    loss_to_log = running_loss.item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -848,7 +853,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * self.world_size),
+                            / (time_per_step * world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -884,11 +889,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
-
-                if (
-                    (idx + 1) // self._gradient_accumulation_steps
-                ) == self.max_steps_per_epoch:
-                    break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
