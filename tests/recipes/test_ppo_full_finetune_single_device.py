@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 import os
 
 import runpy
@@ -34,8 +33,6 @@ from torchtune.training.checkpointing._utils import (
     RECIPE_STATE_DIRNAME,
     SHARD_FNAME,
 )
-
-log = logging.getLogger(__name__)
 
 
 class TestPPOFullFinetuneSingleDeviceRecipe:
@@ -101,7 +98,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
     @pytest.mark.debugging
     @pytest.mark.integration_test
     @pytest.mark.skipif(
-        torch.cuda.device_capability() not in ((7, 5), (9, 0)),
+        torch.cuda.get_device_capability() not in ((7, 5), (9, 0)),
         reason="Unexpected device type",
     )
     @mps_ignored_test()
@@ -167,8 +164,7 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-        log.error(loss_values)
-        log.error(torch.cuda.get_device_capability())
+
         expected_loss_values = self._get_expected_loss_values(
             torch.cuda.get_device_capability()
         )

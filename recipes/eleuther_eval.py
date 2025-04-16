@@ -146,7 +146,6 @@ class _VLMEvalWrapper(HFMultimodalLM):
     def tok_decode(self, tokens, skip_special_tokens=True) -> str:
         if isinstance(tokens, int):
             tokens = [tokens]
-
         return self._transform.tokenizer.decode(
             tokens, skip_special_tokens=skip_special_tokens
         )

@@ -53,7 +53,6 @@ class TestLoRADPODistributedRecipe:
         ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
-    @pytest.mark.debugging
     @gpu_test(gpu_count=2)
     @pytest.mark.integration_test
     def test_training_state_on_resume(
@@ -144,7 +143,6 @@ class TestLoRADPODistributedRecipe:
             resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
-    @pytest.mark.debugging
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
