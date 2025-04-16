@@ -5,7 +5,18 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set, Union
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    runtime_checkable,
+    Set,
+    Union,
+)
 
 import torch
 from torch import nn
@@ -15,6 +26,7 @@ from torchtune.utils._logging import deprecate_parameter
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 
+@runtime_checkable
 class AdapterModule(Protocol):
     """
     Interface for an ``nn.Module`` containing adapter weights.
