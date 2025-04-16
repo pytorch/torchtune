@@ -446,6 +446,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
+            state_dict_keys=model.state_dict().keys(),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -737,8 +738,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    class_loss_to_log = running_class_loss.item() / num_tokens
-                    kd_loss_to_log = running_kd_loss.item() / num_tokens
+                    class_loss_to_log = running_class_loss.detach().item() / num_tokens
+                    kd_loss_to_log = running_kd_loss.detach().item() / num_tokens
                     loss_to_log = (
                         1 - self._kd_ratio
                     ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log

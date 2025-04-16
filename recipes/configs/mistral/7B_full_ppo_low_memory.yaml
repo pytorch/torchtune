@@ -206,3 +206,7 @@ profiler:
   warmup_steps: 3
   active_steps: 3
   num_cycles: 1
+
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100

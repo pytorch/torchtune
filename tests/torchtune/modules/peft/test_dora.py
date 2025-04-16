@@ -15,7 +15,9 @@ from tests.test_utils import fixed_init_model, gpu_test, mps_ignored_test
 from torch import nn
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed._tensor import DTensor, Replicate
-from torch.testing._internal.common_fsdp import FSDPTest
+
+# from torch.testing._internal.common_fsdp import FSDPTest
+from torch.testing._internal.common_distributed import MultiProcessTestCase
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
@@ -273,7 +275,7 @@ class TestDoRALinear:
             dora_linear.initialize_dora_magnitude()
 
 
-class TestDistributedDoRALinear(FSDPTest):
+class TestDistributedDoRALinear(MultiProcessTestCase):
     @property
     def world_size(self) -> int:
         return 2
@@ -282,8 +284,12 @@ class TestDistributedDoRALinear(FSDPTest):
     def embed_dim(self):
         return 128
 
+    def setUp(self):
+        super().setUp()
+
     @gpu_test(gpu_count=2)
     def test_dora_distributed_init(self):
+        torch.cuda.set_device(f"cuda:{self.rank}")
         self.run_subtests(
             {
                 "load_dora_weights": [True, False],
@@ -410,6 +416,8 @@ class TestDistributedDoRALinear(FSDPTest):
             if isinstance(expected_magnitude, DTensor):
                 device_mesh = torch.distributed.init_device_mesh("cuda", (2,))
                 actual_magnitude = DTensor.from_local(
-                    actual_magnitude, device_mesh=device_mesh, placements=[Replicate()]
+                    actual_magnitude,
+                    device_mesh=device_mesh,
+                    placements=[Replicate()],
                 )
             torch.testing.assert_close(expected_magnitude, actual_magnitude)

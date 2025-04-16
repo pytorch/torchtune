@@ -39,6 +39,13 @@ checkpointer:
   model_type: LLAMA3
 resume_from_checkpoint: False
 
+# Parallelism tweaks
+tensor_parallel_dim: 8 # 8-way TP
+tensor_parallel_plan:
+  _component_: torchtune.models.llama3.base_llama_tp_plan
+data_parallel_shard_dim: -1 # -1 means to infer based on other parallel dims & world size
+data_parallel_replicate_dim: 1
+
 # Fine-tuning arguments
 batch_size: 4
 epochs: 1
@@ -52,7 +59,6 @@ loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
-
 
 # Training env
 device: cuda
