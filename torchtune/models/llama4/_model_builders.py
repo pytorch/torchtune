@@ -68,7 +68,6 @@ def llama4_scout_17b_16e(
         use_shared_expert=True,
         skip_rope_interval=4,
         attention_chunk_size=8192,
-        use_scaled_rope=True,
     )
     return EarlyFusionModel(
         decoder,
