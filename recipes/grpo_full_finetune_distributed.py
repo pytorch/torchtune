@@ -1,4 +1,3 @@
-
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -140,7 +139,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 "Using fused optimizer on CPU is only supported in PyTorch nightly."
             )
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
-        
+
         self.distributed_backend = training.get_distributed_backend(
             cfg.device, offload_ops_to_cpu=self.fsdp_cpu_offload
         )
@@ -274,7 +273,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if self._resume_from_checkpoint:
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
-    
+
     def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the reference checkpoint state from file and validate.
@@ -286,7 +285,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
 
         return ref_checkpoint_dict
-        
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -297,15 +295,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             if self.epochs_run != ckpt_dict[training.EPOCHS_KEY]:
 
                 warn(
-
                     message=(
-
                         "Config value for epochs_run does not match the checkpoint value, "
-
                         f"using the config value: {self.epochs_run}"  # NOTE changed
-
                     )
-
                 )
 
             # on mismatch, warn the user and prevent the override
@@ -394,7 +387,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
             ref_model_state_dict=ref_checkpoint_dict[training.MODEL_KEY],
-
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -433,7 +425,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._sampler_validation_list = []
         self._dataloader_validation_list = []
         if isinstance(cfg["validation_dataset"]["_component_"], ListConfig):
-            portions = [dataset['portion'] for dataset in cfg["validation_dataset"]["_component_"]]
+            portions = [
+                dataset["portion"]
+                for dataset in cfg["validation_dataset"]["_component_"]
+            ]
             for dataset in cfg["validation_dataset"]["_component_"]:
                 dataset["split"] = "validation"
                 sampler_validation, dataloader_validation = self._setup_data(
@@ -445,18 +440,37 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 self._sampler_validation_list.append(sampler_validation)
                 self._dataloader_validation_list.append(dataloader_validation)
             # downsample the validation using the portion property in the dataset config
-            for i in range(1,len(self._sampler_validation_list)): # hardcoding the first portion to be the training portion
+            for i in range(
+                1, len(self._sampler_validation_list)
+            ):  # hardcoding the first portion to be the training portion
                 if portions[i] == 0:
-                    sample_size = min(1028, int(len(self._dataloader_validation_list[i].dataset))) # hardcoding the default sample size to 1028 if the portion is 0
+                    sample_size = min(
+                        1028, int(len(self._dataloader_validation_list[i].dataset))
+                    )  # hardcoding the default sample size to 1028 if the portion is 0
                 else:
-                    sample_size = int(len(self._dataloader_validation_list[0].dataset) * portions[i] / (1-sum(portions[1:]))) # hardcoding the first portion to be the training portion
-    
+                    sample_size = int(
+                        len(self._dataloader_validation_list[0].dataset)
+                        * portions[i]
+                        / (1 - sum(portions[1:]))
+                    )  # hardcoding the first portion to be the training portion
+
                 if sample_size > len(self._dataloader_validation_list[i].dataset):
                     continue
                 random.seed(42)
-                subset = Subset(self._dataloader_validation_list[i].dataset, random.sample(range(len(self._dataloader_validation_list[i].dataset)), sample_size))
+                subset = Subset(
+                    self._dataloader_validation_list[i].dataset,
+                    random.sample(
+                        range(len(self._dataloader_validation_list[i].dataset)),
+                        sample_size,
+                    ),
+                )
                 collate_fn = _get_component_from_path(collate_name)
-                self._dataloader_validation_list[i] = DataLoader(subset, batch_size=cfg.batch_size,shuffle=False, collate_fn=collate_fn)
+                self._dataloader_validation_list[i] = DataLoader(
+                    subset,
+                    batch_size=cfg.batch_size,
+                    shuffle=False,
+                    collate_fn=collate_fn,
+                )
         else:
             cfg["validation_dataset"]["split"] = "validation"
             sampler_validation, dataloader_validation = self._setup_data(
@@ -501,15 +515,12 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Used to ignore labels for loss computation
 
-
-        #RL params
-        self.add_sampling_temperature=cfg.add_sampling_temperature
+        # RL params
+        self.add_sampling_temperature = cfg.add_sampling_temperature
         self._total_steps = cfg.num_steps
         self._temperature = cfg.temperature
-        self.sampling_temperature= cfg.sampling_temperature
+        self.sampling_temperature = cfg.sampling_temperature
         self._save_every_n_epochs = cfg.save_every_n_epochs
-
-        
 
     def _setup_lr_scheduler(
         self,
@@ -723,7 +734,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # activation offloading
-
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
@@ -963,7 +973,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if self.max_seq_len is None:
             return False
         return len(batch["tokens"][0]) > self.max_seq_len
-    
+
     def log_metrics(
         self, trajectory: GRPOTrajectory, grpo_stats: GRPOStats, **extras
     ) -> None:
@@ -990,7 +1000,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             **extras,
         }
 
-
         if self._device.type == "cuda" and self._log_peak_memory_stats:
             log_dict.update(training.get_memory_stats(device=self._device))
         
@@ -998,8 +1007,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             self._metric_logger.log_dict(log_dict, step=self.global_step)
 
-
-    
     def grpo_step(
         self,
         trajectory: GRPOTrajectory,
@@ -1014,10 +1021,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if self.add_sampling_temperature:
-            pi_logits=pi_logits/self.sampling_temperature
+            pi_logits = pi_logits / self.sampling_temperature
 
         pi_logits = rlhf.truncate_sequence_for_logprobs(pi_logits, trajectory.query_len)
-
 
         pi_logprobs = rlhf.batched_logits_to_logprobs(
             pi_logits,
@@ -1030,8 +1036,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         del pi_logits
         torch.cuda.empty_cache()
-
-
 
         # calculate grpo loss
         loss, policy_loss, kl_loss, ratios, clipfrac = self._loss_fn(
@@ -1059,8 +1063,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             approx_policy_kls,
         )
 
-    
-    
     def cleanup_after_step(
         self,
         trajectory: GRPOTrajectory,
@@ -1075,8 +1077,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             del g
         del l_grpo_stats
 
-    
-
     def train(self) -> None:
         """
         The core training loop with validation.
@@ -1086,6 +1086,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         world_size, rank = training.get_world_size_and_rank()
         self._optimizer.zero_grad()
         self._profiler.start()
+        n_samples = len(self._dataloader)
+        n_gpus = torch.distributed.get_world_size()
+        number_leftover_samples = (
+            n_samples * n_gpus
+        ) % self._gradient_accumulation_steps
         all_policy_losses = []
         all_ratios = []
         all_advantages = []
@@ -1101,7 +1106,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Batch loop
             for idx, batch in enumerate(self._dataloader):
-                if (idx // self._gradient_accumulation_steps) >= self._steps_per_epoch:
+                if (idx + 1) % self._gradient_accumulation_steps == 0 or (
+                    (idx + 1) == n_samples
+                ):
+
                     break
 
                 # Start tracking CUDA memory if configured - keep this the same
@@ -1124,7 +1132,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     response_padding_masks=batch["response_padding_masks"],
                     query_len=batch["query_len"],
                     type=batch["type"],
-                    response_tokens= batch["response_tokens"],
+                    response_tokens=batch["response_tokens"],
                 )
 
                 current_num_tokens = (
@@ -1134,6 +1142,13 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
                 step_stats = self.grpo_step(trajectory)
 
+                # LOG EVERY STEP - Add this to log every step
+                extra_metrics = {
+                    "lr": get_lr(self._optimizer),
+                    "batch_idx": idx,
+                    "epoch": curr_epoch + 1,
+                }
+                self.log_metrics(trajectory, step_stats, **extra_metrics)
                 all_policy_losses.append(step_stats.policy_loss.detach().cpu().numpy().item())
                 all_ratios.append(step_stats.ratios.detach().cpu().numpy().item())
                 all_advantages.append(trajectory.advantages.detach().cpu().numpy().item())
@@ -1149,7 +1164,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 pbar.update(1)
 
                 # Optimization step (based on gradient accumulation)
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if (idx + 1) % self._gradient_accumulation_steps == 0 or (
+                    (idx + 1) == n_samples
+                ):
                     # Apply gradient clipping if configured - keep this the same
                     grad_norm = None
                     if self._clip_grad_norm is not None:
@@ -1159,6 +1176,16 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                         )
                     torch.distributed.all_reduce(num_tokens)
                     training.scale_grads(self._model, 1 / num_tokens)
+
+                    if self.max_bsize and (idx + 1) == n_samples:
+                        # should be bsize/number of gpus
+                        training.scale_grads(
+                            self._model,
+                            torch.tensor(number_leftover_samples / self.max_bsize),
+                        )
+                        log.info(
+                            f"Scaling gradients by {number_leftover_samples/self.max_bsize} Original bsize = {number_leftover_samples}"
+                        )
 
                     # Optimization step - keep this the same
                     torch.distributed.barrier()
@@ -1178,10 +1205,12 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                         extra_metrics = {"lr": get_lr(self._optimizer)}
                         if grad_norm is not None:
                             extra_metrics["grad_norm"] = grad_norm
-                            
+
                         # Log accumulated metrics (optional if you also want a summary)
                         if grpo_stats:
-                            combined_stats = GRPOStats(*map(torch.stack, zip(*grpo_stats)))
+                            combined_stats = GRPOStats(
+                                *map(torch.stack, zip(*grpo_stats))
+                            )
                             self.log_metrics(
                                 trajectory,
                                 combined_stats,
@@ -1193,9 +1222,12 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     self.cleanup_after_step(trajectory, grpo_stats)
                     grpo_stats = []
 
-                    # Check if we've reached max steps for current epoch
-                    if ((idx + 1) // self._gradient_accumulation_steps) == self.max_steps_per_epoch:
-                        break  # Break out of batch loop only, not the epoch loop
+                    # Check if training is complete - keep this the same
+                    if (
+                        (idx + 1) // self._gradient_accumulation_steps
+                    ) == self.max_steps_per_epoch:
+                        training_completed = True
+                        break
 
             self.epochs_run += 1
             if self.epochs_run % self._save_every_n_epochs == 0:
