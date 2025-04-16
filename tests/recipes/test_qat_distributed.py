@@ -112,7 +112,7 @@ class TestQATDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(model_type)
-        raise ValueError(f"DONE {loss_values}")
+
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
