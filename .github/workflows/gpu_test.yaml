@@ -26,7 +26,8 @@ defaults:
 jobs:
   gpu_test:
     if: github.repository_owner == 'pytorch'
-    runs-on: linux.g4dn.12xlarge.nvidia.gpu
+    # TODO: testing
+    runs-on: linux.8xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
@@ -58,6 +59,7 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval>=0.4.5
       - name: Run recipe and unit tests with coverage
-        run: pytest -m integration_test tests/recipes/test_lora_dpo_distributed.py tests/recipes/test_knowledge_distillation_distributed.py -vv
+        run: pytest -m integration_test tests/recipes -vv
+        # run: pytest -m integration_test tests/recipes/test_lora_dpo_distributed.py tests/recipes/test_knowledge_distillation_distributed.py -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

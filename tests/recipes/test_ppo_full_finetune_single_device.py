@@ -96,13 +96,14 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
             ]
 
     @pytest.mark.debugging
-    @pytest.mark.integration_test
     @pytest.mark.skipif(
         torch.cuda.get_device_capability() not in ((7, 5), (9, 0)),
         reason="Unexpected device type",
     )
     @mps_ignored_test()
     @gpu_test(gpu_count=1)
+    @pytest.mark.integration_test
+    # TODO: this is sensitive to order of decorators and is brittle
     def test_loss(self, tmpdir, monkeypatch):
 
         reward_ckpt = "llama2_reward_hf"
