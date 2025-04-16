@@ -1152,6 +1152,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             num_tokens = 0
             real_num_tokens = 0
             max_len_samples = 0
+            running_ent = 0 
             self._model.train()  # NOTE: added by us
 
             pbar = tqdm(
@@ -1207,6 +1208,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
+                #calculate the entropy of the models responses
+
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -1225,10 +1228,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 current_loss = (
                     self._loss_fn(logits, labels) * current_num_tokens * reward
                 )
-
+                entropy = self._loss_fn.compute_entropy(logits)
                 # free logits otherwise it peaks backward memory
                 del logits
 
+                running_ent += entropy
                 running_loss += current_loss
 
                 # For optimizer in backward, we need to normalize before calling backward
@@ -1248,6 +1252,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(num_tokens)
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
+                        torch.distributed.all_reduce(running_ent)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         training.scale_grads(self._model, 1 / num_tokens)
                         # scale grads by max_batchsize and real_batchsize
@@ -1300,6 +1305,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": real_num_tokens  # NOTE: added by us
                             / (time_per_step * world_size),
+                            'entropy': running_ent.item() / real_num_tokens,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
