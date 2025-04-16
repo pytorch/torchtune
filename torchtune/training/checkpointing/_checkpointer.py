@@ -611,11 +611,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
         elif self._model_type == ModelType.GEMMA3:
             from torchtune.models.gemma3._convert_weights import gemma3_hf_to_tune
-            
+
             # Here it became little bit tricky:
-            # For 1B we have only 1 modality and specific config.json. 
+            # For 1B we have only 1 modality and specific config.json.
             # For 4B, 12B, 27B we have 2 modailites and same config.json
-            
+
             if "text_config" in self._config:
                 converted_state_dict[training.MODEL_KEY] = gemma3_hf_to_tune(
                     merged_state_dict,

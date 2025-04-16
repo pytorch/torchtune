@@ -41,20 +41,9 @@ model:
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/gemma-3-27b-it/
-  checkpoint_files: [
-    model-00001-of-00012.safetensors,
-    model-00002-of-00012.safetensors,
-    model-00003-of-00012.safetensors,
-    model-00004-of-00012.safetensors,
-    model-00005-of-00012.safetensors,
-    model-00006-of-00012.safetensors,
-    model-00007-of-00012.safetensors,
-    model-00008-of-00012.safetensors,
-    model-00009-of-00012.safetensors,
-    model-00010-of-00012.safetensors,
-    model-00011-of-00012.safetensors,
-    model-00012-of-00012.safetensors,
-  ]
+  checkpoint_files:
+    filename_format: pytorch_model-{}-of-{}.bin
+    max_filename: "00015"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: GEMMA3

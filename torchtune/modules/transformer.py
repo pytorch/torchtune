@@ -120,7 +120,6 @@ class TransformerSelfAttentionLayer(nn.Module):
         # Norm applied before self-attention
         h = self.sa_norm(x)
         attn_out = self.attn(h, h, mask=mask, input_pos=input_pos)
-         
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.sa_scale(attn_out) + x
 
@@ -652,7 +651,7 @@ class TransformerDecoder(nn.Module):
                 encoder_mask=encoder_mask,
                 input_pos=input_pos,
             )
-        
+
         if len(self.layers) in self.output_hidden_states:
             hidden.append(h)
 

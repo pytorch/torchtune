@@ -20,7 +20,7 @@ output_dir: /tmp/torchtune/gemma3_12B/qlora_single_device # /tmp may be deleted 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma-3-4=12b-it/tokenizer.model
+  path: /tmp/gemma-3-12b-it/tokenizer.model
 
 # Dataset
 dataset:
