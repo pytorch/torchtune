@@ -1232,8 +1232,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # free logits otherwise it peaks backward memory
                 del logits
 
-                running_ent += entropy
+                running_ent += entropy.detach()
                 running_loss += current_loss
+                del entropy
 
                 # For optimizer in backward, we need to normalize before calling backward
                 # This case and gradient accumulation are mutually exclusive
