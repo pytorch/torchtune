@@ -59,28 +59,6 @@ To use any of these, simply use the ``loss`` config entry or flag through the :r
     loss=torchtune.modules.loss.RSOLoss \
     gamma=0.5
 
-Also, you can pass your custom loss in our recipe. Note that its `forward` method should align with the following signature:
-
-.. code-block:: python
-
-    def forward(self, policy_inputs: ChosenRejectedOutputs, reference_inputs: ChosenRejectedOutputs) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        ...
-
-Here, `ChosenRejectedOutputs` is a dataclass obtained from `concatenated_forward``:
-
-.. code-block:: python
-
-  @dataclass
-  class ChosenRejectedOutputs:
-      chosen_logps: torch.Tensor
-      rejected_logps: torch.Tensor
-      chosen_logits: torch.Tensor
-      rejected_logits: torch.Tensor
-
-If this is not sufficient and you need to compute additional values from the logits, you can modify `concatenated_forward` directly. To do this, use `tune cp` to copy the desired recipe, and don’t forget to use your own dataclass!
-
-Refer to the TRL library for reference implementations of the desired losses. In particular, you may find useful loss calculations in trainers.
-
 For a deeper understanding of the different levers you can pull when using this recipe,
 see our documentation for the different PEFT training paradigms we support:
 

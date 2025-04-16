@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, List, Mapping, Optional, Tuple, Union
+from typing import Any, List, Mapping, Optional, Tuple
 
 import torch
 import torchvision
@@ -252,13 +252,9 @@ class CLIPImageTransform:
             antialias=self.antialias,
         )
 
-    def __call__(
-        self, *, image: Union[Image.Image, torch.Tensor], **kwargs
-    ) -> Mapping[str, Any]:
+    def __call__(self, *, image: Image.Image, **kwargs) -> Mapping[str, Any]:
 
-        assert isinstance(
-            image, (Image.Image, torch.Tensor)
-        ), "Input image must be a PIL image or torch.Tensor."
+        assert isinstance(image, Image.Image), "Input image must be a PIL image."
 
         # Make image torch.tensor((3, H, W), dtype='float32'), 0<=values<=1.
         image_tensor = F.to_dtype(

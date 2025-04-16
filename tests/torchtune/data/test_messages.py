@@ -472,48 +472,11 @@ class TestOpenAIToMessages:
                         {"type": "text", "content": CHAT_SAMPLE["user"]},
                         {"type": "image", "content": test_img},
                     ],
-                    masked=True,
                 ),
                 MESSAGE_SAMPLE[2],
             ],
         )
         mock_load_image.assert_called_once_with("https://example.com")
-
-    def test_call_tool_messages(self):
-        tool_samples = {
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "Available functions: weather(city: str), search(query: str)",
-                },
-                {"role": "user", "content": "What's the weather in Istanbul?"},
-                {"role": "assistant", "content": "weather(city='Istanbul')"},
-                {"role": "tool", "content": "{'temperature': 25}"},
-                {
-                    "role": "assistant",
-                    "content": "The temperature in Istanbul is 25°C.",
-                },
-            ]
-        }
-        transform = OpenAIToMessages()
-        converted_messages = transform(tool_samples)
-        assert_dialogue_equal(
-            converted_messages["messages"],
-            [
-                Message(
-                    role="system",
-                    content="Available functions: weather(city: str), search(query: str)",
-                ),
-                Message(role="user", content="What's the weather in Istanbul?"),
-                Message(role="assistant", content="weather(city='Istanbul')"),
-                Message(
-                    role="tool", content="{'temperature': 25}", eot=False, masked=True
-                ),
-                Message(
-                    role="assistant", content="The temperature in Istanbul is 25°C."
-                ),
-            ],
-        )
 
 
 def test_validate_messages():
@@ -528,19 +491,6 @@ def test_validate_messages():
 
     # Test valid conversation without system
     validate_messages(messages[1:])
-
-    # Test valid conversation with tool
-    messages = [
-        Message(
-            role="system",
-            content="Available functions: weather(city: str), search(query: str)",
-        ),
-        Message(role="user", content="What is the weather in Istanbul?"),
-        Message(role="assistant", content="weather(city='Istanbul')", ipython=True),
-        Message(role="tool", content="{'temperature': 25}"),
-        Message(role="assistant", content="The weather in Istanbul is 25C"),
-    ]
-    validate_messages(messages)
 
     # Test system not first
     messages = [
@@ -589,18 +539,6 @@ def test_validate_messages():
     ]
     with pytest.raises(
         ValueError,
-        match="Assistant message before expected user, tool or ipython message at index 0 in messages",
-    ):
-        validate_messages(messages)
-
-    # # Test tool message before ipython message
-    messages = [
-        Message(role="user", content="get weather for istanbul"),
-        Message(role="assistant", content="get_weather(city='Istanbul')"),
-        Message(role="ipython", content="{'temperature': 25}"),
-    ]
-    with pytest.raises(
-        ValueError,
-        match="Tool or ipython message at index 2 must follow an ipython message",
+        match="Assistant message before expected user message at index 0 in messages",
     ):
         validate_messages(messages)

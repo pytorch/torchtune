@@ -20,7 +20,6 @@ from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.rlhf import ChosenRejectedOutputs
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
@@ -798,7 +797,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         model: nn.Module,
         batch: Tuple[torch.Tensor, torch.Tensor],
         activations_handling: Optional[bool] = True,
-    ) -> ChosenRejectedOutputs:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
@@ -807,7 +806,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
 
         Returns:
-            Dataclass of chosen log probs, rejected log probs, chosen logits, rejected logits.
+            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
         """
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
@@ -837,9 +836,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
 
-        return ChosenRejectedOutputs(
-            chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits
-        )
+        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
 
     def train(self) -> None:
         """
@@ -887,35 +884,36 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
                 # batch is input_ids, labels
                 num_tokens += torch.tensor(batch[0].numel())
-                policy_chosen_rejected_outputs = self.concatenated_forward(
-                    self._model, batch
-                )
+                (
+                    policy_chosen_log_probs,
+                    policy_rejected_log_probs,
+                    policy_chosen_logits,
+                    policy_rejected_logits,
+                ) = self.concatenated_forward(self._model, batch)
 
-                policy_chosen_logits_mean = (
-                    policy_chosen_rejected_outputs.chosen_logits.detach().mean()
-                )
-                policy_rejected_logits_mean = (
-                    policy_chosen_rejected_outputs.rejected_logits.detach().mean()
-                )
+                policy_chosen_logits_mean = policy_chosen_logits.detach().mean()
+                policy_rejected_logits_mean = policy_rejected_logits.detach().mean()
 
                 # deleting logits here helps reduce (peak) memory usage - we only need them for metric logging
-                del (
-                    policy_chosen_rejected_outputs.chosen_logits,
-                    policy_chosen_rejected_outputs.rejected_logits,
-                )
+                del policy_chosen_logits, policy_rejected_logits
 
                 with torch.no_grad():
-                    reference_chosen_rejected_outputs = self.concatenated_forward(
+                    (
+                        reference_chosen_log_probs,
+                        reference_rejected_log_probs,
+                        reference_chosen_logits,
+                        reference_rejected_logits,
+                    ) = self.concatenated_forward(
                         self._ref_model, batch, activations_handling=False
                     )
 
-                del (
-                    reference_chosen_rejected_outputs.chosen_logits,
-                    reference_chosen_rejected_outputs.rejected_logits,
-                )
+                del reference_chosen_logits, reference_rejected_logits
 
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
-                    policy_chosen_rejected_outputs, reference_chosen_rejected_outputs
+                    policy_chosen_log_probs,
+                    policy_rejected_log_probs,
+                    reference_chosen_log_probs,
+                    reference_rejected_log_probs,
                 )
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
@@ -938,12 +936,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     scaling_factor * reward_accuracies.mean()
                 )
                 running_metrics["log_probs/chosen"] += (
-                    scaling_factor
-                    * policy_chosen_rejected_outputs.chosen_logps.detach().mean()
+                    scaling_factor * policy_chosen_log_probs.detach().mean()
                 )
                 running_metrics["log_probs/rejected"] += (
-                    scaling_factor
-                    * policy_chosen_rejected_outputs.rejected_logps.detach().mean()
+                    scaling_factor * policy_rejected_log_probs.detach().mean()
                 )
                 running_metrics["logits/chosen"] += (
                     scaling_factor * policy_chosen_logits_mean

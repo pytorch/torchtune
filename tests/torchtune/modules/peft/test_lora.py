@@ -9,7 +9,7 @@ from functools import partial
 import pytest
 
 import torch
-from tests.test_utils import fixed_init_model, mps_ignored_test
+from tests.test_utils import fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
@@ -159,7 +159,6 @@ class TestLoRALinear:
         "use_bias, dtype",
         [(False, torch.bfloat16), (True, torch.float32), (False, torch.float32)],
     )
-    @mps_ignored_test()
     def test_qlora_parity(self, use_bias, dtype, qlora_linear, lora_linear):
         qlora_linear = qlora_linear(
             use_bias=use_bias, dtype=dtype, in_dim=512, out_dim=512
