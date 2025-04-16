@@ -244,7 +244,7 @@ def lora_gemma3_12b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Gemma2 2B model with LoRA applied
+        TransformerDecoder: Instantiation of Gemma3 12B model with LoRA applied
     """
     return lora_gemma3(
         vocab_size=262_144,
@@ -309,7 +309,7 @@ def lora_gemma3_27b(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Builder for creating a Gemma2 2B model with LoRA enabled.
+    Builder for creating a Gemma3 27B model with LoRA enabled.
 
     The Gemma defaults are the same as in :func:`~torchtune.models.gemma.gemma_2b`,
     while LoRA default params are based on
@@ -329,7 +329,7 @@ def lora_gemma3_27b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Gemma2 2B model with LoRA applied
+        TransformerDecoder: Instantiation of Gemma3 27B model with LoRA applied
     """
     return lora_gemma3(
         vocab_size=262_144,
