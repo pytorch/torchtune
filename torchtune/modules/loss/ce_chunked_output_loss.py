@@ -27,7 +27,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
     For more details, please refer to: https://github.com/pytorch/torchtune/pull/1390
     """
 
-    def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
+    def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100, **kwargs):
         super().__init__()
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
@@ -81,3 +81,24 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             total_loss += self.compute_cross_entropy(logits_chunk, labels_chunk)
 
         return total_loss / total_elements
+    def compute_entropy(self, logits: List[torch.Tensor]) -> torch.Tensor:
+        """
+        Computes the entropy of the model's output probabilities.
+
+        Args:
+            logits (List[Tensor]): List of chunked logits, each of shape 
+                (batch_size, num_tokens / num_chunks, vocab_size)
+
+        Returns:
+            Tensor: Scalar entropy value.
+        """
+        entropies = []
+        for logit_chunk in logits:
+            # shape: (batch_size * chunk_size, vocab_size)
+            log_probs = torch.nn.functional.log_softmax(logit_chunk.reshape(-1, logit_chunk.size(-1)), dim=-1)
+            probs = log_probs.exp()
+            entropy = -(probs * log_probs).sum(dim=-1)  # shape: (batch_size * chunk_size,)
+            entropies.append(entropy)
+
+        all_entropies = torch.cat(entropies)  # flatten
+        return all_entropies.mean()
