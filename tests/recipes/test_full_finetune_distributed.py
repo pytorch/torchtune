@@ -130,6 +130,9 @@ class TestFullFinetuneDistributedRecipe:
         )
 
     @pytest.mark.debugging
+    @pytest.mark.skipif(
+        torch.__version__ < "2.7.0", reason="2D parallel test requires PyTorch >= 2.7"
+    )
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd, tensor_parallel_dim",
