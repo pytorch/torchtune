@@ -21,12 +21,14 @@ job on an Intel GPU, using Llama3.1 as example.
       * Be familiar with the :ref:`overview of torchtune<overview_label>`
       * Make sure to :ref:`install torchtune<install_label>`
 
+|
 
 Set up your environment 
 -----------------------
 
 Please checkout `Getting Started On Intel GPU <https://pytorch.org/docs/stable/notes/get_start_xpu.html>`_ to setup environment.
 
+|
 
 Downloading a Llam3.1-8B-Instruct model
 ---------------------------------------
@@ -43,7 +45,7 @@ Next, make sure you grab your Hugging Face token from `here <https://huggingface
 
 This command will also download the model tokenizer and some other helpful files such as a Responsible Use guide.
 
-
+|
 
 Fine-tuning Llama3.1-8B-Instruct in torchtune
 -------------------------------------------
@@ -54,16 +56,13 @@ recipes for fine-tuning Llama3-8.1B on one or more GPUs.
 Let’s look at how to fine-tune Llama3.1-8B-Instruct using LoRA on a single Intel GPU. In this example, we’ll fine-tune for one epoch on a standard instruction dataset for demonstration.
 
 There are two ways to enable Intel GPU support:
+
 - Pass `device=xpu` directly in command line
-- Copy the config and manually set `device=xpu`
-  
+ 
 .. code-block:: bash
 
     tune run lora_finetune_single_device --config llama3/8B_lora_single_device device=xpu
-
-.. note::
-    To see a full list of recipes and their corresponding configs, simply run ``tune ls`` from the command line.
-
+  
 You can also use :ref:`command-line overrides <cli_override>` as needed, e.g.
 
 .. code-block:: bash
@@ -74,11 +73,44 @@ You can also use :ref:`command-line overrides <cli_override>` as needed, e.g.
         tokenizer.path=<checkpoint_dir>/tokenizer.model \
         checkpointer.output_dir=<checkpoint_dir>
 
+- Manually set `device: xpu`, and other parameters in the configeration file `8B_lora_single_device.yaml`
+
+.. code-block:: yaml
+
+  # Set the correct path to your downloaded tokenizer
+  tokenizer:
+    path: <checkpoint_dir>/tokenizer.model
+
+  # Set the checkpoint directory and filenames
+  checkpointer:
+    checkpoint_dir: <checkpoint_dir>
+    checkpoint_files: [
+      model-00001-of-00004.safetensors,
+      model-00002-of-00004.safetensors,
+      model-00003-of-00004.safetensors,
+      model-00004-of-00004.safetensors
+    ]
+
+  # Set device to use Intel GPU
+  device: xpu
+  dtype: bf16
+
+All other values in the default config can remain unchanged and kick the training.
+
+.. code-block:: bash
+
+    tune run lora_finetune_single_device --config llama3/8B_lora_single_device
+
+.. note::
+    To see a full list of recipes and their corresponding configs, simply run ``tune ls`` from the command line.
+
+
 This will load the Llama3.1-8B-Instruct checkpoint and tokenizer from ``<checkpoint_dir>`` used in the :ref:`tune download <tune_download_label>` command above,
 then save a final checkpoint in the same directory following the original format. For more details on the
 checkpoint formats supported in torchtune, see our :ref:`checkpointing deep-dive <understand_checkpointer>`.
 
 Once running, you should see logs indicating successful initialization and the start of training:
+
 .. code-block:: bash
 
   $ tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device device=xpu epochs=1
@@ -94,9 +126,11 @@ Once running, you should see logs indicating successful initialization and the s
 
 You can monitor the loss and progress through the `tqdm <https://tqdm.github.io/>`_ bar but torchtune
 will also log some more metrics, such as GPU memory usage, at an interval defined in the config.
+
 |
 
-Once training is complete, the model checkpoints will be saved, and their locations logged. For LoRA fine-tuning, the final checkpoint includes:
+Once training is complete, the model checkpoints will be saved, and their locations logged. For LoRA fine-tuning, the final checkpoint includes: 
+
 - Merged model weights
 - A smaller file with only the LoRA weights
 
@@ -106,6 +140,7 @@ If you want to reduce memory usage further, you can use the QLoRA recipe:
 
     tune run lora_finetune_single_device --config llama3_1/8B_qlora_single_device device=xpu
 
+|
 
 Next steps
 ----------
