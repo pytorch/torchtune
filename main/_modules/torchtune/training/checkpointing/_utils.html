@@ -906,7 +906,9 @@
             <span class="n">output_dir</span><span class="p">,</span> <span class="n">RECIPE_STATE_DIRNAME</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">recipe_checkpoint_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">):</span>
+    <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">recipe_checkpoint_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">fs</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">recipe_checkpoint_path</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s2">&quot;If `should_load_recipe_state=True`, recipe_checkpoint file must be provided. &quot;</span>
             <span class="sa">f</span><span class="s2">&quot;Could not find it at </span><span class="si">{</span><span class="n">recipe_checkpoint_path</span><span class="si">}</span><span class="s2">.&quot;</span>
@@ -944,7 +946,8 @@
 
     <span class="k">if</span> <span class="n">adapter_checkpoint</span><span class="p">:</span>
         <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">adapter_checkpoint</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">adapter_checkpoint_path</span><span class="p">):</span>
+        <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">adapter_checkpoint_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fs</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">adapter_checkpoint_path</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Adapter checkpoint file </span><span class="si">{</span><span class="n">adapter_checkpoint_path</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span>
             <span class="p">)</span>
@@ -961,7 +964,8 @@
         <span class="n">tentative_adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="n">output_dir</span><span class="p">,</span> <span class="n">largest_iter_folder</span><span class="p">,</span> <span class="s2">&quot;adapter_model.pt&quot;</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tentative_adapter_checkpoint_path</span><span class="p">):</span>
+        <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">tentative_adapter_checkpoint_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fs</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tentative_adapter_checkpoint_path</span><span class="p">):</span>
             <span class="n">adapter_checkpoint_path</span> <span class="o">=</span> <span class="n">tentative_adapter_checkpoint_path</span>
 
     <span class="k">return</span> <span class="n">adapter_checkpoint_path</span> <span class="k">if</span> <span class="n">adapter_checkpoint_path</span> <span class="k">else</span> <span class="kc">None</span>
