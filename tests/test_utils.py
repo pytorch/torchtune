@@ -8,7 +8,6 @@ import math
 import os
 import re
 import sys
-import unittest
 from contextlib import contextmanager
 from functools import partial
 from io import StringIO
@@ -23,9 +22,6 @@ from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
-skip_if_cuda_not_available = unittest.skipIf(
-    not torch.cuda.is_available(), "CUDA is not available"
-)
 
 CKPT_MODEL_PATHS = {
     "llama2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",

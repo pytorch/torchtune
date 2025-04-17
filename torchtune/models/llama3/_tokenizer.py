@@ -31,7 +31,7 @@ SPECIAL_TOKENS = {
     "<|python_tag|>": 128010,
     "<|image|>": 128256,
     "<|video|>": 128012,
-    "<|reserved_special_token_244|>": 128011,
+    "<|reserved_special_token_245|>": 128011,
 }
 
 NUM_RESERVED_SPECIAL_TOKENS = 257
