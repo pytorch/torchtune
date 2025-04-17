@@ -12,6 +12,7 @@ from torchtune.models.llama4._tokenizer import LLAMA4_SPECIAL_TOKENS
 from torchtune.models.llama4._transform import Llama4Transform
 
 from torchtune.modules.model_fusion import EarlyFusionModel
+from torchtune.utils import torch_version_ge
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -39,6 +40,10 @@ def llama4_scout_17b_16e(
     Returns:
         EarlyFusionModel: Instantiation of a 17Bx16E Llama4 MoE model with encoders.
     """
+    assert torch_version_ge(
+        "2.8"
+    ), "Llama4 Scout requires Pytorch 2.8 or higher (Nightlies)"
+
     decoder_embed_dim = 5120
 
     vision_encoder = llama4_vision_encoder(
@@ -103,6 +108,10 @@ def llama4_maverick_17b_128e(
     Returns:
         EarlyFusionModel: Instantiation of a 17Bx128E Llama4 MoE model with encoders.
     """
+    assert torch_version_ge(
+        "2.8"
+    ), "Llama4 Maverick requires Pytorch 2.8 or higher (Nightlies)"
+
     decoder_embed_dim = 5120
 
     vision_encoder = llama4_vision_encoder(
