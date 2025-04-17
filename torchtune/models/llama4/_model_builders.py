@@ -28,7 +28,7 @@ Llama4 MoE model.
 
 def llama4_scout_17b_16e(
     decoder_trainable: bool = True,
-    vision_encoder_trainable: bool = False,
+    encoder_trainable: bool = False,
     fusion_trainable: bool = True,
     image_size: int = 336,
 ) -> EarlyFusionModel:
@@ -83,7 +83,7 @@ def llama4_scout_17b_16e(
             "vision": LLAMA4_SPECIAL_TOKENS["<|patch|>"],
         },
         encoders_trainable={
-            "vision": vision_encoder_trainable,
+            "vision": encoder_trainable,
         },
         decoder_trainable=decoder_trainable,
         fusion_trainable=fusion_trainable,
@@ -92,7 +92,7 @@ def llama4_scout_17b_16e(
 
 def llama4_maverick_17b_128e(
     decoder_trainable: bool = True,
-    vision_encoder_trainable: bool = False,
+    encoder_trainable: bool = False,
     fusion_trainable: bool = True,
     image_size: int = 336,
 ) -> EarlyFusionModel:
@@ -149,7 +149,7 @@ def llama4_maverick_17b_128e(
             "vision": LLAMA4_SPECIAL_TOKENS["<|patch|>"],
         },
         encoders_trainable={
-            "vision": vision_encoder_trainable,
+            "vision": encoder_trainable,
         },
         decoder_trainable=decoder_trainable,
         fusion_trainable=fusion_trainable,
@@ -202,7 +202,7 @@ def lora_llama4_scout_17b_16e(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     *,
     decoder_trainable: str = "lora",
-    vision_encoder_trainable: str = "frozen",
+    encoder_trainable: str = "frozen",
     fusion_trainable: str = "lora",
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
@@ -214,7 +214,7 @@ def lora_llama4_scout_17b_16e(
     image_size: int = 336,
 ) -> EarlyFusionModel:
     """
-    Builder for creating a 17B(active parameters) Llama4 MOE model.
+    Builder for creating a 17B(active parameters) Llama4 MOE model with LoRA enabled.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -222,7 +222,7 @@ def lora_llama4_scout_17b_16e(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         decoder_trainable (str): Option to set decoder params as fully trainable (full), lora trainable (lora),
             or frozen (frozen). The default is "lora".
-        vision_encoder_trainable (str): Option to set vision encoder params as fully trainable (full), lora trainable (lora),
+        encoder_trainable (str): Option to set vision encoder params as fully trainable (full), lora trainable (lora),
             or frozen (frozen). The default is "frozen".
         fusion_trainable (str): Option to set fusion params as fully trainable (full), lora trainable (lora),
             or frozen (frozen). This applies to the vision projection head from the vision encoder to the decoder.
@@ -244,7 +244,7 @@ def lora_llama4_scout_17b_16e(
         EarlyFusionModel: Instantiation of a 17B Llama4 MOE LoRA model with encoders.
     """
     decoder_type = LoRATrainable(decoder_trainable.lower())
-    vision_encoder_type = LoRATrainable(vision_encoder_trainable.lower())
+    vision_encoder_type = LoRATrainable(encoder_trainable.lower())
     fusion_type = LoRATrainable(fusion_trainable.lower())
     assert LoRATrainable.FULL not in [
         decoder_type,
@@ -309,7 +309,7 @@ def lora_llama4_scout_17b_16e(
             "vision": LLAMA4_SPECIAL_TOKENS["<|patch|>"],
         },
         encoders_trainable={
-            "vision": vision_encoder_trainable != LoRATrainable.FROZEN,
+            "vision": encoder_trainable != LoRATrainable.FROZEN,
         },
         decoder_trainable=decoder_trainable != LoRATrainable.FROZEN,
         fusion_trainable=fusion_trainable != LoRATrainable.FROZEN,

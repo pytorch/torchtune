@@ -17,6 +17,9 @@ output_dir: /tmp/torchtune/llama4_17Bx16E/lora
 # Modeling Arguments
 model:
   _component_: torchtune.models.llama4.lora_llama4_scout_17b_16e
+  decoder_trainable: "lora"
+  encoder_trainable: "frozen"
+  fusion_trainable: "lora"
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
