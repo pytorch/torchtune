@@ -32,94 +32,20 @@ tokenizer:
   path: /tmp/Mistral-7B-Instruct-v0.2/tokenizer.model
   max_seq_len: 512
 
-# Dataset
+# Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.text_completion_dataset
-  source: trl-internal-testing/sentiment-trl-style
-  split: train
-  column: prompt
-  add_eos: False
-
-policy_model:
-  _component_: torchtune.models.mistral.mistral_7b
-
-# we need to manually build the mistral classifier model
-# because our reward model checkpoint has a larger vocabulary size (due to an added padding token)
-reward_and_value_model:
-  _component_: torchtune.modules.classifier_model
-  base_model_path: torchtune.models.mistral.mistral_7b
-  num_classes: 1
-  vocab_size: 32001
-  num_layers: 32
-  num_heads: 32
-  num_kv_heads: 8
-  attn_dropout: 0.0
-  embed_dim: 4096
-  intermediate_dim: 14336
-  max_seq_len: 32768
-  norm_eps: 1.0e-05
-
-# checkpointer for the policy model - update this if resuming from checkpoint
-checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
-  checkpoint_files:
-    [
-      "pytorch_model-00001-of-00003.bin",
-      "pytorch_model-00002-of-00003.bin",
-      "pytorch_model-00003-of-00003.bin",
-    ]
-  # this is the only place where you should update `recipe_checkpoint` if resuming training
-  recipe_checkpoint: null
-  output_dir: ${output_dir}
-  model_type: MISTRAL
-
-# this should be setup identically to the policy model checkpointer at the start of training
-# ensure `checkpoint_files` always points to the original policy weights, even if resuming training
-ref_policy_checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Mistral-7B-Instruct-v0.2/
-  checkpoint_files:
-    [
-      "pytorch_model-00001-of-00003.bin",
-      "pytorch_model-00002-of-00003.bin",
-      "pytorch_model-00003-of-00003.bin",
-    ]
-  output_dir: ${output_dir}/policy
-  model_type: MISTRAL
-
-# checkpointer for the value model - update `checkpoint_files` if resuming from checkpoint
-# since this model will be identical to the reward model it's helpful to initialise this
-# from the trained reward model weights
-value_checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/RM-Mistral-7B/
-  checkpoint_files:
-    [
-      "model-00001-of-00003.safetensors",
-      "model-00002-of-00003.safetensors",
-      "model-00003-of-00003.safetensors",
-    ]
-  output_dir: ${output_dir}/value
-  model_type: REWARD
-
-# checkpointer for the reward model, ensure `checkpoint_files`
-# always points to the original reward model weights, even if resuming training
-reward_checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/RM-Mistral-7B/
-  checkpoint_files:
-    [
-      "model-00001-of-00003.safetensors",
-      "model-00002-of-00003.safetensors",
-      "model-00003-of-00003.safetensors",
-    ]
-  output_dir: ${output_dir}/value
-  model_type: REWARD
-
-resume_from_checkpoint: False
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False  # True increases speed
+  split: train[:95%]
 seed: null
 shuffle: True
+
+# Validation
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
+dataset_val:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  split: train[95%:]
+batch_size_val: 8
 
 # Training env
 device: cuda
