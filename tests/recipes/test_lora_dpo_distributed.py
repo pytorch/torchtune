@@ -53,7 +53,7 @@ class TestLoRADPODistributedRecipe:
         ] + dummy_stack_exchange_dataset_config()
 
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     @pytest.mark.integration_test
     def test_training_state_on_resume(
         self, tmpdir, monkeypatch, save_adapter_weights_only
@@ -80,7 +80,7 @@ class TestLoRADPODistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run  --nnodes 1 --nproc_per_node 2 lora_dpo_distributed \
+        tune run  --nnodes 1 --nproc_per_node 4 lora_dpo_distributed \
             --config llama2/7B_lora_dpo \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
@@ -113,7 +113,7 @@ class TestLoRADPODistributedRecipe:
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
-        tune run  --nnodes 1 --nproc_per_node 2 lora_dpo_distributed \
+        tune run  --nnodes 1 --nproc_per_node 4 lora_dpo_distributed \
             --config llama2/7B_lora_dpo \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
@@ -151,7 +151,7 @@ class TestLoRADPODistributedRecipe:
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
-        tune run  --nnodes 1 --nproc_per_node 2 lora_dpo_distributed \
+        tune run  --nnodes 1 --nproc_per_node 4 lora_dpo_distributed \
             --config llama2/7B_lora_dpo \
             output_dir={tmpdir} \
             model.lora_attn_modules=['q_proj','v_proj'] \
