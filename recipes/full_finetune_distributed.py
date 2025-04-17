@@ -148,6 +148,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
+        self.cp_degree = cfg.get("context_parallel_dim", 1)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -156,6 +157,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             dp_replicate=data_replicate,
             dp_shard=data_shard,
             tp=self.tp_degree,
+            cp=self.cp_degree,
             world_size=self.world_size,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
@@ -874,7 +876,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
-
+                optional_context_parallel_context_manager = (
+                    training.get_context_parallel_context_manager(
+                        cp_enabled=self.cp_degree > 1,
+                        model=self._model,
+                        cp_mesh=self.world_mesh["cp"],
+                        model_inputs=list(batch.values()),
+                    )
+                )
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
                 current_num_tokens = (
@@ -884,7 +893,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_step(batch) * current_num_tokens
+                with optional_context_parallel_context_manager:
+                    current_loss = self._loss_step(batch) * current_num_tokens
                 running_loss += current_loss
 
                 # For optimizer in backward, we need to normalize before calling backward
@@ -893,8 +903,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(num_tokens)
                     torch.distributed.all_reduce(running_loss)
                     current_loss = current_loss * (self.dp_degree / num_tokens)
-
-                current_loss.backward()
+                with optional_context_parallel_context_manager:
+                    current_loss.backward()
                 # Optimizer step (if not fused in backward call)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
@@ -903,7 +913,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
-                        training.scale_grads(self._model, self.dp_degree / num_tokens)
+                        # TODO: check this
+                        training.scale_grads(
+                            self._model, self.dp_degree * self.cp_degree / num_tokens
+                        )
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),

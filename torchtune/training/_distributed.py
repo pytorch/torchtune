@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import contextlib
 import logging
 import os
 from dataclasses import dataclass
@@ -27,6 +28,8 @@ from torch.distributed.checkpoint.state_dict import (
 )
 from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
 from torch.distributed.fsdp import FSDPModule, ShardingStrategy
+from torch.distributed.tensor.experimental import context_parallel
+from torch.distributed.tensor.experimental._attention import set_rotate_method
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -53,26 +56,28 @@ class ParallelDims:
     dp_replicate: int
     dp_shard: int
     tp: int
+    cp: int
     world_size: int
 
     def __post_init__(self):
         self._validate()
 
     def _validate(self):
-        dp_replicate, dp_shard, tp = (
+        dp_replicate, dp_shard, tp, cp = (
             self.dp_replicate,
             self.dp_shard,
             self.tp,
+            self.cp,
         )
-        for d in (dp_replicate, tp):
+        for d in (dp_replicate, tp, cp):
             assert d >= 1, "Parallelism degree should be >= 1, except for dp_shard"
 
         assert dp_shard == -1 or dp_shard >= 1, " dp_shard must -1 or >=1."
         if dp_shard < 0:
-            self.dp_shard = dp_shard = self.world_size // (dp_replicate * tp)
+            self.dp_shard = dp_shard = self.world_size // (dp_replicate * tp * cp)
         assert dp_shard >= 1
 
-        assert dp_replicate * dp_shard * tp == self.world_size, (
+        assert dp_replicate * dp_shard * tp * cp == self.world_size, (
             f"Invalid parallel dims: dp_replicate({dp_replicate}) * dp_shard({dp_shard}) * "
             f"tp({tp}) != WORLD_SIZE({self.world_size})"
         )
@@ -81,8 +86,8 @@ class ParallelDims:
         dims = []
         names = []
         for d, name in zip(
-            [self.dp_replicate, self.dp_shard, self.tp],
-            ["dp_replicate", "dp_shard", "tp"],
+            [self.dp_replicate, self.dp_shard, self.tp, self.cp],
+            ["dp_replicate", "dp_shard", "tp", "cp"],
         ):
             if d > 1:
                 dims.append(d)
@@ -95,14 +100,29 @@ class ParallelDims:
         # initialized:
         # Mesh for data loading (no communication on this mesh)
         dp_mesh_dim_names = []
+        dp_shard_cp_mesh_dim_names = []
+        dp_cp_mesh_dim_names = []
 
         if self.dp_replicate_enabled:
             dp_mesh_dim_names.append("dp_replicate")
+            dp_cp_mesh_dim_names.append("dp_replicate")
         if self.dp_shard_enabled:
             dp_mesh_dim_names.append("dp_shard")
+            dp_shard_cp_mesh_dim_names.append("dp_shard")
+            dp_cp_mesh_dim_names.append("dp_shard")
+        if self.cp_enabled:
+            dp_mesh_dim_names.append("cp")
+            dp_cp_mesh_dim_names.append("cp")
 
         if dp_mesh_dim_names != []:
             mesh[tuple(dp_mesh_dim_names)]._flatten(mesh_dim_name="dp")
+
+        if dp_shard_cp_mesh_dim_names != []:
+            mesh[tuple(dp_shard_cp_mesh_dim_names)]._flatten(
+                mesh_dim_name="dp_shard_cp"
+            )
+        if dp_cp_mesh_dim_names != []:
+            mesh[tuple(dp_cp_mesh_dim_names)]._flatten(mesh_dim_name="dp_cp")
 
         return mesh
 
@@ -121,6 +141,10 @@ class ParallelDims:
     @property
     def tp_enabled(self):
         return self.tp > 1
+
+    @property
+    def cp_enabled(self):
+        return self.cp > 1
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -710,3 +734,27 @@ def prepare_mha_for_tp(
     if is_fusion_model:
         model.decoder = decoder
     return model
+
+
+# TODO: move this elsewhere
+
+
+def get_context_parallel_context_manager(
+    cp_enabled: bool,
+    model: TransformerDecoder,  # TODO: generalize
+    cp_mesh: DeviceMesh,
+    model_inputs: List[torch.Tensor],
+) -> contextlib.contextmanager:
+    if not cp_enabled:
+        return contextlib.nullcontext()
+    # if "cp" not in mesh:
+    #     raise ValueError("CP mesh not found in device mesh")
+    # cp_mesh = mesh["cp"]
+    set_rotate_method("allgather")  # TODO: hardcode for now
+    buffers = list(model.buffers())
+    return context_parallel(
+        cp_mesh,
+        buffers=model_inputs + buffers,
+        buffer_seq_dims=[1] * len(model_inputs) + [0] * len(buffers),
+        no_restore_buffers=set(model_inputs),
+    )

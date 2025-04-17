@@ -11,6 +11,7 @@ from torchtune.training._activation_offloading import (
 from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     gather_cpu_state_dict,
+    get_context_parallel_context_manager,
     get_distributed_backend,
     get_full_optimizer_state_dict,
     get_shard_conditions,
@@ -142,4 +143,5 @@ __all__ = [
     "get_distributed_backend",
     "disable_dropout",
     "DATALOADER_KEY",
+    "get_context_parallel_context_manager",
 ]
