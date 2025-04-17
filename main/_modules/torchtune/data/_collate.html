@@ -509,6 +509,7 @@
     <span class="n">keys_to_pad</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
     <span class="n">pad_to_multiple_of</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">stack_on_new_dim</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A generic padding collation function which pads ``keys_to_pad`` entries in a</span>
@@ -530,6 +531,7 @@
 <span class="sd">            ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key</span>
 <span class="sd">            padding values.</span>
 <span class="sd">        pad_to_multiple_of (int): If &gt; 1, pad the sequence to a multiple of this number.</span>
+<span class="sd">        stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor: The padded tensor of input ids with shape ``[batch_size, max_seq_len]``.</span>
@@ -594,8 +596,14 @@
 
     <span class="c1"># let&#39;s pull out any batch elements which don&#39;t need any padding</span>
     <span class="c1"># and convert to tensors</span>
+    <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="s2">&quot;encoder_input&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+        <span class="n">batched_encodings</span> <span class="o">=</span> <span class="n">_stack_encoder_input</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_dim</span><span class="o">=</span><span class="n">stack_on_new_dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">batched_encodings</span> <span class="o">!=</span> <span class="p">{}:</span>
+            <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batched_encodings</span>
     <span class="n">batch_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keys_to_pad</span><span class="p">]</span>
-    <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch_keys</span><span class="p">}</span>
+    <span class="n">output_dict</span> <span class="o">|=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch_keys</span><span class="p">}</span>
 
     <span class="c1"># now pad the remaining keys</span>
     <span class="n">pad_fn</span> <span class="o">=</span> <span class="p">(</span>
@@ -706,8 +714,6 @@
     <span class="k">if</span> <span class="s2">&quot;encoder_input&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
         <span class="n">batched_encodings</span> <span class="o">=</span> <span class="n">_stack_encoder_input</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_dim</span><span class="o">=</span><span class="n">stack_on_new_dim</span><span class="p">)</span>
-        <span class="c1"># TODO: fix this hack</span>
-        <span class="n">batched_encodings</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batched_encodings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="p">{}}</span>
         <span class="k">if</span> <span class="n">batched_encodings</span> <span class="o">!=</span> <span class="p">{}:</span>
             <span class="n">batch_dict</span><span class="p">[</span><span class="s2">&quot;encoder_input&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batched_encodings</span>
     <span class="k">return</span> <span class="n">batch_dict</span></div>
@@ -1135,17 +1141,27 @@
     <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span></div>
 
 
+<span class="c1"># improve this</span>
+<span class="c1"># add to other functions</span>
+<span class="c1"># update two generation recipes</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_stack_encoder_input</span><span class="p">(</span><span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">new_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Recursively traverse dict for list of tensors to stack or cat&quot;&quot;&quot;</span>
     <span class="n">stacked_batch</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span>
+        <span class="p">):</span>  <span class="c1"># list base case</span>
             <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batch</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">i</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">stacked_batch</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">new_dim</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>  <span class="c1"># tensor base case</span>
             <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
-            <span class="n">stacked_batch</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_stack_encoder_input</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">new_dim</span><span class="p">)</span>
+            <span class="n">stacked_batch</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">new_dim</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>  <span class="c1"># intermediate node</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+            <span class="n">new_dict</span> <span class="o">=</span> <span class="n">_stack_encoder_input</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">new_dim</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new_dict</span> <span class="o">!=</span> <span class="p">{}:</span>
+                <span class="n">stacked_batch</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_dict</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2"> for key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">stacked_batch</span>
