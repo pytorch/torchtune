@@ -761,7 +761,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.tp_degree,
+                    pad_to_multiple_of=self.tp_degree
+                    * self.cp_degree
+                    * 2,  # TODO: overkill? https://github.com/pytorch/pytorch/blob/4f62dccbdae90d266e3cce4a499b77008f8f840f/torch/distributed/tensor/experimental/_attention.py#L1246
                 )
                 if not packed
                 else padded_collate_packed

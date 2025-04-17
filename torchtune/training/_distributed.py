@@ -10,7 +10,7 @@ import logging
 import os
 from dataclasses import dataclass
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -30,6 +30,7 @@ from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
 from torch.distributed.fsdp import FSDPModule, ShardingStrategy
 from torch.distributed.tensor.experimental import context_parallel
 from torch.distributed.tensor.experimental._attention import set_rotate_method
+from torch.nn.attention import sdpa_kernel, SDPBackend
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -736,25 +737,77 @@ def prepare_mha_for_tp(
     return model
 
 
-# TODO: move this elsewhere
-
-
+@contextlib.contextmanager
 def get_context_parallel_context_manager(
     cp_enabled: bool,
     model: TransformerDecoder,  # TODO: generalize
     cp_mesh: DeviceMesh,
     model_inputs: List[torch.Tensor],
-) -> contextlib.contextmanager:
-    if not cp_enabled:
-        return contextlib.nullcontext()
-    # if "cp" not in mesh:
-    #     raise ValueError("CP mesh not found in device mesh")
-    # cp_mesh = mesh["cp"]
+):
     set_rotate_method("allgather")  # TODO: hardcode for now
     buffers = list(model.buffers())
-    return context_parallel(
-        cp_mesh,
-        buffers=model_inputs + buffers,
-        buffer_seq_dims=[1] * len(model_inputs) + [0] * len(buffers),
-        no_restore_buffers=set(model_inputs),
-    )
+    if not cp_enabled:
+        return contextlib.nullcontext()
+    else:
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                sdpa_kernel(
+                    [
+                        SDPBackend.FLASH_ATTENTION,
+                        SDPBackend.EFFICIENT_ATTENTION,
+                        SDPBackend.CUDNN_ATTENTION,
+                    ]
+                )
+            ).enter_context(
+                context_parallel(
+                    cp_mesh,
+                    buffers=model_inputs + buffers,
+                    buffer_seq_dims=[1] * len(model_inputs) + [0] * len(buffers),
+                    no_restore_buffers=set(model_inputs),
+                )
+            )
+            yield
+
+
+# TODO: move this elsewhere
+
+
+# @contextlib.contextma
+# def get_context_parallel_context_manager(
+#     cp_enabled: bool,
+#     model: TransformerDecoder,  # TODO: generalize
+#     cp_mesh: DeviceMesh,
+#     model_inputs: List[torch.Tensor],
+# ) -> Union[Generator[None, None, None], contextlib.nullcontext]:
+#     if not cp_enabled:
+#         return contextlib.nullcontext()
+#     # if "cp" not in mesh:
+#     #     raise ValueError("CP mesh not found in device mesh")
+#     # cp_mesh = mesh["cp"]
+#     set_rotate_method("allgather")  # TODO: hardcode for now
+#     buffers = list(model.buffers())
+
+#     @contextlib.contextmanager
+#     def context():
+#         with contextlib.ExitStack() as stack:
+#             stack.enter_context(
+#                 sdpa_kernel(
+#                     [
+#                         SDPBackend.FLASH_ATTENTION,
+#                         SDPBackend.EFFICIENT_ATTENTION,
+#                         SDPBackend.CUDNN_ATTENTION,
+#                     ]
+#                 )
+#             )
+
+#             cp_context = context_parallel(
+#                 cp_mesh,
+#                 buffers=model_inputs + buffers,
+#                 buffer_seq_dims=[1] * len(model_inputs) + [0] * len(buffers),
+#                 no_restore_buffers=set(model_inputs),
+#             )
+
+#             stack.enter_context(cp_context)
+#         yield
+
+#     return context
