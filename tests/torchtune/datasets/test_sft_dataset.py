@@ -95,10 +95,10 @@ class TestSFTDataset:
         ]
         prompt_lengths = (12, 3)
         expected_labels = [
-            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
-            + [3, 7, 2, 4, 2, 3, -1]
-            + [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
-            + [1, 6, -1]
+            [CROSS_ENTROPY_IGNORE_IDX] * (prompt_lengths[0] - 1)
+            + [3, 7, 2, 4, 2, 3, -1, CROSS_ENTROPY_IGNORE_IDX]
+            + [CROSS_ENTROPY_IGNORE_IDX] * (prompt_lengths[1] - 1)
+            + [1, 6, -1, CROSS_ENTROPY_IGNORE_IDX]
         ]
         ds = SFTDataset(
             source="iam/agoofy/goober",

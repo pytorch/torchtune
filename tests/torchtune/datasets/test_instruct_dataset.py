@@ -26,9 +26,10 @@ class TestInstructDataset:
         ]
         prompt_lengths = (10, 9)
         expected_labels = [
-            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0] + [2, 2, 5, 2, 2, 6, -1],
-            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
-            + [8, 3, 15, 3, 4, 9, 3, 15, -1],
+            [CROSS_ENTROPY_IGNORE_IDX] * (prompt_lengths[0] - 1)
+            + [2, 2, 5, 2, 2, 6, -1, CROSS_ENTROPY_IGNORE_IDX],
+            [CROSS_ENTROPY_IGNORE_IDX] * (prompt_lengths[1] - 1)
+            + [8, 3, 15, 3, 4, 9, 3, 15, -1, CROSS_ENTROPY_IGNORE_IDX],
         ]
 
         system_prompt = "follow this prompt"
@@ -51,8 +52,8 @@ class TestInstructDataset:
             assert prompt == expected_tokenized_prompts[i]
             if train_on_input:
                 assert (
-                    label[system_prompt_offset:]
-                    == expected_tokenized_prompts[i][system_prompt_offset:]
+                    label[system_prompt_offset:-1]
+                    == expected_tokenized_prompts[i][system_prompt_offset + 1 :]
                 )
             else:
                 assert label == expected_labels[i]
