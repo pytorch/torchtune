@@ -376,11 +376,16 @@ class VisionTransformer(nn.Module):
 
         # transformer with optional hidden layer outputs
         x = x.reshape(bsz_and_n_imgs, n_tiles * n_tokens, embed_dim)
-        for layer_idx, transformer_layer in enumerate(self.layers):
+        layer_idx = 0
+        for transformer_layer in self.layers:
             if layer_idx in self.out_indices:
                 h = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
                 hidden_states.append(h)
             x = transformer_layer(x)
+            layer_idx += 1
+        if layer_idx in self.out_indices:
+            h = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
+            hidden_states.append(h)
 
         # norm
         x = self.ln_post(x)
