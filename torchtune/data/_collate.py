@@ -60,6 +60,7 @@ def padded_collate(
     keys_to_pad: List[str],
     padding_idx: Union[int, Dict[str, int]],
     pad_to_multiple_of: int = 1,
+    stack_on_new_dim: bool = False,
 ):
     """
     A generic padding collation function which pads ``keys_to_pad`` entries in a
@@ -81,6 +82,7 @@ def padded_collate(
             ``keys_to_pad`` elements, or a mapping with keys identical to ``keys_to_pad`` with per-key
             padding values.
         pad_to_multiple_of (int): If > 1, pad the sequence to a multiple of this number.
+        stack_on_new_dim (bool): If True, stack any encoder tensors on a new dimension. Default is False
 
     Returns:
         torch.Tensor: The padded tensor of input ids with shape ``[batch_size, max_seq_len]``.
@@ -145,8 +147,14 @@ def padded_collate(
 
     # let's pull out any batch elements which don't need any padding
     # and convert to tensors
+    output_dict = {}
+    if "encoder_input" in batch[0]:
+        x = [x.pop("encoder_input") for x in batch]
+        batched_encodings = _stack_encoder_input(x, new_dim=stack_on_new_dim)
+        if batched_encodings != {}:
+            output_dict["encoder_input"] = batched_encodings
     batch_keys = [k for k in batch[0].keys() if k not in keys_to_pad]
-    output_dict = {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
+    output_dict |= {k: torch.tensor([x[k] for x in batch]) for k in batch_keys}
 
     # now pad the remaining keys
     pad_fn = (
@@ -257,8 +265,6 @@ def padded_collate_sft(
     if "encoder_input" in batch[0]:
         x = [x["encoder_input"] for x in batch]
         batched_encodings = _stack_encoder_input(x, new_dim=stack_on_new_dim)
-        # TODO: fix this hack
-        batched_encodings = {k: v for k, v in batched_encodings.items() if v != {}}
         if batched_encodings != {}:
             batch_dict["encoder_input"] = batched_encodings
     return batch_dict
@@ -686,17 +692,27 @@ def padded_collate_dpo(
     return concatenated_input_ids, concatenated_labels
 
 
+# improve this
+# add to other functions
+# update two generation recipes
 def _stack_encoder_input(batch: List[Dict[str, Any]], new_dim=False) -> Dict[str, Any]:
     """Recursively traverse dict for list of tensors to stack or cat"""
     stacked_batch = {}
     for k, v in batch[0].items():
-        if isinstance(v, list) and all(isinstance(x, torch.Tensor) for x in v):
+        if isinstance(v, list) and all(
+            isinstance(x, torch.Tensor) for x in v
+        ):  # list base case
             v = [j for i in batch for j in i[k]]
             if len(v) > 0:
                 stacked_batch[k] = torch.stack(v) if new_dim else torch.cat(v)
-        elif isinstance(v, dict):
+        elif isinstance(v, torch.Tensor):  # tensor base case
             v = [i[k] for i in batch]
-            stacked_batch[k] = _stack_encoder_input(v, new_dim)
+            stacked_batch[k] = torch.stack(v) if new_dim else torch.cat(v)
+        elif isinstance(v, dict):  # intermediate node
+            v = [i[k] for i in batch]
+            new_dict = _stack_encoder_input(v, new_dim)
+            if new_dict != {}:
+                stacked_batch[k] = new_dict
         else:
             raise ValueError(f"Unsupported type {type(v)} for key {k}")
         return stacked_batch

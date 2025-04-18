@@ -284,7 +284,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
     def _convert_tokens_to_string(self, tokens: List[str]) -> str:
         """Converts a sequence of tokens (string) in a single string."""
-        text = "".join(tokens)
+        text = "".join([t for t in tokens if t is not None])
         text = bytearray([self.byte_decoder[c] for c in text]).decode(
             "utf-8", errors=self.errors
         )

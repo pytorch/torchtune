@@ -164,9 +164,9 @@ class VisionRotaryPositionalEmbeddings(nn.Module):
         self.rope_init()
 
     def rope_init(self):
+        dim = self.dim // 2
         theta = 1.0 / (
-            self.base
-            ** (torch.arange(0, self.dim, 2)[: (self.dim // 4)].float() / self.dim)
+            self.base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim)
         )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache()
