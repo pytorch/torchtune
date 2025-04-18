@@ -2,8 +2,8 @@ import ray
 import torch
 from readerwriterlock import rwlock
 from torchrl.collectors.collectors import (
-    LocalWeightUpdaterBase,
-    RemoteWeightUpdaterBase,
+    WeightUpdateReceiverBase,
+    WeightUpdateSenderBase,
 )
 from torchtune import utils
 from torchtune.dev.rl.utils import stateless_init_process_group
@@ -12,7 +12,7 @@ log = utils.get_logger("DEBUG")
 
 
 @ray.remote(num_cpus=4, num_gpus=1)
-class VLLMParameterServer(RemoteWeightUpdaterBase):
+class VLLMParameterServer(WeightUpdateSenderBase):
     def __init__(self, cfg, vllm_master_addresses, vllm_master_ports, env_vars):
         log.info("in param server init")
         super().__init__()

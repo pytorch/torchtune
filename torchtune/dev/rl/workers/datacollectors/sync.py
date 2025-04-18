@@ -1,6 +1,6 @@
 import time
 from functools import partial
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import ray
 import torch
@@ -16,9 +16,9 @@ from tensordict import lazy_stack, NonTensorStack, TensorDictBase
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchrl.collectors import (
-    LocalWeightUpdaterBase,
-    RemoteWeightUpdaterBase,
     SyncDataCollector,
+    WeightUpdateReceiverBase,
+    WeightUpdateSenderBase,
 )
 
 from torchrl.envs import LLMEnv
@@ -47,8 +47,12 @@ class SyncLLMCollector(SyncDataCollector):
         total_dialog_turns: int = -1,
         async_envs: bool = False,
         reset_at_each_iter: bool = False,
-        local_weight_updater: LocalWeightUpdaterBase | None = None,
-        remote_weight_updater: RemoteWeightUpdaterBase | None = None,
+        weight_update_receiver: WeightUpdateReceiverBase
+        | Callable[[], WeightUpdateReceiverBase]
+        | None = None,
+        weight_update_sender: WeightUpdateSenderBase
+        | Callable[[], WeightUpdateSenderBase]
+        | None = None,
     ):
         if async_envs:
             raise NotImplementedError
@@ -57,6 +61,7 @@ class SyncLLMCollector(SyncDataCollector):
         self.rollout_queue = queue
         self.worker_id = worker_id
         self._is_collector_zero = self.worker_id == 0
+        print(f"{self._is_collector_zero=}")
 
         self.tp_size = self.cfg.vllm.tp_size
         self.batch_size = self.cfg.vllm.batch_size
@@ -104,7 +109,7 @@ class SyncLLMCollector(SyncDataCollector):
         env = LLMEnv.from_dataloader(
             dataloader=dataloader,
             tokenizer=None,
-            str2str=True,
+            from_text=True,
             batch_size=self.batch_size,
             repeats=self.cfg.grpo_samples,
         )
@@ -114,8 +119,8 @@ class SyncLLMCollector(SyncDataCollector):
             policy=policy,
             frames_per_batch=dialog_turns_per_batch,
             total_frames=total_dialog_turns,
-            local_weight_updater=local_weight_updater,
-            remote_weight_updater=remote_weight_updater,
+            weight_update_receiver=weight_update_receiver,
+            weight_update_sender=weight_update_sender,
             reset_at_each_iter=reset_at_each_iter,
             use_buffers=False,
             # This argument allows a non-TensorDictModule policy to be assumed
@@ -126,12 +131,12 @@ class SyncLLMCollector(SyncDataCollector):
         log.info("done init LLMCollector")
 
     @property
-    def remote_weight_updater(self) -> RemoteWeightUpdaterBase:
-        return self._remote_weight_updater
+    def weight_update_sender(self) -> WeightUpdateSenderBase:
+        return self._weight_update_sender
 
-    @remote_weight_updater.setter
-    def remote_weight_updater(self, value: RemoteWeightUpdaterBase | None):
-        self._remote_weight_updater = value
+    @weight_update_sender.setter
+    def weight_update_sender(self, value: WeightUpdateSenderBase | None):
+        self._weight_update_sender = value
 
     def _postprocess_for_queue(self, data):
         # local import to avoid vLLM no CUDA GPUs available error
@@ -196,10 +201,11 @@ class SyncLLMCollector(SyncDataCollector):
         worker_ids: int | list[int] | torch.device | list[torch.device] | None = None,
         **kwargs,
     ) -> None:
-        self.local_weight_updater(policy_weights, **kwargs)
+        self.weight_update_receiver(policy_weights, **kwargs)
 
     def set_metric_logger(self, logger):
         """Store the MetricLoggerActor handle."""
+        print(f"{self._is_collector_zero=} setting metric logger")
         if self._is_collector_zero:
             self._metric_logger = logger
 
@@ -244,16 +250,14 @@ class SyncLLMCollector(SyncDataCollector):
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
-    def run(self):
+    async def run(self):
         num_steps = (self.cfg.num_steps // self.cfg.vllm.num_workers) + 1
         for i in range(num_steps):
             self.rollout(i)
             if i % self.cfg.vllm.steps_before_sync == 0:
                 log.info(f"{self.worker_id} about to update weights")
-                ray.get(
-                    self.remote_weight_updater.update_weights.remote(
-                        weights=None, worker_ids=self.worker_id
-                    )
+                await self.weight_update_sender.update_weights.remote(
+                    weights=None, worker_ids=self.worker_id
                 )
 
     def rollout(self, idx) -> TensorDictBase:
