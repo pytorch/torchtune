@@ -30,6 +30,7 @@ log = get_logger("INFO")
 def compile_model(
     model: Union[TransformerDecoder, DeepFusionModel],
     verbose: bool = True,
+    max_autotune: bool = False,
 ) -> None:
     """
     Utility to compile a transformer model inplace. On PyTorch nightlies we use per-layer compile
@@ -54,10 +55,13 @@ def compile_model(
         if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
             m, TransformerCrossAttentionLayer
         ):
-            m.compile(backend=backend)
+            if max_autotune:
+                m.compile(backend=backend, mode="max-autotune")
+            else:
+                m.compile(backend=backend)
 
 
-def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
+def compile_loss(loss: nn.Module, verbose: bool = True, max_autotune: bool = False) -> nn.Module:
     """
     Utility to compile and return loss function. If the loss function is chunked cross-entropy,
     we only compile the upcast + cross-entropy calculation, not the chunking. For other losses
@@ -71,18 +75,24 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
             CEWithChunkedOutputLoss) only the upcast and cross-entropy calculation compiled.
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    
     if verbose:
         log.info("Compiling loss with torch.compile...")
+    
+    mode = None
+    if max_autotune:
+        mode = "max-autotune"
+    
     if isinstance(loss, CEWithChunkedOutputLoss):
         loss.compute_cross_entropy = torch.compile(
-            loss.compute_cross_entropy, backend=backend
+            loss.compute_cross_entropy, backend=backend, mode=mode
         )
     elif isinstance(loss, ForwardKLWithChunkedOutputLoss):
-        loss.fkl_loss = torch.compile(loss.fkl_loss, backend=backend)
+        loss.fkl_loss = torch.compile(loss.fkl_loss, backend=backend, mode=mode)
     elif isinstance(loss, ReverseKLWithChunkedOutputLoss):
-        loss.rkl_loss = torch.compile(loss.rkl_loss, backend=backend)
+        loss.rkl_loss = torch.compile(loss.rkl_loss, backend=backend, mode=mode)
     elif isinstance(loss, SymmetricKLWithChunkedOutputLoss):
-        loss.sym_kl_loss = torch.compile(loss.sym_kl_loss, backend=backend)
+        loss.sym_kl_loss = torch.compile(loss.sym_kl_loss, backend=backend, mode=mode)
     else:
-        loss = torch.compile(loss, backend=backend)
+        loss = torch.compile(loss, backend=backend, mode=mode)
     return loss
