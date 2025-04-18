@@ -135,6 +135,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             )
             self._log_peak_memory_stats = False
 
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.distributed_backend = training.get_distributed_backend(
+            cfg.device, offload_ops_to_cpu=True
+        )
+        init_process_group(self.distributed_backend)
+
         self.world_size, self.rank = get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
 
@@ -1070,9 +1078,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-
-    distributed_backend = "xpu:xccl" if cfg.get("device", "cpu")=="xpu" else "cuda:nccl"
-    init_process_group(distributed_backend + ",cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
