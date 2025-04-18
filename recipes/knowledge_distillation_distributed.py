@@ -123,7 +123,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         self.distributed_backend = training.get_distributed_backend(
             cfg.device,
             offload_ops_to_cpu=self.fsdp_cpu_offload
-                               or self._enable_async_checkpointing,
+            or self._enable_async_checkpointing,
         )
         init_process_group(self.distributed_backend)
 
