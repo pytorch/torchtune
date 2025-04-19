@@ -4,18 +4,45 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
+from dataclasses import dataclass
+from typing import Optional, Tuple, TypeVar
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from torchtune.rlhf._types import ChosenRejectedOutputs
-
 from torchtune.utils._logging import deprecated
 
+T = TypeVar("T", bound=dataclass)
 
-class DPOLoss(nn.Module):
+
+class PreferenceLoss(nn.Module):
+    @property
+    def is_reference_free(self) -> bool:
+        return False
+
+    def forward(
+        self,
+        chosen_rejected_policy: T,
+        chosen_rejected_reference: Optional[T],
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Compute the PreferenceLoss for a batch of policy and reference model log probabilities.
+
+        Args:
+            chosen_rejected_policy (T): Policy log-probs and logits required for the calculation.
+            chosen_rejected_reference (Optional[T]): Reference log-probs and logits required for the calculation.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
+                - losses: The DPO loss for each example in the batch.
+                - chosen_rewards: Rewards for the chosen responses.
+                - rejected_rewards: Rewards for the rejected responses.
+        """
+
+
+class DPOLoss(PreferenceLoss):
     """
     Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
     Simply stated from the paper:
@@ -38,6 +65,10 @@ class DPOLoss(nn.Module):
         beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
         label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
     """
+
+    @property
+    def is_reference_free(self) -> bool:
+        return False
 
     def __init__(
         self,
@@ -93,7 +124,7 @@ class DPOLoss(nn.Module):
 
 
 @deprecated(msg="RSOLoss will be deprecated in an upcoming release.")
-class RSOLoss(nn.Module):
+class RSOLoss(PreferenceLoss):
     """
     Statistical Rejection Sampling Optimization (RSO) or "hinge" loss module: https://arxiv.org/abs/2309.06657.
     Intuition from the paper:
