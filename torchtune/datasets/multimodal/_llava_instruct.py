@@ -122,7 +122,7 @@ def llava_instruct_dataset(
         raise ValueError("Multimodal datasets don't support packing yet.")
 
     message_transform = ShareGPTToMessages(
-        train_on_input=False,
+        masking_strategy="train_on_assistant",
         column_map=column_map,
         new_system_prompt=new_system_prompt,
         image_dir=Path(image_dir),

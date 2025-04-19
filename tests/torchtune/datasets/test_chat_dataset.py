@@ -55,7 +55,7 @@ class TestChatDataset:
             data_files=str(ASSETS / "chat_tiny.json"),
             conversation_column="conversations",
             conversation_style="sharegpt",
-            train_on_input=False,
+            masking_strategy="train_on_assistant",
             packed=False,
             split="train",
         )

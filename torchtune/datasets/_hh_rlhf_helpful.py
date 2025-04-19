@@ -16,7 +16,8 @@ def hh_rlhf_helpful_dataset(
     *,
     source: str = "RLHFlow/HH-RLHF-Helpful-standard",
     column_map: Optional[Dict[str, str]] = None,
-    train_on_input: bool = False,
+    masking_strategy: str = "train_on_assistant",
+    train_on_input: Optional[bool] = None,
     new_system_prompt: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
@@ -27,6 +28,13 @@ def hh_rlhf_helpful_dataset(
     data
     <https://huggingface.co/datasets/RLHFlow/HH-RLHF-Helpful-standard>`_. This is
     the processed helpful subset of the original dataset in a standardized format.
+
+    Masking of the prompt during training is controlled by the ``masking_strategy`` parameter which is
+    set to ``train_on_assistant`` by default.
+    
+    - ``train_on_all``: both user and assistant messages are unmasked
+    - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+    - ``train_on_last``: only the last assistant message is unmasked
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -39,7 +47,10 @@ def hh_rlhf_helpful_dataset(
             in the message transform :class:`~torchtune.data.ChosenRejectedToMessages` to the new column names in
             the dataset. Keys should be "chosen" and "rejected" and values should be the actual column names.
             If None, keep the default columns "chosen" and "rejected".
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        masking_strategy (str): Masking strategy to use for model training.
+            Must be one of: ``train_on_all``, ``train_on_assistant``, ``train_on_last``.
+            Default is "train_on_assistant".
+        train_on_input (bool): Deprecated. Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen
             and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE
             any system messages already present in the dataset. Default is None.
@@ -58,6 +69,7 @@ def hh_rlhf_helpful_dataset(
         train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
+        masking_strategy=masking_strategy,
     )
 
     return PreferenceDataset(

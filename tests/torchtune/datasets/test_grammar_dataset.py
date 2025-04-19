@@ -36,7 +36,7 @@ class TestGrammarDataset:
             ]
         )
 
-        grammar_ds = grammar_dataset(tokenizer=tokenizer, train_on_input=True)
+        grammar_ds = grammar_dataset(tokenizer=tokenizer, masking_strategy="train_on_all")
         input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
         assert input == [0, 7, 2, 3, 6, 4, 8, 5, 8, 5, 7, 4, 3, 6, 4, 8, 9, 2, 9, -1]

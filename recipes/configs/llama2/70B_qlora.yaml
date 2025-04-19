@@ -47,7 +47,7 @@ save_adapter_weights_only: False
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
   packed: False  # True increases speed
-  train_on_input: True
+  masking_strategy: train_on_all
 seed: null
 shuffle: True
 batch_size: 2

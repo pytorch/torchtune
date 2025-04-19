@@ -53,11 +53,11 @@ class ConcatDataset(Dataset):
           - _component_: torchtune.datasets.instruct_dataset
             source: vicgalle/alpaca-gpt4
             split: train
-            train_on_input: True
+            masking_strategy: train_on_all
             packed: True
           - _component_: torchtune.datasets.grammar_dataset
             split: train[:1%]
-            train_on_input: False
+            masking_strategy: train_on_assistant
             packed: True
 
     This class primarily focuses on providing a unified interface to access elements from multiple datasets,

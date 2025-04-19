@@ -44,7 +44,7 @@ class TestKDSingleDeviceRecipe:
             f"dtype={dtype_str}",
             "enable_activation_checkpointing=False",
             "enable_activation_offloading=False",
-            "dataset.train_on_input=False",
+            "dataset.masking_strategy='train_on_assistant'",
             "seed=9",
             f"epochs={epochs}",
             "max_steps_per_epoch=2",

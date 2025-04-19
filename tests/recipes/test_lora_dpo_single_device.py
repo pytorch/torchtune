@@ -40,7 +40,7 @@ class TestLoRADPOSingleDeviceRecipe:
         return [
             "batch_size=8",
             f"dtype={dtype_str}",
-            "dataset.train_on_input=False",
+            "dataset.masking_strategy=train_on_assistant",
             "seed=9",
             f"epochs={epochs}",
             "max_steps_per_epoch=2",
