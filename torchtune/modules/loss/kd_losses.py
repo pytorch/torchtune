@@ -25,6 +25,21 @@ class ForwardKLLoss(torch.nn.Module):
         super().__init__()
         self.ignore_index = ignore_index
 
+    def pad_logits(self,student_logits, teacher_logits):
+        student_size, teacher_size = student_logits.size(-1), teacher_logits.size(-1)
+        if student_size != teacher_size:
+            pad_size = abs(student_size - teacher_size)
+            pad_tensor = torch.zeros(
+                (*teacher_logits.shape[:-1], pad_size),
+                dtype=teacher_logits.dtype,
+                device=teacher_logits.device,
+            )
+            return (
+                (torch.cat([student_logits, pad_tensor], dim=-1), teacher_logits)
+                if student_size < teacher_size
+                else (student_logits, torch.cat([teacher_logits, pad_tensor], dim=-1))
+            )
+        return student_logits, teacher_logits
     def forward(
         self,
         student_logits: torch.Tensor,
@@ -49,6 +64,16 @@ class ForwardKLLoss(torch.nn.Module):
         teacher_prob = F.softmax(teacher_logits, dim=-1, dtype=torch.float32)
         inf_mask = torch.isinf(student_logits)
         student_logprob = F.log_softmax(student_logits, dim=-1, dtype=torch.float32)
+        student_logprob, teacher_prob = self.pad_logits(
+            student_logprob,
+            teacher_prob,
+        )
+        inf_mask,_ = self.pad_logits(
+            inf_mask,
+            teacher_prob,
+        )
+        inf_mask = torch.isinf(student_logprob)
+
         prod_probs = torch.masked_fill(teacher_prob * student_logprob, inf_mask, 0)
         x = torch.sum(prod_probs, dim=-1).view(-1)
         mask = (labels != self.ignore_index).int()
@@ -59,6 +84,7 @@ class ForwardKLLoss(torch.nn.Module):
         if sum_masks == 0:
             return torch.tensor(0.0, device=x.device)
         return -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
+
 
 
 class ReverseKLLoss(torch.nn.Module):
