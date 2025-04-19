@@ -192,8 +192,8 @@ pip install torchtune
 ### Install nightly release
 
 ```bash
-# Install PyTorch, torchvision, torchao nightlies
-pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126
+# Install PyTorch, torchvision, torchao nightlies.
+pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126/xpu
 pip install --pre --upgrade torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 
@@ -249,7 +249,7 @@ tune download meta-llama/Meta-Llama-3.1-8B-Instruct \
 You can finetune Llama3.1 8B with LoRA on a single GPU using the following command:
 
 ```bash
-tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
+tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device 
 ```
 
 For distributed training, tune CLI integrates with [torchrun](https://pytorch.org/docs/stable/elastic/run.html).

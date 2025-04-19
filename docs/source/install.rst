@@ -19,7 +19,7 @@ nightly versions with the following commands:
     pip install torch torchvision torchao
 
     # Or nightly install for latest features
-    pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126
+    pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126/xpu
 
 
 Install via PyPI
@@ -87,5 +87,6 @@ to the package *without* installing via ``git clone``, you can install with the 
 
 If you already have PyTorch installed, torchtune will default to using that version. However, if you want to
 use the nightly version of PyTorch, you can append the ``--force-reinstall`` option to the above command. If you
-opt for this install method, you will likely need to change the "cpu" suffix in the index url to match your CUDA
-version. For example, if you are running CUDA 12, your index url would be "https://download.pytorch.org/whl/nightly/cu126".
+opt for this install method, you will likely need to change the "cpu" suffix in the index url to match your hardware backend.
+For example, if you are running CUDA 12, your index url would be "https://download.pytorch.org/whl/nightly/cu126", and if
+you are running on Intel XPU, your index url would be "https://download.pytorch.org/whl/nightly/xpu".
