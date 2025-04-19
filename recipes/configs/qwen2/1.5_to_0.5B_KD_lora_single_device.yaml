@@ -99,7 +99,7 @@ device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
-
+optimizer_in_bwd: False # True saves memory. Requires gradient_accumulation_steps=1
 
 
 # Profiler (disabled)

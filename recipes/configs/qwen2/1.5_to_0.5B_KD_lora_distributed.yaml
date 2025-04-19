@@ -98,6 +98,8 @@ device: cuda
 dtype: bf16
 enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
+optimizer_in_bwd: False # True saves memory. Requires gradient_accumulation_steps=1
+
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
