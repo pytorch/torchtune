@@ -7,6 +7,7 @@
 import pytest
 from datasets import Dataset
 from torch.utils.data import Dataset as TorchDataset
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._packed import PackedDataset
 
@@ -20,7 +21,7 @@ class DummyDataset(TorchDataset):
             raise IndexError()
         return {
             "tokens": [index] * self.sample_size,
-            "labels": [index] * self.sample_size,
+            "labels": [index] * (self.sample_size - 1) + [CROSS_ENTROPY_IGNORE_IDX],
         }
 
     def __len__(self):
