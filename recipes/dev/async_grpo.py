@@ -1,83 +1,31 @@
-"""
-README!! What's going on in this script?
-
-At a high level, this script is grpo_full_finetune_distributed.py but it
-1. Uses vLLM for generation instead of torchtune generate
-2. Uses ray for orchestrating data parallel actors and vllm actors + unsharded ref actor
-3. The dataloader is now owned by the vllm worker (rather than 1 dataloader per FSDP worker)
-4. Uses a ray.util.Queue (this wraps a remote actor with a queue) as a "replay buffer"
-   for the vllm workers to put their generated tokens into, and the FSDP workers to get them from
-5. Of the items in GRPOTrajectory
-        a. query_responses: vllm worker computes and puts into queue
-        b. logprobs vllm worker puts into queue
-        c. ref_logprobs: computed by unsharded RefActor which contains torchtune model
-        d. rewards: fsdp worker computes
-        e. sucecesses: fsdp worker computes
-        f. advantages: fsdp worker computes
-        g. masks: fsdp worker computes
-        h. position_ids: fsdp worker computes
-6. In config, we set ``steps_before_sync``. After ``steps_before_sync * num_data_parallel_worker`` steps
-   the vllm worker will "sleep" and spin in a while loop until the FSDP workers are done syncing their weights
-7. Weight sync currently blocks the train loop and is done by each fsdp workers .full_tensor (allgather) on each DTensor,
-   calling tune_to_hf and then rank 0 broadcasting (+ also calling the vllm collective rpc to make it also issues
-   the broadcast and then load weights call)
-
-With this script, I can observe successes + rewards increasing over training steps, which is
-a good sign. (See screenshot in Cabernet sprint notes.) But there are several issues with this script:
-1. Peak memory usage for the fsdp worker is significantly higher than the original recipe in a fresh conda environmnet.
-   This could be because
-    a. I turned compile off (it seems to be broken with torch 2.5.1 that vllm requires)
-    b. [FIXED] I turned activation checkpointing off (there wasn't an explcit reason for this it just got omitted accidentally)
-2. I have an assert that num_vllm_workers == 1 and vllm_tp_size == 1 for now. There's no real reason for this,
-   I expect the code to mostly generalize, just need to go over parts where I might have hardcoded this assumption of 1
-   vllm worker.
-3. Epochs is definitely not handled correctly right now :P
-4. There's many FIXMEs peppered through this script
-
-The run command is
-
-    python runnable_recipe_ray_vllm_weight_sync.py --config ../recipes/configs/dev/qwen3B_full_grpo.yaml
-
-
-"""
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 import functools
 import os
 import time
-from functools import partial
-from typing import Any, Dict, List, Optional, Union
 
-from warnings import warn
+from typing import Any, Dict
 
 import ray
+
 import torch
 import torch.distributed
-import torch.nn as nn
-import torchtune.training as training
 
-from omegaconf import DictConfig, ListConfig, OmegaConf
-from ray.util.placement_group import placement_group
+from omegaconf import DictConfig, OmegaConf
 
-from ray.util.queue import Full as QueueFull, Queue
-from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
+from ray.util.queue import Queue
 
-from readerwriterlock import rwlock
-from tensordict import TensorClass, TensorDict
+from tensordict import TensorDict, TensorDictBase
+from tensordict.utils import expand_as_right
 
-from torch.optim import Optimizer
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
-from torchrl.collectors import (
-    SyncDataCollector,
-    WeightUpdateReceiverBase,
-    WeightUpdateSenderBase,
-)
+from torchrl.collectors import WeightUpdateReceiverBase
 from torchrl.data import LazyStackStorage, RayReplayBuffer
-from torchtune import config, generation, modules, rlhf, utils
-from torchtune.dev.grpo.rewards import batched_rewards
-from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
+from torchtune import config, utils
 from torchtune.dev.rl.datatypes import RequestOutput, Trajectory
-from torchtune.dev.rl.utils import stateless_init_process_group
 from torchtune.dev.rl.workers import (
     MetricLoggerActor,
     PyTorchActorModel,
@@ -85,26 +33,12 @@ from torchtune.dev.rl.workers import (
     SyncLLMCollector,
     VLLMParameterServer,
 )
-from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
 from torchtune.recipe_interfaces import OrchestrationRecipeInterface
-
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from vllm import SamplingParams
 
 from vllm.utils import get_ip, get_open_port
-from vllm.worker.worker import Worker
 
 log = utils.get_logger("DEBUG")
-
-
-# =============================================================================================
-
-from typing import Any, Dict
-
-import torch
-import vllm
-from tensordict import from_dataclass, lazy_stack, TensorClass, TensorDictBase
-from tensordict.utils import _zip_strict, expand_as_right
-from vllm import LLM, SamplingParams
 
 
 def vllm_generate(
