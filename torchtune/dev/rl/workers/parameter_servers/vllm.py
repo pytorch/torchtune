@@ -38,10 +38,6 @@ class VLLMParameterServer:
         self.world_size = int(os.environ["WORLD_SIZE"])
         assert self.rank == self.world_size - 1
 
-    def register_collector(self, worker_id, handle):
-        self.vllm_worker_handles[worker_id] = handle
-        log.info(f"registered collector {worker_id=}")
-
     def register_model_metadata(self, model_metadata):
         self.model_metadata = model_metadata
         self.state_dict = dict()

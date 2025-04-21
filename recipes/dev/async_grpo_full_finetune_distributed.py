@@ -358,10 +358,6 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
                     weight_update_receiver=weight_update_receivers[i],
                 )
             )
-            # TODO: Currently we register a handle to the collector to the parameter server
-            # this will be cleaned up when we make the local_weight_updater remotely call
-            # the param server
-            ray.get(self.param_server.register_collector.remote(i, collector))
             data_collectors.append(collector)
         return data_collectors
 
