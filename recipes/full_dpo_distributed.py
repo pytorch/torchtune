@@ -1066,16 +1066,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         time_per_step: float,
         grad_norm: Optional[torch.Tensor] = None,
     ) -> None:
-        """
-        Log training metrics to the metric logger.
-
-        Args:
-            loss_to_log: The loss value to log
-            running_metrics: Dictionary of running metrics
-            num_tokens: Number of tokens processed
-            time_per_step: Time taken per step
-            grad_norm: Gradient norm (optional)
-        """
+        """Log training metrics to the metric logger."""
         log_dict = {
             "loss": loss_to_log,
             "lr": get_lr(self._optimizer),
