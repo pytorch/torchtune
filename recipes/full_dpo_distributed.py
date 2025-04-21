@@ -328,14 +328,13 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
         )
 
-        # TODO (@SalmanMohammadi) investigate TP for ref model
         self._ref_model = self._setup_model(
             cfg_model=cfg.model,
             model_state_dict=ref_checkpoint_dict,
             is_reference_model=True,
-            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
-            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            fsdp_cpu_offload=False,
+            reshard_after_forward=False,
+            custom_sharded_layers=None,
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -798,17 +797,17 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         t0 = time.perf_counter()
 
         # Running metrics
-        running_loss = 0
+        running_loss = torch.tensor(0.0, device=self._device)
         running_metrics = {
-            "rewards/chosen": 0,
-            "rewards/rejected": 0,
-            "rewards/accuracies": 0,
-            "log_probs/chosen": 0,
-            "log_probs/rejected": 0,
-            "logits/chosen": 0,
-            "logits/rejected": 0,
+            "rewards/chosen": torch.tensor(0.0, device=self._device),
+            "rewards/rejected": torch.tensor(0.0, device=self._device),
+            "rewards/accuracies": torch.tensor(0.0, device=self._device),
+            "log_probs/chosen": torch.tensor(0.0, device=self._device),
+            "log_probs/rejected": torch.tensor(0.0, device=self._device),
+            "logits/chosen": torch.tensor(0.0, device=self._device),
+            "logits/rejected": torch.tensor(0.0, device=self._device),
         }
-        num_tokens = 0
+        num_tokens = torch.tensor(0, device=self._device)
 
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -828,7 +827,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     break
 
                 # batch is input_ids, labels
-                num_tokens += torch.tensor(batch[0].numel())
+                num_tokens += torch.tensor(batch[0].numel(), device=self._device)
                 policy_chosen_rejected_outputs = self.concatenated_forward(
                     self._model, batch
                 )
@@ -956,9 +955,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         )
 
                     # Reset running stats for the next step
-                    running_loss = 0
-                    running_metrics = {key: 0 for key in running_metrics}
-                    num_tokens = 0
+                    running_loss = torch.tensor(0.0, device=self._device)
+                    running_metrics = {
+                        key: torch.tensor(0.0, device=self._device)
+                        for key in running_metrics
+                    }
+                    num_tokens = torch.tensor(0, device=self._device)
 
                     t0 = time.perf_counter()
 
