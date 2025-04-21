@@ -463,7 +463,7 @@ nightly versions with the following commands:</p>
 pip<span class="w"> </span>install<span class="w"> </span>torch<span class="w"> </span>torchvision<span class="w"> </span>torchao
 
 <span class="c1"># Or nightly install for latest features</span>
-pip<span class="w"> </span>install<span class="w"> </span>--pre<span class="w"> </span>torch<span class="w"> </span>torchvision<span class="w"> </span>torchao<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/nightly/cu126<span class="w"> </span><span class="c1"># full options are cpu/cu118/cu121/cu124/cu126</span>
+pip<span class="w"> </span>install<span class="w"> </span>--pre<span class="w"> </span>torch<span class="w"> </span>torchvision<span class="w"> </span>torchao<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/nightly/cu126<span class="w"> </span><span class="c1"># full options are cpu/cu118/cu121/cu124/cu126/xpu</span>
 </pre></div>
 </div>
 </section>
@@ -523,8 +523,9 @@ your existing torchtune installation.</p>
 </div>
 <p>If you already have PyTorch installed, torchtune will default to using that version. However, if you want to
 use the nightly version of PyTorch, you can append the <code class="docutils literal notranslate"><span class="pre">--force-reinstall</span></code> option to the above command. If you
-opt for this install method, you will likely need to change the “cpu” suffix in the index url to match your CUDA
-version. For example, if you are running CUDA 12, your index url would be “<a class="reference external" href="https://download.pytorch.org/whl/nightly/cu126">https://download.pytorch.org/whl/nightly/cu126</a>”.</p>
+opt for this install method, you will likely need to change the “cpu” suffix in the index url to match your hardware backend.
+For example, if you are running CUDA 12, your index url would be “<a class="reference external" href="https://download.pytorch.org/whl/nightly/cu126">https://download.pytorch.org/whl/nightly/cu126</a>”, and if
+you are running on Intel XPU, your index url would be “<a class="reference external" href="https://download.pytorch.org/whl/nightly/xpu">https://download.pytorch.org/whl/nightly/xpu</a>”.</p>
 </section>
 </section>
 
