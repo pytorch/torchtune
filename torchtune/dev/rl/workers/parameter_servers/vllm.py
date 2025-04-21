@@ -1,10 +1,6 @@
 import ray
 import torch
 from readerwriterlock import rwlock
-from torchrl.collectors.collectors import (
-    WeightUpdateReceiverBase,
-    WeightUpdateSenderBase,
-)
 from torchtune import utils
 from torchtune.dev.rl.utils import stateless_init_process_group
 
@@ -12,7 +8,7 @@ log = utils.get_logger("DEBUG")
 
 
 @ray.remote(num_cpus=4, num_gpus=1)
-class VLLMParameterServer(WeightUpdateSenderBase):
+class VLLMParameterServer:
     def __init__(self, cfg, vllm_master_addresses, vllm_master_ports, env_vars):
         log.info("in param server init")
         super().__init__()
@@ -41,9 +37,6 @@ class VLLMParameterServer(WeightUpdateSenderBase):
         self.rank = int(os.environ["RANK"])
         self.world_size = int(os.environ["WORLD_SIZE"])
         assert self.rank == self.world_size - 1
-
-        # FIXME: why this hang even when I pass use_local_synchronization=False in the other one??
-        # self.fsdp_group = torch.distributed.new_group(ranks=list(range(self.world_size - 1)))
 
     def register_collector(self, worker_id, handle):
         self.vllm_worker_handles[worker_id] = handle
@@ -90,7 +83,6 @@ class VLLMParameterServer(WeightUpdateSenderBase):
         return False
 
     def _init_model_update_group(self, worker_id):
-        worker_handle = self.vllm_worker_handles[worker_id]
         vllm_tp_size = self.cfg.vllm.tp_size
         weight_sync_world_size = vllm_tp_size + 1
         model_update_group = stateless_init_process_group(
@@ -102,10 +94,9 @@ class VLLMParameterServer(WeightUpdateSenderBase):
         )
         self.vllm_comm_groups[worker_id] = model_update_group
 
-    def _sync_weights_with_worker(self, worker_id: int, server_weights):
+    def _sync_weights_with_worker(self, worker_id: int):
+        server_weights = self._maybe_map_weights(self._get_server_weights())
         print(f"in _sync_weights_with_worker {worker_id}")
-        worker_handle = self.vllm_worker_handles[worker_id]
-        worker_handle.update_policy_weights_.remote()
         if worker_id not in self.vllm_comm_groups:
             self._init_model_update_group(worker_id)
         read_lock = self.state_dict_lock.gen_rlock()

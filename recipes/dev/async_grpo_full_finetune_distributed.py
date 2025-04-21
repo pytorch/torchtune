@@ -7,7 +7,6 @@
 import functools
 import os
 import time
-
 from typing import Any, Dict
 
 import ray
@@ -131,11 +130,15 @@ def _get_output_tokens_and_log_probs(
 
 
 class VLLMHFWeightUpdateReceiver(WeightUpdateReceiverBase):
-    def __init__(self, master_address, master_port, model_metadata):
+    def __init__(
+        self, master_address, master_port, model_metadata, param_server, worker_idx
+    ):
         self.master_address = master_address
         self.master_port = master_port
         self.model_metadata = model_metadata
         self.initialized_group = None
+        self.param_server = param_server
+        self.worker_idx = worker_idx
 
     def _get_server_weights(self):
         return None
@@ -150,21 +153,31 @@ class VLLMHFWeightUpdateReceiver(WeightUpdateReceiverBase):
         return None
 
     def _update_local_weights(self, local_weights, mapped_weights):
-        inference_server = self.collector.inference_server
-        if self.initialized_group is None:
-            weight_sync_world_size = (
-                inference_server.llm_engine.parallel_config.tensor_parallel_size + 1
-            )
-            inference_server.collective_rpc(
-                "init_weight_update_group",
-                args=(self.master_address, self.master_port, 1, weight_sync_world_size),
-            )
-            self.initialized_group = True
+        should_update = not ray.get(
+            self.param_server._skip_update.remote(self.worker_idx)
+        )
+        if should_update:
+            self.param_server._sync_weights_with_worker.remote(self.worker_idx)
+            inference_server = self.collector.inference_server
+            if self.initialized_group is None:
+                weight_sync_world_size = (
+                    inference_server.llm_engine.parallel_config.tensor_parallel_size + 1
+                )
+                inference_server.collective_rpc(
+                    "init_weight_update_group",
+                    args=(
+                        self.master_address,
+                        self.master_port,
+                        1,
+                        weight_sync_world_size,
+                    ),
+                )
+                self.initialized_group = True
 
-        for k, (dtype, shape) in self.model_metadata.items():
-            inference_server.collective_rpc("update_weight", args=(k, dtype, shape))
+            for k, (dtype, shape) in self.model_metadata.items():
+                inference_server.collective_rpc("update_weight", args=(k, dtype, shape))
 
-        inference_server.collective_rpc("update_policy_version")
+            inference_server.collective_rpc("update_policy_version")
 
 
 class RayGRPORecipe(OrchestrationRecipeInterface):
@@ -313,9 +326,15 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
 
         weight_update_receivers = [
             VLLMHFWeightUpdateReceiver(
-                vllm_master_address, vllm_update_port, self.model_metadata
+                vllm_master_address,
+                vllm_update_port,
+                self.model_metadata,
+                self.param_server,
+                idx,
             )
-            for vllm_master_address, vllm_update_port in zip(vllm_addresses, vllm_ports)
+            for idx, (vllm_master_address, vllm_update_port) in enumerate(
+                zip(vllm_addresses, vllm_ports)
+            )
         ]
 
         for i in range(self.num_vllm_workers):
@@ -336,7 +355,6 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
                     reset_at_each_iter=True,
                     queue=self.rollout_queue,
                     weight_update_receiver=weight_update_receivers[i],
-                    weight_update_sender=self.param_server,
                 )
             )
             # TODO: Currently we register a handle to the collector to the parameter server
