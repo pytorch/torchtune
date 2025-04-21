@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.data
+
+
+padded_collate_packed
+=====================
+
+.. autofunction:: padded_collate_packed
