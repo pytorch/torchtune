@@ -17,6 +17,15 @@ repos:
     -   id: end-of-file-fixer
         exclude: '^(.*\.svg)$'
 
+-   repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+    -   id: insert-license
+        files: \.py$|\.sh$
+        args:
+        - --license-filepath
+        - docs/license_header.txt
+
 -   repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
