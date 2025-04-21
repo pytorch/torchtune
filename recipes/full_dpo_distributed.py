@@ -319,20 +319,22 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
+            is_reference_model=False,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
-            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=checkpoint_dict[training.MODEL_KEY],
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
         )
 
         # TODO (@SalmanMohammadi) investigate TP for ref model
-        self._ref_model = self._setup_reference_model(
+        self._ref_model = self._setup_model(
             cfg_model=cfg.model,
+            model_state_dict=ref_checkpoint_dict,
+            is_reference_model=True,
             fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
-            model_state_dict=ref_checkpoint_dict,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
         )
 
@@ -461,11 +463,12 @@ class FullDPORecipeDistributed(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        enable_activation_checkpointing: bool,
-        enable_activation_offloading: bool,
-        fsdp_cpu_offload: bool,
-        reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
+        is_reference_model: bool = False,
+        enable_activation_checkpointing: bool = False,
+        enable_activation_offloading: bool = False,
+        fsdp_cpu_offload: bool = False,
+        reshard_after_forward: bool = True,
         custom_sharded_layers: Optional[List[str]] = None,
     ) -> nn.Module:
         """
@@ -474,11 +477,24 @@ class FullDPORecipeDistributed(FTRecipeInterface):
               the right dtype
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
-        """
 
+        Args:
+            cfg_model: Model configuration
+            model_state_dict: Model state dictionary to load
+            is_reference_model: Whether this is a reference model (inference-only)
+            enable_activation_checkpointing: Whether to enable activation checkpointing
+            enable_activation_offloading: Whether to enable activation offloading
+            fsdp_cpu_offload: Whether to offload FSDP parameters to CPU (only for base model)
+            reshard_after_forward: Whether to reshard parameters after forward pass (only for base model)
+            custom_sharded_layers: Custom layers to shard (only for base model)
+
+        Returns:
+            Initialized model
+        """
+        model_type = "reference model" if is_reference_model else "model"
         utils.log_rank_zero(
             log,
-            "Distributed training is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
+            f"Distributed training is enabled. Instantiating {model_type} and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
 
@@ -488,7 +504,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
-        if self._enable_fp8_training:
+        # Only apply FP8 training to the base model, not the reference model
+        if not is_reference_model and self._enable_fp8_training:
             # Requires https://github.com/pytorch/pytorch/pull/148922
             if torch.__version__ < "2.8.0.dev20250318":
                 raise RuntimeError(
@@ -501,9 +518,13 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 )
             model = convert_to_float8_training(model, self._fp8_recipe_name)
 
-        # Apply tensor parallelism to the model
+        # Apply tensor parallelism to the model (for both base and reference models)
         if self.parallel_dims.tp_enabled:
-            if not self.parallel_dims.dp_enabled and self.fsdp_cpu_offload:
+            if (
+                not is_reference_model
+                and not self.parallel_dims.dp_enabled
+                and fsdp_cpu_offload
+            ):
                 raise ValueError(
                     "Tensor parallelism is not supported with FSDP CPU offloading when data parallelism is disabled."
                 )
@@ -520,14 +541,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 parallelize_plan=self.tp_plan,
             )
 
-        # Apply activation checkpointing if enabled
-        if enable_activation_checkpointing:
+        # Apply activation checkpointing if enabled (only for base model)
+        if not is_reference_model and enable_activation_checkpointing:
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        # Apply Fully Sharded Data Parallelism to the model
-        if self.parallel_dims.dp_shard_enabled:
+        # Apply Fully Sharded Data Parallelism to the model (only for base model)
+        if not is_reference_model and self.parallel_dims.dp_shard_enabled:
             fsdp_shard_conditions = [
                 partial(
                     training.get_shard_conditions,
@@ -564,17 +585,18 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             cpu_offload=fsdp_cpu_offload,
         )
 
-        # activation offloading
-        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
-            model, enable_activation_offloading
-        )
+        # Set up activation offloading context for the base model
+        if not is_reference_model:
+            self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+                model, enable_activation_offloading
+            )
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
 
         utils.log_rank_zero(
             log,
-            f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
+            f"Instantiating {model_type} and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
 
         if self._is_rank_zero:
@@ -585,119 +607,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         # between ref policy and current policy
         disable_dropout(model)
 
-        # synchronize before training begins
-        torch.distributed.barrier()
-
-        return model
-
-    def _setup_reference_model(
-        self,
-        cfg_model: DictConfig,
-        fsdp_cpu_offload: bool,
-        reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
-    ) -> nn.Module:
-        """
-        Similar to `self._setup_model`:
-           a. To minimize GPU peak memory, we initialize the model on meta device with
-              the right dtype
-           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
-              full state dicts are loaded with ``torch.load(mmap=True)``
-
-        Additionally, since the reference model is inference-only, we omit some training-specific
-        optimizations.
-        """
-
-        utils.log_rank_zero(
-            log,
-            "Distributed training is enabled. Instantiating reference model and loading checkpoint on Rank 0 ...",
-        )
-        init_start = time.perf_counter()
-
-        with training.set_default_dtype(self._dtype), torch.device("meta"):
-            model = config.instantiate(cfg_model)
-
-        if self._compile:
-            training.compile_model(model, verbose=self._is_rank_zero)
-
-        # Apply tensor parallelism to the model
-        if self.parallel_dims.tp_enabled:
-            if not self.parallel_dims.dp_enabled and self.fsdp_cpu_offload:
-                raise ValueError(
-                    "Tensor parallelism is not supported with FSDP CPU offloading when data parallelism is disabled."
-                )
-            # Use the local number (num_heads, num_kv_heads, embed_dim) to account for tensor parallel
-            model = training.prepare_mha_for_tp(model, self.world_mesh["tp"])
-            if self.tp_plan is not None:
-                self.tp_plan = config.instantiate(
-                    self.tp_plan,
-                    model=model,
-                )
-            parallelize_module(
-                model,
-                self.world_mesh["tp"],
-                parallelize_plan=self.tp_plan,
-            )
-
-        # Apply Fully Sharded Data Parallelism to the model
-        if self.parallel_dims.dp_shard_enabled:
-            fsdp_shard_conditions = [
-                partial(
-                    training.get_shard_conditions,
-                    names_to_match=custom_sharded_layers,
-                )
-            ]
-
-            if self.parallel_dims.dp_replicate_enabled:
-                dp_mesh_dim_names = ("dp_replicate", "dp_shard")
-            else:
-                dp_mesh_dim_names = ("dp_shard",)
-
-            training.shard_model(
-                model=model,
-                shard_conditions=fsdp_shard_conditions,
-                cpu_offload=fsdp_cpu_offload,
-                reshard_after_forward=reshard_after_forward,
-                dp_mesh=self.world_mesh[dp_mesh_dim_names],
-            )
-
-        with training.set_default_dtype(self._dtype), self._device:
-            for m in model.modules():
-                # RoPE is not covered in state dict
-                if hasattr(m, "rope_init"):
-                    m.rope_init()
-
-        # This method will convert the full model state dict into a sharded state
-        # dict and load into the model
-        training.load_from_full_model_state_dict(
-            model,
-            model_state_dict,
-            self._device,
-            strict=True,
-            cpu_offload=fsdp_cpu_offload,
-        )
-
-        # Ensure no params and buffers are on meta device
-        training.validate_no_params_on_meta_device(model)
-
-        utils.log_rank_zero(
-            log,
-            f"Instantiating reference model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
-        )
-
-        if self._is_rank_zero:
-            memory_stats = training.get_memory_stats(device=self._device)
-            training.log_memory_stats(memory_stats)
-
-        # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
-        # between ref policy and current policy
-        disable_dropout(model)
-
-        for p in model.parameters():
-            p.requires_grad = False
-
-        model.eval()
+        # For reference model, set to eval mode and disable gradients
+        if is_reference_model:
+            for p in model.parameters():
+                p.requires_grad = False
+            model.eval()
 
         # synchronize before training begins
         torch.distributed.barrier()
