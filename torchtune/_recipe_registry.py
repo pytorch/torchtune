@@ -32,8 +32,8 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
-        name="dev/grpo_torchrl_full_finetune_distributed",
-        file_path="dev/grpo_torchrl_full_finetune_distributed.py",
+        name="dev/async_grpo",
+        file_path="dev/async_grpo.py",
         configs=[
             Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
         ],

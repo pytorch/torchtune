@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 README!! What's going on in this script?
 
@@ -67,7 +65,6 @@ from readerwriterlock import rwlock
 from tensordict import TensorClass, TensorDict
 
 from torch.optim import Optimizer
-
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchrl.collectors import (
@@ -89,6 +86,7 @@ from torchtune.dev.rl.workers import (
     VLLMParameterServer,
 )
 from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
+from torchtune.recipe_interfaces import OrchestrationRecipeInterface
 
 from torchtune.training import DummyProfiler, PROFILER_KEY
 
@@ -235,8 +233,8 @@ class VLLMHFWeightUpdateReceiver(WeightUpdateReceiverBase):
         inference_server.collective_rpc("update_policy_version")
 
 
-class RayGRPORecipe:
-    def setup(self, cfg):
+class RayGRPORecipe(OrchestrationRecipeInterface):
+    def setup(self, cfg: DictConfig):
         self.cfg = cfg
 
         # Store worker counts as instance variables
@@ -426,7 +424,7 @@ class RayGRPORecipe:
             workers.append(worker)
         return workers
 
-    def train(self):
+    def run(self):
         rollout_handles = [worker.run.remote() for worker in self.rollout_workers]
         ref_handles = [worker.run.remote() for worker in self.ref_workers]
         worker_handles = [worker.train.remote() for worker in self.actor_workers]
@@ -435,6 +433,9 @@ class RayGRPORecipe:
 
     def stop_ray(self):
         ray.shutdown()
+
+    def cleanup(self):
+        self.stop_ray()
 
 
 @config.parse
@@ -447,8 +448,8 @@ def recipe_main(cfg: DictConfig) -> None:
 
     recipe = RayGRPORecipe()
     recipe.setup(cfg)
-    recipe.train()
-    recipe.stop_ray()
+    recipe.run()
+    recipe.cleanup()
 
 
 if __name__ == "__main__":
