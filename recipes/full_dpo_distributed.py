@@ -6,14 +6,12 @@
 
 import sys
 import time
-
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
-
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._tensor import DTensor
@@ -28,7 +26,6 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import ChosenRejectedOutputs
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
-from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing._checkpoint_client import (
     CheckpointClient,
     TrainingProgress,
@@ -228,21 +225,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
-        """
-        self._checkpointer = config.instantiate(
-            cfg_checkpointer,
-            should_load_recipe_state=self._resume_from_checkpoint,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
-
     def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the reference model checkpoint state from file.
@@ -358,7 +340,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
                 if self._resume_from_checkpoint
@@ -825,84 +806,20 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         epoch: int,
     ) -> None:
         """
-        Checkpoint the state of the recipe. The constructed checkpoint state dict
-        contains the following information:
-        - Model weights with key training.MODEL_KEY
-        - Relevant recipe state if training is not complete
-
-        Checkpointer will save the model weights and recipe state in
-        different checkpoint files. To correctly resume training from an intermediate checkpoint,
-        the model weights and recipe state must be provided.
+        Checkpoint the state of the recipe using the CheckpointClient.
         """
-        # final dict passed onto the checkpointer
-        checkpoint_dict = {}
-
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
-
-        if self._is_rank_zero:
-            log.info(
-                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
-            )
-            start = time.perf_counter()
-
-        # To prevent GPU memory from spiking during checkpoint save,
-        # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.gather_cpu_state_dict(
-            self._model,
-            self._is_rank_zero,
-            device=self._device,
+        self._checkpoint_client.save_checkpoint(
+            model=self._model,
+            optimizer=self._optimizer,
+            training_progress=TrainingProgress(
+                seed=self.seed,
+                epochs_run=self.epochs_run,
+                total_epochs=self.total_epochs,
+                max_steps_per_epoch=self.max_steps_per_epoch,
+                dataloader_state_dict=self._dataloader.state_dict(),
+            ),
+            epoch=epoch,
         )
-
-        if self._is_rank_zero:
-            log.info(
-                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
-            )
-
-        if intermediate_checkpoint:
-            start = time.perf_counter()
-            utils.log_rank_zero(log, "Getting optimizer state dict...")
-            opt_state_dict = training.get_full_optimizer_state_dict(
-                self._model,
-                self._optimizer,
-                self._is_rank_zero,
-                device=self._device,
-            )
-            utils.log_rank_zero(
-                log,
-                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
-            )
-        else:
-            opt_state_dict = None
-
-        # Now that we have the model and opt state dict, create the actual checkpoint dict
-        # to be sent to the checkpointer and ultimately written to file
-
-        if self._is_rank_zero:
-            start = time.perf_counter()
-            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
-
-            # if training is in-progress, checkpoint the optimizer state and recipe state
-            # as well.
-            if intermediate_checkpoint:
-                checkpoint_dict.update(
-                    {
-                        training.OPT_KEY: opt_state_dict,
-                        training.SEED_KEY: self.seed,
-                        training.EPOCHS_KEY: self.epochs_run,
-                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                        training.DATALOADER_KEY: self._dataloader.state_dict(),
-                    }
-                )
-
-            self._checkpointer.save_checkpoint(
-                checkpoint_dict,
-                epoch=epoch,
-                intermediate_checkpoint=intermediate_checkpoint,
-            )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
-
-        torch.distributed.barrier()
 
     def concatenated_forward(
         self,
@@ -1081,7 +998,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
                             max_norm=float(self._clip_grad_norm),
-                        ).full_tensor()
+                        )
+                        # If sharded, collect the DTensor here
+                        if isinstance(grad_norm, DTensor):
+                            grad_norm = grad_norm.full_tensor()
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
@@ -1111,39 +1031,14 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         self.global_step % self._log_every_n_steps == 0
                         and self._is_rank_zero
                     ):
-                        time_per_step = time.perf_counter() - t0
-                        log_dict = {
-                            "loss": loss_to_log,
-                            "lr": get_lr(self._optimizer),
-                            "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * self.world_size),
-                            "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
-                            "rewards/rejected": running_metrics[
-                                "rewards/rejected"
-                            ].cpu(),
-                            "rewards/accuracies": running_metrics[
-                                "rewards/accuracies"
-                            ].cpu(),
-                            "rewards/margins": (
-                                running_metrics["rewards/chosen"]
-                                - running_metrics["rewards/rejected"]
-                            ).cpu(),
-                            "log_probs/chosen": running_metrics[
-                                "log_probs/chosen"
-                            ].cpu(),
-                            "log_probs/rejected": running_metrics[
-                                "log_probs/rejected"
-                            ].cpu(),
-                            "logits/chosen": running_metrics["logits/chosen"].cpu(),
-                            "logits/rejected": running_metrics["logits/rejected"].cpu(),
-                        }
-                        if self._log_peak_memory_stats:
-                            log_dict.update(
-                                training.get_memory_stats(device=self._device)
-                            )
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
+                        self._log_training_metrics(
+                            loss_to_log=loss_to_log,
+                            running_metrics=running_metrics,
+                            num_tokens=num_tokens,
+                            time_per_step=time.perf_counter() - t0,
+                            grad_norm=(
+                                grad_norm if self._clip_grad_norm is not None else None
+                            ),
                         )
 
                     # Reset running stats for the next step
@@ -1162,6 +1057,51 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             self.save_checkpoint(epoch=curr_epoch)
 
         self._profiler.stop()
+
+    def _log_training_metrics(
+        self,
+        loss_to_log: float,
+        running_metrics: Dict[str, torch.Tensor],
+        num_tokens: torch.Tensor,
+        time_per_step: float,
+        grad_norm: Optional[torch.Tensor] = None,
+    ) -> None:
+        """
+        Log training metrics to the metric logger.
+
+        Args:
+            loss_to_log: The loss value to log
+            running_metrics: Dictionary of running metrics
+            num_tokens: Number of tokens processed
+            time_per_step: Time taken per step
+            grad_norm: Gradient norm (optional)
+        """
+        log_dict = {
+            "loss": loss_to_log,
+            "lr": get_lr(self._optimizer),
+            "tokens_per_second_per_gpu": num_tokens / (time_per_step * self.world_size),
+            "rewards/chosen": running_metrics["rewards/chosen"].cpu(),
+            "rewards/rejected": running_metrics["rewards/rejected"].cpu(),
+            "rewards/accuracies": running_metrics["rewards/accuracies"].cpu(),
+            "rewards/margins": (
+                running_metrics["rewards/chosen"] - running_metrics["rewards/rejected"]
+            ).cpu(),
+            "log_probs/chosen": running_metrics["log_probs/chosen"].cpu(),
+            "log_probs/rejected": running_metrics["log_probs/rejected"].cpu(),
+            "logits/chosen": running_metrics["logits/chosen"].cpu(),
+            "logits/rejected": running_metrics["logits/rejected"].cpu(),
+        }
+
+        if grad_norm is not None:
+            log_dict.update({"grad_norm": grad_norm})
+
+        if self._log_peak_memory_stats:
+            log_dict.update(training.get_memory_stats(device=self._device))
+
+        self._metric_logger.log_dict(
+            log_dict,
+            step=self.global_step,
+        )
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
