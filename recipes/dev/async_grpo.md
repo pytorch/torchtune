@@ -20,7 +20,9 @@ But you can also take this further by allowing your generation to go off-policy 
     |-- train --||sync||-- train --||sync||-- train --|
 ```
 
-![Note] This recipe is still in a very early stage and under active development. There will be many breaking changes over the comming weeks and you should view this as a preview only. The initial version of this recipe is optimized around Qwen 2.5 3B to be able to benchmark and test all of the components. Over time this will be integrated with all of the expected torchtune features.
+
+> **WARNING** This recipe is still in a very early stage and under active development. There will be many breaking changes over the comming weeks and you should view this as a preview only. The initial version of this recipe is optimized around Qwen 2.5 3B to be able to benchmark and test all of the components. Over time this will be integrated with all of the expected torchtune features.
+
 
 ## Architecture
 
