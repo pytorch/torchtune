@@ -49,6 +49,7 @@ The following works for us:
 
 ```bash
 conda create --name tunerl python=3.10
+conda activate tunerl
 git clone https://github.com/joecummings/r1-zero.git
 cd r1-zero
 pip install -e .[async_rl]
