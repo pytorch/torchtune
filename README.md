@@ -42,7 +42,7 @@ torchtune supports [the entire post-training lifecycle](https://pytorch.org/torc
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
 | Full                  |    ✅    |     ✅    |   ✅    |
-| [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |    ❌    |
+| [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |    ✅    |
 
 Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device`` <br />
 You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of available configs.
@@ -192,8 +192,8 @@ pip install torchtune
 ### Install nightly release
 
 ```bash
-# Install PyTorch, torchvision, torchao nightlies
-pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126
+# Install PyTorch, torchvision, torchao nightlies.
+pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126/xpu
 pip install --pre --upgrade torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 

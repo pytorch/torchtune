@@ -38,7 +38,7 @@ class ConcatDataset(Dataset):
             derived from :class:`~torch.utils.data.Dataset`.
 
     Raises:
-        ValueError: if instanse of `PackedDataset` is in `datasets`
+        ValueError: if a mix of `PackedDataset` and non-`PackedDataset` datasets is provided
 
     Examples:
         >>> dataset1 = MyCustomDataset(params1)
