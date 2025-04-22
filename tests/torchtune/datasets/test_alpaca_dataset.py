@@ -49,9 +49,9 @@ class TestAlpacaDataset:
         input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
-        assert labels[-1] == tokenizer.eos_id
+        assert labels[-2] == tokenizer.eos_id
         assert input[0] == tokenizer.bos_id
-        assert CROSS_ENTROPY_IGNORE_IDX not in labels
+        assert CROSS_ENTROPY_IGNORE_IDX not in labels[:-1]
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer, sample):
@@ -68,7 +68,7 @@ class TestAlpacaDataset:
         input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
-        assert labels[-1] == tokenizer.eos_id
+        assert labels[-2] == tokenizer.eos_id
         assert input[0] == tokenizer.bos_id
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 27
 
@@ -85,9 +85,9 @@ class TestAlpacaDataset:
         input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
-        assert labels[-1] == tokenizer.eos_id
+        assert labels[-2] == tokenizer.eos_id
         assert input[0] == tokenizer.bos_id
-        assert CROSS_ENTROPY_IGNORE_IDX not in labels
+        assert CROSS_ENTROPY_IGNORE_IDX not in labels[:-1]
 
 
 class TestAlpacaToMessages:
