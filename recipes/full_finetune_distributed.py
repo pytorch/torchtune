@@ -967,7 +967,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": (
                                 num_tokens / self.parallel_dims.non_data_parallel_size
-                            ) / (time_per_step * self.world_size),
+                            )
+                            / (time_per_step * self.world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
