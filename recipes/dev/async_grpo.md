@@ -2,18 +2,23 @@
 
 The Group Relative Policy Optimization (GRPO) Recipe is an RL technique for post-training LLMs through rewards. torchtune supports grpo_full_finetune_distributed and async_grpo_full_finetune_distributed. grpo_full_finetune_distributed is based on the original implementation, for a deeper understanding on how GRPO works you can view the [paper](https://arxiv.org/pdf/2402.03300). But the primary difference between the two recipes is how training and generation is sequenced. In the original paper, training and generation happen in turns.
 
+```
 |-- generate --||shard||-- train --||shard||-- generate --||shard||-- train --||shard||-- generate --||shard||-- train --|
+```
 
 This allows you to use the same hardware for both training and generation but means that you're only using your resources for training a fraction of the time as you have to spend a lot of time generating your datasets through decoding. In the async approach, we overlap generation and training in order to maximize training speed. This requires you to split your hardware between training and generation GPUs but allows you to choose and allocation that balances training time vs decoding time. In the case where you keep the trainer on-policy, you already can see a big advantage in your ability to efficiently use your resources.
 
+```
 |-- generate --|      |-- generate --|      |-- generate --|
     |-- train --||sync|   |-- train --||sync|   |-- train --|
+```
 
 But you can also take this further by allowing your generation to go off-policy by a controlled amount. This allows your generator to keep running until the trainer updates it, which also ensures there's extra data queued up for the trainer to immediately continue training once the generator is updated. The goal of this recipe is to give flexibility to users to find the optimal tradeoff between GPU utilization and off-policy tolerance.
 
+```
 |----- generate -----||--- generate ----||- generate -|
     |-- train --||sync||-- train --||sync||-- train --|
-
+```
 
 ![Note] This recipe is still in a very early stage and under active development. There will be many breaking changes over the comming weeks and you should view this as a preview only. The initial version of this recipe is optimized around Qwen 2.5 3B to be able to benchmark and test all of the components. Over time this will be integrated with all of the expected torchtune features.
 
