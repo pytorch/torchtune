@@ -178,7 +178,7 @@ batch_size=2
 ## Installation 🛠️
 
 
-torchtune is **only** tested with the latest stable PyTorch release (currently 2.6.0) as well as the preview nightly version. torchtune leverages
+torchtune is **only** tested with the latest stable PyTorch release (currently 2.6.0) as well as the preview nightly version, and leverages
 torchvision for finetuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
 
 ### Install stable release
