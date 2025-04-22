@@ -8,7 +8,12 @@ from torchtune.training._activation_offloading import (
     NoOpManager,
     OffloadActivations,
 )
-from torchtune.training._compile import compile_loss, compile_model, compile_optimizer_step
+from torchtune.training._compile import (
+    compile_loss,
+    compile_model,
+    compile_optimizer_step,
+    compile_scale_grads,
+)
 from torchtune.training._distributed import (
     gather_cpu_state_dict,
     get_distributed_backend,
@@ -25,7 +30,7 @@ from torchtune.training._distributed import (
     shard_model,
     validate_no_params_on_meta_device,
 )
-from torchtune.training._grad_scaler import scale_grads
+from torchtune.training._grad_scaler import scale_grads, scale_grads_
 from torchtune.training._model_util import disable_dropout
 from torchtune.training._profiler import (
     DEFAULT_PROFILE_DIR,
@@ -136,6 +141,7 @@ __all__ = [
     "compile_loss",
     "compile_model",
     "compile_optimizer_step",
+    "compile_scale_grads",
     "NoOpManager",
     "OffloadActivations",
     "FormattedCheckpointFiles",

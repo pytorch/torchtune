@@ -4,11 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
-from torch import nn
 from collections import defaultdict
 from typing import Optional
-from torch import Tensor
+
+import torch
+from torch import nn, Tensor
 from torch.nn.utils.clip_grad import _no_grad, _tensor_or_tensors
 from torch.utils._foreach_utils import _device_has_foreach_support, _has_foreach_support
 
