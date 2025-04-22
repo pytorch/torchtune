@@ -925,11 +925,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 grad_norm = grad_norm.full_tensor()
                         optimizer_step_fn = self._optimizer.step
                         if self._compile:
+
                             def _fn():
                                 self._optimizer.step()
+
                             optimizer_step_fn = training.compile_optimizer_step(
-                                _fn,
-                                verbose=self._is_rank_zero
+                                _fn, verbose=self._is_rank_zero
                             )
                         optimizer_step_fn()
                         self._optimizer.zero_grad(set_to_none=True)
