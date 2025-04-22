@@ -8,12 +8,7 @@ from torchtune.training._activation_offloading import (
     NoOpManager,
     OffloadActivations,
 )
-from torchtune.training._compile import (
-    compile_loss,
-    compile_model,
-    compile_optimizer_step,
-    compile_scale_grads,
-)
+from torchtune.training._compile import compile_loss, compile_model
 from torchtune.training._distributed import (
     gather_cpu_state_dict,
     get_distributed_backend,
@@ -140,12 +135,11 @@ __all__ = [
     "setup_torch_profiler",
     "compile_loss",
     "compile_model",
-    "compile_optimizer_step",
-    "compile_scale_grads",
     "NoOpManager",
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
+    "scale_grads_",
     "get_distributed_backend",
     "disable_dropout",
     "DATALOADER_KEY",
