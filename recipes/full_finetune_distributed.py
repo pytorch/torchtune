@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
@@ -306,6 +307,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
         self._compile = cfg.get("compile", False)
+        self._compile_backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -925,12 +927,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                 grad_norm = grad_norm.full_tensor()
                         optimizer_step_fn = self._optimizer.step
                         if self._compile:
-
-                            def _fn():
-                                self._optimizer.step()
-
-                            optimizer_step_fn = training.compile_optimizer_step(
-                                _fn, verbose=self._is_rank_zero
+                            optimizer_step_fn = torch.compile(
+                                optimizer_step_fn,
+                                backend=self._compile_backend,
                             )
                         optimizer_step_fn()
                         self._optimizer.zero_grad(set_to_none=True)
