@@ -923,7 +923,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             # If sharded, collect the DTensor here
                             if isinstance(grad_norm, DTensor):
                                 grad_norm = grad_norm.full_tensor()
-                        self._optimizer.step()
+                        optimizer_step_fn = self._optimizer.step
+                        if self._compile:
+                            def _fn():
+                                self._optimizer.step()
+                            optimizer_step_fn = training.compile_optimizer_step(
+                                _fn,
+                                verbose=self._is_rank_zero
+                            )
+                        optimizer_step_fn()
                         self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated

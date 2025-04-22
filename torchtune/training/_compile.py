@@ -86,3 +86,9 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     else:
         loss = torch.compile(loss, backend=backend)
     return loss
+
+def compile_optimizer_step(optimizer_step_fn, verbose: bool = True):
+    backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    if verbose:
+        log.info("Compiling optimizer step function with torch.compile...")
+    return torch.compile(optimizer_step_fn, backend=backend)
