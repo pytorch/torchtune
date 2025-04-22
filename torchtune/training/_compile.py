@@ -92,3 +92,9 @@ def compile_optimizer_step(optimizer_step_fn, verbose: bool = True):
     if verbose:
         log.info("Compiling optimizer step function with torch.compile...")
     return torch.compile(optimizer_step_fn, backend=backend)
+
+def compile_scale_grads(fn, verbose: bool = True):
+    backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    if verbose:
+        log.info("Compiling scale_grads function with torch.compile...")
+    return torch.compile(fn, backend=backend)

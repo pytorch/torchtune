@@ -914,7 +914,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
-                        training.scale_grads(self._model, self.dp_degree / num_tokens)
+                        def scale_grads_fn():
+                            training.scale_grads_(self._model.parameters(), self.dp_degree / num_tokens)
+                        if self._compile:
+                            training.compile_scale_grads(
+                                scale_grads_fn,
+                                verbose=self._is_rank_zero
+                            )()
+                        else:
+                            scale_grads_fn()
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
