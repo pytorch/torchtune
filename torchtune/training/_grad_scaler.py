@@ -48,10 +48,10 @@ def scale_grads_(
     Gradients are modified in-place, multiplying by specified scaler.
 
     Args:
-        parameters (Iterable[Tensor] or Tensor): an iterable of Tensors or a
+        parameters (_tensor_or_tensors): an iterable of Tensors or a
             single Tensor that will have gradients scaled
-        scaler (Tensor): multiplier to scale gradients
-        foreach (bool): use the faster foreach-based implementation.
+        scaler (torch.Tensor): multiplier to scale gradients
+        foreach (Optional[bool]): use the faster foreach-based implementation.
             If ``None``, use the foreach implementation for CUDA and CPU native tensors and silently
             fall back to the slow implementation for other device types.
             Default: ``None``
