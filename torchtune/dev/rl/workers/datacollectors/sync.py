@@ -10,7 +10,6 @@ from typing import Any, Callable, Dict, Optional
 
 import ray
 import torch
-import torch.distributed
 
 from omegaconf import DictConfig, ListConfig
 

@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import re
 import runpy
 import sys
@@ -47,7 +46,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
         # Basic overrides for testing
         overrides = [
             f"output_dir={tmpdir}",
-            f"name=test_async_grpo_qwen",
+            "name=test_async_grpo_qwen",
             "dtype=fp32",
             "seed=42",
             # Configure for 4 GPUs
@@ -198,7 +197,9 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
                 torch.tensor(expected_loss_values[: len(loss_values)]),
                 rtol=1e-1,
                 atol=1e-1,
-                msg=f"Loss values don't match expected values. Got {loss_values}, expected {expected_loss_values[:len(loss_values)]}",
+                msg=f"""
+                    Loss values don't match expected values. Got {loss_values}, "
+                    expected {expected_loss_values[:len(loss_values)]}""",
             )
 
             torch.testing.assert_close(
@@ -206,7 +207,9 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
                 torch.tensor(expected_reward_values[: len(reward_values)]),
                 rtol=1e-1,
                 atol=1e-1,
-                msg=f"Reward values don't match expected values. Got {reward_values}, expected {expected_reward_values[:len(reward_values)]}",
+                msg=f"""
+                    Reward values don't match expected values. Got {reward_values},
+                    expected {expected_reward_values[:len(reward_values)]}""",
             )
         finally:
             # Make sure Ray is shut down even if the test fails

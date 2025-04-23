@@ -5,3 +5,5 @@
 # LICENSE file in the root directory of this source tree.
 
 from .vllm import VLLMParameterServer
+
+__all__ = ["VLLMParameterServer"]

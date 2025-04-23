@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 import argparse
 import functools
-import sys
 from argparse import Namespace
 from typing import Any, Callable, List, Tuple
 
