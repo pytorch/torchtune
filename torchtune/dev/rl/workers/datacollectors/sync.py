@@ -49,12 +49,12 @@ class SyncLLMCollector(SyncDataCollector):
         total_dialog_turns: int = -1,
         async_envs: bool = False,
         reset_at_each_iter: bool = False,
-        weight_update_receiver: WeightUpdateReceiverBase
-        | Callable[[], WeightUpdateReceiverBase]
-        | None = None,
-        weight_update_sender: WeightUpdateSenderBase
-        | Callable[[], WeightUpdateSenderBase]
-        | None = None,
+        weight_update_receiver: (
+            WeightUpdateReceiverBase | Callable[[], WeightUpdateReceiverBase] | None
+        ) = None,
+        weight_update_sender: (
+            WeightUpdateSenderBase | Callable[[], WeightUpdateSenderBase] | None
+        ) = None,
     ):
         if async_envs:
             raise NotImplementedError
@@ -65,12 +65,12 @@ class SyncLLMCollector(SyncDataCollector):
         self._is_collector_zero = self.worker_id == 0
         print(f"{self._is_collector_zero=}")
 
-        self.tp_size = self.cfg.vllm.tp_size
-        self.batch_size = self.cfg.vllm.batch_size
+        self.tp_size = self.cfg.rollout_tensor_parallel_dim
+        self.batch_size = self.cfg.rollout_batch_size
         self._sequence_counter = 0  # Used to assign unique sequence IDs to each sample
 
         self.inference_server = LLM(
-            model="Qwen/Qwen2.5-3B",
+            model=llm,
             enforce_eager=True,
             enable_chunked_prefill=True,
             dtype="bfloat16",
@@ -239,7 +239,7 @@ class SyncLLMCollector(SyncDataCollector):
         i = 0
         while True:
             self.rollout(i)
-            if i % self.cfg.vllm.steps_before_sync == 0:
+            if i % self.cfg.num_rollouts_before_weight_update == 0:
                 log.info(f"{self.worker_id} about to update weights")
                 self.update_policy_weights_()
             i += 1

@@ -45,7 +45,7 @@ class RefActor:
         self.metric_logger = None  # Placeholder for the logger
 
         self.grpo_samples = self.cfg.grpo_samples
-        self.vllm_batch_size = self.cfg.vllm.batch_size
+        self.vllm_batch_size = self.cfg.rollout_batch_size
 
         device_type = self.cfg.device
         self._log_peak_memory_stats = self.cfg.get("log_peak_memory_stats", True)
@@ -237,7 +237,7 @@ class RefActor:
                 ref_logits, trajectory.responses, self._temperature
             )
 
-            batch_size = self.cfg.vllm.batch_size  # B
+            batch_size = self.cfg.rollout_batch_size  # B
             group_size = self.grpo_samples  # G
 
             del ref_logits, position_ids, masks

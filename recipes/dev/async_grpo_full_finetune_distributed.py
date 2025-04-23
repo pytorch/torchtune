@@ -186,15 +186,15 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
         self.cfg = cfg
 
         # Store worker counts as instance variables
-        self.num_vllm_workers = cfg.vllm.num_workers
-        self.vllm_tp_size = cfg.vllm.tp_size
+        self.num_vllm_workers = cfg.num_rollout_workers
+        self.vllm_tp_size = cfg.rollout_tensor_parallel_dim
         self.num_ref_workers = cfg.num_ref_workers
-        self.num_fsdp_workers = cfg.num_fsdp_workers
+        self.num_fsdp_workers = cfg.num_trainer_workers
 
         # Initialize queues
         self.rollout_queue = Queue(
             actor_options={"num_cpus": 10, "num_gpus": 0},
-            maxsize=self.cfg.vllm.queue_maxsize,
+            maxsize=self.cfg.rollout_queue_maxsize,
         )
         self.replay_buffer = RayReplayBuffer(
             storage=functools.partial(
@@ -343,12 +343,12 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
             collector = (
                 ray.remote(
                     num_cpus=0,
-                    num_gpus=self.cfg.vllm.tp_size,
+                    num_gpus=self.cfg.rollout_tensor_parallel_dim,
                 )(SyncLLMCollector)
                 .options(max_concurrency=5)
                 .remote(
                     cfg=self.cfg,
-                    llm="Qwen/Qwen2.5-3B",
+                    llm=self.cfg.rollout_model_dir,
                     policy=vllm_generate,
                     worker_id=i,
                     dialog_turns_per_batch=1,

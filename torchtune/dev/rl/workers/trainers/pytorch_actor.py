@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import functools
 import os
 import time
@@ -191,7 +197,7 @@ class PyTorchActorModel:
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-        self._steps_before_sync = cfg.steps_before_sync
+        self._steps_before_sync = cfg.num_train_steps_before_sync
 
         # Initialize policy version for tracking age of trajectories
         self.policy_version = 0
@@ -714,9 +720,9 @@ class PyTorchActorModel:
                 )
             else:
                 beyond_seq_len = 0
-            per_sample_dict["beyond_seq_len_masking_is_positive (should be 0)"] = (
-                beyond_seq_len
-            )
+            per_sample_dict[
+                "beyond_seq_len_masking_is_positive (should be 0)"
+            ] = beyond_seq_len
 
             per_sample_dict["num_tokens_response"] = seq_len
             per_sample_dict["step"] = self._steps_run
