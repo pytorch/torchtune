@@ -16,7 +16,7 @@
 # won't help here. This is instead launching just the controller, which is a CPU process. The controller will in turn launch every other worker.
 
 name: grpo_async_qwen3b
-total_inference_batch_size: ${eval:'${vllm.batch_size} * ${grpo_samples}'}
+total_inference_batch_size: 16 # vllm.batch_size * grpo_samples
 
 output_dir: /tmp/checkpoints/${name}
 base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
@@ -114,8 +114,7 @@ vllm:
   tp_size: 1
   batch_size: 1
   steps_before_sync: 1
-  queue_maxsize: ${eval:'${vllm.num_workers} * ${steps_before_sync}'}
-
+  queue_maxsize: 4 # num_workers * steps_before_sync
 
 # Logging
 metric_logger:
@@ -131,23 +130,3 @@ debug_num_samples_per_step: 1
 profiler:
   _component_: torchtune.training.setup_torch_profiler
   enabled: False
-
-  #Output directory of trace artifacts
-  output_dir: ${output_dir}/profiling_outputs
-
-  #`torch.profiler.ProfilerActivity` types to trace
-  cpu: True
-  cuda: True
-
-  #trace options passed to `torch.profiler.profile`
-  profile_memory: True
-  with_stack: True
-  record_shapes: True
-  with_flops: False
-
-  # `torch.profiler.schedule` options:
-  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-  wait_steps: 1
-  warmup_steps: 1
-  active_steps: 2
-  num_cycles: 1

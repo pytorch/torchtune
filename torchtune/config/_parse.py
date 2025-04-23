@@ -96,6 +96,6 @@ def parse(recipe_main: Recipe) -> Callable[..., Any]:
         yaml_args, cli_args = parser.parse_known_args()
         conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
-        sys.exit(recipe_main(conf))
+        recipe_main(conf)
 
     return wrapper
