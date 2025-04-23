@@ -19,8 +19,13 @@ SMALL_MODEL_URLS=(
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-tune-llama3-05052024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-reward-07122024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-vision-10172024.pt"
-    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-vision-10172024.pt"
-
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/config.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/generation_config.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/model.safetensors"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/model.safetensors.index.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/special_tokens_map.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/tokenizer.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/tokenizer_config.json"
 )
 FULL_MODEL_URL=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
 TOKENIZER_URLS=(
