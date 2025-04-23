@@ -10,9 +10,6 @@ from typing import Any, Callable, Dict, Optional
 
 import ray
 import torch
-import torch.distributed
-import torchtune.training as training
-import vllm
 
 from omegaconf import DictConfig, ListConfig
 
@@ -27,11 +24,10 @@ from torchrl.collectors import (
     WeightUpdateSenderBase,
 )
 
-from torchrl.envs import LLMEnv
-from torchtune import config, utils
+from torchtune import utils
 from torchtune.dev.rl.datatypes import Trajectory
 from torchtune.dev.rl.utils import stateless_init_process_group
-from vllm import LLM, SamplingParams
+from vllm import LLM
 from vllm.worker.worker import Worker
 
 log = utils.get_logger()

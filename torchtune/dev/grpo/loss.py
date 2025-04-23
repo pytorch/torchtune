@@ -354,6 +354,13 @@ class GRPOWithChunkedOutputLoss(nn.Module):
         """
         Compute GRPO loss over chunked or full logits.
 
+        Args:
+            pi_logits (torch.Tensor | List[torch.Tensor]): Logits of the policy model. If a list, each element is a chunk of logits.
+            targets (torch.Tensor): Targets for the policy model.
+            ref_logprobs (torch.Tensor): Log probabilities of the reference model.
+            advantages (torch.Tensor): Advantage values.
+            padding_masks (Optional[torch.Tensor]): Padding token masks where True indicates tokens to include in loss calculation.
+
         Returns:
             Tuple of (loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs).
         """

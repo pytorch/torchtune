@@ -15,7 +15,7 @@ import ray
 import torch
 import torch.distributed
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from ray.util.queue import Queue
 
@@ -365,11 +365,8 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
         ray.get(rollout_handles + ref_handles + worker_handles)
         ray.get(self.actor_workers[0].cleanup.remote())
 
-    def stop_ray(self):
-        ray.shutdown()
-
     def cleanup(self):
-        self.stop_ray()
+        ray.shutdown()
 
 
 @config.parse

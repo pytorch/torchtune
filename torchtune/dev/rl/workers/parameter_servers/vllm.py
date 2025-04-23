@@ -4,13 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+
 import ray
 import torch
 from readerwriterlock import rwlock
-from torchrl.collectors.collectors import (
-    WeightUpdateReceiverBase,
-    WeightUpdateSenderBase,
-)
+from torchrl.collectors.collectors import WeightUpdateSenderBase
 from torchtune import utils
 from torchtune.dev.rl.utils import stateless_init_process_group
 
@@ -20,7 +19,6 @@ log = utils.get_logger("DEBUG")
 @ray.remote(num_cpus=4, num_gpus=1)
 class VLLMParameterServer(WeightUpdateSenderBase):
     def __init__(self, cfg, vllm_master_addresses, vllm_master_ports, env_vars):
-        log.info("in param server init")
         super().__init__()
         self.cfg = cfg
         self.vllm_master_addresses = vllm_master_addresses
@@ -28,11 +26,6 @@ class VLLMParameterServer(WeightUpdateSenderBase):
         self.vllm_comm_groups = dict()
         self.vllm_weight_versions = dict()
         self.vllm_worker_handles = dict()
-
-        import os
-
-        import torch
-        import torch.distributed
 
         torch.cuda.set_device(torch.device("cuda", 0))
 

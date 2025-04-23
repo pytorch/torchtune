@@ -4,45 +4,36 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import functools
 import os
 import time
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from warnings import warn
 
 import ray
 import torch
-import torch.distributed
 import torch.nn as nn
-import torchtune.training as training
 
-from omegaconf import DictConfig, ListConfig, OmegaConf
-
-from ray.util.queue import Full as QueueFull, Queue
-
-from readerwriterlock import rwlock
-from tensordict import is_tensorclass, NonTensorData, TensorClass, TensorDict
+from omegaconf import DictConfig
 
 from torch.optim import Optimizer
 
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
-
-from torchrl.data import LazyStackStorage, RayReplayBuffer
-from torchrl.envs import LLMEnv
-from torchtune import config, generation, modules, rlhf, utils
-from torchtune.dev.grpo.rewards import batched_rewards
+from torchrl.data import RayReplayBuffer
+from torchtune import config, training, utils
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.dev.rl.datatypes import Trajectory
 from torchtune.dev.rl.utils import stateless_init_process_group
+from torchtune.generation import (
+    get_causal_mask_from_padding_mask,
+    get_position_ids_from_padding_mask,
+)
 from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
+from torchtune.modules.transformer import TransformerSelfAttentionLayer
+from torchtune.rlhf import truncate_sequence_at_first_stop_token
 
 from torchtune.training import DummyProfiler, PROFILER_KEY
 
-from vllm.utils import get_ip, get_open_port
-from vllm.worker.worker import Worker
 
 log = utils.get_logger("DEBUG")
 
@@ -57,13 +48,21 @@ class PyTorchActorModel:
 
     Args:
         cfg (DictConfig): Configuration object containing training parameters.
-        environment_variables (dict): Environment variables for distributed training setup.
-        replay_buffer: Shared replay buffer for sampling trajectories.
+        environment_variables (Dict[str, str]): Environment variables for distributed training setup.
+        replay_buffer (RayReplayBuffer): Shared replay buffer for sampling trajectories.
+
+    Raises:
+        ValueError: If dtype provided is float16
+        RuntimeError: If enable_activation_offloading is True and device is not CUDA
+            or If enable_activation_offloading is True and enable_activation_checkpointing is False
     """
 
-    def __init__(self, cfg, environment_variables, replay_buffer):
-        import torch
-
+    def __init__(
+        self,
+        cfg: DictConfig,
+        environment_variables: Dict[str, str],
+        replay_buffer: RayReplayBuffer,
+    ):
         self.replay_buffer = replay_buffer
         self.cfg = cfg
 
@@ -100,7 +99,6 @@ class PyTorchActorModel:
         if not torch.distributed.is_initialized():
             torch.distributed.init_process_group(backend="nccl")
 
-        world_size = torch.distributed.get_world_size()
         self.rank = int(os.environ["RANK"])
         self.world_size = int(os.environ["WORLD_SIZE"])
         self.fsdp_group = torch.distributed.new_group(
@@ -332,7 +330,7 @@ class PyTorchActorModel:
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+                model, auto_wrap_policy={TransformerSelfAttentionLayer}
             )
 
         fsdp_shard_conditions = [
@@ -658,7 +656,7 @@ class PyTorchActorModel:
                 for token in response_tokens
             ]
 
-            ### Per-Sample Data
+            # Per-Sample Data
             per_sample_dict = {}
             per_sample_dict["Sequence ID"] = sequence_id
             per_sample_dict["prompt"] = prompt
@@ -730,7 +728,7 @@ class PyTorchActorModel:
             # Append the dictionary to the per-sample table data
             per_sample_table_data.append(per_sample_dict)
 
-            ### Per-Token Data
+            # Per-Token Data
             for pos in range(seq_len):
                 per_token_dict = {}
                 per_token_dict["Sequence ID"] = sequence_id
@@ -936,16 +934,14 @@ class PyTorchActorModel:
 
     def _prepare_trajectory(
         self, raw_trajectory: Trajectory
-    ) -> tuple[GRPOTrajectory, int, Dict[str, Any]]:
+    ) -> Tuple[GRPOTrajectory, int, Dict[str, Any]]:
         """Process raw trajectory, compute rewards, and prepare for optimization.
 
         Args:
-            raw_trajectory: The trajectory sampled from the replay buffer.
+            raw_trajectory (Trajectory): The trajectory sampled from the replay buffer.
 
         Returns:
-            trajectory (GRPOTrajectory): Processed trajectory for GRPO optimization.
-            context_length (int): Length of the context sequence.
-            metadata (dict): Metadata for logging
+            Tuple[trajectory, context_length, metadata]
         """
         # Extract components from raw trajectory
         query_responses = raw_trajectory.query_responses
@@ -965,19 +961,15 @@ class PyTorchActorModel:
         number_of_tokens = seq_lens.sum().item()
 
         # Truncate sequences at first stop token
-        response_padding_masks, responses = rlhf.truncate_sequence_at_first_stop_token(
+        response_padding_masks, responses = truncate_sequence_at_first_stop_token(
             responses,
             torch.tensor(self._tokenizer.stop_tokens, device=self._device),
             self._tokenizer.pad_id,
         )
 
         # Generate masks and position IDs
-        masks = generation.get_causal_mask_from_padding_mask(
-            query_response_padding_masks
-        )
-        position_ids = generation.get_position_ids_from_padding_mask(
-            query_response_padding_masks
-        )
+        masks = get_causal_mask_from_padding_mask(query_response_padding_masks)
+        position_ids = get_position_ids_from_padding_mask(query_response_padding_masks)
         context_length = query_responses.shape[1] - responses.shape[1]
         del query_response_padding_masks
 

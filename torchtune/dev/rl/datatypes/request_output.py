@@ -4,19 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict
 
 import torch
-import vllm
-from tensordict import (
-    from_dataclass,  # noqa
-    lazy_stack,
-    TensorClass,
-    TensorDict,
-    TensorDictBase,
-)
-from tensordict.utils import _zip_strict, expand_as_right
-from vllm import LLM, SamplingParams
+from tensordict import from_dataclass, lazy_stack, TensorClass  # noqa
+from tensordict.utils import _zip_strict
 
 from .vllm_completion_output import VllmCompletionOutput
 

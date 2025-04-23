@@ -5,3 +5,5 @@
 # LICENSE file in the root directory of this source tree.
 
 from .pytorch_actor import PyTorchActorModel
+
+__all__ = ["PyTorchActorModel"]
