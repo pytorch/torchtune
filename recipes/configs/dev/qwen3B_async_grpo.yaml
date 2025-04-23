@@ -1,26 +1,21 @@
-# Config for multi-node GRPO in dev/grpo_full_finetune_distributed.py
-# using a Llama3.2 3B Base model
+# Config for async multi-node GRPO in dev/async_grpo.py
+# using a Qwen-3B Base model (which is known to train quickly on this task).
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-3.2-3B --output-dir /tmp/Llama-3.2-3B --ignore-patterns "original/consolidated.00.pth"
+#   tune download Qwen/Qwen2.5-3B --output-dir /tmp/Qwen2.5-3B --ignore-patterns "original/consolidated.00.pth"
 #
-# It can be beneficial to first train the base model with SFT using the 3B_sft recipe.
-#
-# To launch on 8 devices, run the following command from root:
-# tune run --nproc-per-node 8 dev/grpo_full_finetune_distributed --config recipes/configs/dev/qwen3B_full_grpo.yaml
-#
-# You can add specific overrides through the command line. For example
-# to override the checkpointer directory while launching training
-# you can run:
-#   tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/grpo/3B_full_rl checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
-#
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-#
-# Furthermore, you can launch it on multiple nodes by going to recipes/dev/ and using
-#  sbatch multinode_grpo.sbatch
+# This config is meant to run on a whole node with 8 GPUs. You can tweak the number of workers here to change it
+# but note that some workers have currently been hardcoded in the prototype and we haven't yet tested on different
+# numbers of workers.
 
-name: grpo_qwen3b
+# To launch, run the following:
+# tune run dev/async_grpo --config recipes/configs/dev/qwen3B_async_grpo.yaml
+
+# Note that unlike in synchronous recipes (all the existing ones), we don't follow a SPMD model here so passing a flag like `--nproc-per-node 8`
+# won't help here. This is instead launching just the controller, which is a CPU process. The controller will in turn launch every other worker.
+
+name: grpo_async_qwen3b
 total_inference_batch_size: ${eval:'${vllm.batch_size} * ${grpo_samples}'}
 
 output_dir: /tmp/checkpoints/${name}

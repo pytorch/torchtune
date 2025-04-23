@@ -44,16 +44,23 @@ All of the above are run as remote Ray workers, with Ray being used for managing
 
 ## Using the Recipe
 
-After install torchtune, you'll need to install
+We recommend installing this in a dedicated conda environment.
+The following works for us:
 
 ```bash
-pip install vllm ray torchrl tensordict
+conda create --name tunerl python=3.10
+conda activate tunerl
+git clone https://github.com/joecummings/r1-zero.git
+cd r1-zero
+pip install torch torchvision torchao
+pip install -e .[async_rl]
+
 ```
 
 With these installed you can run the recipe with
 
 ```bash
-tune run --nproc_per_node 8 async_grpo_finetune_distributed --config qwen3B_full_async_grpo
+tune run dev/async_grpo_full_finetune_distributed --config recipes/configs/dev/qwen3B_async_grpo.yaml
 ```
 
 Apart from the standard config options, GRPO introduces

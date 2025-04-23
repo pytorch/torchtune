@@ -28,16 +28,19 @@ _ALL_RECIPES = [
         file_path="dev/grpo_full_finetune_distributed.py",
         configs=[
             Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
+            Config(name="dev/qwen3B_sync_grpo", file_path="dev/qwen3B_sync_grpo.yaml"),
         ],
         supports_distributed=True,
     ),
     Recipe(
-        name="dev/grpo_torchrl_full_finetune_distributed",
-        file_path="dev/grpo_torchrl_full_finetune_distributed.py",
+        name="dev/async_grpo_full_finetune_distributed",
+        file_path="dev/async_grpo_full_finetune_distributed.py",
         configs=[
-            Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
+            Config(
+                name="dev/qwen3B_async_grpo", file_path="dev/qwen3B_async_grpo.yaml"
+            ),
         ],
-        supports_distributed=True,
+        supports_distributed=False,
     ),
     Recipe(
         name="full_finetune_single_device",
