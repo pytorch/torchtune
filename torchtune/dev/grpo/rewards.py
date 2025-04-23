@@ -8,6 +8,8 @@ import re
 from typing import List, Tuple
 from xml.etree import ElementTree as ET
 
+import math_verify
+
 import torch
 
 # from tensordict import TensorDict, TensorDictBase
@@ -16,7 +18,6 @@ import torch
 
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
-import math_verify
 
 def extract_tags(text: str) -> Tuple[str, str]:
     """

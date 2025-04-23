@@ -10,35 +10,25 @@
 # numbers of workers.
 
 # To launch, run the following:
-# tune run dev/async_grpo --config recipes/configs/dev/qwen3B_async_grpo.yaml
+#     tune run dev/async_grpo --config recipes/configs/dev/qwen3B_async_grpo.yaml
 
 # Note that unlike in synchronous recipes (all the existing ones), we don't follow a SPMD model here so passing a flag like `--nproc-per-node 8`
 # won't help here. This is instead launching just the controller, which is a CPU process. The controller will in turn launch every other worker.
 
 name: grpo_async_qwen3b
-total_inference_batch_size: 16 # vllm.batch_size * grpo_samples
-
 output_dir: /tmp/checkpoints/${name}
 base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
 
-# Tokenizer
-tokenizer:
-  _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
-  path: /tmp/Qwen2.5-3B/vocab.json
-  merges_file: /tmp/Qwen2.5-3B/merges.txt
-  max_seq_len: 1024
-
-# Dataset
-dataset:
-  _component_: torchtune.dev.grpo.gsm8k.gsm8k_dataset
-  partition: 1-9/10
-seed: null
-shuffle: False
-
-# Model Arguments
+# --------- Model arguments (Using Qwen2.5-3B as example) ---------- #
 model:
   _component_: torchtune.models.qwen2_5.qwen2_5_3b
+tokenizer:
+  _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
+  path: ${base_model_path}/vocab.json
+  merges_file: ${base_model_path}/merges.txt
+  max_seq_len: 1024
 
+# Weights for training the reasoning model
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: ${base_model_path}
@@ -49,8 +39,10 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: QWEN2
+num_trainer_workers: 2
+resume_from_checkpoint: False
 
-
+# Weights for reference model
 ref_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: ${base_model_path}
@@ -58,75 +50,81 @@ ref_checkpointer:
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
   ]
-  recipe_checkpoint: null
-  output_dir: ${output_dir}/ref  # shouldn't be used?
   model_type: QWEN2
+num_ref_workers: 1
 
+# Weights for rollout model (via vLLM)
+rollout_model_dir: ${base_model_path}  # Can also be any model weights on the HF Hub
+num_rollout_workers: 4
+rollout_tensor_parallel_dim: 1
 
-resume_from_checkpoint: False
-save_every_n_epochs: 1
+# ---------- Data --------- #
+dataset:
+  _component_: torchtune.dev.grpo.gsm8k.gsm8k_dataset
+  partition: 1-9/10
+seed: null
+shuffle: False
 
-# Fine-tuning arguments
-batch_size: 16
-grpo_samples: 16
-max_generated_tokens: 512
-top_k: null
-temperature: 1.0
-replay_buffer_size: ${total_inference_batch_size}  # TODO this needs to be fixed. Right now this can't be bigger, or else we'll get padding issues
-
+epochs: 10
 ppo_epochs: 1
 
 num_steps: 250
+batch_size: 16
+total_inference_batch_size: 16 # rollout_batch_size * grpo_samples
+grpo_samples: 16
 
-clip_grad_norm: 1.0
+replay_buffer_size: ${total_inference_batch_size}  # TODO this needs to be fixed. Right now this can't be bigger, or else we'll get padding issues
 
-epochs: 10
+rollout_batch_size: 1
+rollout_queue_maxsize: 4 # num_rollout_workers * num_rollouts_before_weight_update
+
+max_generated_tokens: 512
+top_k: null
+temperature: 1.0
+
+# --------- Training arguments ------------ #
 optimizer:
   _component_: torch.optim.AdamW
   lr: 1e-5
   fused: True
+
 lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 50
+
 loss:
   _component_: torchtune.dev.grpo.loss.GRPOWithChunkedOutputLoss
   kl_coeff: 0.01
   epsilon: 0.2
 
-# Training env
+num_train_steps_before_sync: 2
+num_rollouts_before_weight_update: 1
+
+clip_grad_norm: 1.0
+
+save_every_n_epochs: 1
+
+# cuda, cpu, rocm, xpu ...
 device: cuda
 
-# Memory management
+# Memory management / performance
 enable_activation_checkpointing: True  # True reduces memory
 enable_activation_offloading: True  # True reduces memory.
 compile: False  # pytorch compile, set to true for better perf/memory
 
-# Reduced precision
-dtype: bf16
+dtype: bf16 # Reduced precision
 
-# number of train_steps after which to do weight sync
-steps_before_sync: 2
-num_ref_workers: 1
-num_fsdp_workers: 2
-
-vllm:
-  num_workers: 4
-  tp_size: 1
-  batch_size: 1
-  steps_before_sync: 1
-  queue_maxsize: 4 # num_workers * steps_before_sync
-
-# Logging
+# ---------- Logging ------------ #
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
-debug_logging_enabled: True
+debug_logging_enabled: False
 debug_num_samples_per_step: 1
 
-# Profiler (disabled)
+# Useful for understanding how to optimize memory and performance
 profiler:
   _component_: torchtune.training.setup_torch_profiler
   enabled: False

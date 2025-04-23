@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import ray
 import torch
 from readerwriterlock import rwlock
@@ -90,9 +96,7 @@ class VLLMParameterServer(WeightUpdateSenderBase):
         return False
 
     def _init_model_update_group(self, worker_id):
-        worker_handle = self.vllm_worker_handles[worker_id]
-        vllm_tp_size = self.cfg.vllm.tp_size
-        weight_sync_world_size = vllm_tp_size + 1
+        weight_sync_world_size = self.cfg.rollout_tensor_parallel_dim + 1
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
             self.vllm_master_ports[worker_id],

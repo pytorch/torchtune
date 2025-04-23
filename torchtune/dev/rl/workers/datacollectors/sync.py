@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import time
 from functools import partial
 from typing import Any, Callable, Dict, Optional
@@ -47,12 +53,12 @@ class SyncLLMCollector(SyncDataCollector):
         total_dialog_turns: int = -1,
         async_envs: bool = False,
         reset_at_each_iter: bool = False,
-        weight_update_receiver: WeightUpdateReceiverBase
-        | Callable[[], WeightUpdateReceiverBase]
-        | None = None,
-        weight_update_sender: WeightUpdateSenderBase
-        | Callable[[], WeightUpdateSenderBase]
-        | None = None,
+        weight_update_receiver: (
+            WeightUpdateReceiverBase | Callable[[], WeightUpdateReceiverBase] | None
+        ) = None,
+        weight_update_sender: (
+            WeightUpdateSenderBase | Callable[[], WeightUpdateSenderBase] | None
+        ) = None,
     ):
         if async_envs:
             raise NotImplementedError
@@ -63,12 +69,12 @@ class SyncLLMCollector(SyncDataCollector):
         self._is_collector_zero = self.worker_id == 0
         print(f"{self._is_collector_zero=}")
 
-        self.tp_size = self.cfg.vllm.tp_size
-        self.batch_size = self.cfg.vllm.batch_size
+        self.tp_size = self.cfg.rollout_tensor_parallel_dim
+        self.batch_size = self.cfg.rollout_batch_size
         self._sequence_counter = 0  # Used to assign unique sequence IDs to each sample
 
         self.inference_server = LLM(
-            model="Qwen/Qwen2.5-3B",
+            model=llm,
             enforce_eager=True,
             enable_chunked_prefill=True,
             dtype="bfloat16",
@@ -251,10 +257,10 @@ class SyncLLMCollector(SyncDataCollector):
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
     async def run(self):
-        num_steps = (self.cfg.num_steps // self.cfg.vllm.num_workers) + 1
+        num_steps = (self.cfg.num_steps // self.cfg.num_rollout_workers) + 1
         for i in range(num_steps):
             self.rollout(i)
-            if i % self.cfg.vllm.steps_before_sync == 0:
+            if i % self.cfg.num_rollouts_before_weight_update == 0:
                 log.info(f"{self.worker_id} about to update weights")
                 await self.weight_update_sender.update_weights.remote(
                     weights=None, worker_ids=self.worker_id

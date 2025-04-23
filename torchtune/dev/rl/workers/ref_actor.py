@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import Any, Dict
 
 import ray
@@ -39,7 +45,7 @@ class RefActor:
         self.metric_logger = None  # Placeholder for the logger
 
         self.grpo_samples = self.cfg.grpo_samples
-        self.vllm_batch_size = self.cfg.vllm.batch_size
+        self.vllm_batch_size = self.cfg.rollout_batch_size
 
         device_type = self.cfg.device
         self._log_peak_memory_stats = self.cfg.get("log_peak_memory_stats", True)
@@ -172,13 +178,13 @@ class RefActor:
 
         # Per-function rewards and successes
         for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[f"ref_actor_rewards/rewards_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/rewards_func_{func_name}_mean"
+            ] = func_mean.item()
         for func_name, func_mean in zip(function_names, successes_mean_per_func):
-            log_dict[f"ref_actor_rewards/successes_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/successes_func_{func_name}_mean"
+            ] = func_mean.item()
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
@@ -234,7 +240,7 @@ class RefActor:
                 ref_logits, trajectory.responses, self._temperature
             )
 
-            batch_size = self.cfg.vllm.batch_size  # B
+            batch_size = self.cfg.rollout_batch_size  # B
             group_size = self.grpo_samples  # G
 
             del ref_logits, position_ids, masks
