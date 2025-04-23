@@ -601,6 +601,9 @@ class TransformerDecoder(nn.Module):
                 This parameter is required during inference if caches have been setup. Default is None.
             input_embeds (Optional[torch.Tensor]): Pass these instead of tokens to short-circuit token embeddings
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
+            output_mask (Optional[torch.Tensor]): Boolean tensor with shape ``[b x s]``. A value of True in row ``i``
+                and column ``j`` means token ``i`` is included in the output. A value of False means token ``i`` is not
+                included in the output. Default is None, which means all tokens are included in the output.
 
         Returns:
             Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer
@@ -664,7 +667,7 @@ class TransformerDecoder(nn.Module):
 
     def unembed(self, h, output_mask=None):
         if output_mask is not None:
-            bsz, seq_len, dim = h.shape
+            bsz, _, dim = h.shape
             h = h[output_mask]
             h = h.reshape(bsz, -1, dim)
         # shape: [b, s, d]
