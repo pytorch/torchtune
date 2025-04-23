@@ -22,7 +22,6 @@ from ray.util.queue import Queue
 from tensordict import TensorDict, TensorDictBase
 from tensordict.utils import expand_as_right
 
-from torchrl.collectors import WeightUpdateReceiverBase
 from torchrl.data import LazyStackStorage, RayReplayBuffer
 from torchtune import config, utils
 from torchtune.dev.rl.datatypes import RequestOutput, Trajectory
@@ -31,10 +30,10 @@ from torchtune.dev.rl.workers import (
     PyTorchActorModel,
     RefActor,
     SyncLLMCollector,
+    VLLMHFWeightUpdateReceiver,
     VLLMParameterServer,
 )
 from torchtune.recipe_interfaces import OrchestrationRecipeInterface
-from vllm import SamplingParams
 
 from vllm.utils import get_ip, get_open_port
 
@@ -125,60 +124,6 @@ def _get_output_tokens_and_log_probs(
     tokens_response_td.rename_key_("logprobs", log_prob_key)
 
     return tokens_response_td
-
-
-# =============================================================================================
-
-
-class VLLMHFWeightUpdateReceiver(WeightUpdateReceiverBase):
-    def __init__(
-        self, master_address, master_port, model_metadata, param_server, worker_idx
-    ):
-        self.master_address = master_address
-        self.master_port = master_port
-        self.model_metadata = model_metadata
-        self.initialized_group = None
-        self.param_server = param_server
-        self.worker_idx = worker_idx
-
-    def _get_server_weights(self):
-        return None
-
-    def _get_local_weights(self):
-        # We don't implement this because we let vLLM's update_weights API handle everything for now
-        return None
-
-    def _maybe_map_weights(self, server_weights, local_weights):
-        # vLLM update_weights function handles the mapping from huggingface
-        # so we don't implement this for now
-        return None
-
-    def _update_local_weights(self, local_weights, mapped_weights):
-        should_update = not ray.get(
-            self.param_server._skip_update.remote(self.worker_idx)
-        )
-        if should_update:
-            self.param_server._sync_weights_with_worker.remote(self.worker_idx)
-            inference_server = self.collector.inference_server
-            if self.initialized_group is None:
-                weight_sync_world_size = (
-                    inference_server.llm_engine.parallel_config.tensor_parallel_size + 1
-                )
-                inference_server.collective_rpc(
-                    "init_weight_update_group",
-                    args=(
-                        self.master_address,
-                        self.master_port,
-                        1,
-                        weight_sync_world_size,
-                    ),
-                )
-                self.initialized_group = True
-
-            for k, (dtype, shape) in self.model_metadata.items():
-                inference_server.collective_rpc("update_weight", args=(k, dtype, shape))
-
-            inference_server.collective_rpc("update_policy_version")
 
 
 class RayGRPORecipe(OrchestrationRecipeInterface):
