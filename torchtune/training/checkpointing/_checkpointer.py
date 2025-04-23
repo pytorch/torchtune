@@ -385,7 +385,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             containing the keys keys ["filename_format", "max_filename"]. Since the checkpointer takes care
             of sorting by file ID, the order in this list does not matter.
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
-        output_dir (str): Directory to save the checkpoint files
+        output_dir (Optional[str]): Directory to save the checkpoint files, default None.
         adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
             and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
