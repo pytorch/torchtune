@@ -62,8 +62,6 @@ class SyncLLMCollector(SyncDataCollector):
         self.rollout_queue = queue
         self.worker_id = worker_id
         self._is_collector_zero = self.worker_id == 0
-        print(f"{self._is_collector_zero=}")
-
         self.tp_size = self.cfg.rollout_tensor_parallel_dim
         self.batch_size = self.cfg.rollout_batch_size
         self._sequence_counter = 0  # Used to assign unique sequence IDs to each sample
@@ -75,6 +73,7 @@ class SyncLLMCollector(SyncDataCollector):
             dtype="bfloat16",
             worker_cls=VLLMWorkerWrapper,
             tensor_parallel_size=self.tp_size,
+            disable_custom_all_reduce=True,
         )
 
         # local import below LLM call to avoid vLLM no CUDA GPUs available error

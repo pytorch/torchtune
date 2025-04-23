@@ -50,11 +50,11 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             "dtype=fp32",
             "seed=42",
             # Configure for 4 GPUs
-            "vllm.num_workers=1",
-            "vllm.tp_size=1",
+            "num_rollout_workers=1",
+            "rollout_tensor_parallel_dim=1",
             "num_ref_workers=1",  # Use 1 reference worker
-            "num_fsdp_workers=2",  # 2 FSDP worker
-            "vllm.queue_maxsize=1",
+            "num_trainer_workers=2",  # 2 FSDP worker
+            "rollout_queue_maxsize=1",
             "total_inference_batch_size=2",
             "replay_buffer_size=2",
             "batch_size=2",
@@ -63,9 +63,9 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             "max_generated_tokens=32",
             "num_steps=2",
             "epochs=1",
-            "steps_before_sync=1",
+            "num_train_steps_before_sync=1",
             # Use a mock base model path for testing
-            "base_model_path=/tmp/test-artifacts",
+            "base_model_path=/tmp/test-artifacts/llama3-hf/",
             # Logging
             "metric_logger._component_=torchtune.training.metric_logging.DiskLogger",
             f"metric_logger.filename={log_file}",
@@ -89,20 +89,14 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
         # Add model-specific configs
         overrides.extend(MODEL_TEST_CONFIGS["llama3"])
 
-        # Mock checkpointers for testing
-        ckpt_path = Path(CKPT_MODEL_PATHS["llama3_tune"])
-        ckpt_dir = ckpt_path.parent
-
         overrides.extend(
             [
-                "checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer",
-                f"checkpointer.checkpoint_dir={ckpt_dir}",
-                f"checkpointer.checkpoint_files=[{ckpt_path}]",
+                "checkpointer._component_=torchtune.training.FullModelHFCheckpointer",
+                f"checkpointer.checkpoint_files=[model.safetensors]",
                 f"checkpointer.output_dir={tmpdir}",
                 "checkpointer.model_type=LLAMA3",
-                "ref_checkpointer._component_=torchtune.training.FullModelTorchTuneCheckpointer",
-                f"ref_checkpointer.checkpoint_dir={ckpt_dir}",
-                f"ref_checkpointer.checkpoint_files=[{ckpt_path}]",
+                "ref_checkpointer._component_=torchtune.training.FullModelHFCheckpointer",
+                f"ref_checkpointer.checkpoint_files=[model.safetensors]",
                 f"ref_checkpointer.output_dir={tmpdir}/ref",
                 "ref_checkpointer.model_type=LLAMA3",
             ]
@@ -228,10 +222,10 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
 
         # Add custom GPU allocation overrides
         custom_overrides = [
-            "vllm.num_workers=2",
-            "vllm.tp_size=2",
+            "num_rollout_workers=2",
+            "rollout_tensor_parallel_dim=2",
             "num_ref_workers=1",
-            "num_fsdp_workers=1",
+            "num_trainer_workers=1",
             "total_inference_batch_size=1",
         ]
 
