@@ -64,7 +64,6 @@ dev = [
     "expecttest",
 ]
 async_rl = [
-    "torchao",
     # We will update this to a stable release soon!
     "torchrl @ git+https://github.com/pytorch/rl@0475cbf64de0cdf5f185a77badaa6eb241c63b0b",
 
