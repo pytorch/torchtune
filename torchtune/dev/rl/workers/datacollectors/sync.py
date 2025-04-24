@@ -28,7 +28,6 @@ from torchtune import utils
 from torchtune.dev.rl.datatypes import Trajectory
 from torchtune.dev.rl.utils import stateless_init_process_group
 from vllm import LLM
-from vllm.model_executor.layers.vocab_parallel_embedding import VocabParallelEmbedding
 from vllm.worker.worker import Worker
 
 log = utils.get_logger()
@@ -427,18 +426,3 @@ class VLLMWorkerWrapper(Worker):
         )
         self.policy_version = self.version
         torch.cuda.synchronize()
-
-    def _check_weights_changed(self, fill_val) -> bool:
-        """
-        Check if the weights are updated to fill_val.
-        """
-        weights_updated = True
-        for name, p in self.model_runner.model.named_parameters():
-            mod, child_name = name.rsplit(".", 1)
-            parent_module = self.model_runner.model.get_submodule(mod)
-            # TODO: vLLM pads embeddings with zeros, so not the full embedding will be filled with fill_val
-            if not isinstance(parent_module, VocabParallelEmbedding):
-                weights_updated = weights_updated and torch.allclose(
-                    p, torch.empty_like(p).fill_(fill_val)
-                )
-        return weights_updated
