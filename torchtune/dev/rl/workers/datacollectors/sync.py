@@ -49,12 +49,12 @@ class SyncLLMCollector(SyncDataCollector):
         total_dialog_turns: int = -1,
         async_envs: bool = False,
         reset_at_each_iter: bool = False,
-        weight_update_receiver: WeightUpdateReceiverBase
-        | Callable[[], WeightUpdateReceiverBase]
-        | None = None,
-        weight_update_sender: WeightUpdateSenderBase
-        | Callable[[], WeightUpdateSenderBase]
-        | None = None,
+        weight_update_receiver: (
+            WeightUpdateReceiverBase | Callable[[], WeightUpdateReceiverBase] | None
+        ) = None,
+        weight_update_sender: (
+            WeightUpdateSenderBase | Callable[[], WeightUpdateSenderBase] | None
+        ) = None,
     ):
         if async_envs:
             raise NotImplementedError
@@ -65,8 +65,8 @@ class SyncLLMCollector(SyncDataCollector):
         self._is_collector_zero = self.worker_id == 0
         print(f"{self._is_collector_zero=}")
 
-        self.tp_size = self.cfg.vllm.tp_size
-        self.batch_size = self.cfg.vllm.batch_size
+        self.tp_size = self.cfg.inference.tp_size
+        self.batch_size = self.cfg.inference.batch_size
         self._sequence_counter = 0  # Used to assign unique sequence IDs to each sample
 
         self.inference_server = LLM(
@@ -86,8 +86,8 @@ class SyncLLMCollector(SyncDataCollector):
         policy_kwargs = {
             "generate_kwargs": dict(
                 n=1,
-                max_tokens=self.cfg.max_generated_tokens,
-                temperature=self.cfg.temperature,
+                max_tokens=self.cfg.inference.max_generated_tokens,
+                temperature=self.cfg.inference.temperature,
             ),
             "pad_output": True,
             "padding_value": self._tokenizer.pad_id,
@@ -113,7 +113,7 @@ class SyncLLMCollector(SyncDataCollector):
             tokenizer=None,
             from_text=True,
             batch_size=self.batch_size,
-            repeats=self.cfg.grpo_samples,
+            repeats=self.cfg.inference.group_size,
         )
 
         super().__init__(
@@ -189,7 +189,7 @@ class SyncLLMCollector(SyncDataCollector):
         return postprocessed_results, total_generated_tokens
 
     def set_metric_logger(self, logger):
-        """Store the MetricLoggerActor handle."""
+        """Store the MetricLoggerWorker handle."""
         print(f"{self._is_collector_zero=} setting metric logger")
         if self._is_collector_zero:
             self._metric_logger = logger
@@ -239,7 +239,7 @@ class SyncLLMCollector(SyncDataCollector):
         i = 0
         while True:
             self.rollout(i)
-            if i % self.cfg.vllm.steps_before_sync == 0:
+            if i % self.cfg.inference.steps_before_sync == 0:
                 log.info(f"{self.worker_id} about to update weights")
                 self.update_policy_weights_()
             i += 1

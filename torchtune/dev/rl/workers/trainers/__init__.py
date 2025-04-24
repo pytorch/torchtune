@@ -1,1 +1,1 @@
-from .pytorch_actor import PyTorchActorModel
+from .training import TrainingWorker

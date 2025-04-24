@@ -79,7 +79,7 @@ class VLLMParameterServer:
         return False
 
     def _init_model_update_group(self, worker_id):
-        vllm_tp_size = self.cfg.vllm.tp_size
+        vllm_tp_size = self.cfg.inference.tp_size
         weight_sync_world_size = vllm_tp_size + 1
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],

@@ -3,7 +3,7 @@ from torchtune import config
 
 
 @ray.remote(num_cpus=1, num_gpus=0)
-class MetricLoggerActor:
+class MetricLoggerWorker:
     def __init__(self, cfg):
         self.logger = config.instantiate(cfg.metric_logger)
         self.logger.log_config(cfg)

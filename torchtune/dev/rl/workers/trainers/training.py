@@ -42,7 +42,7 @@ log = utils.get_logger("DEBUG")
 
 
 @ray.remote(num_cpus=8, num_gpus=1)
-class PyTorchActorModel:
+class TrainingWorker:
     """
     A Ray actor responsible for training a model using the GRPO (Generalized Reward Policy Optimization)
     algorithm in a distributed setting.
@@ -62,10 +62,10 @@ class PyTorchActorModel:
         self.cfg = cfg
 
         # Device and dtype setup
-        self._device = utils.get_device(device=cfg.device)
-        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
+        self._device = utils.get_device(device=cfg.training.device_type)
+        self._dtype = training.get_dtype(cfg.training.dtype, device=self._device)
 
-        device_type = self.cfg.device
+        device_type = self.cfg.training.device_type
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", True)
         if self._log_peak_memory_stats and device_type != "cuda":
             log.info(
@@ -82,7 +82,7 @@ class PyTorchActorModel:
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
 
-        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.fsdp_cpu_offload = cfg.training.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
             device_type, offload_ops_to_cpu=self.fsdp_cpu_offload
         )
@@ -107,14 +107,14 @@ class PyTorchActorModel:
         self._is_rank_zero = self.rank == 0
 
         # Training configuration
-        self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self._resume_from_checkpoint = cfg.training.resume_from_checkpoint
+        self._clip_grad_norm = cfg.training.get("clip_grad_norm", None)
 
         # Activation checkpointing and offloading
-        self._enable_activation_checkpointing = cfg.get(
+        self._enable_activation_checkpointing = cfg.training.get(
             "enable_activation_checkpointing", False
         )
-        self._enable_activation_offloading = cfg.get(
+        self._enable_activation_offloading = cfg.training.get(
             "enable_activation_offloading", False
         )
         if self._enable_activation_offloading:
@@ -138,37 +138,31 @@ class PyTorchActorModel:
 
         # Recipe state
         self.seed = training.set_seed(seed=cfg.seed)
-        self.total_epochs = cfg.epochs
+        self.total_epochs = cfg.training.epochs
         self.global_step = 0
         self._steps_run = 0
-        self._total_dialog_turns = cfg.num_steps
+        self._total_dialog_turns = cfg.orchestration.num_steps
         self._epochs_run = 0
         self._rng = torch.Generator(self._device).manual_seed(
             self.seed
         )  # TODO: Verify if needed for GRPO
 
         # RL parameters
-        self.grpo_samples = cfg.grpo_samples
-        self._temperature = cfg.temperature
-        self._top_k = cfg.top_k
-        self._max_generated_tokens = cfg.max_generated_tokens
-        self.batch_size = cfg.batch_size
-        self._ppo_epochs = cfg.ppo_epochs
-        self._save_every_n_epochs = cfg.save_every_n_epochs
+        self._ppo_epochs = cfg.training.ppo_epochs
 
         # Model and optimizer setup
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        self._compile = cfg.get("compile", False)
+        self._compile = cfg.training.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
-            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            custom_sharded_layers=cfg.training.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             model_state_dict=checkpoint_dict[training.MODEL_KEY],
         )
-        self._optimizer = self._setup_optimizer(cfg_optimizer=cfg.optimizer)
-        self._loss_fn = config.instantiate(cfg.loss)
+        self._optimizer = self._setup_optimizer(cfg_optimizer=cfg.training.optimizer)
+        self._loss_fn = config.instantiate(cfg.training.loss)
 
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
@@ -191,7 +185,7 @@ class PyTorchActorModel:
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-        self._steps_before_sync = cfg.steps_before_sync
+        self._steps_before_sync = cfg.training.steps_before_sync
 
         # Initialize policy version for tracking age of trajectories
         self.policy_version = 0
@@ -204,7 +198,7 @@ class PyTorchActorModel:
         log.info("Done setup")
 
     def set_metric_logger(self, logger):
-        """Store the MetricLoggerActor handle for logging metrics."""
+        """Store the MetricLoggerWorker handle for logging metrics."""
         if self._is_rank_zero:
             log.info(f"Setting metric logger {logger} for rank {self.rank}")
             self._metric_logger = logger

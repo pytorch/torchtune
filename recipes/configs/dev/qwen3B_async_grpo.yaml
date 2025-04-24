@@ -16,7 +16,6 @@
 # won't help here. This is instead launching just the controller, which is a CPU process. The controller will in turn launch every other worker.
 
 name: grpo_async_qwen3b
-total_inference_batch_size: ${eval:'${vllm.batch_size} * ${grpo_samples}'}
 
 output_dir: /tmp/checkpoints/${name}
 base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
@@ -63,64 +62,65 @@ ref_checkpointer:
   model_type: QWEN2
 
 
-resume_from_checkpoint: False
-save_every_n_epochs: 1
-
-# Fine-tuning arguments
-batch_size: 16
-grpo_samples: 16
-max_generated_tokens: 512
-top_k: null
-temperature: 1.0
-replay_buffer_size: ${total_inference_batch_size}  # TODO this needs to be fixed. Right now this can't be bigger, or else we'll get padding issues
-
-ppo_epochs: 1
-
-num_steps: 250
-
-clip_grad_norm: 1.0
-
-epochs: 10
-optimizer:
-  _component_: torch.optim.AdamW
-  lr: 1e-5
-  fused: True
-lr_scheduler:
-  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 50
-loss:
-  _component_: torchtune.dev.grpo.loss.GRPOWithChunkedOutputLoss
-  kl_coeff: 0.01
-  epsilon: 0.2
-
-# Training env
-device: cuda
-
-# Memory management
-enable_activation_checkpointing: True  # True reduces memory
-enable_activation_offloading: True  # True reduces memory.
-compile: False  # pytorch compile, set to true for better perf/memory
-
-# Reduced precision
-dtype: bf16
-
-# number of train_steps after which to do weight sync
-steps_before_sync: 2
-num_ref_workers: 1
-num_fsdp_workers: 2
-
-vllm:
-  num_workers: 4
+inference:
+  engine: vllm
+  top_k: null
+  temperature: 1.0
   tp_size: 1
+  max_generated_tokens: 512
   batch_size: 1
+  group_size: 16
+  total_batch_size: ${eval:'${inference.batch_size} * ${inference.group_size}'}
   steps_before_sync: 1
-  queue_maxsize: ${eval:'${vllm.num_workers} * ${steps_before_sync}'}
+  queue_maxsize: ${eval:'${orchestration.num_inference_workers} * ${training.steps_before_sync}'}
 
+postprocessing:
+  device_type: cuda
+  dtype: bf16
+
+training:
+  batch_size: 16
+  epochs: 10
+  ppo_epochs: 1
+  clip_grad_norm: 1.0
+  device_type: cuda
+  resume_from_checkpoint: False
+  save_every_n_epochs: 1
+
+  # Memory management
+  enable_activation_checkpointing: True  # True reduces memory
+  enable_activation_offloading: True  # True reduces memory.
+  compile: False  # pytorch compile, set to true for better perf/memory
+
+  dtype: bf16
+
+  # number of train_steps after which to do weight sync
+  steps_before_sync: 2
+
+  optimizer:
+    _component_: torch.optim.AdamW
+    lr: 1e-5
+    fused: True
+  lr_scheduler:
+    _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+    num_warmup_steps: 50
+  loss:
+    _component_: torchtune.dev.grpo.loss.GRPOWithChunkedOutputLoss
+    kl_coeff: 0.01
+    epsilon: 0.2
+
+orchestration:
+  num_inference_workers: 4
+  num_postprocessing_workers: 1
+  num_training_workers: 2
+  replay_buffer_size: ${inference.batch_size}  # TODO this needs to be fixed. Right now this can't be bigger, or else we'll get padding issues
+  num_steps: 250
 
 # Logging
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
   log_dir: ${output_dir}/logs
+
 log_every_n_steps: 1
 log_peak_memory_stats: True
 
