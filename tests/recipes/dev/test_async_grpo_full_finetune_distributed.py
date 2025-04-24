@@ -65,7 +65,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             "epochs=1",
             "num_train_steps_before_sync=1",
             # Use a mock base model path for testing
-            "base_model_path=/tmp/test-artifacts/llama3-hf/",
+            "base_model_path=/tmp/test-artifacts/llama3-hf-04232025/",
             # Logging
             "metric_logger._component_=torchtune.training.metric_logging.DiskLogger",
             f"metric_logger.filename={log_file}",
@@ -76,7 +76,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             # Mock tokenizer for testing - remove any merges_file parameter
             "tokenizer._component_=torchtune.models.llama3.llama3_tokenizer",
             f"tokenizer.path={TOKENIZER_PATHS['llama3']}",
-            "tokenizer.max_seq_len=512",
+            "tokenizer.max_seq_len=1024",
             # Override the original config's tokenizer parameters that might cause issues
             "~tokenizer.merges_file",
             # Use a dataset that provides tokens and answers
@@ -84,10 +84,17 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             "dataset.partition=1-9/10",
             # Mock model for testing
             "model._component_=torchtune.models.llama3.llama3",
+            "model.vocab_size=128_256",
+            "model.num_layers=2",
+            "model.num_heads=4",
+            "model.embed_dim=512",
+            "model.max_seq_len=1024",
+            "model.norm_eps=1e-5",
+            "model.num_kv_heads=2",
         ]
 
         # Add model-specific configs
-        overrides.extend(MODEL_TEST_CONFIGS["llama3"])
+        # overrides.extend(MODEL_TEST_CONFIGS["llama3"])
 
         overrides.extend(
             [
@@ -109,7 +116,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
     def test_basic_run(self, tmpdir, monkeypatch):
         """Test that the recipe runs without errors with minimal configuration."""
         # Config file needed for model conversion
-        write_hf_ckpt_config(Path(CKPT_MODEL_PATHS["llama3_tune"]).parent)
+        # write_hf_ckpt_config(Path(CKPT_MODEL_PATHS["llama3_tune"]).parent)
 
         # Set up command to run the recipe with the default config and overrides
         cmd = [
@@ -122,6 +129,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
 
         # Add CLI overrides
         cmd.extend(self._get_test_config_overrides(tmpdir))
+        print(cmd)
         try:
             monkeypatch.setattr(sys, "argv", cmd)
             runpy.run_path(TUNE_PATH, run_name="__main__")
