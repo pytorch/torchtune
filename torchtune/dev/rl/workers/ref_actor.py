@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import Any, Dict
 
 import ray
@@ -172,13 +178,13 @@ class RefActor:
 
         # Per-function rewards and successes
         for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[f"ref_actor_rewards/rewards_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/rewards_func_{func_name}_mean"
+            ] = func_mean.item()
         for func_name, func_mean in zip(function_names, successes_mean_per_func):
-            log_dict[f"ref_actor_rewards/successes_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/successes_func_{func_name}_mean"
+            ] = func_mean.item()
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
@@ -188,9 +194,6 @@ class RefActor:
         log.info("running ref actor")
         idx = 0
         while True:
-            if idx == self.cfg.num_steps:
-                break
-
             # Start measuring total step time
             time_step_start = time.perf_counter()
             trajectory = None

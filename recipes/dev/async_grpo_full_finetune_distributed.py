@@ -332,7 +332,7 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
                     policy=vllm_generate,
                     worker_id=i,
                     dialog_turns_per_batch=1,
-                    total_dialog_turns=1000,
+                    total_dialog_turns=-1,
                     reset_at_each_iter=True,
                     queue=self.rollout_queue,
                     weight_update_receiver=weight_update_receivers[i],
@@ -362,7 +362,8 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
         rollout_handles = [worker.run.remote() for worker in self.rollout_workers]
         ref_handles = [worker.run.remote() for worker in self.ref_workers]
         worker_handles = [worker.train.remote() for worker in self.actor_workers]
-        ray.get(rollout_handles + ref_handles + worker_handles)
+        ray.get(worker_handles)
+        [ray.kill(w) for w in self.rollout_workers + self.ref_workers]
         ray.get(self.actor_workers[0].cleanup.remote())
 
     def stop_ray(self):
