@@ -40,7 +40,7 @@ run_val_every_n_steps: null  # Change to an integer to enable validation every N
 dataset_val:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
   split: train[95%:]
-batch_size_val: 8
+batch_size_val: ${batch_size}
 
 # Model Arguments
 model:
