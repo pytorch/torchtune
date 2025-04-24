@@ -67,10 +67,10 @@ class PyTorchActorModel:
         self.cfg = cfg
 
         # Device and dtype setup
-        self._device = utils.get_device(device=cfg.device)
-        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
+        device_type = "cuda"  # Harcoded for now
+        self._device = utils.get_device(device=device_type)
+        self._dtype = training.get_dtype("bf16", device=self._device)
 
-        device_type = self.cfg.device
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", True)
         if self._log_peak_memory_stats and device_type != "cuda":
             log.info(
