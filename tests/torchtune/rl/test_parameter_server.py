@@ -62,6 +62,7 @@ if not SKIP_FILE:
     @ray.remote(num_cpus=1, num_gpus=1)
     class DummyCollector:
         def __init__(self, weight_receiver, tp_size):
+            os.environ["VLLM_USE_V1"] = "0"
 
             self.inference_server = LLM(
                 "gpt2",
@@ -76,7 +77,6 @@ if not SKIP_FILE:
 
         def update_policy_weights_(self) -> None:
             self.weight_update_receiver()
-            torch.cuda.synchronize()
 
         def check_weights_changed(self, fill_val) -> bool:
             return self.inference_server.collective_rpc(
