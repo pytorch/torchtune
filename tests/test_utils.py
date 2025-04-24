@@ -36,6 +36,7 @@ CKPT_MODEL_PATHS = {
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
     "llama3_2_vision_hf": "/tmp/test-artifacts/small-ckpt-hf-vision-10172024.pt",
     "llama3_2_vision_meta": "/tmp/test-artifacts/small-ckpt-meta-vision-10172024.pt",
+    "llama3_137M": "/tmp/test-artifacts/llama3-hf-04232025/model.safetensors",
 }
 
 TOKENIZER_PATHS = {
