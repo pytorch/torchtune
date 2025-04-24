@@ -7,6 +7,7 @@
 import functools
 import os
 import time
+
 from typing import Any, Dict
 
 import ray
@@ -35,7 +36,6 @@ from torchtune.dev.rl.workers import (
 from torchtune.recipe_interfaces import OrchestrationRecipeInterface
 from vllm import SamplingParams
 
-from vllm import SamplingParams
 from vllm.utils import get_ip, get_open_port
 
 log = utils.get_logger("DEBUG")
