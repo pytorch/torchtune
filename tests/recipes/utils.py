@@ -128,7 +128,7 @@ def llama3_test_config() -> List[str]:
     ]
 
 
-def llama3_test_config_v2() -> List[str]:
+def llama3_test_config_137m() -> List[str]:
     """
     Test config with slightly larger embed dim to be paged and flex attention friendly
     """
@@ -291,7 +291,7 @@ def write_hf_vision_ckpt_config(ckpt_dir: str):
 MODEL_TEST_CONFIGS = {
     "llama2": llama2_test_config(),
     "llama3": llama3_test_config(),
-    "llama3_v2": llama3_test_config_v2(),
+    "llama3_137M": llama3_test_config_137m(),
     "llama2_lora": lora_llama2_test_config(
         lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
         apply_lora_to_mlp=False,
