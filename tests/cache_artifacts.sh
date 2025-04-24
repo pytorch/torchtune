@@ -77,7 +77,7 @@ fi
 echo "Expected artifacts for test run are:"
 for url in "${S3_URLS[@]}"; do
     if [[ "$url" == *"llama3-hf-04232025"* ]]; then
-        to_print="llama3-hf-04-23-2025/"$(basename "$url")
+        to_print="llama3-hf-04232025/"$(basename "$url")
         echo $to_print
     else
         echo "$(basename "$url")"
@@ -90,7 +90,7 @@ mkdir -p $LOCAL_DIR
 for S3_URL in "${S3_URLS[@]}"; do
     # TODO: this is a horrible hack
     if [[ "$S3_URL" == *"llama3-hf-04232025"* ]]; then
-        FILE_NAME="llama3-hf-04-23-2025/"$(basename "$S3_URL")
+        FILE_NAME="llama3-hf-04232025/"$(basename "$S3_URL")
     else
         FILE_NAME=$(basename "$S3_URL")
     fi
