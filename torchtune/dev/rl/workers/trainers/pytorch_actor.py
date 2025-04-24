@@ -158,7 +158,7 @@ class PyTorchActorModel:
         self._max_generated_tokens = cfg.max_generated_tokens
         self.batch_size = cfg.batch_size
         self._ppo_epochs = cfg.ppo_epochs
-        self._save_every_n_epochs = cfg.save_every_n_epochs
+        self.save_every_n_steps = cfg.save_every_n_steps
 
         # Model and optimizer setup
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
@@ -269,34 +269,9 @@ class PyTorchActorModel:
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """Update recipe state from checkpoint."""
-        try:
-            self._epochs_run = ckpt_dict[training.EPOCHS_KEY]
-            self._rng.set_state(ckpt_dict[training.RNG_KEY])
-
-            # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[training.SEED_KEY]:
-                warn(
-                    message=(
-                        "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
-                    )
-                )
-                self.seed = ckpt_dict[training.SEED_KEY]
-
-            # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
-                warn(
-                    message=(
-                        "Config value for total_epochs does not match the checkpoint value, "
-                        f"using the config value: {self.total_epochs}"
-                    )
-                )
-
-        except KeyError as e:
-            raise KeyError(
-                "Checkpoint does not contain the required keys needed for updating recipe state. "
-                "Are you sure you passed in the right recipe checkpoint?"
-            ) from e
+        raise NotImplementedError(
+            "Currently resuming from checkpoint is not supported."
+        )
 
     def _setup_model(
         self,
@@ -846,20 +821,18 @@ class PyTorchActorModel:
 
             # Synchronize weights
             time_weight_sync = time_weight_gather = 0
+            gathered_sd = None
             if self._steps_run % self._steps_before_sync == 0:
-                utils.log_rank_zero(log, "started weight gather")
                 torch.distributed.barrier(group=self.fsdp_group)
                 time_weight_gather_start = time.perf_counter()
-                new_sd = {
+                gathered_sd = {
                     k: v.full_tensor() for k, v in self._model.state_dict().items()
                 }
                 torch.cuda.synchronize()
                 time_weight_gather = time.perf_counter() - time_weight_gather_start
                 utils.log_rank_zero(log, f"Done gather in {time_weight_gather}")
                 time_sync_start = time.perf_counter()
-                utils.log_rank_zero(log, "started weight sync")
-                self.sync_weights(new_sd)
-                del new_sd
+                self.sync_weights(gathered_sd)
                 time_weight_sync = time.perf_counter() - time_sync_start
                 utils.log_rank_zero(log, f"Done sync in {time_weight_sync}")
 
@@ -884,6 +857,19 @@ class PyTorchActorModel:
                 log.info("done logging metrics")
 
             self.cleanup_after_step(trajectory, grpo_stats)
+
+            # Save a copy of the weights
+            if self._steps_run % self.save_every_n_steps == 0:
+                if gathered_sd is None:
+                    gathered_sd = {
+                        k: v.full_tensor() for k, v in self._model.state_dict().items()
+                    }
+                self._checkpointer.save_checkpoint(
+                    state_dict={training.MODEL_KEY: gathered_sd},
+                    epoch=0,
+                    step=self._steps_run,
+                )
+            del gathered_sd
 
             # Memory profiling stop
             self._profiler.step()

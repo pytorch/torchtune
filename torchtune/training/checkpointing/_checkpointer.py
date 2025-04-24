@@ -643,6 +643,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
+        *,
+        step: Optional[int] = None,
     ) -> None:
         """
         Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -658,10 +660,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+            step (Optional[int]): Step number. Used to create the checkpoint file name.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
+        output_dirname = f"step_{step}" if step is not None else f"epoch_{epoch}"
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
             if self._model_type == ModelType.PHI3_MINI:
@@ -761,7 +765,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
                 map_original_name_to_new_name[cpt_idx] = shard_name
                 output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", shard_name
+                    self._output_dir, output_dirname, shard_name
                 )
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 if not self._safe_serialization:
@@ -793,7 +797,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 index_file_name = TORCH_INDEX_FNAME
 
             index_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", index_file_name
+                self._output_dir, output_dirname, index_file_name
             )
 
             index_data = {
@@ -810,7 +814,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # convert_weights.peft_to_tune. The .pt format is not needed, but
             # it is an easy way to distinguish the adapters. Ideally we should save only one.
             output_path = Path.joinpath(
-                self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
+                self._output_dir, output_dirname, ADAPTER_MODEL_FNAME
             ).with_suffix(".pt")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(state_dict[training.ADAPTER_KEY], output_path)
@@ -829,17 +833,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
-                state_dict[
-                    training.ADAPTER_KEY
-                ] = convert_weights.tune_to_peft_adapter_weights(
-                    state_dict[training.ADAPTER_KEY],
-                    num_heads=self._config["num_attention_heads"],
-                    num_kv_heads=self._config["num_key_value_heads"],
-                    dim=self._config["hidden_size"],
-                    head_dim=self._config.get("head_dim", None),
+                state_dict[training.ADAPTER_KEY] = (
+                    convert_weights.tune_to_peft_adapter_weights(
+                        state_dict[training.ADAPTER_KEY],
+                        num_heads=self._config["num_attention_heads"],
+                        num_kv_heads=self._config["num_key_value_heads"],
+                        dim=self._config["hidden_size"],
+                        head_dim=self._config.get("head_dim", None),
+                    )
                 )
                 output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
+                    self._output_dir, output_dirname, ADAPTER_MODEL_FNAME
                 )
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 if not self._safe_serialization:
@@ -872,15 +876,15 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
             else:
-                state_dict[
-                    training.ADAPTER_CONFIG
-                ] = convert_weights.tune_to_peft_adapter_config(
-                    adapter_config=state_dict[training.ADAPTER_CONFIG],
-                    base_model_name_or_path=self.repo_id,
+                state_dict[training.ADAPTER_CONFIG] = (
+                    convert_weights.tune_to_peft_adapter_config(
+                        adapter_config=state_dict[training.ADAPTER_CONFIG],
+                        base_model_name_or_path=self.repo_id,
+                    )
                 )
 
                 output_path = Path.joinpath(
-                    self._output_dir, f"epoch_{epoch}", ADAPTER_CONFIG_FNAME
+                    self._output_dir, output_dirname, ADAPTER_CONFIG_FNAME
                 ).with_suffix(".json")
                 with open(output_path, "w") as f:
                     json.dump(state_dict[training.ADAPTER_CONFIG], f)
@@ -894,7 +898,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # So its easy to run inference with the model using this epoch's checkpoint
         copy_files(
             self._checkpoint_dir,
-            Path.joinpath(self._output_dir, f"epoch_{epoch}"),
+            Path.joinpath(self._output_dir, output_dirname),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
         )
 
