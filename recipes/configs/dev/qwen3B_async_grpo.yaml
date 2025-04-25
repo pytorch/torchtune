@@ -1,0 +1,153 @@
+# Config for async multi-node GRPO in dev/async_grpo.py
+# using a Qwen-3B Base model (which is known to train quickly on this task).
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download Qwen/Qwen2.5-3B --output-dir /tmp/Qwen2.5-3B --ignore-patterns "original/consolidated.00.pth"
+#
+# This config is meant to run on a whole node with 8 GPUs. You can tweak the number of workers here to change it
+# but note that some workers have currently been hardcoded in the prototype and we haven't yet tested on different
+# numbers of workers.
+
+# To launch, run the following:
+# tune run dev/async_grpo --config recipes/configs/dev/qwen3B_async_grpo.yaml
+
+# Note that unlike in synchronous recipes (all the existing ones), we don't follow a SPMD model here so passing a flag like `--nproc-per-node 8`
+# won't help here. This is instead launching just the controller, which is a CPU process. The controller will in turn launch every other worker.
+
+name: grpo_async_qwen3b
+
+output_dir: /tmp/checkpoints/${name}
+base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
+  path: /tmp/Qwen2.5-3B/vocab.json
+  merges_file: /tmp/Qwen2.5-3B/merges.txt
+  max_seq_len: 1024
+
+# Dataset
+dataset:
+  _component_: torchtune.dev.rl.gsm8k.gsm8k_dataset
+  partition: 1-9/10
+seed: null
+shuffle: False
+
+# Model Arguments
+model:
+  _component_: torchtune.models.qwen2_5.qwen2_5_3b
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: ${base_model_path}
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: QWEN2
+
+
+ref_checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: ${base_model_path}
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}/ref  # shouldn't be used?
+  model_type: QWEN2
+
+
+inference:
+  engine: vllm
+  top_k: null
+  temperature: 1.0
+  tp_size: 1
+  max_generated_tokens: 512
+  batch_size: 1
+  group_size: 16
+  total_batch_size: ${eval:'${inference.batch_size} * ${inference.group_size}'}
+  steps_before_sync: 1
+  queue_maxsize: ${eval:'${orchestration.num_inference_workers} * ${training.steps_before_sync}'}
+
+postprocessing:
+  device_type: cuda
+  dtype: bf16
+
+training:
+  batch_size: 16
+  epochs: 10
+  ppo_epochs: 1
+  clip_grad_norm: 1.0
+  device_type: cuda
+  resume_from_checkpoint: False
+  save_every_n_epochs: 1
+
+  # Memory management
+  enable_activation_checkpointing: True  # True reduces memory
+  enable_activation_offloading: True  # True reduces memory.
+  compile: False  # pytorch compile, set to true for better perf/memory
+
+  dtype: bf16
+
+  # number of train_steps after which to do weight sync
+  steps_before_sync: 2
+
+  optimizer:
+    _component_: torch.optim.AdamW
+    lr: 1e-5
+    fused: True
+  lr_scheduler:
+    _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+    num_warmup_steps: 50
+  loss:
+    _component_: torchtune.dev.rl.loss.GRPOWithChunkedOutputLoss
+    kl_coeff: 0.01
+    epsilon: 0.2
+
+orchestration:
+  num_inference_workers: 4
+  num_postprocessing_workers: 1
+  num_training_workers: 2
+  replay_buffer_size: ${inference.batch_size}  # TODO this needs to be fixed. Right now this can't be bigger, or else we'll get padding issues
+  num_steps: 250
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.WandBLogger
+  log_dir: ${output_dir}/logs
+
+log_every_n_steps: 1
+log_peak_memory_stats: True
+
+debug_logging_enabled: True
+debug_num_samples_per_step: 1
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: True
+  with_stack: True
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 1
+  warmup_steps: 1
+  active_steps: 2
+  num_cycles: 1

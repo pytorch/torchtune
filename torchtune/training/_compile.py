@@ -9,6 +9,7 @@ from typing import Union
 
 import torch
 from torch import nn
+from torchtune.dev.rl.loss import GRPOWithChunkedOutputLoss
 
 from torchtune.modules import (
     TransformerCrossAttentionLayer,
@@ -76,6 +77,10 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     if isinstance(loss, CEWithChunkedOutputLoss):
         loss.compute_cross_entropy = torch.compile(
             loss.compute_cross_entropy, backend=backend
+        )
+    if isinstance(loss, GRPOWithChunkedOutputLoss):
+        loss.compute_per_token_quantities = torch.compile(
+            loss.compute_per_token_quantities, backend=backend
         )
     elif isinstance(loss, ForwardKLWithChunkedOutputLoss):
         loss.fkl_loss = torch.compile(loss.fkl_loss, backend=backend)
