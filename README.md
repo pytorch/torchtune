@@ -11,7 +11,7 @@
 [**Overview**](#overview-) | [**Installation**](#installation-%EF%B8%8F) | [**Get Started**](#get-started-) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community-) | [**Citing torchtune**](#citing-torchtune-) | [**License**](#license)
 
 ### 📣 Recent updates 📣
-* *April 2025*: **Llama4** is now available in torchtune! Try out our full finetuning configs [here](recipes/configs/llama4) (LoRA coming soon!)
+* *April 2025*: **Llama4** is now available in torchtune! Try out our full and LoRA finetuning configs [here](recipes/configs/llama4)
 * *February 2025*: Multi-node training is officially [open for business in torchtune](https://pytorch.org/torchtune/main/tutorials/multinode.html)! Full finetune on multiple nodes to take advantage of larger batch sizes and models.
 * *December 2024*: torchtune now supports **Llama 3.3 70B**! Try it out by following our installation instructions [here](#installation-%EF%B8%8F), then run any of the configs [here](recipes/configs/llama3_3).
 * *November 2024*: torchtune has released [v0.4.0](https://github.com/pytorch/torchtune/releases/tag/v0.4.0) which includes stable support for exciting features like activation offloading and multimodal QLoRA
