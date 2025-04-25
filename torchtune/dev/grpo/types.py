@@ -23,6 +23,7 @@ class GRPOTrajectory(NamedTuple):
         position_ids (torch.Tensor): Position IDs for input ids-generated responses pairs with shape [B x G, P+L].
         response_padding_masks (torch.Tensor): Padding masks for the truncated and padded generated responses with shape [B x G, L].
         seq_lens (torch.Tensor): Sequence lengths of truncated generated responses.
+        answers (str): List of answers for the generated responses. [B x G]
     """
 
     query_responses: torch.Tensor = None  # [B x G, P+L]
@@ -33,6 +34,7 @@ class GRPOTrajectory(NamedTuple):
     position_ids: torch.Tensor = None  # [B x G, P+L]
     response_padding_masks: torch.Tensor = None  # [B x G, L]
     seq_lens: torch.Tensor = None
+    answers: str = None
 
 
 class GRPOStats(NamedTuple):
