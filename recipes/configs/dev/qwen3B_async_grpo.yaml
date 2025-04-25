@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2.5-3B --output-dir /tmp/Qwen2.5-3B --ignore-patterns "original/consolidated.00.pth"
+#   tune download Qwen/Qwen2.5-3B
 #
 # This config is meant to run on a whole node with 8 GPUs. You can tweak the number of workers here to change it
 # but note that some workers have currently been hardcoded in the prototype and we haven't yet tested on different
