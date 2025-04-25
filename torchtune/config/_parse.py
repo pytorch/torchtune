@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 import argparse
 import functools
+import sys
 from argparse import Namespace
 from typing import Any, Callable, List, Tuple
 
@@ -95,6 +96,6 @@ def parse(recipe_main: Recipe) -> Callable[..., Any]:
         yaml_args, cli_args = parser.parse_known_args()
         conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
-        recipe_main(conf)
+        sys.exit(recipe_main(conf))
 
     return wrapper

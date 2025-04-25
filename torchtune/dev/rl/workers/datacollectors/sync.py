@@ -73,7 +73,6 @@ class SyncLLMCollector(SyncDataCollector):
             dtype="bfloat16",
             worker_cls=VLLMWorkerWrapper,
             tensor_parallel_size=self.tp_size,
-            disable_custom_all_reduce=True,
         )
 
         # local import below LLM call to avoid vLLM no CUDA GPUs available error
