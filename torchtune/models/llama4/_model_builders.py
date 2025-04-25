@@ -28,6 +28,7 @@ Llama4 MoE model.
 
 
 def llama4_scout_17b_16e(
+    *,
     decoder_trainable: bool = True,
     encoder_trainable: bool = False,
     fusion_trainable: bool = True,

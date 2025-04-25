@@ -731,7 +731,7 @@ def lora_llama4_decoder(
                     use_dora=use_dora,
                 )
             else:
-                mlp_layer = llama3_mlp(
+                mlp_layer = llama4_mlp(
                     dim=embed_dim, hidden_dim=hidden_dim, quantize_base=quantize_base
                 )
 
