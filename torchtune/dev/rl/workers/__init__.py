@@ -5,15 +5,17 @@
 # LICENSE file in the root directory of this source tree.
 
 from .datacollectors import SyncLLMCollector
-from .metric_logger import MetricLoggerActor
+from .metric_logger import MetricLoggerWorker
 from .parameter_servers import VLLMParameterServer
-from .ref_actor import RefActor
-from .trainers import PyTorchActorModel
+from .postprocessing import PostProcessingWorker
+from .trainers import TrainingWorker
+from .weight_updaters import VLLMHFWeightUpdateReceiver
 
 __all__ = [
     "SyncLLMCollector",
-    "MetricLoggerActor",
+    "MetricLoggerWorker",
     "VLLMParameterServer",
-    "RefActor",
-    "PyTorchActorModel",
+    "PostProcessingWorker",
+    "TrainingWorker",
+    "VLLMHFWeightUpdateReceiver",
 ]

@@ -22,15 +22,15 @@ from ray.util.queue import Queue
 from tensordict import TensorDict, TensorDictBase
 from tensordict.utils import expand_as_right
 
-from torchrl.collectors import WeightUpdateReceiverBase
 from torchrl.data import LazyStackStorage, RayReplayBuffer
 from torchtune import config, utils
 from torchtune.dev.rl.datatypes import RequestOutput, Trajectory
 from torchtune.dev.rl.workers import (
-    MetricLoggerActor,
-    PyTorchActorModel,
-    RefActor,
+    MetricLoggerWorker,
+    PostProcessingWorker,
     SyncLLMCollector,
+    TrainingWorker,
+    VLLMHFWeightUpdateReceiver,
     VLLMParameterServer,
 )
 from torchtune.recipe_interfaces import OrchestrationRecipeInterface
@@ -127,60 +127,6 @@ def _get_output_tokens_and_log_probs(
     return tokens_response_td
 
 
-# =============================================================================================
-
-
-class VLLMHFWeightUpdateReceiver(WeightUpdateReceiverBase):
-    def __init__(
-        self, master_address, master_port, model_metadata, param_server, worker_idx
-    ):
-        self.master_address = master_address
-        self.master_port = master_port
-        self.model_metadata = model_metadata
-        self.initialized_group = None
-        self.param_server = param_server
-        self.worker_idx = worker_idx
-
-    def _get_server_weights(self):
-        return None
-
-    def _get_local_weights(self):
-        # We don't implement this because we let vLLM's update_weights API handle everything for now
-        return None
-
-    def _maybe_map_weights(self, server_weights, local_weights):
-        # vLLM update_weights function handles the mapping from huggingface
-        # so we don't implement this for now
-        return None
-
-    def _update_local_weights(self, local_weights, mapped_weights):
-        should_update = not ray.get(
-            self.param_server._skip_update.remote(self.worker_idx)
-        )
-        if should_update:
-            self.param_server._sync_weights_with_worker.remote(self.worker_idx)
-            inference_server = self.collector.inference_server
-            if self.initialized_group is None:
-                weight_sync_world_size = (
-                    inference_server.llm_engine.parallel_config.tensor_parallel_size + 1
-                )
-                inference_server.collective_rpc(
-                    "init_weight_update_group",
-                    args=(
-                        self.master_address,
-                        self.master_port,
-                        1,
-                        weight_sync_world_size,
-                    ),
-                )
-                self.initialized_group = True
-
-            for k, (dtype, shape) in self.model_metadata.items():
-                inference_server.collective_rpc("update_weight", args=(k, dtype, shape))
-
-            inference_server.collective_rpc("update_policy_version")
-
-
 class RayGRPORecipe(OrchestrationRecipeInterface):
     def setup(self, cfg: DictConfig):
         self.cfg = cfg
@@ -190,30 +136,35 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
         self.vllm_tp_size = cfg.rollout_tensor_parallel_dim
         self.num_ref_workers = cfg.num_ref_workers
         self.num_fsdp_workers = cfg.num_trainer_workers
+        self.num_inference_workers = cfg.orchestration.num_inference_workers
+        self.num_postprocessing_workers = cfg.orchestration.num_postprocessing_workers
+        self.num_training_workers = cfg.orchestration.num_training_workers
 
+        self.vllm_tp_size = cfg.inference.tp_size
         # Initialize queues
         self.rollout_queue = Queue(
             actor_options={"num_cpus": 10, "num_gpus": 0},
             maxsize=self.cfg.rollout_queue_maxsize,
+            maxsize=self.cfg.inference.queue_maxsize,
         )
         self.replay_buffer = RayReplayBuffer(
             storage=functools.partial(
-                LazyStackStorage, max_size=cfg.replay_buffer_size
+                LazyStackStorage, max_size=cfg.orchestration.replay_buffer_size
             ),
-            batch_size=cfg.batch_size,
+            batch_size=cfg.training.batch_size,
             remote_config={"num_cpus": 10, "num_gpus": 0},
         )
 
         # Create workers using config values directly
         self.ref_workers = self._create_ref_workers()
         self.actor_workers = self._create_fsdp_group(
-            worker_cls=PyTorchActorModel,
-            fsdp_world_size=self.num_fsdp_workers,
+            worker_cls=TrainingWorker,
+            fsdp_world_size=self.num_training_workers,
         )
         self.param_server = self._create_param_server(
             parameter_server_cls=VLLMParameterServer,
-            fsdp_world_size=self.num_fsdp_workers,
-            num_vllm_workers=self.num_vllm_workers,
+            fsdp_world_size=self.num_training_workers,
+            num_inference_workers=self.num_inference_workers,
         )
         self.rollout_workers = self._create_data_collectors()
 
@@ -223,16 +174,16 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
 
     def start_ray(self):
         total_gpus = (
-            self.num_vllm_workers * self.vllm_tp_size
-            + self.num_ref_workers
-            + self.num_fsdp_workers
+            self.num_inference_workers * self.vllm_tp_size
+            + self.num_postprocessing_workers
+            + self.num_training_workers
         )
         total_cpus = 32 * total_gpus + 2
         ray.init(num_cpus=total_cpus, num_gpus=total_gpus)
         print("Cluster resources:", ray.cluster_resources())
 
     def _set_metric_logger_to_actors(self):
-        self.metric_logger = MetricLoggerActor.remote(self.cfg)
+        self.metric_logger = MetricLoggerWorker.remote(self.cfg)
 
         # Collect object references for all remote calls
         set_logger_handles = []
@@ -278,11 +229,11 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
         self,
         parameter_server_cls,
         fsdp_world_size: int,
-        num_vllm_workers: int,
+        num_inference_workers: int,
     ):
         world_size = fsdp_world_size + 1
-        self.vllm_addresses = [get_ip()] * num_vllm_workers
-        self.vllm_ports = [get_open_port() for i in range(num_vllm_workers)]
+        self.vllm_addresses = [get_ip()] * num_inference_workers
+        self.vllm_ports = [get_open_port() for i in range(num_inference_workers)]
 
         env_vars = {
             "RANK": str(fsdp_world_size),
@@ -302,7 +253,7 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
         return parameter_server
 
     def _create_ref_worker(self):
-        worker = RefActor.remote(
+        worker = PostProcessingWorker.remote(
             rollout_queue=self.rollout_queue,
             replay_buffer=self.replay_buffer,
             cfg=self.cfg,
@@ -338,12 +289,13 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
             )
         ]
 
-        for i in range(self.num_vllm_workers):
+        for i in range(self.num_inference_workers):
 
             collector = (
                 ray.remote(
                     num_cpus=0,
                     num_gpus=self.cfg.rollout_tensor_parallel_dim,
+                    num_gpus=self.cfg.inference.tp_size,
                 )(SyncLLMCollector)
                 .options(max_concurrency=5)
                 .remote(
@@ -363,8 +315,8 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
 
     def _create_ref_workers(self):
         workers = []
-        for i in range(self.num_ref_workers):
-            worker = RefActor.remote(
+        for i in range(self.num_postprocessing_workers):
+            worker = PostProcessingWorker.remote(
                 rollout_queue=self.rollout_queue,
                 replay_buffer=self.replay_buffer,
                 cfg=self.cfg,

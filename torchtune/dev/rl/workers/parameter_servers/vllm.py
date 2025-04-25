@@ -82,6 +82,8 @@ class VLLMParameterServer:
 
     def _init_model_update_group(self, worker_id):
         weight_sync_world_size = self.cfg.rollout_tensor_parallel_dim + 1
+        vllm_tp_size = self.cfg.inference.tp_size
+        weight_sync_world_size = vllm_tp_size + 1
         model_update_group = stateless_init_process_group(
             self.vllm_master_addresses[worker_id],
             self.vllm_master_ports[worker_id],
