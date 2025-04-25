@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download Qwen/Qwen2.5-3B --output-dir /tmp/Qwen2.5-3B
+#   tune download meta-llama/Llama-3.2-3B --output-dir /tmp/Llama-3.2-3B --ignore-patterns "original/consolidated.00.pth"
 #
 # It can be beneficial to first train the base model with SFT using the 3B_sft recipe.
 #
