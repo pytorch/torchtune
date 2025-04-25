@@ -26,6 +26,7 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     AdapterModule,
+    DoRALinear,
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
