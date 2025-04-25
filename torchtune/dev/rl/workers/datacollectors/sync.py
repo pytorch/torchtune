@@ -62,11 +62,7 @@ class SyncLLMCollector(SyncDataCollector):
         self.rollout_queue = queue
         self.worker_id = worker_id
         self._is_collector_zero = self.worker_id == 0
-        self.tp_size = self.cfg.rollout_tensor_parallel_dim
-        self.batch_size = self.cfg.rollout_batch_size
-        print(f"{self._is_collector_zero=}")
-
-        self.tp_size = self.cfg.inference.tp_size
+        self.tp_size = self.cfg.inference.tensor_parallel_dim
         self.batch_size = self.cfg.inference.batch_size
         self._sequence_counter = 0  # Used to assign unique sequence IDs to each sample
 
@@ -140,7 +136,6 @@ class SyncLLMCollector(SyncDataCollector):
 
         data = data.squeeze()
         query_responses = torch.cat([data["tokens"], data["tokens_response"]], dim=-1)
-        prompt_tokens = data["tokens"]
         response_tokens = data["tokens_response"]
         logprobs = data["log_probs"]
         query_response_padding_masks = torch.ne(query_responses, self._tokenizer.pad_id)
@@ -191,8 +186,6 @@ class SyncLLMCollector(SyncDataCollector):
         return postprocessed_results, total_generated_tokens
 
     def set_metric_logger(self, logger):
-        """Store the MetricLoggerWorker handle."""
-        print(f"{self._is_collector_zero=} setting metric logger")
         if self._is_collector_zero:
             self._metric_logger = logger
 
@@ -241,8 +234,7 @@ class SyncLLMCollector(SyncDataCollector):
         i = 0
         while True:
             self.rollout(i)
-            if i % self.cfg.num_rollouts_before_weight_update == 0:
-            if i % self.cfg.inference.steps_before_sync == 0:
+            if i % self.cfg.inference.steps_before_weight_sync == 0:
                 log.info(f"{self.worker_id} about to update weights")
                 self.update_policy_weights_()
             i += 1
@@ -280,13 +272,11 @@ class SyncLLMCollector(SyncDataCollector):
             collected_frames += data.numel()
 
         data = lazy_stack(trajectories, -1)
-
         if self.rollout_queue is not None:
             assert self.replay_buffer is None
             postprocessed_results, total_generated_tokens = self._postprocess_for_queue(
                 data
             )
-
             while True:
                 try:
                     self.rollout_queue.put_nowait(postprocessed_results)
@@ -298,7 +288,6 @@ class SyncLLMCollector(SyncDataCollector):
         if self._is_collector_zero:
             # End timing the rollout step
             time_total_rollout = time.perf_counter() - time_step_start
-
             # TODO: training.get_memory_stats() crashes vLLM
             # Log metrics
             gpu_memory = {
@@ -387,10 +376,6 @@ class VLLMWorkerWrapper(Worker):
     """
 
     def __init__(self, *args, **kwargs):
-        import os
-
-        print(f"visible devices {os.environ['CUDA_VISIBLE_DEVICES']}")
-        print(f"device count {torch.cuda.device_count()}")
         super().__init__(*args, **kwargs)
 
     def init_weight_update_group(

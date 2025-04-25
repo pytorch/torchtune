@@ -17,9 +17,9 @@
 
 name: grpo_async_qwen3b
 output_dir: /tmp/checkpoints/${name}
-base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
+base_model_path: /tmp/Qwen2.5-3B
 
-# --------- Model arguments (Using Qwen2.5-3B as example) ---------- #
+# Model architecture (Qwen2.5-3B)
 model:
   _component_: torchtune.models.qwen2_5.qwen2_5_3b
 tokenizer:
@@ -28,97 +28,85 @@ tokenizer:
   merges_file: ${base_model_path}/merges.txt
   max_seq_len: 1024
 
-# Weights for training the reasoning model
-checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ${base_model_path}
-  checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors,
-  ]
-  recipe_checkpoint: null
-  output_dir: ${output_dir}
-  model_type: QWEN2
-num_trainer_workers: 2
-resume_from_checkpoint: False
+# Data!
+dataset:
+  _component_: torchtune.dev.grpo.gsm8k.gsm8k_dataset
+  partition: 1-9/10
+shuffle: False
 
-# Weights for reference model
-ref_checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ${base_model_path}
-  checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors,
-  ]
-  model_type: QWEN2
+# All orchestration args
+orchestration:
+  num_inference_workers: 4
+  num_postprocessing_workers: 1
+  num_training_workers: 2
+  replay_buffer_size: ${inference.batch_size}  # TODO: Right now this can't be bigger, or else we'll get padding issues
+  num_steps: 250
 
+# All training args
+training:
+  checkpointer:
+    _component_: torchtune.training.FullModelHFCheckpointer
+    checkpoint_dir: ${base_model_path}
+    checkpoint_files: [
+      model-00001-of-00002.safetensors,
+      model-00002-of-00002.safetensors,
+    ]
+    recipe_checkpoint: null
+    output_dir: ${output_dir}
+    model_type: QWEN2
+  batch_size: 16
+  ppo_epochs: 1
+  clip_grad_norm: 1.0
+  save_every_n_steps: 250
+  enable_activation_checkpointing: True  # True reduces memory
+  enable_activation_offloading: True  # True reduces memory.
+  compile: False  # torch.compile, set to true for better perf/memory
+  steps_before_weight_sync: 2
+  optimizer:
+    _component_: torch.optim.AdamW
+    lr: 1e-5
+    fused: True
+  loss:
+    _component_: torchtune.dev.grpo.loss.GRPOWithChunkedOutputLoss
+    kl_coeff: 0.01
+    epsilon: 0.2
+  seed: null
 
-resume_from_checkpoint: False
-save_every_n_epochs: 1
+# All post-processing args
+postprocessing:
+  ref_checkpointer:
+    _component_: torchtune.training.FullModelHFCheckpointer
+    checkpoint_dir: ${base_model_path}
+    checkpoint_files: [
+      model-00001-of-00002.safetensors,
+      model-00002-of-00002.safetensors,
+    ]
+    model_type: QWEN2
 
-# Fine-tuning arguments
-batch_size: 16
-grpo_samples: 16
-max_generated_tokens: 512
-top_k: null
-temperature: 1.0
-replay_buffer_size: ${total_inference_batch_size}  # TODO this needs to be fixed. Right now this can't be bigger, or else we'll get padding issues
-
-ppo_epochs: 1
-
-num_steps: 250
-
-clip_grad_norm: 1.0
-
-epochs: 10
-optimizer:
-  _component_: torch.optim.AdamW
-  lr: 1e-5
-  fused: True
-lr_scheduler:
-  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
-  num_warmup_steps: 50
-loss:
-  _component_: torchtune.dev.grpo.loss.GRPOWithChunkedOutputLoss
-  kl_coeff: 0.01
-  epsilon: 0.2
-
-# Training env
-device: cuda
-
-# Memory management
-enable_activation_checkpointing: True  # True reduces memory
-enable_activation_offloading: True  # True reduces memory.
-compile: False  # pytorch compile, set to true for better perf/memory
-
-# Reduced precision
-dtype: bf16
-
-# number of train_steps after which to do weight sync
-steps_before_sync: 2
-num_ref_workers: 1
-num_fsdp_workers: 2
-
-vllm:
-  num_workers: 4
-  tp_size: 1
+# All inference args
+inference:
+  engine: vllm
+  model: ${base_model_path}
+  top_k: null
+  temperature: 1.0
+  tensor_parallel_dim: 1
+  max_generated_tokens: 512
   batch_size: 1
-  steps_before_sync: 1
-  queue_maxsize: ${eval:'${vllm.num_workers} * ${steps_before_sync}'}
+  group_size: 16
+  total_batch_size: ${eval:'${inference.batch_size} * ${inference.group_size}'}
+  steps_before_weight_sync: 1
+  queue_maxsize: ${eval:'${orchestration.num_inference_workers} * ${training.steps_before_weight_sync}'}
 
-
-# Logging
+# All logging args
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
   log_dir: ${output_dir}/logs
 
 log_every_n_steps: 1
 log_peak_memory_stats: True
-
 debug_logging_enabled: False
 debug_num_samples_per_step: 1
 
-# Useful for understanding how to optimize memory and performance
-profiler:
+profiler: # Useful for understanding how to optimize memory and performance
   _component_: torchtune.training.setup_torch_profiler
   enabled: False

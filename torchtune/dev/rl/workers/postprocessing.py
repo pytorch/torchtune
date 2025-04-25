@@ -31,13 +31,12 @@ class PostProcessingWorker:
         self.cfg = kwargs.pop("cfg")
         self.rollout_queue = kwargs.pop("rollout_queue")
         self.replay_buffer = kwargs.pop("replay_buffer")
-        self._device = utils.get_device(device=self.cfg.postprocessing.device_type)
+        device_type = "cuda"
+        self._device = utils.get_device(device=device_type)
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
-        self._dtype = training.get_dtype(
-            self.cfg.postprocessing.dtype, device=self._device
-        )
+        self._dtype = training.get_dtype("bf16", device=self._device)
         ref_checkpoint_dict = self.load_ref_checkpoint(
-            cfg_ref_checkpointer=self.cfg.ref_checkpointer
+            cfg_ref_checkpointer=self.cfg.postprocessing.ref_checkpointer
         )
         self._ref_model = self._setup_model(
             self.cfg.model, ref_checkpoint_dict[training.MODEL_KEY]
@@ -46,20 +45,12 @@ class PostProcessingWorker:
 
         self.metric_logger = None  # Placeholder for the logger
 
-        self.grpo_samples = self.cfg.grpo_samples
-        self.vllm_batch_size = self.cfg.rollout_batch_size
         self.group_size = self.cfg.inference.group_size
         self.vllm_batch_size = self.cfg.inference.batch_size
 
-        device_type = self.cfg.postprocessing.device_type
         self._log_peak_memory_stats = self.cfg.metric_logger.get(
             "log_peak_memory_stats", True
         )
-        if self._log_peak_memory_stats and device_type != "cuda":
-            log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
-            )
-            self._log_peak_memory_stats = False
 
         if self._is_actor_zero:
             memory_stats = training.get_memory_stats(device=self._device)
@@ -70,21 +61,15 @@ class PostProcessingWorker:
         )
 
     def set_metric_logger(self, logger):
-        """Store the MetricLoggerWorker handle."""
         if self._is_actor_zero:
-            print(f"setting metric logger {logger} for actor id", self.actor_id)
             self._metric_logger = logger
 
     def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the reference checkpoint state from file and validate.
-        """
+        """Extract the reference checkpoint state from file and validate."""
         self._ref_checkpointer = config.instantiate(
             cfg_ref_checkpointer, resume_from_checkpoint=False
         )
-
         ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
-
         return ref_checkpoint_dict
 
     def _setup_model(self, cfg_model, ref_model_state_dict):
@@ -184,13 +169,13 @@ class PostProcessingWorker:
 
         # Per-function rewards and successes
         for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[f"ref_actor_rewards/rewards_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/rewards_func_{func_name}_mean"
+            ] = func_mean.item()
         for func_name, func_mean in zip(function_names, successes_mean_per_func):
-            log_dict[f"ref_actor_rewards/successes_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/successes_func_{func_name}_mean"
+            ] = func_mean.item()
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
@@ -205,6 +190,8 @@ class PostProcessingWorker:
             trajectory = None
             if self._is_actor_zero:
                 rollout_queue_size = self.rollout_queue.qsize()
+            else:
+                rollout_queue_size = None
             while trajectory is None:
                 try:
                     if self._is_actor_zero:
@@ -243,10 +230,8 @@ class PostProcessingWorker:
                 ref_logits, trajectory.responses, self._temperature
             )
 
-            batch_size = self.cfg.rollout_batch_size  # B
-            group_size = self.grpo_samples  # G
+            group_size = self.cfg.inference.group_size  # G
             batch_size = self.cfg.inference.batch_size  # B
-            group_size = self.group_size  # G
 
             del ref_logits, position_ids, masks
             # masking of ref_logprobs is done in grpo_step

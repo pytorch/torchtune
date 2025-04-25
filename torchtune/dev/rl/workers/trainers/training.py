@@ -9,16 +9,11 @@ import time
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from warnings import warn
-
 import ray
 import torch
 import torch.nn as nn
-
 from omegaconf import DictConfig
-
 from torch.optim import Optimizer
-
 from torchrl.data import RayReplayBuffer
 from torchtune import config, training, utils
 from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
@@ -31,9 +26,7 @@ from torchtune.generation import (
 from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
 from torchtune.modules.transformer import TransformerSelfAttentionLayer
 from torchtune.rlhf import truncate_sequence_at_first_stop_token
-
 from torchtune.training import DummyProfiler, PROFILER_KEY
-
 
 log = utils.get_logger("DEBUG")
 
@@ -52,9 +45,7 @@ class TrainingWorker:
         replay_buffer (RayReplayBuffer): Shared replay buffer for sampling trajectories.
 
     Raises:
-        ValueError: If dtype provided is float16
-        RuntimeError: If enable_activation_offloading is True and device is not CUDA
-            or If enable_activation_offloading is True and enable_activation_checkpointing is False
+        RuntimeError: If enable_activation_offloading is True and enable_activation_checkpointing is False
     """
 
     def __init__(
@@ -63,41 +54,29 @@ class TrainingWorker:
         environment_variables: Dict[str, str],
         replay_buffer: RayReplayBuffer,
     ):
-        self.replay_buffer = replay_buffer
         self.cfg = cfg
+        self.replay_buffer = replay_buffer
 
         # Device and dtype setup
         device_type = "cuda"  # Harcoded for now
         self._device = utils.get_device(device=device_type)
         self._dtype = training.get_dtype("bf16", device=self._device)
 
-        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", True)
-        if self._log_peak_memory_stats and device_type != "cuda":
-            log.info(
-                "log_peak_memory_stats was set to True, but training does not use cuda. Setting to False."
-            )
-            self._log_peak_memory_stats = False
-
-        if self._dtype == torch.float16:
-            raise ValueError(
-                "Full fp16 training is not supported. Use bf16 or fp32 instead."
-            )
-
         # Logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", True)
 
         self.fsdp_cpu_offload = cfg.training.get("fsdp_cpu_offload", False)
         self.distributed_backend = training.get_distributed_backend(
             device_type, offload_ops_to_cpu=self.fsdp_cpu_offload
         )
-
         # Distributed training setup: Simulate torchrun environment
         for var in environment_variables:
             os.environ[var] = str(environment_variables[var])
 
         if not torch.distributed.is_initialized():
-            torch.distributed.init_process_group(backend="nccl")
+            torch.distributed.init_process_group(backend=self.distributed_backend)
 
         self.rank = int(os.environ["RANK"])
         self.world_size = int(os.environ["WORLD_SIZE"])
@@ -111,7 +90,6 @@ class TrainingWorker:
         self._is_rank_zero = self.rank == 0
 
         # Training configuration
-        self._resume_from_checkpoint = cfg.training.resume_from_checkpoint
         self._clip_grad_norm = cfg.training.get("clip_grad_norm", None)
 
         # Activation checkpointing and offloading
@@ -121,48 +99,28 @@ class TrainingWorker:
         self._enable_activation_offloading = cfg.training.get(
             "enable_activation_offloading", False
         )
-        if self._enable_activation_offloading:
-            if self._device.type != "cuda":
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
-                )
-            if not self._enable_activation_checkpointing:
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
-                )
-        elif (
-            self._enable_activation_checkpointing
-            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        if (
+            self._enable_activation_offloading
+            and not self._enable_activation_checkpointing
         ):
-            utils.log_rank_zero(
-                log,
-                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further.",
+            raise RuntimeError(
+                "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
             )
 
         # Recipe state
-        self.seed = training.set_seed(seed=cfg.seed)
-        self.total_epochs = cfg.training.epochs
+        self.seed = training.set_seed(seed=cfg.training.seed)
         self.global_step = 0
         self._steps_run = 0
         self._total_dialog_turns = cfg.orchestration.num_steps
-        self._epochs_run = 0
-        self._rng = torch.Generator(self._device).manual_seed(
-            self.seed
-        )  # TODO: Verify if needed for GRPO
 
         # RL parameters
-        self.grpo_samples = cfg.grpo_samples
-        self._temperature = cfg.temperature
-        self._top_k = cfg.top_k
-        self._max_generated_tokens = cfg.max_generated_tokens
-        self.batch_size = cfg.batch_size
-        self._ppo_epochs = cfg.ppo_epochs
-        self.save_every_n_steps = cfg.save_every_n_steps
+        self.save_every_n_steps = cfg.training.save_every_n_steps
         self._ppo_epochs = cfg.training.ppo_epochs
 
         # Model and optimizer setup
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        checkpoint_dict = self.load_checkpoint(
+            cfg_checkpointer=cfg.training.checkpointer
+        )
         self._compile = cfg.training.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -186,18 +144,12 @@ class TrainingWorker:
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
 
         # FIXME: need to get _steps_per_epoch when dataloader is no longer per fsdp worker but instead wrapped in vLLM
-        # self._lr_scheduler = self._setup_lr_scheduler(
-        #     cfg_lr_scheduler=cfg.get("lr_scheduler", None),
-        #     num_training_steps=self.total_epochs * self._steps_per_epoch,
-        #     last_epoch=self.global_step - 1,
-        # )
         self._lr_scheduler = None
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-        self._steps_before_sync = cfg.num_train_steps_before_sync
-        self._steps_before_sync = cfg.training.steps_before_sync
+        self._steps_before_sync = cfg.training.steps_before_weight_sync
 
         # Initialize policy version for tracking age of trajectories
         self.policy_version = 0
@@ -210,9 +162,7 @@ class TrainingWorker:
         log.info("Done setup")
 
     def set_metric_logger(self, logger):
-        """Store the MetricLoggerWorker handle for logging metrics."""
         if self._is_rank_zero:
-            log.info(f"Setting metric logger {logger} for rank {self.rank}")
             self._metric_logger = logger
 
     def _setup_profiler(
@@ -262,18 +212,10 @@ class TrainingWorker:
         """
         self._checkpointer = config.instantiate(
             cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
+            resume_from_checkpoint=False,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
-
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
-        """Update recipe state from checkpoint."""
-        raise NotImplementedError(
-            "Currently resuming from checkpoint is not supported."
-        )
 
     def _setup_model(
         self,
@@ -359,19 +301,9 @@ class TrainingWorker:
 
     def _setup_optimizer(
         self, cfg_optimizer: DictConfig, opt_state_dict=None
-    ) -> Optional[Optimizer]:
+    ) -> Optimizer:
         """Initialize the optimizer."""
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-
-        # TODO: does this work?
-        if opt_state_dict:
-            training.load_from_full_optimizer_state_dict(
-                self._model,
-                optimizer,
-                opt_state_dict,
-                self._device,
-            )
-
         utils.log_rank_zero(log, "Optimizer is initialized.")
         return optimizer
 
@@ -695,9 +627,9 @@ class TrainingWorker:
                 )
             else:
                 beyond_seq_len = 0
-            per_sample_dict["beyond_seq_len_masking_is_positive (should be 0)"] = (
-                beyond_seq_len
-            )
+            per_sample_dict[
+                "beyond_seq_len_masking_is_positive (should be 0)"
+            ] = beyond_seq_len
 
             per_sample_dict["num_tokens_response"] = seq_len
             per_sample_dict["step"] = self._steps_run
