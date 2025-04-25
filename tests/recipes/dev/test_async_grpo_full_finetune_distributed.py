@@ -33,20 +33,20 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             "dtype=fp32",
             "seed=42",
             # Configure for 4 GPUs
-            "num_rollout_workers=1",  # 1 vLLM worker
-            "rollout_tensor_parallel_dim=1",
-            "num_ref_workers=1",  # Use 1 reference model worker
-            "num_trainer_workers=2",  # 2 FSDP trainer workers
-            "rollout_queue_maxsize=1",
-            "total_inference_batch_size=2",
-            "replay_buffer_size=2",
-            "batch_size=2",
-            "grpo_samples=2",
+            "orchestration.num_inference_workers=1",  # 1 vLLM worker
+            "inference.tensor_parallel_dim=1",
+            "orchestration.num_postprocessing_workers=1",  # Use 1 reference model worker
+            "orchestration.num_training_workers=2",  # 2 FSDP trainer workers
+            "inference.queue_maxsize=1",
+            "inference.total_batch_size=2",
+            "orchestration.replay_buffer_size=2",
+            "training.batch_size=2",
             # Reduce computation for testing
-            "max_generated_tokens=32",
-            "num_steps=2",
-            "save_every_n_steps=2",
-            "num_train_steps_before_sync=1",
+            "inference.max_generated_tokens=32",
+            "orchestration.num_steps=2",
+            "training.save_every_n_steps=2",
+            "training.steps_before_weight_sync=1",
+            "inference.steps_before_weight_sync=1",
             # Logging
             "metric_logger._component_=torchtune.training.metric_logging.DiskLogger",
             f"metric_logger.filename={log_file}",
@@ -91,13 +91,13 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
         # Add checkpointer overrides
         cmd.extend(
             [
-                "checkpointer._component_=torchtune.training.FullModelHFCheckpointer",
-                f"checkpointer.checkpoint_files=[{model_ckpt}]",
-                f"checkpointer.output_dir={tmpdir}",
-                "checkpointer.model_type=LLAMA3",
-                "ref_checkpointer._component_=torchtune.training.FullModelHFCheckpointer",
-                f"ref_checkpointer.checkpoint_files=[{model_ckpt}]",
-                "ref_checkpointer.model_type=LLAMA3",
+                "training.checkpointer._component_=torchtune.training.FullModelHFCheckpointer",
+                f"training.checkpointer.checkpoint_files=[{model_ckpt}]",
+                f"training.checkpointer.output_dir={tmpdir}",
+                "training.checkpointer.model_type=LLAMA3",
+                "postprocessing.ref_checkpointer._component_=torchtune.training.FullModelHFCheckpointer",
+                f"postprocessing.ref_checkpointer.checkpoint_files=[{model_ckpt}]",
+                "postprocessing.ref_checkpointer.model_type=LLAMA3",
             ]
         )
         try:
