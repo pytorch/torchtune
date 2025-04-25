@@ -631,16 +631,18 @@ class TrainingWorker:
             sequence_id = metadata["sequence_ids"][idx]
             seq_len = grpo_trajectory.seq_lens[idx].item()
 
-            # Decode prompt and response once per sample
-            all_tokens = grpo_trajectory.query_responses[
-                idx, : context_length + seq_len
+            prompt_tokens = grpo_trajectory.query_responses[
+                idx, :context_length
             ].tolist()
-            decoded_sequence = self._tokenizer.decode(
-                all_tokens, skip_special_tokens=False
+
+            response_tokens = grpo_trajectory.query_responses[
+                idx, context_length:
+            ].tolist()
+
+            prompt = self._tokenizer.decode(prompt_tokens, skip_special_tokens=False)
+            response = self._tokenizer.decode(
+                response_tokens, skip_special_tokens=False
             )
-            prompt = decoded_sequence[:context_length]
-            response = decoded_sequence[context_length:]
-            response_tokens = targets[idx, :seq_len].tolist()
             decoded_tokens = [
                 self._tokenizer.decode([token], skip_special_tokens=False)
                 for token in response_tokens
@@ -651,6 +653,7 @@ class TrainingWorker:
             per_sample_dict["Sequence ID"] = sequence_id
             per_sample_dict["prompt"] = prompt
             per_sample_dict["response"] = response
+            per_sample_dict["answers"] = grpo_trajectory.answers[idx]
             per_sample_dict["policy_version"] = metadata["policy_version"][idx]
 
             # Add rewards dynamically based on func_names
@@ -943,6 +946,7 @@ class TrainingWorker:
         query_response_padding_masks = raw_trajectory.query_response_padding_masks
         seq_lens = raw_trajectory.seq_lens
         advantages = raw_trajectory.advantages
+        answers = raw_trajectory.answers
 
         # Compute padded tokens percentage
         total_tokens = query_responses.numel()
@@ -979,6 +983,7 @@ class TrainingWorker:
             position_ids=position_ids,
             response_padding_masks=response_padding_masks,
             seq_lens=training.get_unmasked_sequence_lengths(response_padding_masks),
+            answers=answers,
         )
 
         # Metadata for logging
