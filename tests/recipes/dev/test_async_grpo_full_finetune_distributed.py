@@ -102,7 +102,8 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
         )
         try:
             monkeypatch.setattr(sys, "argv", cmd)
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+            with pytest.raises(SystemExit, match=""):
+                runpy.run_path(TUNE_PATH, run_name="__main__")
             # If we get here, the recipe ran without errors
             # Let's make sure there are some loss values logged
             loss_values = get_loss_values_from_metric_logger(log_file)

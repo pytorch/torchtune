@@ -42,6 +42,31 @@ orchestration:
   replay_buffer_size: ${inference.batch_size}  # TODO: Right now this can't be bigger, or else we'll get padding issues
   num_steps: 250
 
+# All inference args
+inference:
+  engine: vllm
+  model: ${base_model_path}
+  top_k: null
+  temperature: 1.0
+  tensor_parallel_dim: 1
+  max_generated_tokens: 512
+  batch_size: 1
+  group_size: 16
+  total_batch_size: ${eval:'${inference.batch_size} * ${inference.group_size}'}
+  steps_before_weight_sync: 1
+  queue_maxsize: ${eval:'${orchestration.num_inference_workers} * ${training.steps_before_weight_sync}'}
+
+# All post-processing args
+postprocessing:
+  ref_checkpointer:
+    _component_: torchtune.training.FullModelHFCheckpointer
+    checkpoint_dir: ${base_model_path}
+    checkpoint_files: [
+      model-00001-of-00002.safetensors,
+      model-00002-of-00002.safetensors,
+    ]
+    model_type: QWEN2
+
 # All training args
 training:
   checkpointer:
@@ -71,31 +96,6 @@ training:
     kl_coeff: 0.01
     epsilon: 0.2
   seed: null
-
-# All post-processing args
-postprocessing:
-  ref_checkpointer:
-    _component_: torchtune.training.FullModelHFCheckpointer
-    checkpoint_dir: ${base_model_path}
-    checkpoint_files: [
-      model-00001-of-00002.safetensors,
-      model-00002-of-00002.safetensors,
-    ]
-    model_type: QWEN2
-
-# All inference args
-inference:
-  engine: vllm
-  model: ${base_model_path}
-  top_k: null
-  temperature: 1.0
-  tensor_parallel_dim: 1
-  max_generated_tokens: 512
-  batch_size: 1
-  group_size: 16
-  total_batch_size: ${eval:'${inference.batch_size} * ${inference.group_size}'}
-  steps_before_weight_sync: 1
-  queue_maxsize: ${eval:'${orchestration.num_inference_workers} * ${training.steps_before_weight_sync}'}
 
 # All logging args
 metric_logger:
