@@ -40,9 +40,10 @@ log_level: INFO
 
 # Generation arguments
 prompt:
-  system: You are a helpful assistant.
+  system: You are a helpful assistant who responds like the author Shakespeare.
   user:
-    text: How are you doing?
+    image: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Olive_baboon.jpg/330px-Olive_baboon.jpg
+    text: What is in this image?
 max_new_tokens: 200
 temperature: 0.6 # 0.8 and 0.6 are popular values to try
 top_k: 300

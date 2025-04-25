@@ -128,5 +128,5 @@ class Llama4VisionEncoder(nn.Module):
             - d: embed dim
         """
         x, _ = self.clip(images[:, None, None])
-        x = self.projection(x.squeeze())
+        x = self.projection(x.squeeze((1, 2)))
         return x
