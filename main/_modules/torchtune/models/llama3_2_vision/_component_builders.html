@@ -453,7 +453,6 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
@@ -774,12 +773,6 @@
 
 
 <span class="c1"># ------------------ LoRA Llama 3.2 Vision ------------------</span>
-
-
-<span class="k">class</span><span class="w"> </span><span class="nc">LoRATrainable</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-    <span class="n">FULL</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span>
-    <span class="n">LORA</span> <span class="o">=</span> <span class="s2">&quot;lora&quot;</span>
-    <span class="n">FROZEN</span> <span class="o">=</span> <span class="s2">&quot;frozen&quot;</span>
 
 
 <div class="viewcode-block" id="lora_llama3_2_vision_encoder"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder.html#torchtune.models.llama3_2_vision.lora_llama3_2_vision_encoder">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_vision_encoder</span><span class="p">(</span>

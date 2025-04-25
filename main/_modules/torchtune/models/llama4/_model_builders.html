@@ -452,15 +452,21 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_TemplateType</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama4</span><span class="w"> </span><span class="kn">import</span> <span class="n">llama4_decoder</span><span class="p">,</span> <span class="n">llama4_vision_encoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama4</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">llama4_decoder</span><span class="p">,</span>
+    <span class="n">llama4_vision_encoder</span><span class="p">,</span>
+    <span class="n">lora_llama4_decoder</span><span class="p">,</span>
+    <span class="n">lora_llama4_vision_encoder</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama4._tokenizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLAMA4_SPECIAL_TOKENS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama4._transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama4Transform</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">EarlyFusionModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRATrainable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">torch_version_ge</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -471,8 +477,9 @@
 
 
 <div class="viewcode-block" id="llama4_scout_17b_16e"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.llama4_scout_17b_16e.html#torchtune.models.llama4.llama4_scout_17b_16e">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama4_scout_17b_16e</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
     <span class="n">decoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">vision_encoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">encoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">fusion_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">336</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EarlyFusionModel</span><span class="p">:</span>
@@ -531,7 +538,7 @@
             <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">LLAMA4_SPECIAL_TOKENS</span><span class="p">[</span><span class="s2">&quot;&lt;|patch|&gt;&quot;</span><span class="p">],</span>
         <span class="p">},</span>
         <span class="n">encoders_trainable</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">vision_encoder_trainable</span><span class="p">,</span>
+            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">encoder_trainable</span><span class="p">,</span>
         <span class="p">},</span>
         <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_trainable</span><span class="p">,</span>
         <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_trainable</span><span class="p">,</span>
@@ -540,7 +547,7 @@
 
 <div class="viewcode-block" id="llama4_maverick_17b_128e"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.llama4_maverick_17b_128e.html#torchtune.models.llama4.llama4_maverick_17b_128e">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama4_maverick_17b_128e</span><span class="p">(</span>
     <span class="n">decoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">vision_encoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">encoder_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">fusion_trainable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">336</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EarlyFusionModel</span><span class="p">:</span>
@@ -601,7 +608,7 @@
             <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">LLAMA4_SPECIAL_TOKENS</span><span class="p">[</span><span class="s2">&quot;&lt;|patch|&gt;&quot;</span><span class="p">],</span>
         <span class="p">},</span>
         <span class="n">encoders_trainable</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">vision_encoder_trainable</span><span class="p">,</span>
+            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">encoder_trainable</span><span class="p">,</span>
         <span class="p">},</span>
         <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_trainable</span><span class="p">,</span>
         <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_trainable</span><span class="p">,</span>
@@ -647,6 +654,124 @@
         <span class="n">image_mean</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
         <span class="n">image_std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
         <span class="n">prompt_template</span><span class="o">=</span><span class="n">prompt_template</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_llama4_scout_17b_16e</span><span class="p">(</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">decoder_trainable</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lora&quot;</span><span class="p">,</span>
+    <span class="n">encoder_trainable</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;frozen&quot;</span><span class="p">,</span>
+    <span class="n">fusion_trainable</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lora&quot;</span><span class="p">,</span>
+    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="n">lora_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">use_dora</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">336</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EarlyFusionModel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builder for creating a 17B(active parameters) Llama4 MOE model with LoRA enabled.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
+<span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
+<span class="sd">        decoder_trainable (str): Option to set decoder params as fully trainable (full), lora trainable (lora),</span>
+<span class="sd">            or frozen (frozen). The default is &quot;lora&quot;.</span>
+<span class="sd">        encoder_trainable (str): Option to set vision encoder params as fully trainable (full), lora trainable (lora),</span>
+<span class="sd">            or frozen (frozen). The default is &quot;frozen&quot;.</span>
+<span class="sd">        fusion_trainable (str): Option to set fusion params as fully trainable (full), lora trainable (lora),</span>
+<span class="sd">            or frozen (frozen). This applies to the vision projection head from the vision encoder to the decoder.</span>
+<span class="sd">            The default is &quot;lora&quot;.</span>
+<span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer in the vision encoder and</span>
+<span class="sd">            the MoE layer in each transformer layer in the text decoder. Default: False</span>
+<span class="sd">        apply_lora_to_output (bool): whether to apply LoRA to the model&#39;s final output projection.</span>
+<span class="sd">            Default: False</span>
+<span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
+<span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
+<span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
+<span class="sd">        quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base</span>
+<span class="sd">            weights within linear layers LoRA is applied to. The final output linear projection is not</span>
+<span class="sd">            supported for quantization currently.</span>
+<span class="sd">        image_size (int): Base image size that images will be tiled and resized to.</span>
+<span class="sd">            Default is 336.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        EarlyFusionModel: Instantiation of a 17B Llama4 MOE LoRA model with encoders.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">decoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">decoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">vision_encoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">encoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">fusion_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">fusion_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="n">decoder_type</span><span class="p">,</span>
+        <span class="n">vision_encoder_type</span><span class="p">,</span>
+        <span class="n">fusion_type</span><span class="p">,</span>
+    <span class="p">],</span> <span class="s2">&quot;We&#39;ve temporarily removed support for mixed LoRA + Full Finetuning yet. Please don&#39;t use the &#39;full&#39; option and use llama4_scout_17b_16e if you need full finetuning&quot;</span>
+
+    <span class="n">decoder_embed_dim</span> <span class="o">=</span> <span class="mi">5120</span>
+
+    <span class="n">vision_encoder</span> <span class="o">=</span> <span class="n">lora_llama4_vision_encoder</span><span class="p">(</span>
+        <span class="n">encoder_lora</span><span class="o">=</span><span class="n">vision_encoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
+        <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
+        <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">clip_embed_dim</span><span class="o">=</span><span class="mi">1408</span><span class="p">,</span>
+        <span class="n">clip_num_layers</span><span class="o">=</span><span class="mi">34</span><span class="p">,</span>
+        <span class="n">decoder_embed_dim</span><span class="o">=</span><span class="n">decoder_embed_dim</span><span class="p">,</span>
+        <span class="n">projection_embed_dim</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+        <span class="n">tile_size</span><span class="o">=</span><span class="n">image_size</span><span class="p">,</span>
+        <span class="n">max_num_tiles</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+        <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+        <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
+        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">decoder</span> <span class="o">=</span> <span class="n">lora_llama4_decoder</span><span class="p">(</span>
+        <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
+        <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
+        <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="mi">202_048</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="n">decoder_embed_dim</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">10485760</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">rope_base</span><span class="o">=</span><span class="mi">500_000</span><span class="p">,</span>
+        <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">num_experts</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">use_shared_expert</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">skip_rope_interval</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">attention_chunk_size</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+        <span class="n">use_scaled_rope</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+        <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+        <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+        <span class="n">use_dora</span><span class="o">=</span><span class="n">use_dora</span><span class="p">,</span>
+        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">EarlyFusionModel</span><span class="p">(</span>
+        <span class="n">decoder</span><span class="p">,</span>
+        <span class="n">encoders</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">vision_encoder</span><span class="p">},</span>
+        <span class="n">encoder_tokens</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">LLAMA4_SPECIAL_TOKENS</span><span class="p">[</span><span class="s2">&quot;&lt;|patch|&gt;&quot;</span><span class="p">],</span>
+        <span class="p">},</span>
+        <span class="n">encoders_trainable</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">encoder_trainable</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_trainable</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_trainable</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
     <span class="p">)</span>
 </pre></div>
 

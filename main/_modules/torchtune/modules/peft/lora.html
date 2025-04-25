@@ -453,6 +453,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -463,6 +464,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes.nf4tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.low_precision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_register_nf4_dispatch_ops</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">AdapterModule</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">LoRATrainable</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">FULL</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span>
+    <span class="n">LORA</span> <span class="o">=</span> <span class="s2">&quot;lora&quot;</span>
+    <span class="n">FROZEN</span> <span class="o">=</span> <span class="s2">&quot;frozen&quot;</span>
 
 
 <div class="viewcode-block" id="LoRALinear"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">AdapterModule</span><span class="p">):</span>

@@ -463,12 +463,11 @@
     <span class="n">llama3_2_vision_encoder</span><span class="p">,</span>
     <span class="n">lora_llama3_2_vision_decoder</span><span class="p">,</span>
     <span class="n">lora_llama3_2_vision_encoder</span><span class="p">,</span>
-    <span class="n">LoRATrainable</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepFusionModel</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRATrainable</span>
 
 
 <div class="viewcode-block" id="llama3_2_vision_transform"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.llama3_2_vision_transform.html#torchtune.models.llama3_2_vision.llama3_2_vision_transform">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_vision_transform</span><span class="p">(</span>
