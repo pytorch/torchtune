@@ -85,8 +85,9 @@ def trace_handler(
         row_limit (int): number of rows to display in trace event table
 
     """
+    import time
     world_size, rank = get_world_size_and_rank()
-    curr_trace_dir_name = "iteration_" + str(prof.step_num)
+    curr_trace_dir_name = "iteration_" + str(prof.step_num) + time.strftime("T%H-%M-%S")
     curr_trace_dir = os.path.join(output_dir, curr_trace_dir_name)
     if not os.path.exists(curr_trace_dir):
         os.makedirs(curr_trace_dir, exist_ok=True)
@@ -137,6 +138,7 @@ def trace_handler(
         print(key_avgs, file=f)
     if rank == 0:
         log.info(f"Saving profiling results to {curr_trace_dir}")
+        print(f"XXX CURRENT_TRACE_DIR:{curr_trace_dir}")
 
     # TODO: Is this necessary?
     # see https://github.com/pytorch/torchtitan/blob/3050098dcee4901d88c712f9e8e9703d1735a29b/torchtitan/profiling.py#L48

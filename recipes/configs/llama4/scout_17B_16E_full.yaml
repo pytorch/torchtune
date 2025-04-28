@@ -18,7 +18,7 @@ output_dir: /tmp/torchtune/llama4_17Bx16E/full
 model:
   _component_: torchtune.models.llama4.llama4_scout_17b_16e
 
-tensor_parallel_dim: 2 # For multi-node training we recommend tensor_parallel_dim: 8
+tensor_parallel_dim: 1 # For multi-node training we recommend tensor_parallel_dim: 8
 tensor_parallel_plan:
   _component_: torchtune.models.llama4.decoder_only_tp_plan
 data_parallel_shard_dim: -1 # Will infer based on TP dim, effectively controls FSDP
@@ -92,4 +92,15 @@ log_peak_memory_stats: True
 # Useful for understanding how to optimize memory and performance
 profiler:
   _component_: torchtune.training.setup_torch_profiler
-  enabled: False
+  enabled: True
+  output_dir: ${output_dir}/profiling_outputs
+  cpu: True
+  cuda: True
+  profile_memory: True
+  with_stack: True
+  record_shapes: True
+  with_flops: False
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 1
+  num_cycles: 1
