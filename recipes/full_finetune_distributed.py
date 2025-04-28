@@ -306,19 +306,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Load the base model
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
-        self._compile = cfg.get("compile", False)
+        compile = cfg.get("compile")
+        compile_bool = bool(compile)
         self._compile_backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
 
-        self._compile_model = False
-        self._compile_loss = False
-        self._compile_optimizer_step = False
-        compile_components = cfg.get("compile_components")
-        if self._compile and compile_components:
-            self._compile_model = compile_components.get("model", True)
-            self._compile_loss = compile_components.get("loss", True)
-            self._compile_optimizer_step = compile_components.get(
-                "optimizer_step", False
-            )
+        self._compile_model = compile_bool
+        self._compile_loss = compile_bool
+        self._compile_optimizer_step = compile_bool
+        if isinstance(compile, dict):
+            self._compile_model = compile.get("model", True)
+            self._compile_loss = compile.get("loss", True)
+            self._compile_optimizer_step = compile.get("optimizer_step", False)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
