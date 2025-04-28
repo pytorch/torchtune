@@ -313,7 +313,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile_model = compile_bool
         self._compile_loss = compile_bool
         self._compile_optimizer_step = compile_bool
-        if isinstance(compile, dict):
+        self._compile_scale_grads = compile_bool
+        if isinstance(compile, DictConfig):
             self._compile_model = compile.get("model", True)
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
