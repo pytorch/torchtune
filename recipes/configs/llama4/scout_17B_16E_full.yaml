@@ -71,6 +71,11 @@ enable_activation_offloading: False
 fsdp_cpu_offload: True
 compile: False # torch.compile, set to true for perf/memory improvement
 
+compile_components:
+  model: True
+  loss: True
+  optimizer_step: False
+
 # Reduced precision
 dtype: bf16
 

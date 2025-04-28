@@ -308,6 +308,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._compile = cfg.get("compile", False)
         self._compile_backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+
+        self._compile_model = False
+        self._compile_loss = False
+        self._compile_optimizer_step = False
+        if self._compile:
+            self._compile_model = cfg.get("compile_components.model", True)
+            self._compile_loss = cfg.get("compile_components.loss", True)
+            self._compile_optimizer_step = cfg.get(
+                "compile_components.optimizer_step", False
+            )
+
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -359,7 +370,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
 
-        if self._compile:
+        if self._compile_loss:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
@@ -570,7 +581,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        if self._compile:
+        if self._compile_model:
             training.compile_model(model, verbose=self._is_rank_zero)
 
         if self._enable_fp8_training:
@@ -926,7 +937,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             if isinstance(grad_norm, DTensor):
                                 grad_norm = grad_norm.full_tensor()
                         optimizer_step_fn = self._optimizer.step
-                        if self._compile:
+                        if self._compile_optimizer_step:
                             optimizer_step_fn = torch.compile(
                                 optimizer_step_fn,
                                 backend=self._compile_backend,
