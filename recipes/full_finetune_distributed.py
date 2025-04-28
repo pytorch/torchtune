@@ -312,11 +312,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile_model = False
         self._compile_loss = False
         self._compile_optimizer_step = False
-        if self._compile:
-            self._compile_model = cfg.get("compile_components.model", True)
-            self._compile_loss = cfg.get("compile_components.loss", True)
-            self._compile_optimizer_step = cfg.get(
-                "compile_components.optimizer_step", False
+        compile_components = cfg.get("compile_components")
+        if self._compile and compile_components:
+            self._compile_model = compile_components.get("model", True)
+            self._compile_loss = compile_components.get("loss", True)
+            self._compile_optimizer_step = compile_components.get(
+                "optimizer_step", False
             )
 
         self._model = self._setup_model(
@@ -341,6 +342,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 else None
             ),
         )
+        if self._compile_optimizer_step:
+            self._optimizer.step = torch.compile(
+                self._optimizer.step,
+                backend=self._compile_backend,
+            )
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
@@ -936,13 +942,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             # If sharded, collect the DTensor here
                             if isinstance(grad_norm, DTensor):
                                 grad_norm = grad_norm.full_tensor()
-                        optimizer_step_fn = self._optimizer.step
-                        if self._compile_optimizer_step:
-                            optimizer_step_fn = torch.compile(
-                                optimizer_step_fn,
-                                backend=self._compile_backend,
-                            )
-                        optimizer_step_fn()
+                        self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
