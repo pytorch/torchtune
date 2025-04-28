@@ -312,6 +312,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile_model = False
         self._compile_loss = False
         self._compile_optimizer_step = False
+        self._compile_scale_grads = False
         compile_components = cfg.get("compile_components")
         if self._compile and compile_components:
             self._compile_model = compile_components.get("model", True)

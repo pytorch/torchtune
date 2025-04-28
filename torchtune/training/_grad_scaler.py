@@ -65,12 +65,12 @@ def scale_grads_(
     _scale_grad_(parameters, scaler, foreach)
 
 
-def _group_tensors_by_device_and_dtype(
+def _group_tensors_by_device(
     tensors: list[torch.Tensor],
-) -> dict[tuple[torch.device, torch.dtype], list[Tensor]]:
+) -> dict[torch.device, list[Tensor]]:
     ret = defaultdict(list)
     for i, tensor in enumerate(tensors):
-        ret[(tensor.device, tensor.dtype)].append(tensor)
+        ret[tensor.device].append(tensor)
 
     return ret
 
@@ -86,9 +86,9 @@ def _scale_grad_(
     grads = [p.grad for p in parameters if p.grad is not None]
     if len(grads) == 0:
         return
-    grouped_grads = _group_tensors_by_device_and_dtype(grads)
+    grouped_grads = _group_tensors_by_device(grads)
 
-    for (device, _), device_grads in grouped_grads.items():
+    for device, device_grads in grouped_grads.items():
         if (foreach is None and _has_foreach_support(device_grads, device)) or (
             foreach and _device_has_foreach_support(device)
         ):
