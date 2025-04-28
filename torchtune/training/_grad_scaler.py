@@ -11,8 +11,10 @@ import torch
 from torch import nn, Tensor
 from torch.nn.utils.clip_grad import _no_grad, _tensor_or_tensors
 from torch.utils._foreach_utils import _device_has_foreach_support, _has_foreach_support
+from torchtune.utils._logging import deprecated
 
 
+@deprecated(msg="Please use `scale_grads_` instead.")
 def scale_grads(model: nn.Module, scaler: torch.Tensor) -> None:
     """
     Utility to scale the gradients of a model.
