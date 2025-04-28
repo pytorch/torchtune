@@ -86,9 +86,9 @@ class ChunkedCrossEntropyLoss(nn.Module, SFTLossWithProjection):
     ) -> torch.Tensor:
         """
         Args:
-            weight (torch.Tensor): Tensor with weights of the model output projection layer. Shape [vocab_size, emb_dim]
-            outputs (torch.Tensor): Hidden state of the model, pre projection. Shape [bsz, seq_len, emb_dim]
-            targets (torch.Tensor): Labels for the model. Shape [bsz, seq_len]
+            weight (torch.Tensor): Tensor with weights of the model output projection layer. Shape ``[vocab_size, emb_dim]``
+            outputs (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
+            targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         Returns:
