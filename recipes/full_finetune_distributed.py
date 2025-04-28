@@ -318,7 +318,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._compile_model = compile.get("model", True)
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
-            self._compile_scale_grads = compile_components.get("scale_grads", True)
+            self._compile_scale_grads = compile.get("scale_grads", True)
 
         # This indirection is needed to apply torch.compile to scale_grads step.
         self._grad_scaler = training.scale_grads_
