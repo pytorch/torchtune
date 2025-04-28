@@ -36,7 +36,7 @@ class TestCEWithChunkedOutputLoss:
         ce_loss = CEWithChunkedOutputLoss(
             num_output_chunks=8, ignore_index=ignore_index
         )
-        logits_chunks = logits.chunk(ce_loss.num_output_chunks, dim=1)
+        logits_chunks = logits.tensor_split(ce_loss.num_output_chunks, dim=1)
         chunked_loss = ce_loss(logits_chunks, labels)
 
         # vanilla CE

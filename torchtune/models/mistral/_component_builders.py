@@ -20,6 +20,7 @@ from torchtune.modules import (
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
+from torchtune.utils._logging import deprecated
 
 """
 Component builders for the Mistral 7B models and popular variants such as LoRA.
@@ -457,6 +458,11 @@ def lora_mistral_mlp(
     )
 
 
+@deprecated(
+    msg="Model-specific classifier builders are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.mistral.mistral` instead."
+)
 def mistral_classifier(
     num_classes: int,
     *,
@@ -540,7 +546,13 @@ def mistral_classifier(
         output=output_proj,
     )
 
-
+@deprecated(
+    msg="Model-specific classifier builders, and PEFT-based classifier builders with `apply_lora_to_output=True` "
+    " are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.mistral.lora_mistral` and "
+    "`apply_lora_to_output=False` instead."
+)
 def lora_mistral_classifier(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,

@@ -104,8 +104,7 @@ def clip_vision_encoder(
         VisionRotaryPositionalEmbeddings(
             patch_size=patch_size,
             tile_size=tile_size,
-            max_num_tiles=max_num_tiles,
-            dim=head_dim // 2,
+            dim=head_dim,
             base=10_000,
             append_cls_token=append_cls_token,
         )

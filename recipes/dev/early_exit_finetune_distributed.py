@@ -392,11 +392,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
-
         # Setup early exit loss
         (
             self._do_output_hidden_states,
@@ -899,12 +894,6 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     else:
                         logits = outputs
 
-                # Shift labels to compute loss
-                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                labels = torch.hstack(
-                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-                )
                 if not isinstance(logits, list):
                     labels = labels.reshape(-1)
                     logits = logits.reshape(-1, logits.size(-1))
@@ -961,7 +950,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item() / num_tokens
+                    loss_to_log = running_loss.detach().item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"

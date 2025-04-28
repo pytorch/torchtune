@@ -17,7 +17,8 @@ import torch
 from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
@@ -25,6 +26,7 @@ from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
+from torchtune.training.lr_schedulers import get_lr
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -223,7 +225,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # sampler and dataloader depends on the tokenizer and should be set
         # setup after it is initialized
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -254,6 +256,19 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._steps_run
             * self._ppo_epochs
             * (self.batch_size // self._ppo_batch_size)
+        )
+
+        lr_steps = (
+            self._total_steps
+            * self._ppo_epochs
+            * (self.batch_size // self._ppo_batch_size)
+        )
+
+        # Setup lr scheduler
+        self._lr_scheduler = self._setup_lr_scheduler(
+            cfg_lr_scheduler=cfg.get("lr_scheduler", None),
+            num_training_steps=lr_steps,
+            last_epoch=self.global_step - 1,
         )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
@@ -326,6 +341,53 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self.profiler_active_steps = profiler_cfg["active_steps"]
 
         return profiler
+
+    def _setup_lr_scheduler(
+        self,
+        cfg_lr_scheduler: Optional[DictConfig],
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optional[Optimizer]:
+        """
+        Set up the learning rate scheduler based on the provided configuration.
+        It handles both standard optimization and optimizer-in-backward cases, and supports
+        schedulers from both torchtune.modules and torch.optim.
+
+        Args:
+            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
+            num_training_steps (int): The total number of training steps.
+            last_epoch (int): The index of the last epoch.
+
+        Returns:
+            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
+        """
+        if cfg_lr_scheduler is None:
+            log.info(
+                "No learning rate scheduler configured. Using constant learning rate."
+            )
+            return None
+
+        if self._optimizer_in_bwd:
+            # Use the first optimizer from the wrapper to represent the learning rate
+            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
+        else:
+            # Standard case: use the single optimizer
+            optimizer = self._optimizer
+
+        # Instantiate the learning rate scheduler
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+
+        if self._optimizer_in_bwd:
+            # Modify the scheduler for optimizer_in_bwd case
+            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
+
+        log.info("Learning rate scheduler is initialized.")
+        return lr_scheduler
 
     def _setup_training_hyperparameters(self, cfg) -> None:
         """
@@ -643,7 +705,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def _setup_data(
         self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here.
         """
@@ -656,14 +718,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
+        sampler = StatefulDistributedSampler(
             ds,
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
@@ -676,7 +737,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self, epoch: int, is_intermediate_checkpoint: bool = False
@@ -698,6 +759,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.MAX_STEPS_KEY: self._total_steps,
                     training.STEPS_KEY: self._steps_run,
                     training.RNG_KEY: self._rng.get_state(),
+                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
             if not self._optimizer_in_bwd:
@@ -919,8 +981,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for curr_epoch in range(self._epochs_run, self._total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -1000,8 +1061,20 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
 
+                        # Need to fix `lr_scheduler.step()` before `optimizer.step()` warning
+                        if self._lr_scheduler is not None:
+                            self._lr_scheduler.step()
                         self.global_step += 1
+
                 ppo_time = time.perf_counter() - t0_ppo
+
+                current_lr = get_lr(
+                    (
+                        self._optimizer
+                        if not self._optimizer_in_bwd
+                        else self._optim_ckpt_wrapper
+                    ),
+                )
 
                 # step 5. profit
                 self._steps_run += 1
@@ -1013,6 +1086,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         kl_rewards,
                         num_tokens / traj_time,
                         num_tokens / ppo_time,
+                        current_lr,
                     )
                 self.cleanup_after_step(
                     trajectory, ppo_stats, advantages, returns, kl, kl_rewards
@@ -1139,6 +1213,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         kl_rewards: torch.Tensor,
         tokens_per_second_trajectory: torch.Tensor,
         tokens_per_second_loss: torch.Tensor,
+        lr: float,
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.
@@ -1149,6 +1224,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             "rlhf_reward": trajectory.scores.mean() + kl_rewards.sum(1).mean(),
             "kl": kl.sum(1).mean(),
             "kl_reward": kl_rewards.sum(1).mean(),
+            "lr": lr,
             "loss": ppo_stats.loss.mean(),
             "policy_loss": ppo_stats.policy_loss.mean(),
             "value_loss": ppo_stats.value_loss.mean(),

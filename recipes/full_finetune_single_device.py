@@ -342,11 +342,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
-
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
     ) -> Union[torch.profiler.profile, DummyProfiler]:
@@ -636,12 +631,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         with self.activations_handling_ctx:
             logits = self._model(**batch)
 
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
         if not isinstance(logits, list):
             labels = labels.reshape(-1)
             logits = logits.reshape(-1, logits.size(-1))
@@ -717,7 +706,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._lr_scheduler.step()
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item() / num_tokens
+                    loss_to_log = running_loss.detach().item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"

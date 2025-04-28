@@ -163,13 +163,16 @@ class SFTTransform(Transform):
                 raise ValueError(error_message)
 
             # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
+            # Shift labels to be off by 1 from the logits.
+            # Padding added at the end so we dont need to slice the logits.
             tokenized_dict["labels"] = list(
                 np.where(
-                    tokenized_dict["mask"],
+                    tokenized_dict["mask"][1:],
                     CROSS_ENTROPY_IGNORE_IDX,
-                    tokenized_dict["tokens"],
+                    tokenized_dict["tokens"][1:],
                 )
             )
+            tokenized_dict["labels"].append(CROSS_ENTROPY_IGNORE_IDX)
             assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
         else:
             tokenized_dict = transformed_sample

@@ -15,7 +15,8 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
@@ -128,11 +129,20 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
+        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
             log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
+
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.distributed_backend = training.get_distributed_backend(
+            cfg.device, offload_ops_to_cpu=True
+        )
+        init_process_group(self.distributed_backend)
 
         self.world_size, self.rank = get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
@@ -312,7 +322,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are initialized
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -665,11 +675,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
+        All data related setup happens here. This recipe currently supports only
+        map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
+        it is loaded into the dataloader.
         """
 
         if isinstance(cfg_dataset, ListConfig):
@@ -681,11 +691,11 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
+        sampler = StatefulDistributedSampler(
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle
         )
 
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
@@ -701,7 +711,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             log.info("Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self,
@@ -781,6 +791,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
@@ -874,9 +885,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
 
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -979,7 +990,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     # Step the learning rate scheduler
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
-                    loss_to_log = running_loss.item()
+                    loss_to_log = running_loss.detach().item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -1068,8 +1079,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-
-    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
