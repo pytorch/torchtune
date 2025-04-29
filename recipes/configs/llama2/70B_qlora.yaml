@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
+#   tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --ignore-patterns "*.bin" --hf-token <HF_TOKEN>
 #
 # This config needs 8 GPUs to run
 #   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama2/70B_qlora
@@ -35,7 +35,7 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir:  /tmp/Llama-2-70b-hf
   checkpoint_files:
-    filename_format: pytorch_model-{}-of-{}.bin
+    filename_format: model-{}-of-{}.safetensors
     max_filename: "00015"
   recipe_checkpoint: null
   output_dir: ${output_dir}

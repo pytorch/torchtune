@@ -152,7 +152,10 @@ class OffloadActivations(saved_tensors_hooks):
                 and num_bytes >= self.min_tensor_size_bytes
                 and (
                     not isinstance(activation, torch.nn.Parameter)
-                    and not isinstance(activation, torch.nn.Buffer)
+                    and not (
+                        hasattr(torch.nn, "Buffer")
+                        and isinstance(activation, torch.nn.Buffer)
+                    )
                 )
             ):
                 if self.use_streams:

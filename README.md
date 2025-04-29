@@ -4,13 +4,13 @@
 # torchtune
 
 [![Unit Test](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml)
-![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
+![Integration Tests](https://github.com/pytorch/torchtune/actions/workflows/gpu_test.yaml/badge.svg)
 [![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
 [**Overview**](#overview-) | [**Installation**](#installation-%EF%B8%8F) | [**Get Started**](#get-started-) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Community**](#community-) | [**Citing torchtune**](#citing-torchtune-) | [**License**](#license)
 
 ### 📣 Recent updates 📣
-* *April 2025*: **Llama4** is now available in torchtune! Try out our full finetuning configs [here](recipes/configs/llama4) (LoRA coming soon!)
+* *April 2025*: **Llama4** is now available in torchtune! Try out our full and LoRA finetuning configs [here](recipes/configs/llama4)
 * *February 2025*: Multi-node training is officially [open for business in torchtune](https://pytorch.org/torchtune/main/tutorials/multinode.html)! Full finetune on multiple nodes to take advantage of larger batch sizes and models.
 * *December 2024*: torchtune now supports **Llama 3.3 70B**! Try it out by following our installation instructions [here](#installation-%EF%B8%8F), then run any of the configs [here](recipes/configs/llama3_3).
 * *November 2024*: torchtune has released [v0.4.0](https://github.com/pytorch/torchtune/releases/tag/v0.4.0) which includes stable support for exciting features like activation offloading and multimodal QLoRA
@@ -42,7 +42,7 @@ torchtune supports [the entire post-training lifecycle](https://pytorch.org/torc
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
 | Full                  |    ✅    |     ✅    |   ✅    |
-| [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |    ❌    |
+| [LoRA/QLoRA](https://pytorch.org/torchtune/stable/recipes/lora_finetune_single_device.html)            |    ✅    |     ✅    |    ✅    |
 
 Example: ``tune run lora_finetune_single_device --config llama3_2/3B_lora_single_device`` <br />
 You can also run e.g. ``tune ls lora_finetune_single_device`` for a full list of available configs.
@@ -178,7 +178,7 @@ batch_size=2
 ## Installation 🛠️
 
 
-torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. torchtune leverages
+torchtune is **only** tested with the latest stable PyTorch release (currently 2.6.0) as well as the preview nightly version, and leverages
 torchvision for finetuning multimodal LLMs and torchao for the latest in quantization techniques; you should install these as well.
 
 ### Install stable release
@@ -192,8 +192,8 @@ pip install torchtune
 ### Install nightly release
 
 ```bash
-# Install PyTorch, torchvision, torchao nightlies
-pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126
+# Install PyTorch, torchvision, torchao nightlies.
+pip install --pre --upgrade torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126/xpu
 pip install --pre --upgrade torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 

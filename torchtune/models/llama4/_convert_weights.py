@@ -141,7 +141,7 @@ def llama4_meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.
             value = value.view(num_experts, -1, value.shape[-1])
         elif "conv1" in key:
             dim, flat_patch = value.shape
-            patch_size = int(math.sqrt(flat_patch / 3))
+            patch_size = math.isqrt(flat_patch // 3)
             assert (
                 3 * patch_size**2 == flat_patch
             ), "Conversion assumes 3 channel inputs and square patch size"
@@ -206,7 +206,7 @@ def llama4_hf_to_tune(
                 continue
         elif "patch_embedding" in key:
             d, flat_patch = value.shape
-            patch_size = int(math.sqrt(flat_patch / 3))
+            patch_size = math.isqrt(flat_patch // 3)
             assert (
                 3 * patch_size**2 == flat_patch
             ), "Conversion assumes 3 channel inputs and square patch size"
