@@ -7,12 +7,12 @@
 from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate
-from torchtune.modules.tokenizers import (
+from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,
 )
-from torchtune.modules.transforms import Transform
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
@@ -34,6 +34,8 @@ class GemmaTokenizer(ModelTokenizer, Transform):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Examples:
         >>> tokenizer = GemmaTokenizer("/path/to/spm_model")
@@ -47,6 +49,7 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         path: str,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
+        truncation_type: str = "right",
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -59,6 +62,7 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
+        self.truncation_type = truncation_type
 
     @property
     def eos_id(self):
@@ -142,6 +146,7 @@ class GemmaTokenizer(ModelTokenizer, Transform):
             messages=templated_messages,
             bos_id=self.bos_id,
             eos_id=self.eos_id if add_eos else None,
+            truncation_type=self.truncation_type,
         )
 
     def __call__(

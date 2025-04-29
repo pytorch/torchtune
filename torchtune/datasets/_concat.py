@@ -38,7 +38,7 @@ class ConcatDataset(Dataset):
             derived from :class:`~torch.utils.data.Dataset`.
 
     Raises:
-        ValueError: if instanse of `PackedDataset` is in `datasets`
+        ValueError: if a mix of `PackedDataset` and non-`PackedDataset` datasets is provided
 
     Examples:
         >>> dataset1 = MyCustomDataset(params1)
@@ -54,11 +54,11 @@ class ConcatDataset(Dataset):
             source: vicgalle/alpaca-gpt4
             split: train
             train_on_input: True
-          - _component_: torchtune.datasets.instruct_dataset
-            source: samsum
-            column_map: {"output": "summary"}
-            split: train
+            packed: True
+          - _component_: torchtune.datasets.grammar_dataset
+            split: train[:1%]
             train_on_input: False
+            packed: True
 
     This class primarily focuses on providing a unified interface to access elements from multiple datasets,
     enhancing the flexibility in handling diverse data sources for training machine learning models.
@@ -67,12 +67,12 @@ class ConcatDataset(Dataset):
     def __init__(self, datasets: List[Dataset]):
         self._datasets: List[Dataset] = datasets
 
-        for dataset in self._datasets:
-            if isinstance(dataset, PackedDataset):
-                raise ValueError(
-                    "ConcatDataset can't process instances of PackedDataset."
-                )
-
+        is_packed = [isinstance(dataset, PackedDataset) for dataset in datasets]
+        if any(is_packed) and not all(is_packed):
+            raise ValueError(
+                "ConcatDataset can't process a mix of packed and non-packed datasets."
+            )
+        self.packed = all(is_packed)
         self._len: int = sum(len(dataset) for dataset in datasets)
         self._indexes: List[Tuple[int, int, int]] = []
 

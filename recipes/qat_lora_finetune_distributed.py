@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
@@ -18,18 +18,19 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
+    AdapterModule,
     DoRALinear,
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -155,11 +156,11 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "Compile is not yet supported for QAT. Please set compile=False."
             )
 
-        _, rank = utils.get_world_size_and_rank()
+        self.world_size, self.rank = utils.get_world_size_and_rank()
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        self._is_rank_zero = rank == 0
+        self._is_rank_zero = self.rank == 0
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -174,7 +175,9 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
-        self.seed = training.set_seed(seed=cfg.seed)
+        self.seed = training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
@@ -330,7 +333,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -365,11 +368,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -534,9 +532,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
-                if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
-                ) and not lora_weights_state_dict:
+                if (isinstance(m, AdapterModule)) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.to_empty(device=lora_device)
@@ -555,6 +551,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
+            state_dict_keys=model.state_dict().keys(),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -619,13 +616,12 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here. Currently this recipe only supports the
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -633,7 +629,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
-            packed = False
+            packed = getattr(ds, "packed", False)
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
@@ -643,11 +639,11 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("left_pad_sequence collator is only for inference.")
         collate_fn = _get_component_from_path(collate_fn)
 
-        sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
+        sampler = StatefulDistributedSampler(
+            ds, num_replicas=self.world_size, rank=self.rank, shuffle=shuffle, seed=0
         )
 
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
@@ -667,7 +663,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             log.info("Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self,
@@ -756,6 +752,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         training.EPOCHS_KEY: self.epochs_run,
                         training.TOTAL_EPOCHS_KEY: self.total_epochs,
                         training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                        training.DATALOADER_KEY: self._dataloader.state_dict(),
                     }
                 )
 
@@ -787,8 +784,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # clean up before training begins
         training.cleanup_before_training()
 
-        world_size, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -803,9 +798,8 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -820,6 +814,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
 
@@ -838,12 +833,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
 
-                # Shift labels to compute loss
-                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                labels = torch.hstack(
-                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-                )
                 if not isinstance(logits, list):
                     labels = labels.reshape(-1)
                     logits = logits.reshape(-1, logits.size(-1))
@@ -867,7 +856,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.distributed.all_reduce(running_loss)
                     # Manually scale the gradients from unnormalized loss by total # of tokens
                     # We multiply by world_size to undo FSDP2 gradient normalization.
-                    training.scale_grads(self._model, world_size / num_tokens)
+                    training.scale_grads(self._model, self.world_size / num_tokens)
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(
                             self._model.parameters(),
@@ -880,7 +869,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    loss_to_log = running_loss.item() / num_tokens
+                    loss_to_log = running_loss.detach().item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -896,7 +885,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second_per_gpu": num_tokens
-                            / (time_per_step * world_size),
+                            / (time_per_step * self.world_size),
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -924,6 +913,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         == self.profiler_wait_steps
                         + self.profiler_warmup_steps
                         + self.profiler_active_steps
+                        and self._device.type == "cuda"
                     ):
                         torch.cuda.memory._record_memory_history(enabled=None)
 

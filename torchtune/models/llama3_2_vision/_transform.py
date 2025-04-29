@@ -6,12 +6,13 @@
 
 from typing import Any, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message, PromptTemplate
+from torchtune.data import Message
+from torchtune.data._prompt_templates import _TemplateType
 
 from torchtune.models.clip import CLIPImageTransform
 from torchtune.models.llama3 import llama3_tokenizer
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform, VisionCrossAttentionMask
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 class Llama3VisionTransform(ModelTokenizer, Transform):
@@ -40,9 +41,9 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
             structured similarly. Default is None to use the canonical Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
-        image_mean (Optional[Tuple[float, float, float]]): Mean values of each channel, used for normalization.
-        image_std (Optional[Tuple[float, float, float]]): Standard deviations for each channel, used for normalization.
-        prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
+        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+        image_std (Optional[List[float]]): Standard deviations for each channel, used for normalization.
+        prompt_template (Optional[_TemplateType]): template used to format the messages based on their role. This is used
             to add structured text around the actual messages. The structured text is used in three scenarios:
 
             - Task-specific templates to gear models for a particular task that it will expect after training
@@ -70,9 +71,9 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
         max_num_tiles: int = 4,
         special_tokens_path: Optional[str] = None,
         max_seq_len: Optional[int] = None,
-        image_mean: Optional[Tuple[float, float, float]] = None,
-        image_std: Optional[Tuple[float, float, float]] = None,
-        prompt_template: Optional[PromptTemplate] = None,
+        image_mean: Optional[List[float]] = None,
+        image_std: Optional[List[float]] = None,
+        prompt_template: Optional[_TemplateType] = None,
     ):
         self.tokenizer = llama3_tokenizer(
             path,
@@ -96,6 +97,7 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
         )
 
         self.stop_tokens = self.tokenizer.stop_tokens
+        self.special_tokens = self.tokenizer.special_tokens
         self.max_seq_len = max_seq_len
         self.max_num_tiles = max_num_tiles
         self.image_seq_len = max_num_tiles * (self.xattn_mask.patches_per_tile + 1)
@@ -146,44 +148,45 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
     def tokenize_message(
         self,
         message: Message,
-        tokenize_header: bool = True,
-        tokenize_end: bool = True,
+        add_start_tokens: bool = True,
+        add_end_tokens: bool = True,
     ) -> List[int]:
         """
         Tokenize a message into a list of token ids.
 
         Args:
             message (Message): The message to tokenize.
-            tokenize_header (bool): Whether to prepend a tokenized header to the message.
-            tokenize_end (bool): Whether to append eot or eom id at the end of the message.
+            add_start_tokens (bool): Whether to prepend a tokenized header to the message.
+            add_end_tokens (bool): Whether to append eot or eom id at the end of the message.
 
         Returns:
             List[int]: The list of token ids.
         """
         return self.tokenizer.tokenize_message(
             message=message,
-            tokenize_header=tokenize_header,
-            tokenize_end=tokenize_end,
+            add_start_tokens=add_start_tokens,
+            add_end_tokens=add_end_tokens,
         )
 
     def tokenize_messages(
         self,
         messages: List[Message],
-        add_eos: bool = True,
+        *,
+        add_end_tokens: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
 
         Args:
             messages (List[Message]): The list of messages to tokenize.
-            add_eos (bool): Wether to add the tokenizer's eos_id. Default True.
+            add_end_tokens (bool): Wether to add the tokenizer's eos_id. Default True.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
         return self.tokenizer.tokenize_messages(
             messages=messages,
-            add_eos=add_eos,
+            add_end_tokens=add_end_tokens,
         )
 
     def __call__(
@@ -194,7 +197,7 @@ class Llama3VisionTransform(ModelTokenizer, Transform):
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field.
-            inference (bool): Whether to run in inference mode. Default is True.
+            inference (bool): Whether to run in inference mode. Default is False.
 
         Returns:
             Mapping[str, Any]: The transformed sample with the following fields:

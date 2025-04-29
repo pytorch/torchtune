@@ -11,9 +11,9 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 
 from torchtune.data import ChosenRejectedToMessages, CROSS_ENTROPY_IGNORE_IDX
-
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
+
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 class PreferenceDataset(Dataset):
@@ -84,7 +84,7 @@ class PreferenceDataset(Dataset):
             of messages are stored in the ``"chosen"`` and ``"rejected"`` keys.
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
             Since PreferenceDataset only supports text data, it requires a
-            :class:`~torchtune.modules.tokenizers.ModelTokenizer` instead of the ``model_transform`` in
+            :class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` instead of the ``model_transform`` in
             :class:`~torchtune.datasets.SFTDataset`.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
@@ -136,6 +136,7 @@ class PreferenceDataset(Dataset):
         chosen_input_ids, chosen_masks = self._tokenizer.tokenize_messages(
             transformed_sample["chosen"],
         )
+
         chosen_labels = list(
             np.where(chosen_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )

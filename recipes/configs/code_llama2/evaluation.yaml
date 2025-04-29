@@ -3,6 +3,8 @@
 # To launch, run the following command:
 #    tune run eleuther_eval --config code_llama2/evaluation
 
+output_dir: ./ # Not needed
+
 # Model arguments
 model:
   _component_: torchtune.models.code_llama2.code_llama2_7b

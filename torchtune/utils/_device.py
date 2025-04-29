@@ -68,6 +68,7 @@ def _setup_device(device: torch.device) -> torch.device:
 
     Raises:
         RuntimeError: If device index is not available.
+        AttributeError: If ``set_device`` is not supported for the device type (e.g. on MPS).
 
     Returns:
         device
@@ -86,6 +87,10 @@ def _setup_device(device: torch.device) -> torch.device:
         raise RuntimeError(
             f"The local rank is larger than the number of available {device_name}s."
         )
+    if not hasattr(torch_device, "set_device"):
+        raise AttributeError(
+            f"The device type {device_type} does not support the `set_device` method."
+        )
     torch_device.set_device(device)
     return device
 
@@ -93,7 +98,7 @@ def _setup_device(device: torch.device) -> torch.device:
 def _get_device_type_from_env() -> str:
     """Function that gets the torch.device based on the current machine.
 
-    This currently only supports CPU, CUDA, NPU.
+    This currently only supports CPU, CUDA, NPU, XPU, and MPS.
 
     Returns:
         device
@@ -104,6 +109,8 @@ def _get_device_type_from_env() -> str:
         device = "npu"
     elif torch.xpu.is_available():
         device = "xpu"
+    elif torch.mps.is_available():
+        device = "mps"
     else:
         device = "cpu"
     return device
@@ -151,7 +158,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     If CUDA-like is available and being used, this function also sets the CUDA-like device.
 
     Args:
-        device (Optional[str]): The name of the device to use, e.g. "cuda" or "cpu" or "npu" or "xpu".
+        device (Optional[str]): The name of the device to use, one of "cuda", "cpu", "npu", "xpu", or "mps".
 
     Example:
         >>> device = get_device("cuda")
@@ -202,8 +209,8 @@ class DeviceSupport(Enum):
     This is a simple enum for compute devices,
     This currently only supports CPU, CUDA, NPU, and XPU.
     The following enumeration defines various device configurations with attributes:
-    1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu", "xpu").
-    2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU", "XPU").
+    1. `device_type` (str): The type of device (e.g., "cpu", "cuda", "npu", "xpu", "mps").
+    2. `device_name` (str): A user-friendly name for the device (e.g., "CPU", "GPU", "NPU", "XPU", "MPS").
     3. `communication_backend` (str): Specifies the backend used for communication on this device
     (e.g., "gloo", "nccl", "hccl", "ccl").
     """
@@ -212,6 +219,7 @@ class DeviceSupport(Enum):
     CUDA = ("cuda", "GPU", "nccl")
     NPU = ("npu", "NPU", "hccl")
     XPU = ("xpu", "XPU", "ccl")
+    MPS = ("mps", "MPS", "gloo")
 
     def __init__(
         self,
@@ -234,7 +242,7 @@ class DeviceSupport(Enum):
 def get_device_support() -> DeviceSupport:
     """function that gets the DeviceSupport with compute devices based on the current machine.
 
-    This currently only supports CPU, CUDA, NPU, XPU.
+    This currently only supports CPU, CUDA, NPU, XPU, and MPS.
 
     Returns:
         device_support: DeviceSupport

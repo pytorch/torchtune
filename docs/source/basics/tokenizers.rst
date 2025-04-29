@@ -168,7 +168,7 @@ For example, here we change the ``"<|begin_of_text|>"`` and ``"<|end_of_text|>"`
 Base tokenizers
 ---------------
 
-:class:`~torchtune.modules.tokenizers.BaseTokenizer` are the underlying byte-pair encoding modules that perform the actual raw string to token ID conversion and back.
+:class:`~torchtune.modules.transforms.tokenizers.BaseTokenizer` are the underlying byte-pair encoding modules that perform the actual raw string to token ID conversion and back.
 In torchtune, they are required to implement ``encode`` and ``decode`` methods, which are called by the :ref:`model_tokenizers` to convert
 between raw text and token IDs.
 
@@ -202,13 +202,13 @@ between raw text and token IDs.
             """
             pass
 
-If you load any :ref:`model_tokenizers`, you can see that it calls its underlying :class:`~torchtune.modules.tokenizers.BaseTokenizer`
+If you load any :ref:`model_tokenizers`, you can see that it calls its underlying :class:`~torchtune.modules.transforms.tokenizers.BaseTokenizer`
 to do the actual encoding and decoding.
 
 .. code-block:: python
 
     from torchtune.models.mistral import mistral_tokenizer
-    from torchtune.modules.tokenizers import SentencePieceBaseTokenizer
+    from torchtune.modules.transforms.tokenizers import SentencePieceBaseTokenizer
 
     m_tokenizer = mistral_tokenizer("/tmp/Mistral-7B-v0.1/tokenizer.model")
     # Mistral uses SentencePiece for its underlying BPE
@@ -222,12 +222,36 @@ to do the actual encoding and decoding.
     print(sp_tokenizer.encode(text))
     # [1, 6312, 28709, 1526, 2]
 
+.. _hf_tokenizers:
+
+Using Hugging Face tokenizers
+-----------------------------
+
+Sometimes tokenizers hosted on Hugging Face do not contain files compatible with one of torchtune's
+existing tokenizer classes. In this case, we provide :class:`~torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer`
+to parse the Hugging Face ``tokenizer.json`` file and define the correct ``encode`` and ``decode`` methods to
+match torchtune's other :class:`~torchtune.modules.transforms.tokenizers.BaseTokenizer` classes. You should also pass the path to
+either ``tokenizer_config.json`` or ``generation_config.json``, which will allow torchtune to infer BOS and EOS tokens.
+Continuing with the Mistral example:
+
+.. code-block:: python
+
+    hf_tokenizer = HuggingFaceBaseTokenizer(
+        tokenizer_json_path="/tmp/Mistral-7B-v0.1/tokenizer.json",
+        tokenizer_config_json_path="/tmp/Mistral-7B-v0.1/tokenizer_config.json",
+    )
+
+    text = "hello world"
+
+    print(hf_tokenizer.encode(text))
+    # [1, 6312, 28709, 1526, 2]
+
 .. _model_tokenizers:
 
 Model tokenizers
 ----------------
 
-:class:`~torchtune.modules.tokenizers.ModelTokenizer` are specific to a particular model. They are required to implement the ``tokenize_messages`` method,
+:class:`~torchtune.modules.transforms.tokenizers.ModelTokenizer` are specific to a particular model. They are required to implement the ``tokenize_messages`` method,
 which converts a list of Messages into a list of token IDs.
 
 .. code-block:: python
@@ -259,7 +283,7 @@ is because they add all the necessary special tokens or prompt templates require
 .. code-block:: python
 
     from torchtune.models.mistral import mistral_tokenizer
-    from torchtune.modules.tokenizers import SentencePieceBaseTokenizer
+    from torchtune.modules.transforms.tokenizers import SentencePieceBaseTokenizer
     from torchtune.data import Message
 
     m_tokenizer = mistral_tokenizer("/tmp/Mistral-7B-v0.1/tokenizer.model")

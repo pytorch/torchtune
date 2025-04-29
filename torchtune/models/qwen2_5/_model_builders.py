@@ -11,7 +11,7 @@ from torchtune.models.qwen2._component_builders import lora_qwen2, qwen2
 from torchtune.models.qwen2_5._tokenizer import QWEN2_5_SPECIAL_TOKENS, Qwen2_5Tokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -346,6 +346,7 @@ def qwen2_5_tokenizer(
     special_tokens_path: Optional[str] = None,
     max_seq_len: Optional[int] = None,
     prompt_template: Optional[_TemplateType] = None,
+    truncation_type: str = "right",
     **kwargs,
 ) -> Qwen2_5Tokenizer:
     """
@@ -364,6 +365,8 @@ def qwen2_5_tokenizer(
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
             prepend/append tags.
             Default is None.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Returns:
         Qwen2_5Tokenizer: Instantiation of the Qwen2.5 tokenizer
@@ -383,6 +386,7 @@ def qwen2_5_tokenizer(
         special_tokens=special_tokens,
         max_seq_len=max_seq_len,
         prompt_template=prompt_template,
+        truncation_type=truncation_type,
         **kwargs,
     )
 

@@ -3,14 +3,15 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import copy
+
 import math
+from typing import List, Optional, Union
 
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-
 from torchtune.modules import MultiHeadAttention
+from torchtune.modules.transformer import _get_clones
 
 
 class T5Encoder(nn.Module):
@@ -21,9 +22,8 @@ class T5Encoder(nn.Module):
 
     Args:
         token_embedding (nn.Embedding): PyTorch embedding layer to place tokens in an embedding space.
-        layer (nn.Module): A single encoder layer.
+        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): A single encoder layer.
         final_norm (nn.Module): Module that applies normalization to the output of the encoder
-        num_layers (int): Number of encoder layers.
         num_heads (int): The number of attention heads.
         rel_pos_num_buckets (int): Number of discrete buckets to divide the relative positions into.
             See: :class:`~torchtune.models.t5._encoder.T5EncoderRelativePositionBias`
@@ -31,23 +31,29 @@ class T5Encoder(nn.Module):
             Distances beyond this are grouped into the last bucket.
             See: :class:`~torchtune.models.t5._encoder.T5EncoderRelativePositionBias`
         max_seq_len (int): The maximum sequence length (context length) of the model.
+        num_layers (Optional[int]): Number of encoder layers, only define when layers is not a list.
+
+    Raises:
+        AssertionError:
+            If ``num_layers`` is set and layer is a list, **or**
+            ``num_layers`` is not set and layer is an ``nn.Module``.
+
     """
 
     def __init__(
         self,
         *,
         token_embedding: nn.Embedding,
-        layer: nn.Module,
+        layers: Union[nn.Module, List[nn.Module], nn.ModuleList],
         final_norm: nn.Module,
-        num_layers: int,
         num_heads: int,
         rel_pos_num_buckets: int,
         rel_pos_max_dist: int,
         max_seq_len: int,
-    ):
+        num_layers: Optional[int] = None,
+    ) -> None:
         super().__init__()
         self.token_embedding = token_embedding
-        self.layers = nn.ModuleList([copy.deepcopy(layer) for i in range(num_layers)])
         self.final_norm = final_norm
         self.max_seq_len = max_seq_len
         self.relative_position_bias = T5EncoderRelativePositionBias(
@@ -56,6 +62,18 @@ class T5Encoder(nn.Module):
             num_heads=num_heads,
             max_seq_len=max_seq_len,
         )
+
+        self.layers = None
+        if isinstance(layers, nn.ModuleList):
+            self.layers = layers
+        elif isinstance(layers, list):
+            self.layers = nn.ModuleList(layers)
+        else:
+            if not isinstance(layers, nn.Module):
+                raise AssertionError("num_layers is defined, layers must be a module")
+            if num_layers is None:
+                raise AssertionError("num_layers is not defined, layers must be a list")
+            self.layers = _get_clones(layers, num_layers)
 
     def forward(self, tokens: Tensor) -> Tensor:
         """
@@ -147,8 +165,9 @@ class T5EncoderSelfAttention(nn.Module):
         output_proj (nn.Module): Projection layer for output.
 
     Raises:
-        ValueError: If ``num_heads % num_kv_heads != 0``
-        ValueError: If ``embed_dim // num_heads != head_dim``
+        ValueError:
+            If ``embed_dim % num_heads != 0``, **or**
+            if ``embed_dim // num_heads != head_dim``
     """
 
     def __init__(

@@ -6,7 +6,8 @@
 
 import pytest
 import torch
-from torchtune.rlhf.loss import DPOLoss, RSOLoss, SimPOLoss
+from torchtune.rlhf._types import ChosenRejectedOutputs
+from torchtune.rlhf.loss import DPOLoss, RSOLoss
 
 
 @pytest.fixture(autouse=True)
@@ -29,14 +30,6 @@ class TestDPOLosses:
         )
 
     @pytest.fixture
-    def simpo_loss(self):
-        return SimPOLoss(
-            beta=2.0,
-            gamma=0.5,
-            label_smoothing=0.0,
-        )
-
-    @pytest.fixture
     def loss_inputs(self):
         """
         kind-of-random inputs for testing the math out (below).
@@ -47,11 +40,16 @@ class TestDPOLosses:
         ref_chosen_logprobs = torch.tensor([-0.5, -10.1, -0.1])
         ref_rejected_logprobs = torch.tensor([-0.1, -20.1, -0.1])
 
-        return (
+        return ChosenRejectedOutputs(
             policy_chosen_logprobs,
             policy_rejected_logprobs,
+            torch.tensor(0),
+            torch.tensor(0),
+        ), ChosenRejectedOutputs(
             ref_chosen_logprobs,
             ref_rejected_logprobs,
+            torch.tensor(0),
+            torch.tensor(0),
         )
 
     def test_dpo_loss(self, dpo_loss, loss_inputs):
@@ -100,26 +98,5 @@ class TestDPOLosses:
         expected_losses = torch.tensor([1.0, 0.0, 0.0])
 
         losses, *_ = rso_loss(*loss_inputs)
-
-        torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)
-
-    def test_simpo_loss(self, simpo_loss, loss_inputs):
-        """
-        here's the maths (see `loss_inputs`):
-        ratios = torch.tensor([-0.4, 20.0, 20.0])
-        gamma_logratios = 0.25
-
-            logits is ratios - gamma_logratios
-
-        logits = torch.tensor([-0.65, 19.75, 19.75])
-        scaled_logits = beta * logits = torch.tensor([-1.3,  39.5, 39.5])
-
-        since label_smoothing is zero, loss is NLL with temperature scaled logits
-        """
-        policy_chosen_logprobs, policy_rejected_logprobs, *_ = loss_inputs
-        exp_scaled_logits = torch.exp(torch.tensor([1.3, -39.5, -39.5]))
-
-        expected_losses = -(1 / (1 + exp_scaled_logits)).log()
-        losses, *_ = simpo_loss(policy_chosen_logprobs, policy_rejected_logprobs)
 
         torch.testing.assert_close(losses, expected_losses, atol=1e-4, rtol=1e-5)

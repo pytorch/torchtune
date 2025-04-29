@@ -9,8 +9,11 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
 from torchtune.data._utils import truncate
-from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import (
+    ModelTokenizer,
+    SentencePieceBaseTokenizer,
+)
 
 PHI3_SPECIAL_TOKENS = {
     "<|endoftext|>": 32000,
@@ -47,6 +50,8 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             - Community standardized templates, such as :class:`~torchtune.data.ChatMLTemplate`
 
             The extra text will still get tokenized as normal text, not as special tokens. Default is None.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Examples:
         >>> tokenizer = Phi3MiniTokenizer("/path/to/spm_model")
@@ -61,6 +66,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         special_tokens: Optional[Dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
+        truncation_type: str = "right",
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -78,6 +84,8 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
+
+        self.truncation_type = truncation_type
 
     @property
     def vocab_size(self):
@@ -242,9 +250,17 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         # Finally, truncate if necessary
         if self.max_seq_len and len(tokenized_messages) >= self.max_seq_len:
             tokenized_messages = truncate(
-                tokenized_messages, self.max_seq_len, self.eos_id if add_eos else None
+                tokens=tokenized_messages,
+                max_seq_len=self.max_seq_len,
+                eos_id=self.eos_id if add_eos else None,
+                truncation_type=self.truncation_type,
             )
-            mask = truncate(mask, self.max_seq_len, message.masked if add_eos else None)
+            mask = truncate(
+                tokens=mask,
+                max_seq_len=self.max_seq_len,
+                eos_id=True if add_eos else None,
+                truncation_type=self.truncation_type,
+            )
 
         return tokenized_messages, mask
 

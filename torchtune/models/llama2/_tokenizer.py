@@ -8,12 +8,12 @@ from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate
 from torchtune.models.llama2._prompt_template import Llama2ChatTemplate
-from torchtune.modules.tokenizers import (
+from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,
 )
-from torchtune.modules.transforms import Transform
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
@@ -44,6 +44,8 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
 
             The extra text will still get tokenized as normal text, not as special tokens.
             Default is :class:`~torchtune.models.llama2.Llama2ChatTemplate`.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Examples:
         >>> tokenizer = Llama2Tokenizer("/path/to/spm_model")
@@ -57,6 +59,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         path: str,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = Llama2ChatTemplate(),
+        truncation_type: str = "right",
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -69,6 +72,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
+        self.truncation_type = truncation_type
 
     @property
     def eos_id(self):
@@ -159,6 +163,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
             messages=templated_messages,
             bos_id=self.bos_id if add_start_tokens else None,
             eos_id=self.eos_id if add_end_tokens else None,
+            truncation_type=self.truncation_type,
         )
 
     def __call__(

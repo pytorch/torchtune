@@ -129,6 +129,87 @@ class TestFullFinetuneDistributedRecipe:
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
+    @pytest.mark.skipif(
+        torch.__version__ < "2.8.0", reason="2D parallel test requires PyTorch >= 2.8"
+    )
+    @pytest.mark.integration_test
+    @pytest.mark.parametrize(
+        "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd, tensor_parallel_dim",
+        [
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True, 2),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True, 4),
+        ],
+    )
+    @gpu_test(gpu_count=4)
+    def test_loss_2d_parallel(
+        self,
+        micro_batch_size,
+        gradient_accumulation_steps,
+        config,
+        model_type,
+        ckpt_type,
+        optim_in_bwd,
+        tensor_parallel_dim,
+        tmpdir,
+        monkeypatch,
+    ):
+        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
+        ckpt = model_type + "_" + ckpt_type
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+        tp_plan = "torchtune.models.llama3.base_llama_tp_plan"
+
+        # Config file needed for model conversion.
+        write_hf_ckpt_config(ckpt_dir)
+
+        cmd = f"""
+        tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed \
+            --config {config} \
+            batch_size={micro_batch_size} \
+            gradient_accumulation_steps={gradient_accumulation_steps} \
+            output_dir={tmpdir} \
+            checkpointer._component_={ckpt_component} \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type={model_type.upper()} \
+            tokenizer.path='{tokenizer_path}' \
+            tokenizer.prompt_template=null \
+            tensor_parallel_dim={tensor_parallel_dim} \
+            tensor_parallel_plan._component_={tp_plan} \
+            metric_logger.filename={log_file} \
+        """.split()
+        model_config = MODEL_TEST_CONFIGS[model_type]
+        cmd = cmd + self._get_test_config_overrides() + model_config
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same.
+        if not optim_in_bwd:
+            cmd.append("clip_grad_norm=100")
+            # Test that gradient clipping works with CPU offload
+            cmd.append("fsdp_cpu_offload=True")
+        else:
+            cmd.append("optimizer_in_bwd=True")
+
+        monkeypatch.setattr(sys, "argv", cmd)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+        loss_values = get_loss_values_from_metric_logger(log_file)
+
+        # For tp_dim = 2, we have dp_dim = 2, so 2x global batch size.
+        # For tp_dim = 4 there is no data parallelism (since there are 4 workers).
+        # This means we expect the multi-rank loss for tp_dim=2 but single-rank loss for tp_dim=4.
+        expected_loss_values = (
+            self._fetch_expected_loss_values_multi_rank(model_type)
+            if tensor_parallel_dim == 2
+            else self._fetch_expected_loss_values_single_rank(model_type)
+        )
+
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
+        )
+
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
@@ -198,6 +279,7 @@ class TestFullFinetuneDistributedRecipe:
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",
         [
             ("llama3/8B_full", "llama3", "tune", 1, 4, False),
+            ("llama3/8B_full", "llama3", "tune", 4, 1, True),
         ],
     )
     @gpu_test(gpu_count=2)
@@ -237,8 +319,16 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
-            clip_grad_norm=100 \
         """.split()
+
+        # "optimizer_in_bwd=True" would free gradient info before clip_grad, causing
+        # wrong grad_norm, so we only test one of them each time. But loss values
+        # should be the same.
+        if not optim_in_bwd:
+            cmd_1.append("clip_grad_norm=100")
+            cmd_1.append("optimizer_in_bwd=False")
+        else:
+            cmd_1.append("optimizer_in_bwd=True")
 
         model_config = MODEL_TEST_CONFIGS[model_type]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
@@ -268,11 +358,16 @@ class TestFullFinetuneDistributedRecipe:
             tokenizer.path='{tokenizer_path}' \
             tokenizer.prompt_template=null \
             resume_from_checkpoint=True \
-            metric_logger.filename={log_file} \
-            clip_grad_norm=100 \
+            metric_logger.filename={log_file}
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
+
+        if not optim_in_bwd:
+            cmd_2.append("clip_grad_norm=100")
+            cmd_2.append("optimizer_in_bwd=False")
+        else:
+            cmd_2.append("optimizer_in_bwd=True")
 
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")

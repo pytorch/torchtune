@@ -25,6 +25,7 @@ Modeling Components and Building Blocks
     VisionTransformer
     LayerDropout
     prepare_layer_dropout
+    classifier_model
 
 Losses
 ------
@@ -48,10 +49,11 @@ model specific tokenizers.
     :toctree: generated/
     :nosignatures:
 
-    tokenizers.SentencePieceBaseTokenizer
-    tokenizers.TikTokenBaseTokenizer
-    tokenizers.ModelTokenizer
-    tokenizers.BaseTokenizer
+    transforms.tokenizers.SentencePieceBaseTokenizer
+    transforms.tokenizers.TikTokenBaseTokenizer
+    transforms.tokenizers.HuggingFaceBaseTokenizer
+    transforms.tokenizers.ModelTokenizer
+    transforms.tokenizers.BaseTokenizer
 
 Tokenizer Utilities
 -------------------
@@ -61,8 +63,8 @@ These are helper methods that can be used by any tokenizer.
     :toctree: generated/
     :nosignatures:
 
-    tokenizers.tokenize_messages_no_special_tokens
-    tokenizers.parse_hf_tokenizer_json
+    transforms.tokenizers.tokenize_messages_no_special_tokens
+    transforms.tokenizers.parse_hf_tokenizer_json
 
 
 PEFT Components

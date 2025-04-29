@@ -32,8 +32,8 @@ These are intended to be drop-in replacements for tokenizers in multimodal datas
             Message(
                 role="user",
                 content=[
-                    {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
-                    {"type": "image", "content": Image.new(mode="RGB", size=(224, 224))},
+                    {"type": "image", "content": Image.new(mode="RGB", size=(560, 560))},
+                    {"type": "image", "content": Image.new(mode="RGB", size=(560, 560))},
                     {"type": "text", "content": "What is common in these two images?"},
                 ],
             ),
@@ -101,7 +101,7 @@ The following methods are required on the model transform:
 
 .. code-block:: python
 
-    from torchtune.modules.tokenizers import ModelTokenizer
+    from torchtune.modules.transforms.tokenizers import ModelTokenizer
     from torchtune.modules.transforms import Transform
 
     class MyMultimodalTransform(ModelTokenizer, Transform):

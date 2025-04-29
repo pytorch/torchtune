@@ -31,8 +31,8 @@ from torchtune.generation import generate, sample
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.common_utils import local_kv_cache
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 from torchtune.training import FullModelTorchTuneCheckpointer
 
@@ -408,12 +408,14 @@ class _LLMEvalWrapper(HFLM):
             dtype=self._dtype,
             decoder_max_seq_len=self.max_length,
         ):
+
             toks, _ = generate(
                 self.model,
                 maybe_padded_context,
                 max_generated_tokens=self.max_gen_toks,
                 temperature=temperature,
                 top_k=None,
+                pad_id=self._tokenizer.pad_id,
                 stop_tokens=self._tokenizer.stop_tokens,
             )
         return toks[:bsz]
@@ -451,7 +453,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self.device = utils.get_device(device=cfg.device)
         self.dtype = training.get_dtype(dtype=cfg.dtype, device=self.device)
         self.logger = utils.get_logger(cfg.get("log_level", "info"))
-        training.set_seed(seed=cfg.seed)
+        training.set_seed(
+            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
+        )
 
         # Eval specific variables
         self.limit = cfg.limit

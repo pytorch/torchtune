@@ -56,7 +56,7 @@ class TestGenerateV2:
         # the expected value for what we currently have in V2
         # this test should catch any changes to the generate recipe that affect output
         expected_output = (
-            "Country maior Connection Kohćutsójcustomulas Sometimes Security"
+            "restricted chap Пав Frenchisto porqueноello ignor ambientQuery"
         )
 
         logs = caplog.text

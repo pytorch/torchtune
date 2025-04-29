@@ -31,6 +31,7 @@ class TestCLIPImageTransform:
         [
             {
                 "image_size": (100, 400, 3),
+                "image_type": "PIL.Image",
                 "expected_shape": torch.Size([2, 3, 224, 224]),
                 "resize_to_max_canvas": False,
                 "expected_tile_means": [0.2230, 0.1763],
@@ -40,6 +41,7 @@ class TestCLIPImageTransform:
             },
             {
                 "image_size": (1000, 300, 3),
+                "image_type": "PIL.Image",
                 "expected_shape": torch.Size([4, 3, 224, 224]),
                 "resize_to_max_canvas": True,
                 "expected_tile_means": [0.5007, 0.4995, 0.5003, 0.1651],
@@ -49,6 +51,7 @@ class TestCLIPImageTransform:
             },
             {
                 "image_size": (200, 200, 3),
+                "image_type": "PIL.Image",
                 "expected_shape": torch.Size([4, 3, 224, 224]),
                 "resize_to_max_canvas": True,
                 "expected_tile_means": [0.5012, 0.5020, 0.5011, 0.4991],
@@ -59,6 +62,48 @@ class TestCLIPImageTransform:
             },
             {
                 "image_size": (600, 200, 3),
+                "image_type": "torch.Tensor",
+                "expected_shape": torch.Size([3, 3, 224, 224]),
+                "resize_to_max_canvas": False,
+                "expected_tile_means": [0.4473, 0.4469, 0.3032],
+                "expected_tile_max": [1.0, 1.0, 1.0],
+                "expected_tile_min": [0.0, 0.0, 0.0],
+                "expected_aspect_ratio": [3, 1],
+            },
+            {
+                "image_size": (100, 400, 3),
+                "image_type": "torch.Tensor",
+                "expected_shape": torch.Size([2, 3, 224, 224]),
+                "resize_to_max_canvas": False,
+                "expected_tile_means": [0.2230, 0.1763],
+                "expected_tile_max": [1.0, 1.0],
+                "expected_tile_min": [0.0, 0.0],
+                "expected_aspect_ratio": [1, 2],
+            },
+            {
+                "image_size": (1000, 300, 3),
+                "image_type": "torch.Tensor",
+                "expected_shape": torch.Size([4, 3, 224, 224]),
+                "resize_to_max_canvas": True,
+                "expected_tile_means": [0.5007, 0.4995, 0.5003, 0.1651],
+                "expected_tile_max": [0.9705, 0.9694, 0.9521, 0.9314],
+                "expected_tile_min": [0.0353, 0.0435, 0.0528, 0.0],
+                "expected_aspect_ratio": [4, 1],
+            },
+            {
+                "image_size": (200, 200, 3),
+                "image_type": "torch.Tensor",
+                "expected_shape": torch.Size([4, 3, 224, 224]),
+                "resize_to_max_canvas": True,
+                "expected_tile_means": [0.5012, 0.5020, 0.5011, 0.4991],
+                "expected_tile_max": [0.9922, 0.9926, 0.9970, 0.9908],
+                "expected_tile_min": [0.0056, 0.0069, 0.0059, 0.0033],
+                "expected_aspect_ratio": [2, 2],
+                "pad_tiles": 1,
+            },
+            {
+                "image_size": (600, 200, 3),
+                "image_type": "torch.Tensor",
                 "expected_shape": torch.Size([3, 3, 224, 224]),
                 "resize_to_max_canvas": False,
                 "expected_tile_means": [0.4473, 0.4469, 0.3032],
@@ -99,7 +144,10 @@ class TestCLIPImageTransform:
             .reshape(image_size)
             .astype(np.uint8)
         )
-        image = PIL.Image.fromarray(image)
+        if params["image_type"] == "PIL.Image":
+            image = PIL.Image.fromarray(image)
+        elif params["image_type"] == "torch.Tensor":
+            image = torch.from_numpy(image).permute(2, 0, 1)
 
         # Apply the transformation
         output = image_transform({"image": image})

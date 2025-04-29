@@ -1,0 +1,50 @@
+# Config for running the InferenceRecipe in dev/generate_v2.py to generate output
+# using a Llama3 70B Instruct model
+#
+# This config assumes that you've run the following command before launching:
+#  tune download meta-llama/Meta-Llama-3-70B-Instruct --output-dir /tmp/Meta-Llama-3-70B-Instruct --ignore-patterns "original/consolidated*" --hf-token <HF_TOKEN>
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run --nproc_per_node 8 dev/generate_v2_distributed --config llama3/70B_generation_distributed
+
+output_dir: ./
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama3.llama3_70b
+
+tensor_parallel_plan:
+  _component_: torchtune.models.llama3.base_llama_tp_plan
+
+# Transform arguments
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Meta-Llama-3-70B-Instruct/original/tokenizer.model
+  prompt_template: null
+  max_seq_len: 8192
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3-70B-Instruct
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00030"
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA3
+
+# Device
+device: cuda
+dtype: bf16
+seed: 1234
+log_level: INFO
+
+# Generation arguments
+prompt:
+  system: null
+  user:
+    text: Tell a joke.
+max_new_tokens: 200
+temperature: 0.6 # 0.8 and 0.6 are popular values to try
+top_k: 300

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import inspect
 import logging
 import warnings
 from functools import lru_cache, wraps
@@ -67,6 +68,9 @@ def deprecated(msg: str = "") -> Callable[[T], T]:
 
     @lru_cache(maxsize=1)
     def warn(obj):
+        rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
+        if rank != 0:
+            return
         warnings.warn(
             f"{obj.__name__} is deprecated and will be removed in future versions. "
             + msg,
@@ -99,3 +103,45 @@ def log_rank_zero(logger: logging.Logger, msg: str, level: int = logging.INFO) -
     if rank != 0:
         return
     logger.log(level, msg, stacklevel=2)
+
+
+def deprecate_parameter(param_name: str, msg: str = "") -> Callable[[T], T]:
+    """
+    Decorator to mark a parameter as deprecated and print additional message.
+
+    Args:
+        param_name (str): The name of the parameter.
+        msg (str): additional information to print after warning.
+
+    Returns:
+        Callable[[T], T]: the decorated object.
+    """
+
+    @lru_cache(maxsize=1)
+    def warn(obj):
+        rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
+        if rank != 0:
+            return
+        warnings.warn(
+            f"{param_name} is deprecated for {obj.__name__} and will be removed in future versions. "
+            + msg,
+            category=FutureWarning,
+            stacklevel=3,
+        )
+
+    def decorator(obj):
+        sig = inspect.signature(obj)
+
+        @wraps(obj)
+        def wrapper(*args, **kwargs):
+            # Check positional and kwargs
+            bound_args = sig.bind_partial(*args, **kwargs)
+            all_args = {**bound_args.arguments}
+            all_args.update(kwargs)
+            if param_name in all_args:
+                warn(obj)
+            return obj(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

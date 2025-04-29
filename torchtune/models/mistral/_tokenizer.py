@@ -8,12 +8,12 @@ from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate
 from torchtune.models.mistral._prompt_template import MistralChatTemplate
-from torchtune.modules.tokenizers import (
+from torchtune.modules.transforms import Transform
+from torchtune.modules.transforms.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,
 )
-from torchtune.modules.transforms import Transform
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
@@ -36,6 +36,8 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
             The extra text will still get tokenized as normal text, not as special tokens.
             Default is :class:`~torchtune.models.mistral.MistralChatTemplate`.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Examples:
         >>> tokenizer = MistralTokenizer("/path/to/spm_model")
@@ -49,6 +51,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         path: str,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = MistralChatTemplate(),
+        truncation_type: str = "right",
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
@@ -61,6 +64,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         self.max_seq_len = max_seq_len
 
         self.prompt_template = prompt_template
+        self.truncation_type = truncation_type
 
     @property
     def eos_id(self):
@@ -172,6 +176,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
             messages=templated_messages,
             bos_id=self.bos_id,
             eos_id=self.eos_id if add_eos else None,
+            truncation_type=self.truncation_type,
         )
 
     def __call__(

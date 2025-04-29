@@ -13,7 +13,7 @@ To see the best results when using this recipe, it may be helpful to first fine-
 on-distribution for the domain you're interested in. To do this, check out our other fine-tuning recipes in the :ref:`recipe overview <recipes_overview_label>` which
 support a variety of SFT paradigms.
 
-After supervised fine-tuning, here is an example of DPO with Llama 3.1 8B:
+After supervised fine-tuning, here is an example of using either LoRA-based finetuning, or full-finetuning Llama 3.1 8B with DPO:
 
 .. note::
 
@@ -27,11 +27,14 @@ After supervised fine-tuning, here is an example of DPO with Llama 3.1 8B:
     --ignore-patterns "original/consolidated.00.pth"
     --HF_TOKEN <HF_TOKEN>
 
-    # run on a single device
+    # run lora dpo on a single device
     tune run lora_dpo_single_device --config llama3_1/8B_lora_dpo_single_device
 
-    # run on two gpus
+    # run lora dpo on two gpus
     tune run --nproc_per_node 2 lora_dpo_distributed --config llama3_1/8B_lora_dpo
+
+    # run full dpo on four gpus
+    tune run --nproc_per_node 4 full_dpo_distributed --config llama3_1/8B_full_dpo
 
 It's easy to get started with this recipe with your dataset of choice, including custom local datasets,
 and datasets from Hugging Face. Check out our primer on :ref:`preference datasets <preference_dataset_usage_label>` to
@@ -56,7 +59,27 @@ To use any of these, simply use the ``loss`` config entry or flag through the :r
     loss=torchtune.modules.loss.RSOLoss \
     gamma=0.5
 
-.. todo (@SalmanMohammadi) point to an example repo for SimPO
+Also, you can pass your custom loss in our recipe. Note that its `forward` method should align with the following signature:
+
+.. code-block:: python
+
+    def forward(self, policy_inputs: ChosenRejectedOutputs, reference_inputs: ChosenRejectedOutputs) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        ...
+
+Here, `ChosenRejectedOutputs` is a dataclass obtained from `concatenated_forward``:
+
+.. code-block:: python
+
+  @dataclass
+  class ChosenRejectedOutputs:
+      chosen_logps: torch.Tensor
+      rejected_logps: torch.Tensor
+      chosen_logits: torch.Tensor
+      rejected_logits: torch.Tensor
+
+If this is not sufficient and you need to compute additional values from the logits, you can modify `concatenated_forward` directly. To do this, use `tune cp` to copy the desired recipe, and don’t forget to use your own dataclass!
+
+Refer to the TRL library for reference implementations of the desired losses. In particular, you may find useful loss calculations in trainers.
 
 For a deeper understanding of the different levers you can pull when using this recipe,
 see our documentation for the different PEFT training paradigms we support:

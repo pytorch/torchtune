@@ -8,9 +8,10 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._utils import truncate
 from torchtune.datasets._packed import PackedDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
 class TextCompletionDataset(Dataset):
@@ -71,8 +72,10 @@ class TextCompletionDataset(Dataset):
         if self._tokenizer.max_seq_len is not None:
             tokens = truncate(tokens, self._tokenizer.max_seq_len - 1)
 
-        # No need to offset labels by 1 - happens in the recipe
-        labels = tokens.copy()
+        # Shift labels to be off by 1 from the logits.
+        # Padding added at the end so we dont need to slice the input.
+        labels = tokens[1:].copy()
+        labels.append(CROSS_ENTROPY_IGNORE_IDX)
 
         return {"tokens": tokens, "labels": labels}
 
