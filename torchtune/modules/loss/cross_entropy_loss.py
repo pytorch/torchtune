@@ -8,12 +8,13 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .loss_protocols import SFTLossWithProjection
+from .loss_protocols import SFTLinearLoss
 
 
-class ChunkedCrossEntropyLoss(nn.Module, SFTLossWithProjection):
-    """Cross-entropy loss that incrementally computes loss for chunks of tokens
-    by masking ignored tokens, calculating logits and then applying cross-entropy loss
+class LinearCrossEntropyLoss(nn.Module, SFTLinearLoss):
+    """Memory efficient Cross-entropy loss that incrementally computes loss for chunks of tokens
+    by masking ignored tokens, calculating logits and then applying cross-entropy loss. Combines
+    the linear projection with the cross-entropy calculation for futher memory savings.
     """
 
     def __init__(

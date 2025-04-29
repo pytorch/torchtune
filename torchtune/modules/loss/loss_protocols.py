@@ -9,11 +9,11 @@ from typing import Protocol
 import torch
 
 
-class SFTLossWithProjection(Protocol):
-    """Protocol for loss functions in torchtune used in Supervised Finetune recipes and that require
-    model output projection weights in loss computation."""
+class SFTLinearLoss(Protocol):
+    """Protocol for loss functions in torchtune used in Supervised Finetune recipes that require
+    model output linear projection weights in loss computation."""
 
-    use_output_proj_in_loss: bool = True
+    linear_loss: bool = True
 
     def apply_compile_strategy(self, *args, **kwargs):
         """Torch compiles the loss function. Can be useful when greater control is needed,
@@ -45,7 +45,7 @@ class SFTLossWithProjection(Protocol):
 class SFTLoss(Protocol):
     """Protocol for loss functions in torchtune used in sft recipes."""
 
-    use_output_proj_in_loss: bool = False
+    linear_loss: bool = False
 
     def apply_compile_strategy(self, *args, **kwargs):
         """Compile the loss function for inference."""

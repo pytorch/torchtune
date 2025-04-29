@@ -36,7 +36,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         super().__init__()
         msg = (
             "'CEWithChunkedOutputLoss' is deprecated and will be removed in future versions. "
-            "Please use `torchtune.modules.loss.ChunkedCrossEntropyLoss` instead."
+            "Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead."
         )
         log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.num_output_chunks = num_output_chunks
@@ -64,7 +64,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             torch.Tensor: Cross entropy loss of shape (1,).
 
         Example:
-            >>> loss_fn = ChunkedCrossEntropyLoss()
+            >>> loss_fn = CEWithChunkedOutputLoss()
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
             >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]

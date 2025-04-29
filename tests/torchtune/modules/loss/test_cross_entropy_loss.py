@@ -8,7 +8,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 from tests.test_utils import assert_expected
-from torchtune.modules.loss import ChunkedCrossEntropyLoss
+from torchtune.modules.loss import LinearCrossEntropyLoss
 from torchtune.training.seed import set_seed
 
 
@@ -17,8 +17,8 @@ def random():
     set_seed(42)
 
 
-class TestCEWithChunkedOutputLoss:
-    def test_chunked_cross_entropy_loss(self):
+class TestCEWithLinearChunkedOutputLoss:
+    def test_linear_chunked_cross_entropy_loss(self):
         """
         Compares torchtune implementation vs standard F.cross_entropy
         """
@@ -43,7 +43,7 @@ class TestCEWithChunkedOutputLoss:
         weight = torch.randn(vocab_size, embed_dim, dtype=torch.float32)
 
         # compute chunked CE
-        chunked_ce_loss_fn = ChunkedCrossEntropyLoss(
+        chunked_ce_loss_fn = LinearCrossEntropyLoss(
             num_output_chunks=num_chunks, ignore_index=ignore_index
         )
         chunked_loss = chunked_ce_loss_fn(weight, hidden, targets)

@@ -348,10 +348,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         # The loss may handle the output projection. If true, the model should skip it.
-        self.use_output_weight_in_loss = getattr(
-            self._loss_fn, "use_output_proj_in_loss", False
-        )
-        self._model.skip_output_projection = self.use_output_weight_in_loss
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
@@ -806,8 +804,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
                 )
 
-                if self.use_output_weight_in_loss:
-                    weight = self._model.get_output_proj_weights()
+                if self.linear_loss:
+                    weight = self._model.linear_projection_weight
                     current_loss = self._loss_fn(weight, outputs, labels)
                 else:
                     labels = labels.reshape(-1)
