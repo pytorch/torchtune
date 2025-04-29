@@ -9,6 +9,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 import torch
 from torch import nn
+from torch.distributed.tensor import DTensor
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
 from torchtune.utils import get_logger, log_once
@@ -501,6 +502,10 @@ class TransformerDecoder(nn.Module):
         """Returns the output weight matrix. Useful when a finer control of the output projection is needed,
         for example when using a custom loss function or when interested in applying it to only some tokens.
         """
+        # Accessing the weight directly will not trigger FSDP hooks
+        # to gather the full tensor so we have to do this manually
+        if isinstance(self.output.weight, DTensor):
+            return self.output.weight.full_tensor()
         return self.output.weight
 
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
