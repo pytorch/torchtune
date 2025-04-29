@@ -24,6 +24,7 @@ from torchtune.training._distributed import (
     set_torch_num_threads,
     shard_model,
     validate_no_params_on_meta_device,
+    VALID_BACKENDS_FOR_MEMORY_STATS,
 )
 from torchtune.training._grad_scaler import scale_grads
 from torchtune.training._model_util import disable_dropout
@@ -120,6 +121,7 @@ __all__ = [
     "shard_model",
     "get_shard_conditions",
     "validate_no_params_on_meta_device",
+    "VALID_BACKENDS_FOR_MEMORY_STATS",
     "gather_cpu_state_dict",
     "get_full_optimizer_state_dict",
     "load_from_full_model_state_dict",

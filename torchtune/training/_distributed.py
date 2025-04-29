@@ -48,6 +48,8 @@ torch_version = torch.__version__
 # ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = False
 
+VALID_BACKENDS_FOR_MEMORY_STATS = ("cuda", "xpu", "npu")
+
 
 @dataclass
 class ParallelDims:
@@ -173,6 +175,8 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
             tensor = tensor.to(get_device("cuda"))
         elif dist.get_backend() == "xccl":
             tensor = tensor.to(get_device("xpu"))
+        elif dist.get_backend() == "hccl":
+            tensor = tensor.to(get_device("npu"))
         dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
     else:
@@ -359,7 +363,7 @@ def load_from_full_model_state_dict(
                 mesh = sharded_meta_param.device_mesh
                 if mesh.ndim > 1:
                     raise NotImplementedError(
-                        f"only support 1D FSDP but got {mesh.ndim=}"
+                        f"only support 1D FSDP but got {mesh.ndim}"
                     )
                 shard_mesh_dim = 0
                 shard_world_size = mesh.size(shard_mesh_dim)

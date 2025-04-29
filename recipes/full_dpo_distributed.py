@@ -22,7 +22,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import ChosenRejectedOutputs
-from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
+from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY, VALID_BACKENDS_FOR_MEMORY_STATS
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
@@ -129,9 +129,9 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
+        if self._log_peak_memory_stats and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS:
             log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                f"log_peak_memory_stats was set to True, however, training device does not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
                 "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
