@@ -82,6 +82,7 @@ def llama3_2_vision_11b(
     Returns:
         DeepFusionModel: Instantiation of the Llama 3.2 Vision 11B model
     """
+    assert image_size % 14 == 0, "image_size must be divisible by 14, the encode patch size"
     encoder = llama3_2_vision_encoder(
         patch_size=14,
         num_heads=16,
@@ -162,6 +163,7 @@ def lora_llama3_2_vision_11b(
         a subset of the attention projections in each layer.
 
     """
+    assert image_size % 14 == 0, "image_size must be divisible by 14, the encode patch size"
     decoder_type = LoRATrainable(decoder_trainable.lower())
     encoder_type = LoRATrainable(encoder_trainable.lower())
     fusion_type = LoRATrainable(fusion_trainable.lower())
