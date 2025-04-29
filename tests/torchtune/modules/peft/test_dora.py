@@ -16,8 +16,7 @@ from torch import nn
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed._tensor import DTensor, Replicate
 
-# from torch.testing._internal.common_fsdp import FSDPTest
-from torch.testing._internal.common_distributed import MultiProcessTestCase
+from torch.testing._internal.common_fsdp import FSDPTest
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
@@ -275,7 +274,7 @@ class TestDoRALinear:
             dora_linear.initialize_dora_magnitude()
 
 
-class TestDistributedDoRALinear(MultiProcessTestCase):
+class TestDistributedDoRALinear(FSDPTest):
     @property
     def world_size(self) -> int:
         return 2
@@ -289,6 +288,7 @@ class TestDistributedDoRALinear(MultiProcessTestCase):
 
     @gpu_test(gpu_count=2)
     def test_dora_distributed_init(self):
+        print("HEY HI {self.rank")
         torch.cuda.set_device(f"cuda:{self.rank}")
         self.run_subtests(
             {
@@ -299,6 +299,7 @@ class TestDistributedDoRALinear(MultiProcessTestCase):
 
     def _test_dora_distributed_init(self, load_dora_weights):
         rank = self.rank
+        print(f"HI IN THE TEST {rank}")
         is_rank_zero = rank == 0
         device = f"cuda:{rank}"
         layers = ["w1", "w2", "w3"]
