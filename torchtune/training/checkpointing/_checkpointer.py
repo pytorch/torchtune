@@ -1305,7 +1305,19 @@ class DistributedCheckpointer(_CheckpointerInterface):
         _, self._rank = get_world_size_and_rank()
         self._process_group: Optional[dist.ProcessGroup] = process_group
 
-    def _get_latest_intermediate_checkpoint(self) -> Optional[str]:
+    def get_output_path(self, epoch: int) -> str:
+        """
+        Get the output path for the checkpoint directory.
+
+        Args:
+            epoch (int): Epoch number. Used to create the checkpoint file name
+
+        Returns:
+            str: The fully qualified path of the checkpoint directory.
+        """
+        return os.path.join(self._output_dir, f"{self._checkpoint_dir_prefix}_{epoch}")
+
+    def get_latest_intermediate_checkpoint(self) -> Optional[str]:
         """
         This method iterates over the available intermediate distributed checkpoints and
         finds the latest checkpoint to load.
@@ -1355,7 +1367,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
 
         # If no checkpoint path is provided, load the latest intermediate checkpoint.
         if checkpoint_path is None:
-            checkpoint_path = self._get_latest_intermediate_checkpoint()
+            checkpoint_path = self.get_latest_intermediate_checkpoint()
 
             if checkpoint_path is None:
                 raise ValueError(

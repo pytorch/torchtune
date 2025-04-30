@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Union
@@ -181,12 +182,21 @@ class CheckpointClient:
         if adapter_config is not None:
             adapter_start = time.perf_counter()
 
+            save_path = dcp_saver.get_output_path(epoch=epoch)
+            os.makedirs(save_path, exist_ok=True)
+
             dcp_saver.save_checkpoint(
                 ckpt_dict[training.ADAPTER_KEY],
                 epoch=epoch,
                 save_async=True,
                 adapter_only=True,
             )
+
+            if adapter_only:
+                torch.save(
+                    training_progress.state_dict(),
+                    os.path.join(save_path, "training_progress.pt"),
+                )
 
             if self._is_rank_zero:
                 log.info(
@@ -363,7 +373,6 @@ class CheckpointClient:
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         adapter_config: Optional[dict[str, Any]] = None,
-        adapter_only: bool = False,
     ) -> Dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
@@ -416,11 +425,27 @@ class CheckpointClient:
                 adapter_config["lora_alpha"],
             )
 
+        adapter_only = False
+        dcp_checkpointer = self._get_dcp_checkpointer()
+        checkpoint_path = dcp_checkpointer.get_latest_intermediate_checkpoint()
+        if checkpoint_path:
+            adapter_only = not os.path.isfile(
+                os.path.join(checkpoint_path, dcp_checkpointer._metadata_file)
+            )
         if adapter_only:
-            checkpoint_dict = self._get_dcp_checkpointer().load_checkpoint(
+            assert checkpoint_path is not None
+            checkpoint_dict[training.ADAPTER_KEY] = dcp_checkpointer.load_checkpoint(
                 checkpoint_dict[training.ADAPTER_KEY],
                 adapter_only=True,
             )
+
+            progress_state_dict = torch.load(
+                os.path.join(checkpoint_path, "training_progress.pt"), weights_only=True
+            )
+            checkpoint_dict.update(progress_state_dict)
+
+            optimizer.load_state_dict(optim_state_dict)
+
             if self._is_rank_zero:
                 log.info(
                     f"DistributedCheckpointer loaded the adapter checkpoint in {time.perf_counter() - dcp_load_start:.2f} seconds."
