@@ -907,15 +907,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 logger.warning(
                     "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
+            elif self._model_type == ModelType.LLAMA4:
+                logger.warning(
+                    "Saving Llama4 adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
             else:
                 state_dict[
                     training.ADAPTER_KEY
                 ] = convert_weights.tune_to_peft_adapter_weights(
                     state_dict[training.ADAPTER_KEY],
-                    num_heads=self._config["num_attention_heads"],
-                    num_kv_heads=self._config["num_key_value_heads"],
-                    dim=self._config["hidden_size"],
-                    head_dim=self._config.get("head_dim", None),
+                    num_heads=self._config["text_config"]["num_attention_heads"],
+                    num_kv_heads=self._config["text_config"]["num_key_value_heads"],
+                    dim=self._config["text_config"]["hidden_size"],
+                    head_dim=self._config["text_config"].get("head_dim", None),
                 )
                 output_path = os.path.join(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
