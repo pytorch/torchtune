@@ -36,7 +36,7 @@ tokenizer:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
