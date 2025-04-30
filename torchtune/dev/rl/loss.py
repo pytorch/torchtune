@@ -363,13 +363,13 @@ class GRPOWithChunkedOutputLoss(nn.Module):
         num_chunks = len(pi_logits)
 
         # Chunk sequence tensors
-        targets_chunks = targets.chunk(num_chunks, dim=1)
-        ref_logprobs_chunks = ref_logprobs.chunk(num_chunks, dim=1)
+        targets_chunks = targets.tensor_split(num_chunks, dim=1)
+        ref_logprobs_chunks = ref_logprobs.tensor_split(num_chunks, dim=1)
 
         # Default to all-ones mask if padding_masks is None
         if padding_masks is None:
             padding_masks = torch.ones_like(targets, dtype=torch.bool)
-        padding_masks_chunks = padding_masks.chunk(num_chunks, dim=1)
+        padding_masks_chunks = padding_masks.tensor_split(num_chunks, dim=1)
 
         # Initialize accumulators
         batch_size = advantages.numel()
