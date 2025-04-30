@@ -52,6 +52,13 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             logits.float(), labels, ignore_index=self.ignore_index, reduction="sum"
         )
 
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile only to the fkl_loss function."""
+        self.compute_cross_entropy = torch.compile(
+            self.compute_cross_entropy, *args, **kwargs
+        )
+        return self
+
     def forward(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
         """
         Args:
