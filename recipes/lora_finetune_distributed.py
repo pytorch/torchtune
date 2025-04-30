@@ -199,7 +199,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 )
         elif (
             self._enable_activation_checkpointing
-            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+            and cfg.checkpointer._model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
                 log,
@@ -284,6 +284,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        if (
+            self._checkpointer._model_type == "LLAMA4"
+            and self._save_adapter_weights_only is False
+        ):
+            raise ValueError(
+                "For Llama4 training, you should set save_adapter_weights_only to True."
+            )
         self._compile = cfg.get("compile", False)
 
         self._model = self._setup_model(
