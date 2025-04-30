@@ -121,8 +121,8 @@ class CheckpointClient:
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         training_progress: TrainingProgress,
         epoch: int,
-        adapter_config: Optional[dict[str, Any]] = None,
-        adapter_only: bool = False,
+        adapter_config: Optional[dict[str, Any]],
+        adapter_only: bool,
     ) -> None:
         """
         Checkpoint the training state asynchronously as a distributed checkpoint. Saving
@@ -199,8 +199,8 @@ class CheckpointClient:
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         training_progress: TrainingProgress,
         epoch: int,
-        adapter_config: Optional[dict[str, Any]] = None,
-        adapter_only: bool = False,
+        adapter_config: Optional[dict[str, Any]],
+        adapter_only: bool,
     ) -> None:
         """
         Checkpoint the training state synchronously.
@@ -344,7 +344,7 @@ class CheckpointClient:
 
         if intermediate_checkpoint and self._enable_async_checkpointing:
             self._save_checkpoint_async(
-                model, optimizer, training_progress, epoch, adapter_config
+                model, optimizer, training_progress, epoch, adapter_config, adapter_only
             )
         else:
             self._save_checkpoint_sync(
