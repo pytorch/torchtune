@@ -509,14 +509,20 @@
 <h2>Losses<a class="headerlink" href="#losses" title="Permalink to this heading">¶</a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss" title="torchtune.modules.loss.CEWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.CEWithChunkedOutputLoss</span></code></a></p></td>
-<td><p>Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss" title="torchtune.modules.loss.LinearCrossEntropyLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.LinearCrossEntropyLoss</span></code></a></p></td>
+<td><p>Memory efficient Cross-entropy loss that incrementally computes loss for chunks of tokens by masking ignored tokens, calculating logits and then applying cross-entropy loss.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss" title="torchtune.modules.loss.ForwardKLLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.ForwardKLLoss</span></code></a></p></td>
 <td><p>The Kullback-Leibler divergence loss for valid indexes.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss" title="torchtune.modules.loss.ForwardKLWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.ForwardKLWithChunkedOutputLoss</span></code></a></p></td>
 <td><p>Forward KL with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html#torchtune.modules.loss.ReverseKLWithChunkedOutputLoss" title="torchtune.modules.loss.ReverseKLWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.ReverseKLWithChunkedOutputLoss</span></code></a></p></td>
+<td><p>Reverse KL with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html#torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss" title="torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss.SymmetricKLWithChunkedOutputLoss</span></code></a></p></td>
+<td><p>Symmetric KL with chunked outputs that saves memory by only upcasting one chunk at a time.</p></td>
 </tr>
 </tbody>
 </table>

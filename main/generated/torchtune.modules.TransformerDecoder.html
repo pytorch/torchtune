@@ -513,7 +513,7 @@ the relevant attention modules in the model have created their <code class="docu
 <dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.chunked_output">
 <span class="sig-name descname"><span class="pre">chunked_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last_hidden_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.chunked_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.chunked_output" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply output projection in chunks. This should be applied in conjunction with
-<a class="reference internal" href="torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss" title="torchtune.modules.loss.CEWithChunkedOutputLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">CEWithChunkedOutputLoss</span></code></a> as upcasting to fp32 is done there.</p>
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CEWithChunkedOutputLoss</span></code> as upcasting to fp32 is done there.</p>
 <p>To use this method, you should first call
 <a class="reference internal" href="#torchtune.modules.TransformerDecoder.set_num_output_chunks" title="torchtune.modules.TransformerDecoder.set_num_output_chunks"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_num_output_chunks()</span></code></a>.</p>
 <dl class="field-list simple">
@@ -570,12 +570,9 @@ and skip straight to the transformer layers. Shape <code class="docutils literal
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>output tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">v]</span></code> or a list of layer</dt><dd><p>output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the
+<dd class="field-even"><p>output tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">v]</span></code> if <cite>self.skip_linear_projection=False</cite>
+and <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">d]</span></code> otherwise, or a list of layer output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the
 final output tensor appended to the list.</p>
-</dd>
-</dl>
-</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Union[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)">torch.Tensor</a>, List[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)">torch.Tensor</a>]]</p>
@@ -608,6 +605,13 @@ the position(s) of the current token(s) <code class="docutils literal notranslat
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.linear_projection_weight">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_projection_weight</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#torchtune.modules.TransformerDecoder.linear_projection_weight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output weight matrix. Useful when a finer control of the output projection is needed,
+for example when using a custom loss function or when interested in applying it to only some tokens.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.reset_caches">
 <span class="sig-name descname"><span class="pre">reset_caches</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.reset_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.reset_caches" title="Permalink to this definition">¶</a></dt>
@@ -624,7 +628,7 @@ without deleting or reallocating cache tensors.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.set_num_output_chunks">
 <span class="sig-name descname"><span class="pre">set_num_output_chunks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_output_chunks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.set_num_output_chunks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.set_num_output_chunks" title="Permalink to this definition">¶</a></dt>
-<dd><p>Used to save memory in combination with <a class="reference internal" href="torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss" title="torchtune.modules.loss.CEWithChunkedOutputLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">CEWithChunkedOutputLoss</span></code></a>.
+<dd><p>Used to save memory in combination with <code class="xref py py-class docutils literal notranslate"><span class="pre">CEWithChunkedOutputLoss</span></code>.
 This should be called before the first forward pass, in the recipe.</p>
 </dd></dl>
 

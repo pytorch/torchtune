@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SentencePieceBaseTokenizer" href="torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html" />
+    <link rel="next" title="ReverseKLWithChunkedOutputLoss" href="torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html" />
     <link rel="prev" title="ForwardKLLoss" href="torchtune.modules.loss.ForwardKLLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -477,6 +477,12 @@ Default: -100</p></li>
 </dd>
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.apply_compile_strategy">
+<span class="sig-name descname"><span class="pre">apply_compile_strategy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/kd_losses.html#ForwardKLWithChunkedOutputLoss.apply_compile_strategy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.apply_compile_strategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies compile only to the fkl_loss function.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">student_logits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">teacher_logits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/kd_losses.html#ForwardKLWithChunkedOutputLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.forward" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -522,7 +528,7 @@ Default: -100</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html" class="btn btn-neutral float-right" title="SentencePieceBaseTokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html" class="btn btn-neutral float-right" title="ReverseKLWithChunkedOutputLoss" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.modules.loss.ForwardKLLoss.html" class="btn btn-neutral" title="ForwardKLLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

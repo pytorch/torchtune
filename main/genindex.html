@@ -486,14 +486,24 @@
       </ul></li>
       <li><a href="generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule">AdapterModule (class in torchtune.modules.peft)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.datasets.alpaca_cleaned_dataset.html#torchtune.datasets.alpaca_cleaned_dataset">alpaca_cleaned_dataset() (in module torchtune.datasets)</a>
 </li>
       <li><a href="generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset">alpaca_dataset() (in module torchtune.datasets)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.data.AlpacaToMessages.html#torchtune.data.AlpacaToMessages">AlpacaToMessages (class in torchtune.data)</a>
 </li>
+      <li><a href="generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.apply_compile_strategy">apply_compile_strategy() (torchtune.modules.loss.ForwardKLWithChunkedOutputLoss method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.apply_compile_strategy">(torchtune.modules.loss.LinearCrossEntropyLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html#torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.apply_compile_strategy">(torchtune.modules.loss.ReverseKLWithChunkedOutputLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html#torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.apply_compile_strategy">(torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss method)</a>
+</li>
+      </ul></li>
       <li><a href="generated/torchtune.training.apply_selective_activation_checkpointing.html#torchtune.training.apply_selective_activation_checkpointing">apply_selective_activation_checkpointing() (in module torchtune.training)</a>
 </li>
   </ul></td>
@@ -540,8 +550,6 @@
         <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.caches_are_setup">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
 </li>
       </ul></li>
-      <li><a href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss">CEWithChunkedOutputLoss (class in torchtune.modules.loss)</a>
-</li>
       <li><a href="generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset">chat_dataset() (in module torchtune.datasets)</a>
 </li>
       <li><a href="generated/torchtune.data.ChatMLTemplate.html#torchtune.data.ChatMLTemplate">ChatMLTemplate (class in torchtune.data)</a>
@@ -580,7 +588,7 @@
 </li>
       <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger">CometLogger (class in torchtune.training.metric_logging)</a>
 </li>
-      <li><a href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.compute_cross_entropy">compute_cross_entropy() (torchtune.modules.loss.CEWithChunkedOutputLoss method)</a>
+      <li><a href="generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.compute_cross_entropy">compute_cross_entropy() (torchtune.modules.loss.LinearCrossEntropyLoss method)</a>
 </li>
       <li><a href="generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset">ConcatDataset (class in torchtune.datasets)</a>
 </li>
@@ -681,11 +689,15 @@
 </li>
         <li><a href="generated/torchtune.modules.LayerDropout.html#torchtune.modules.LayerDropout.forward">(torchtune.modules.LayerDropout method)</a>
 </li>
-        <li><a href="generated/torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss.forward">(torchtune.modules.loss.CEWithChunkedOutputLoss method)</a>
-</li>
         <li><a href="generated/torchtune.modules.loss.ForwardKLLoss.html#torchtune.modules.loss.ForwardKLLoss.forward">(torchtune.modules.loss.ForwardKLLoss method)</a>
 </li>
         <li><a href="generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.forward">(torchtune.modules.loss.ForwardKLWithChunkedOutputLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.forward">(torchtune.modules.loss.LinearCrossEntropyLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html#torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.forward">(torchtune.modules.loss.ReverseKLWithChunkedOutputLoss method)</a>
+</li>
+        <li><a href="generated/torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html#torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.forward">(torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss method)</a>
 </li>
         <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.forward">(torchtune.modules.model_fusion.DeepFusionModel method)</a>
 </li>
@@ -866,6 +878,14 @@
 </li>
       <li><a href="generated/torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence">left_pad_sequence() (in module torchtune.data)</a>
 </li>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.linear_projection_weight">linear_projection_weight (torchtune.modules.model_fusion.DeepFusionModel property)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.linear_projection_weight">(torchtune.modules.TransformerDecoder property)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss">LinearCrossEntropyLoss (class in torchtune.modules.loss)</a>
+</li>
       <li><a href="generated/torchtune.models.llama2.llama2.html#torchtune.models.llama2.llama2">llama2() (in module torchtune.models.llama2)</a>
 </li>
       <li><a href="generated/torchtune.models.llama2.llama2_13b.html#torchtune.models.llama2.llama2_13b">llama2_13b() (in module torchtune.models.llama2)</a>
@@ -980,6 +1000,8 @@
         <li><a href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_config">(torchtune.training.metric_logging.WandBLogger method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.training.metric_logging.CometLogger.html#torchtune.training.metric_logging.CometLogger.log_dict">log_dict() (torchtune.training.metric_logging.CometLogger method)</a>
 
       <ul>
@@ -994,8 +1016,6 @@
         <li><a href="generated/torchtune.training.metric_logging.WandBLogger.html#torchtune.training.metric_logging.WandBLogger.log_dict">(torchtune.training.metric_logging.WandBLogger method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.training.log_memory_stats.html#torchtune.training.log_memory_stats">log_memory_stats() (in module torchtune.training)</a>
 </li>
       <li><a href="generated/torchtune.models.code_llama2.lora_code_llama2_13b.html#torchtune.models.code_llama2.lora_code_llama2_13b">lora_code_llama2_13b() (in module torchtune.models.code_llama2)</a>
@@ -1320,6 +1340,8 @@
         <li><a href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.reset_caches">(torchtune.modules.TransformerDecoder method)</a>
 </li>
       </ul></li>
+      <li><a href="generated/torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html#torchtune.modules.loss.ReverseKLWithChunkedOutputLoss">ReverseKLWithChunkedOutputLoss (class in torchtune.modules.loss)</a>
+</li>
       <li><a href="generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm">RMSNorm (class in torchtune.modules)</a>
 </li>
       <li><a href="generated/torchtune.data.Role.html#torchtune.data.Role">Role (in module torchtune.data)</a>
@@ -1366,8 +1388,6 @@
 </li>
       <li><a href="generated/torchtune.modules.MultiHeadAttention.html#torchtune.modules.MultiHeadAttention.setup_cache">setup_cache() (torchtune.modules.MultiHeadAttention method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.setup_caches">setup_caches() (torchtune.modules.model_fusion.DeepFusionModel method)</a>
 
       <ul>
@@ -1380,11 +1400,15 @@
         <li><a href="generated/torchtune.modules.TransformerSelfAttentionLayer.html#torchtune.modules.TransformerSelfAttentionLayer.setup_caches">(torchtune.modules.TransformerSelfAttentionLayer method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.training.setup_torch_profiler.html#torchtune.training.setup_torch_profiler">setup_torch_profiler() (in module torchtune.training)</a>
 </li>
       <li><a href="generated/torchtune.datasets.SFTDataset.html#torchtune.datasets.SFTDataset">SFTDataset (class in torchtune.datasets)</a>
 </li>
       <li><a href="generated/torchtune.data.ShareGPTToMessages.html#torchtune.data.ShareGPTToMessages">ShareGPTToMessages (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.modules.model_fusion.DeepFusionModel.html#torchtune.modules.model_fusion.DeepFusionModel.skip_linear_projection">skip_linear_projection (torchtune.modules.model_fusion.DeepFusionModel property)</a>
 </li>
       <li><a href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">slimorca_dataset() (in module torchtune.datasets)</a>
 </li>
@@ -1397,6 +1421,8 @@
       <li><a href="generated/torchtune.training.OptimizerInBackwardWrapper.html#torchtune.training.OptimizerInBackwardWrapper.step_lr_scheduler">step_lr_scheduler() (torchtune.training.OptimizerInBackwardWrapper method)</a>
 </li>
       <li><a href="generated/torchtune.data.SummarizeTemplate.html#torchtune.data.SummarizeTemplate">SummarizeTemplate (in module torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html#torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss">SymmetricKLWithChunkedOutputLoss (class in torchtune.modules.loss)</a>
 </li>
   </ul></td>
 </tr></table>

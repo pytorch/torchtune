@@ -575,6 +575,13 @@ KV values for each position.</p>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.linear_projection_weight">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_projection_weight</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.linear_projection_weight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output weight matrix. Useful when a finer control of the output projection is needed,
+for example when using a custom loss function or when interested in applying it to only some tokens.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.reset_caches">
 <span class="sig-name descname"><span class="pre">reset_caches</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_deep_fusion.html#DeepFusionModel.reset_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.reset_caches" title="Permalink to this definition">¶</a></dt>
@@ -585,7 +592,7 @@ without deleting or reallocating cache tensors.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.set_num_output_chunks">
 <span class="sig-name descname"><span class="pre">set_num_output_chunks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_output_chunks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/model_fusion/_deep_fusion.html#DeepFusionModel.set_num_output_chunks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.set_num_output_chunks" title="Permalink to this definition">¶</a></dt>
-<dd><p>Used to save memory in combination with <a class="reference internal" href="torchtune.modules.loss.CEWithChunkedOutputLoss.html#torchtune.modules.loss.CEWithChunkedOutputLoss" title="torchtune.modules.loss.CEWithChunkedOutputLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">CEWithChunkedOutputLoss</span></code></a>.
+<dd><p>Used to save memory in combination with <code class="xref py py-class docutils literal notranslate"><span class="pre">CEWithChunkedOutputLoss</span></code>.
 This should be called before the first forward pass, in the recipe.</p>
 </dd></dl>
 
@@ -607,6 +614,12 @@ For each layer in <code class="docutils literal notranslate"><span class="pre">s
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.skip_linear_projection">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">skip_linear_projection</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.skip_linear_projection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether to skip output layer projection and return hidden states instead.</p>
 </dd></dl>
 
 </dd></dl>

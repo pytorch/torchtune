@@ -643,6 +643,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fkl_loss</span> <span class="o">=</span> <span class="n">ForwardKLLoss</span><span class="p">(</span><span class="n">ignore_index</span><span class="p">)</span>
 
+<div class="viewcode-block" id="ForwardKLWithChunkedOutputLoss.apply_compile_strategy"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.apply_compile_strategy">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply_compile_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies compile only to the fkl_loss function.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fkl_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fkl_loss</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
 <div class="viewcode-block" id="ForwardKLWithChunkedOutputLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.html#torchtune.modules.loss.ForwardKLWithChunkedOutputLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">student_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
@@ -703,7 +708,7 @@
         <span class="k">return</span> <span class="n">total_fkl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">ReverseKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="ReverseKLWithChunkedOutputLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html#torchtune.modules.loss.ReverseKLWithChunkedOutputLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">ReverseKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reverse KL with chunked outputs that saves memory by only upcasting one chunk at a time.</span>
 
@@ -728,7 +733,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rkl_loss</span> <span class="o">=</span> <span class="n">ReverseKLLoss</span><span class="p">(</span><span class="n">ignore_index</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="ReverseKLWithChunkedOutputLoss.apply_compile_strategy"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html#torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.apply_compile_strategy">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply_compile_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies compile only to the rkl_loss function.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rkl_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rkl_loss</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="ReverseKLWithChunkedOutputLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.html#torchtune.modules.loss.ReverseKLWithChunkedOutputLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">student_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
@@ -781,10 +791,10 @@
                 <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">total_rkl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">total_rkl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">SymmetricKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="SymmetricKLWithChunkedOutputLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html#torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">SymmetricKLWithChunkedOutputLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Symmetric KL with chunked outputs that saves memory by only upcasting one chunk at a time.</span>
 
@@ -820,7 +830,12 @@
             <span class="n">sym_kd_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_kd_ratio</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="SymmetricKLWithChunkedOutputLoss.apply_compile_strategy"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html#torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.apply_compile_strategy">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply_compile_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies compile only to the sym_kl_loss function.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sym_kl_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_kl_loss</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="SymmetricKLWithChunkedOutputLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html#torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">student_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">teacher_logits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
@@ -873,7 +888,7 @@
                 <span class="n">student_chunk</span><span class="p">,</span> <span class="n">teacher_chunk</span><span class="p">,</span> <span class="n">label_chunk</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">total_sym_kl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">total_sym_kl_loss</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 </pre></div>
 
              </article>
