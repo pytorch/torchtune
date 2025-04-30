@@ -52,6 +52,10 @@ class TiedLinear:
                 "Provided module does not have attribute 'weight'. Please check your tied_module."
             )
 
+    @property
+    def weight(self):
+        return self.tied_module.weight
+
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:

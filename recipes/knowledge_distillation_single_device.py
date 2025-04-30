@@ -282,6 +282,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             assert (
                 self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
             ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
+        elif getattr(self._loss_fn, "linear_loss", False):
+            raise ValueError(
+                "Linear losses are not supported yet for KD. Please use the deprecated CEWithChunkedOutputLoss."
+            )
 
         log.info("Loss is initialized.")
 
@@ -326,11 +330,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -652,12 +651,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         with torch.no_grad():
             teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
 
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
         if not isinstance(logits, list):
             labels = labels.reshape(-1)
             logits = logits.reshape(-1, logits.size(-1))

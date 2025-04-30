@@ -9,8 +9,9 @@ import contextlib
 import logging
 import os
 from dataclasses import dataclass
+from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -143,9 +144,10 @@ class ParallelDims:
     def tp_enabled(self):
         return self.tp > 1
 
-    @property
-    def cp_enabled(self):
-        return self.cp > 1
+    @cached_property
+    def non_data_parallel_size(self):
+        # update below as more parallelism options are implemented
+        return self.tp
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -190,6 +192,8 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         device = tensor.device
         if dist.get_backend() == "nccl":
             tensor = tensor.to(get_device("cuda"))
+        elif dist.get_backend() == "xccl":
+            tensor = tensor.to(get_device("xpu"))
         dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
     else:
@@ -747,7 +751,7 @@ def get_context_parallel_context_manager(
     set_rotate_method("allgather")  # TODO: hardcode for now
     buffers = list(model.buffers())
     if not cp_enabled:
-        return contextlib.nullcontext()
+        return contextlib.nullcontext()  # noqa
     else:
         with contextlib.ExitStack() as stack:
             stack.enter_context(
@@ -766,7 +770,7 @@ def get_context_parallel_context_manager(
                     no_restore_buffers=set(model_inputs),
                 )
             )
-            yield
+            yield  # noqa
 
 
 # TODO: move this elsewhere

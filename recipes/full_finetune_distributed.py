@@ -19,6 +19,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
+from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
@@ -33,6 +34,10 @@ from torchtune.training.checkpointing._checkpoint_client import (
     TrainingProgress,
 )
 from torchtune.training.lr_schedulers import get_lr
+from torchtune.training.quantization import (
+    convert_to_float8_training,
+    is_fp8_tensorwise_scaling,
+)
 
 from tqdm import tqdm
 
@@ -174,9 +179,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-        if self._log_peak_memory_stats and device_type != "cuda":
+        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
             log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -186,6 +192,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._checkpoint_client = CheckpointClient(cfg)
+        self._enable_fp8_training = cfg.get("enable_fp8_training", False)
+        self._fp8_recipe_name = cfg.get("fp8_recipe_name", None)
 
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
         if self._run_val_every_n_steps is not None:
@@ -355,9 +363,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
@@ -415,9 +423,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg.batch_size
             if self._val_dataloader is None
             else max(cfg.batch_size, self._val_dataloader.batch_size)
-        )
-        self.ignore_labels_cache = torch.full(
-            (bsz_cache, 1), self._loss_fn.ignore_index, device=self._device
         )
 
     def _setup_lr_scheduler(
@@ -568,6 +573,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
+
+        if self._enable_fp8_training:
+            # Requires https://github.com/pytorch/pytorch/pull/148922
+            if torch.__version__ < "2.8.0.dev20250318":
+                raise RuntimeError(
+                    "Float8 fine-tuning requires PyTorch 2.8.0.dev20250318 or later."
+                )
+            if self.tp_plan is not None:
+                raise ValueError(
+                    "FP8 training does not support tensor parallelism yet. "
+                    "This will be enabled in the near future."
+                )
+            model = convert_to_float8_training(model, self._fp8_recipe_name)
 
         # Apply tensor parallelism to the model
         if self.parallel_dims.tp_enabled:
@@ -756,14 +774,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
+            # TODO: overkill?
+            # https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
             collate_fn=(
                 partial(
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.tp_degree
-                    * self.cp_degree
-                    * 2,  # TODO: overkill? https://github.com/pytorch/pytorch/blob/4f62dccbdae90d266e3cce4a499b77008f8f840f/torch/distributed/tensor/experimental/_attention.py#L1246
+                    pad_to_multiple_of=self.tp_degree * self.cp_degree * 2,
                 )
                 if not packed
                 else padded_collate_packed
@@ -779,22 +797,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
-            logits = self._model(**batch)
+            outputs = self._model(**batch)
 
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
-        if not isinstance(logits, list):
+        if self.linear_loss:
+            weight = self._model.linear_projection_weight
+            loss = self._loss_fn(weight, outputs, labels)
+        else:
             labels = labels.reshape(-1)
-            logits = logits.reshape(-1, logits.size(-1))
+            outputs = outputs.reshape(-1, outputs.size(-1))
+            loss = self._loss_fn(outputs, labels)
 
-        # Compute loss
-        loss = self._loss_fn(logits, labels)
         # free logits otherwise it peaks backward memory
-        del logits
+        del outputs
 
         return loss
 
@@ -937,6 +951,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
+                    # If float8 training is enabled, perform a single all-reduce to compute the
+                    # scale for all float8 parameters efficiently instead of doing many small
+                    # all-reduces for each parameter
+                    if (
+                        self._enable_fp8_training
+                        and is_fp8_tensorwise_scaling(self._fp8_recipe_name)
+                        and self.dp_degree > 1
+                    ):
+                        precompute_float8_dynamic_scale_for_fsdp(self._model)
+
                     loss_to_log = running_loss.detach().item() / num_tokens
                     pbar.update(1)
                     pbar.set_description(
@@ -958,7 +982,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens
+                            "tokens_per_second_per_gpu": (
+                                num_tokens / self.parallel_dims.non_data_parallel_size
+                            )
                             / (time_per_step * self.world_size),
                         }
                         if self._log_peak_memory_stats:

@@ -16,10 +16,16 @@ from torch.distributed.tensor.parallel import parallelize_module
 from torch.nn.attention.flex_attention import create_block_mask
 
 from torchtune import config, training, utils
-from torchtune.data import load_image, Message, padded_collate_tiled_images_and_mask
+from torchtune.data import (
+    load_image,
+    Message,
+    padded_collate,
+    padded_collate_tiled_images_and_mask,
+)
 
 from torchtune.generation import sample
 from torchtune.modules.attention_utils import causal_mask_flex, kv_offset_mask_flex
+from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 
 from torchtune.modules.transforms import Transform
 
@@ -206,7 +212,7 @@ class InferenceRecipe:
 
         # 5. Collate to batch size of 1 and tensor-ify
         batch = {}
-        if is_multimodal_input:
+        if isinstance(self.model, DeepFusionModel) and is_multimodal_input:
             batch = padded_collate_tiled_images_and_mask(
                 [model_inputs],
                 pad_direction="left",
@@ -214,6 +220,14 @@ class InferenceRecipe:
                 pad_max_tiles=self.model_transform.max_num_tiles,
             )
             batch["encoder_mask"] = batch["encoder_mask"][:, :seq_len]
+            prompt = batch.pop("tokens").to(self._device)
+        elif isinstance(self.model, EarlyFusionModel) and is_multimodal_input:
+            batch = padded_collate(
+                [model_inputs],
+                pad_direction="left",
+                keys_to_pad=["tokens"],
+                padding_idx=self.model_transform.pad_id,
+            )
             prompt = batch.pop("tokens").to(self._device)
         else:
             prompt = torch.tensor(
@@ -246,7 +260,8 @@ class InferenceRecipe:
             # Don't need image info b/c we only support 1 image and it's been
             # processed by the model now
             batch.pop("encoder_input")
-            batch["encoder_mask"] = batch["encoder_mask"][:, -1:]
+            if "encoder_mask" in batch:
+                batch["encoder_mask"] = batch["encoder_mask"][:, -1:]
 
         # 7. Continue generating
         for i in range(cfg.max_new_tokens):

@@ -25,12 +25,12 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
+    AdapterModule,
     DoRALinear,
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -324,9 +324,10 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
+
         if self._is_rank_zero:
             log.info("Loss is initialized.")
 
@@ -368,11 +369,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -537,9 +533,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
-                if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
-                ) and not lora_weights_state_dict:
+                if (isinstance(m, AdapterModule)) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.to_empty(device=lora_device)
@@ -838,25 +832,22 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 labels = batch.pop("labels")
 
                 with self.activations_handling_ctx:
-                    logits = self._model(**batch)
+                    outputs = self._model(**batch)
 
-                # Shift labels to compute loss
-                # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-                # But this way we dont need to slice the logits. We just add an ignore index to labels.
-                labels = torch.hstack(
-                    (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-                )
-                if not isinstance(logits, list):
+                if self.linear_loss:
+                    weight = self._model.linear_projection_weight
+                    current_loss = self._loss_fn(weight, outputs, labels)
+                else:
                     labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1))
+                    outputs = outputs.reshape(-1, outputs.size(-1))
+                    current_loss = self._loss_fn(outputs, labels)
 
-                # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = current_loss * current_num_tokens
 
-                # free logits otherwise it peaks backward memory
-                del logits
+                # free outputs otherwise it peaks backward memory
+                del outputs
 
                 running_loss += current_loss
                 current_loss.backward()
