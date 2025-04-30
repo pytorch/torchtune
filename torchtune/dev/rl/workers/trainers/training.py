@@ -1,4 +1,9 @@
-import functools
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import os
 import time
 from functools import partial
@@ -12,31 +17,17 @@ import torch.distributed
 import torch.nn as nn
 import torchtune.training as training
 
-from omegaconf import DictConfig, ListConfig, OmegaConf
-
-from ray.util.queue import Full as QueueFull, Queue
-
-from readerwriterlock import rwlock
-from tensordict import is_tensorclass, NonTensorData, TensorClass, TensorDict
+from omegaconf import DictConfig
 
 from torch.optim import Optimizer
 
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
-
-from torchrl.data import LazyStackStorage, RayReplayBuffer
-from torchrl.envs import LLMEnv
 from torchtune import config, generation, modules, rlhf, utils
 from torchtune.dev.rl.datatypes import Trajectory
-from torchtune.dev.rl.rewards import batched_rewards
 from torchtune.dev.rl.types import GRPOStats, GRPOTrajectory
 from torchtune.dev.rl.utils import stateless_init_process_group
 from torchtune.models.qwen2._convert_weights import qwen2_tune_to_hf
 
 from torchtune.training import DummyProfiler, PROFILER_KEY
-
-from vllm.utils import get_ip, get_open_port
-from vllm.worker.worker import Worker
 
 log = utils.get_logger("DEBUG")
 
@@ -167,10 +158,9 @@ class TrainingWorker:
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        # TODO: generalize this to any chunked loss
-        # set num_output_chunks for model
-        if self._loss_fn.__class__.__name__ == "GRPOWithChunkedOutputLoss":
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
 
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
 
@@ -413,24 +403,32 @@ class TrainingWorker:
 
         # call model
         with self.activations_handling_ctx:
-            pi_logits = self._model(
+            outputs = self._model(
                 trajectory.query_responses,
                 input_pos=trajectory.position_ids,
                 mask=trajectory.masks,
-                output_mask=output_mask,
             )
-
-        # apply to targets
+        bsz, seq_len, dim = outputs.shape
+        outputs = outputs[output_mask]
+        outputs = outputs.reshape(bsz, -1, dim)
         targets = trajectory.query_responses[:, context_length:]
 
-        # Compute GRPO loss
-        loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs = self._loss_fn(
-            pi_logits=pi_logits,
-            targets=targets,
-            ref_logprobs=trajectory.ref_logprobs,
-            advantages=trajectory.advantages,
-            padding_masks=~trajectory.response_padding_masks,
-        )
+        if self.linear_loss:
+            weight = self._model.linear_projection_weight
+            # Compute GRPO loss
+            loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs = self._loss_fn(
+                # pi_logits=pi_logits,
+                weight=weight,
+                outputs=outputs,
+                targets=targets,
+                ref_logprobs=trajectory.ref_logprobs,
+                advantages=trajectory.advantages,
+                padding_masks=~trajectory.response_padding_masks,
+            )
+        else:
+            raise NotImplementedError(
+                "We currently only support linear losses. Please use LinearGRPOLoss."
+            )
 
         with torch.no_grad():
             mask = ~trajectory.response_padding_masks  # True for non-padded tokens
@@ -453,7 +451,7 @@ class TrainingWorker:
             metadata=metadata,
         )
 
-        del pi_logits, pi_logprobs
+        del outputs, pi_logprobs
         torch.cuda.empty_cache()  # TODO: Test if this is needed
         loss.backward()
 
