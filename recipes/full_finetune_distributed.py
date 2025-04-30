@@ -164,9 +164,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             run_name_part = date_run_pattern.group(2)
 
         # Extract epoch and seed
+        # TODO: never use regex on paths, use configs
         epoch_match = re.search(r"epoch_(\d+)", path_parts[-2])
         self.epoch = int(epoch_match.group(1) if epoch_match else "0")
         # Construct run_id using date, run_name, epoch and seed
+        # TODO: we should just pass this in the config
         self.run_id = f"{date_part}_{run_name_part}"
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
