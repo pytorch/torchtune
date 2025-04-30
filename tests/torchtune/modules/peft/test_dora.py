@@ -288,7 +288,6 @@ class TestDistributedDoRALinear(FSDPTest):
 
     @gpu_test(gpu_count=2)
     def test_dora_distributed_init(self):
-        print("HEY HI {self.rank")
         torch.cuda.set_device(f"cuda:{self.rank}")
         self.run_subtests(
             {
@@ -299,7 +298,6 @@ class TestDistributedDoRALinear(FSDPTest):
 
     def _test_dora_distributed_init(self, load_dora_weights):
         rank = self.rank
-        print(f"HI IN THE TEST {rank}")
         is_rank_zero = rank == 0
         device = f"cuda:{rank}"
         layers = ["w1", "w2", "w3"]
