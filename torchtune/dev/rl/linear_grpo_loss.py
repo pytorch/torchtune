@@ -55,8 +55,6 @@ class LinearGRPOLoss(nn.Module, SFTLinearLoss):
         ref_logprobs_chunk: torch.Tensor,  # [B*G, chunk_size]
         advantages: torch.Tensor,  # [B*G]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        print(f"weight shape: {weight.shape}")
-        print(f"hidden chunk: {hidden_chunk.shape}")
         pi_logits_chunk = F.linear(hidden_chunk, weight)
 
         # CE
