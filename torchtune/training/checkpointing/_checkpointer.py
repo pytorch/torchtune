@@ -921,10 +921,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     training.ADAPTER_KEY
                 ] = convert_weights.tune_to_peft_adapter_weights(
                     state_dict[training.ADAPTER_KEY],
-                    num_heads=config["text_config"]["num_attention_heads"],
-                    num_kv_heads=config["text_config"]["num_key_value_heads"],
-                    dim=config["text_config"]["hidden_size"],
-                    head_dim=config["text_config"].get("head_dim", None),
+                    num_heads=config["num_attention_heads"],
+                    num_kv_heads=config["num_key_value_heads"],
+                    dim=config["hidden_size"],
+                    head_dim=config.get("head_dim", None),
                 )
                 output_path = os.path.join(
                     self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
