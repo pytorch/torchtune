@@ -11,6 +11,8 @@ from functools import partial
 from typing import Any, Dict, Optional, Union
 from warnings import warn
 
+import omegaconf
+
 import torch
 import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig, OmegaConf
