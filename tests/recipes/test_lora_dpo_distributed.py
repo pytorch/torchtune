@@ -143,10 +143,11 @@ class TestLoRADPODistributedRecipe:
             resumed_loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
     @gpu_test(gpu_count=2)
     @pytest.mark.integration_test
     def test_training_state_on_resume_with_async_checkpointing(
-        self, tmpdir, monkeypatch
+        self, tmpdir, monkeypatch, save_adapter_weights_only
     ):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -183,7 +184,7 @@ class TestLoRADPODistributedRecipe:
             enable_async_checkpointing=True \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tokenizer.prompt_template=null \
-            save_adapter_weights_only={False} \
+            save_adapter_weights_only={save_adapter_weights_only} \
             metric_logger.filename={log_file} \
             enable_activation_checkpointing=True \
             enable_activation_offloading=False \
