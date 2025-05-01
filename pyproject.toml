@@ -35,7 +35,6 @@ dependencies = [
 
     # Multimodal
     "Pillow>=9.4.0",
-    "math-verify[antlr4_9_3]"
 ]
 dynamic = ["version"]
 
@@ -75,6 +74,9 @@ async_rl = [
     "readerwriterlock",
     "vllm",
     "wandb",
+
+    # For working w/ math datasets in default config
+    "math-verify",
 ]
 
 [tool.setuptools.dynamic]
