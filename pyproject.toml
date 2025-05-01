@@ -78,10 +78,6 @@ async_rl = [
     # For working w/ math datasets in default config
     "math-verify",
 ]
-all = [
-    "async_rl",
-    "dev",
-]
 
 [tool.setuptools.dynamic]
 version = {attr = "torchtune.__version__"}
