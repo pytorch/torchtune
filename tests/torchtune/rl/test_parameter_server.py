@@ -5,11 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import importlib
+import sys
 
 _has_ray = importlib.util.find_spec("ray") is not None
 _has_vllm = importlib.util.find_spec("vllm") is not None
 
-if _has_ray:
+# Do not import anything unless Python >= 3.10
+if sys.version_info >= (3, 10):
     import ray
     from ray import remote
 else:
@@ -24,7 +26,7 @@ from typing import Dict
 import pytest
 import torch
 from omegaconf import OmegaConf
-from tests.test_utils import gpu_test
+from tests.test_utils import gpu_test, skip_if_lt_python_310
 
 
 @remote(num_cpus=1, num_gpus=1)
@@ -112,6 +114,7 @@ class DummyCollector:
 
 
 @pytest.mark.skipif(not _has_ray or not _has_vllm, reason="requires ray and vllm")
+@skip_if_lt_python_310()
 class TestParamServer:
     def _get_env_vars(self, rank, world_size) -> Dict[str, str]:
         env_vars = {

@@ -7,14 +7,19 @@
 import time
 
 import pytest
-import ray
+
+# Do not import anything if not running on Python >= 3.10
+if sys.version_info >= (3, 10):
+    import ray
+    from ray.util.queue import Queue
+    from tensordict import NonTensorData
+    from torchtune.dev.rl.datatypes.trajectory import Trajectory
+    from torchtune.dev.rl.workers.postprocessing import PostProcessingWorker
+
+
 import torch
 from omegaconf import OmegaConf
-from ray.util.queue import Queue
-from tensordict import NonTensorData
-from tests.test_utils import gen_log_file_name, gpu_test
-from torchtune.dev.rl.datatypes.trajectory import Trajectory
-from torchtune.dev.rl.workers.postprocessing import PostProcessingWorker
+from tests.test_utils import gen_log_file_name, gpu_test, skip_if_lt_python_310
 
 grpo_samples = 4
 max_generated_tokens = 32
@@ -116,6 +121,7 @@ class TestPostProcessingWorker:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=1)
+    @skip_if_lt_python_310()
     def test_run(self, cfg, log_file):
         ray.init(num_cpus=19, num_gpus=1)
 
