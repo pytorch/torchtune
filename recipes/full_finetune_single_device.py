@@ -23,6 +23,10 @@ from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.checkpointing._checkpoint_client import (
+    CheckpointClient,
+    TrainingProgress,
+)
 from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
@@ -156,6 +160,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
                 )
 
+        self._checkpoint_client = CheckpointClient(cfg)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
@@ -191,21 +198,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
-        """
-        self._checkpointer = config.instantiate(
-            cfg_checkpointer,
-            should_load_recipe_state=self._resume_from_checkpoint,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -257,7 +249,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # log config with parameter override
         self._metric_logger.log_config(cfg)
 
-        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
+        ckpt_dict = self._checkpoint_client.load_base_checkpoint()
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
@@ -283,9 +275,32 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=cfg.optimizer_in_bwd,
             opt_state_dict=(
-                ckpt_dict[training.OPT_KEY] if self._resume_from_checkpoint else None
+                ckpt_dict[training.OPT_KEY] if training.OPT_KEY in ckpt_dict else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                try:
+                    ckpt_dict = self._checkpoint_client.load_distributed_checkpoint(
+                        self._model,
+                        (
+                            self._optim_ckpt_wrapper
+                            if self._optimizer_in_bwd
+                            else self._optimizer
+                        ),
+                    )
+                except Exception as e:
+                    log.warning(
+                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
+                    )
+
+            # Update the recipe state from the checkpoint state dict.
+            self._update_recipe_state(ckpt_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -307,11 +322,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
             collate_fn=collate_name,
-            dataloader_state_dict=(
-                ckpt_dict[training.DATALOADER_KEY]
-                if self._resume_from_checkpoint
-                else None
-            ),
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -548,7 +558,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -602,26 +611,22 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
-        # if training is in-progress, checkpoint the optimizer state as well
-        if epoch + 1 < self.total_epochs:
-            ckpt_dict.update(
-                {
-                    training.SEED_KEY: self.seed,
-                    training.EPOCHS_KEY: self.epochs_run,
-                    training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    training.DATALOADER_KEY: self._dataloader.state_dict(),
-                }
-            )
-            if not self._optimizer_in_bwd:
-                ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
-            else:
-                ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
-        self._checkpointer.save_checkpoint(
-            ckpt_dict,
+        self._checkpoint_client.save_checkpoint(
+            model=self._model,
+            optimizer=(
+                self._optimizer
+                if not self._optimizer_in_bwd
+                else self._optim_ckpt_wrapper
+            ),
+            training_progress=TrainingProgress(
+                seed=self.seed,
+                epochs_run=self.epochs_run,
+                total_epochs=self.total_epochs,
+                max_steps_per_epoch=self.max_steps_per_epoch,
+                dataloader_state_dict=self._dataloader.state_dict(),
+            ),
             epoch=epoch,
-            intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+            single_device=True,
         )
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
