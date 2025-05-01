@@ -1300,10 +1300,23 @@ class DistributedCheckpointer(_CheckpointerInterface):
         self._checkpoint_future = None
         self._checkpoint_dir_prefix = "dist_epoch"
         self._metadata_file = ".metadata"
+        self._adapter_dir = "adapter_model"
         _, self._rank = get_world_size_and_rank()
         self._process_group: Optional[dist.ProcessGroup] = process_group
 
-    def _get_latest_intermediate_checkpoint(self) -> Optional[str]:
+    def get_output_path(self, epoch: int) -> str:
+        """
+        Get the output path for the checkpoint directory.
+
+        Args:
+            epoch (int): Epoch number. Used to create the checkpoint file name
+
+        Returns:
+            str: The fully qualified path of the checkpoint directory.
+        """
+        return os.path.join(self._output_dir, f"{self._checkpoint_dir_prefix}_{epoch}")
+
+    def get_latest_intermediate_checkpoint(self) -> Optional[str]:
         """
         This method iterates over the available intermediate distributed checkpoints and
         finds the latest checkpoint to load.
@@ -1318,8 +1331,13 @@ class DistributedCheckpointer(_CheckpointerInterface):
             name
             for name in os.listdir(self._output_dir)
             if re.match(checkpoint_dir_pattern, name)
-            and os.path.isfile(
-                os.path.join(self._output_dir, name, self._metadata_file)
+            and (
+                os.path.isfile(
+                    os.path.join(self._output_dir, name, self._metadata_file)
+                )
+                or os.path.isdir(
+                    os.path.join(self._output_dir, name, self._adapter_dir)
+                )
             )
         ]
 
@@ -1331,7 +1349,10 @@ class DistributedCheckpointer(_CheckpointerInterface):
         return None
 
     def load_checkpoint(
-        self, state_dict: Dict[str, Any] = None, checkpoint_path: Optional[str] = None
+        self,
+        state_dict: Dict[str, Any] = None,
+        checkpoint_path: Optional[str] = None,
+        adapter_only: bool = False,
     ) -> Dict[str, Any]:
         """
         Load a Distributed checkpoint saved at the <checkpoint_path>
@@ -1345,7 +1366,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
 
         # If no checkpoint path is provided, load the latest intermediate checkpoint.
         if checkpoint_path is None:
-            checkpoint_path = self._get_latest_intermediate_checkpoint()
+            checkpoint_path = self.get_latest_intermediate_checkpoint()
 
             if checkpoint_path is None:
                 raise ValueError(
@@ -1353,6 +1374,8 @@ class DistributedCheckpointer(_CheckpointerInterface):
                     "Also, No intermediate checkpoint was found in the output directory."
                     "Please ensure that a checkpoint exists to load."
                 )
+            if adapter_only:
+                checkpoint_path = os.path.join(checkpoint_path, self._adapter_dir)
 
         log_rank_zero(logger, msg=f"Loading checkpoint from {checkpoint_path}")
 
@@ -1369,6 +1392,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         state_dict: Dict[str, Any],
         epoch: int,
         save_async: bool = False,
+        adapter_only: bool = False,
     ) -> None:
         """
         Save a distributed checkpoint to storage.
@@ -1380,6 +1404,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
             state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
             epoch (int): Epoch number. Used to create the checkpoint file name
             save_async (bool): If True, save the checkpoint asynchronously
+            adapter_only (bool): If True, only adapter weights are being saved, which affects which path to save to.
         """
 
         log_rank_zero(
@@ -1390,6 +1415,8 @@ class DistributedCheckpointer(_CheckpointerInterface):
         checkpoint_path = Path.joinpath(
             self._output_dir, f"{self._checkpoint_dir_prefix}_{epoch}"
         )
+        if adapter_only:
+            checkpoint_path = Path.joinpath(checkpoint_path, self._adapter_dir)
 
         if self._checkpoint_future and not self._checkpoint_future.done():
             # Previous checkpoint needs to finish before saving the next one.
