@@ -165,9 +165,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             run_name_part = date_run_pattern.group(2)
 
         # Extract epoch and seed
+        # TODO: never use regex on paths, use configs
         epoch_match = re.search(r"epoch_(\d+)", path_parts[-2])
         self.epoch = int(epoch_match.group(1) if epoch_match else "0")
         # Construct run_id using date, run_name, epoch and seed
+        # TODO: we should just pass this in the config
         self.run_id = f"{date_part}_{run_name_part}"
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
@@ -443,7 +445,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 for dataset in cfg["validation_dataset"]["_component_"]
             ]
             for dataset in cfg["validation_dataset"]["_component_"]:
-                dataset["split"] = "validation"
+                dataset["split"] = "test"
                 sampler_validation, dataloader_validation = self._setup_data(
                     cfg_dataset=dataset,
                     shuffle=cfg.shuffle,
@@ -485,7 +487,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     collate_fn=collate_fn,
                 )
         else:
-            cfg["validation_dataset"]["split"] = "validation"
+            cfg["validation_dataset"]["split"] = "test"
             sampler_validation, dataloader_validation = self._setup_data(
                 cfg_dataset=cfg["validation_dataset"],
                 shuffle=cfg.shuffle,
@@ -1179,7 +1181,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             num_tokens = 0
             real_num_tokens = 0
             max_len_samples = 0
-            running_ent = 0 
+            running_ent = 0
             self._model.train()  # NOTE: added by us
 
             pbar = tqdm(
@@ -1235,8 +1237,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
-                #calculate the entropy of the models responses
-
+                # calculate the entropy of the models responses
 
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -1331,7 +1332,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": real_num_tokens  # NOTE: added by us
                             / (time_per_step * world_size),
-                            'entropy': running_ent.item() / real_num_tokens,
+                            "entropy": running_ent.item() / real_num_tokens,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
