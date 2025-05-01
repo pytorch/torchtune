@@ -720,9 +720,9 @@
     <span class="n">param_name</span><span class="o">=</span><span class="s2">&quot;apply_lora_to_output&quot;</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Please use state_dict_keys instead.&quot;</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">validate_missing_and_unexpected_for_lora</span><span class="p">(</span>
-    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
-    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">state_dict_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">base_missing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">base_unexpected</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -735,13 +735,13 @@
 <span class="sd">    unexpected as returned by the load_state_dict API with strict=False.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">        lora_attn_modules (Optional[List[LORA_ATTN_MODULES]]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">            DEPRECATED: use state_dict_keys instead.</span>
-<span class="sd">        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.</span>
+<span class="sd">        apply_lora_to_mlp (Optional[bool]): whether LoRA is applied to each MLP linear.</span>
 <span class="sd">            DEPRECATED: use state_dict_keys instead.</span>
-<span class="sd">        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.</span>
+<span class="sd">        apply_lora_to_output (Optional[bool]): whether LoRA is applied to the final output projection.</span>
 <span class="sd">            DEPRECATED: use state_dict_keys instead.</span>
 <span class="sd">        state_dict_keys (Optional[List[str]]): ground truth model state dict we are validating against</span>
 <span class="sd">        base_missing (Optional[List[str]]): List of missing keys when loading base model weights.</span>
@@ -787,6 +787,9 @@
                 <span class="s2">&quot;Missing keys when validating state dict: </span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">err_msgs</span><span class="p">)</span>
             <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">lora_attn_modules</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="n">apply_lora_to_mlp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="n">apply_lora_to_output</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">lora_modules</span> <span class="o">=</span> <span class="n">get_lora_module_names</span><span class="p">(</span>
             <span class="n">lora_attn_modules</span><span class="p">,</span> <span class="n">apply_lora_to_mlp</span><span class="p">,</span> <span class="n">apply_lora_to_output</span>
         <span class="p">)</span>
