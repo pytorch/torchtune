@@ -210,18 +210,20 @@ class SyncLLMCollector(SyncDataCollector):
         div_gib = 1024**3
 
         log_dict = {
-            "vllm_actor_performance/total_rollout_time (s)": time_total_rollout,
-            "vllm_actor_performance/pct_time_model_running (%)": pct_time_model_running,
-            "vllm_actor_performance/tokens_per_second": tokens_per_second,
-            "vllm_actor_performance/gpu_memory_peak_allocated (GiB)": gpu_memory[
+            "datacollector_worker_performance/total_rollout_time (s)": time_total_rollout,
+            "datacollector_worker_performance/pct_time_model_running (%)": pct_time_model_running,
+            "datacollector_worker_performance/tokens_per_second": tokens_per_second,
+            "datacollector_worker_performance/gpu_memory_peak_allocated (GiB)": gpu_memory[
                 "allocated"
             ]
             / div_gib,
-            "vllm_actor_performance/gpu_memory_peak_reserved (GiB)": gpu_memory[
+            "datacollector_worker_performance/gpu_memory_peak_reserved (GiB)": gpu_memory[
                 "reserved"
             ]
             / div_gib,
-            "vllm_actor_performance/gpu_memory_peak_active (GiB)": gpu_memory["active"]
+            "datacollector_worker_performance/gpu_memory_peak_active (GiB)": gpu_memory[
+                "active"
+            ]
             / div_gib,
             # "queues/vllm_full_queue_data_discard": full_queue_data_discard,
             "queues/rollout_queue_size": self.rollout_queue.qsize(),

@@ -12,10 +12,6 @@ import math_verify
 
 import torch
 
-# from tensordict import TensorDict, TensorDictBase
-# from torchrl.data import Composite, TensorSpec, Unbounded
-# from torchrl.envs import Transform
-
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
@@ -35,7 +31,7 @@ def extract_tags(text: str) -> Tuple[str, str]:
 
 def at_least_one_space_between_think_tags(
     cot: str, answer: str, potential_answer: str
-) -> Tuple[int, int]:
+) -> Tuple[float, float]:
     """Did the model at least try to think?"""
     if len(cot) > 0:
         return 1.0, 1.0  # (reward, success)
@@ -45,7 +41,7 @@ def at_least_one_space_between_think_tags(
 
 def math_response_correct(
     cot: str, answer: str, potential_answer: str
-) -> Tuple[int, int]:
+) -> Tuple[float, float]:
     """Did it get the right answer?"""
     if potential_answer is None:
         return 0.0, 0.0  # (reward, success)
@@ -138,7 +134,7 @@ def shaped_correctness_reward(answer: str, completion: str) -> tuple[float, floa
 
 def batch_shaped_correctness_reward(
     tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]
-) -> [torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """Utility function to apply the shaped reward function to a GRPO-style batch of completions."""
 
     batch_size, grpo_size, *_ = completions.shape
@@ -157,83 +153,3 @@ def batch_shaped_correctness_reward(
             successes[b, g] = success
 
     return rewards, successes
-
-
-# class ShapedCorrectnessReward(Transform):
-#     def __init__(self, tokenizer):
-#         super().__init__()
-#         self.tokenizer = tokenizer
-
-#     def _step(
-#         self, tensordict: TensorDictBase, next_tensordict: TensorDictBase
-#     ) -> TensorDictBase:
-#         # Get the completion
-#         responses = next_tensordict["responses"]  # batch_size, grpo_size, L
-#         answers = next_tensordict["answers"]  # batch_size, grpo_size
-#         if responses.ndim  == 3:
-#             batch_size, grpo_size, _ = responses.shape
-#         # decode
-#         text_completion = self.tokenizer.decode(
-#             responses.flatten(0, 1).tolist()
-#         )
-#         # Decomposed reward
-#         tds = [self.single_shaped_correctness_reward(answer, compl) for answer, compl in zip(answers.view(-1), text_completion)]
-#         tds = torch.stack(tds)
-#         if responses.ndim  == 3:
-#             tds = tds.reshape(batch_size, grpo_size)
-#         tds = tds.apply(lambda t: t.unsqueeze(-1))
-#         return tds
-
-#     def transform_reward_spec(self, reward_spec: Composite) -> Composite:
-#         shape = reward_spec.shape + (1,)
-#         reward_spec.update(Composite(
-#             reward_answer=Unbounded(shape),
-#             reward_think=Unbounded(shape),
-#             reward_right=Unbounded(shape),
-#             reward_contained=Unbounded(shape),
-#             reward=Unbounded(shape),
-#             success=Unbounded(shape, dtype=torch.bool),
-#         ))
-#         return reward_spec
-
-#     @classmethod
-#     def single_shaped_correctness_reward(cls, answer: str, completion: str) -> tuple[float, float]:
-#         """
-#         Reward function for verifiable rewards with some mild shaping.
-
-#         Args:
-#             answer (str): ground-truth answer to the current problem
-#             completion (str): model's completion, starting immediately after "Assistant: <think>"
-#         Returns:
-#             reward: (float) a shaped reward indicating the correct answer and the correct format
-#             success: (float) a binary measure of success (1 if the answer is correct and correctly formatted, 0 otherwise)
-#         """
-
-#         try:
-#             tags = extract_tags("<think>" + completion.replace("<<", "").replace(">>", ""))
-#         except ET.ParseError:
-#             tags = {"think": [], "answer": []}
-
-#         reward_answer = 5.0 * (len(tags["answer"]) == 1)
-
-#         reward_think = 5.0 * (len(tags["think"]) == 1)
-
-#         # One of the answer tags has the right answer
-#         reward_right = 20.0 * (any(attempt == answer for attempt in tags["answer"]))
-
-#         # One of the answer tags contains the right answer (might be e.g. $20 instead of 20)
-#         reward_contained = 10.0 * (any((answer in attempt) for attempt in tags["answer"]))
-
-#         success = len(tags["answer"]) > 0 and tags["answer"][-1] == answer
-#         # Compose the rewards
-#         reward = 100.0 * float(success) + (reward_answer + reward_think + reward_contained + reward_right) * (1- float(success))
-
-#         rewards = TensorDict(
-#             reward_answer=reward_answer,
-#             reward_think=reward_think,
-#             reward_right=reward_right,
-#             reward_contained=reward_contained,
-#             reward=reward,
-#             success=success,
-#         )
-#         return rewards

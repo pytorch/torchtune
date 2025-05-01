@@ -67,7 +67,7 @@ wandb login
 Now everything should be taken care of! From your conda env, now you can run:
 
 ```bash
-tune run dev/async_grpo_full_finetune_distributed --config recipes/configs/dev/qwen3B_async_grpo.yaml
+tune run dev/async_grpo_full_finetune_distributed --config dev/qwen3B_async_grpo
 ```
 
 We can run the above successfully on a server using 8x H100 nodes. We left GPU memory to spare so we think it should work on cards with less VRAM, but if not we recommend reducing batch sizes to make this fit.

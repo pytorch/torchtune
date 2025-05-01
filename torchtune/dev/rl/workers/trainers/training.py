@@ -445,25 +445,25 @@ class TrainingWorker:
             memory_stats = training.get_memory_stats(device=self._device)
             log_dict.update(
                 {
-                    f"train_actor_performance/memory/{k}": v
+                    f"train_worker_performance/memory/{k}": v
                     for k, v in memory_stats.items()
                 }
             )
 
         log_dict.update(
             {
-                "train_actor_training/loss": grpo_stats_stacked.loss.mean().item(),
-                "train_actor_training/policy_loss": grpo_stats_stacked.policy_loss.mean().item(),
-                "train_actor_training/num_stop_tokens": trajectory.response_padding_masks.any(
+                "train_worker_training/loss": grpo_stats_stacked.loss.mean().item(),
+                "train_worker_training/policy_loss": grpo_stats_stacked.policy_loss.mean().item(),
+                "train_worker_training/num_stop_tokens": trajectory.response_padding_masks.any(
                     -1
                 )
                 .sum()
                 .item(),
-                "train_actor_training/kl_loss": grpo_stats_stacked.kl_loss.mean().item(),
-                "train_actor_training/ratios": grpo_stats_stacked.ratios.mean().item(),
-                "train_actor_training/clipfrac": grpo_stats_stacked.clipfrac.mean().item(),
-                "train_actor_training/approx_policy_kls": grpo_stats_stacked.approx_policy_kls.mean().item(),
-                "train_actor_training/response_lengths": trajectory.seq_lens.float()
+                "train_worker_training/kl_loss": grpo_stats_stacked.kl_loss.mean().item(),
+                "train_worker_training/ratios": grpo_stats_stacked.ratios.mean().item(),
+                "train_worker_training/clipfrac": grpo_stats_stacked.clipfrac.mean().item(),
+                "train_worker_training/approx_policy_kls": grpo_stats_stacked.approx_policy_kls.mean().item(),
+                "train_worker_training/response_lengths": trajectory.seq_lens.float()
                 .mean()
                 .item(),
             }
@@ -471,36 +471,36 @@ class TrainingWorker:
 
         log_dict.update(
             {
-                "train_actor_performance/total_step_time (s)": total_step_time,
-                "train_actor_performance/time_grpo_steps (s)": time_grpo_steps,
-                "train_actor_performance/pct_time_grpo_steps (%)": (
+                "train_worker_performance/total_step_time (s)": total_step_time,
+                "train_worker_performance/time_grpo_steps (s)": time_grpo_steps,
+                "train_worker_performance/pct_time_grpo_steps (%)": (
                     time_grpo_steps / total_step_time * 100
                     if total_step_time > 0
                     else 0
                 ),
-                "train_actor_performance/tokens_per_second": (
+                "train_worker_performance/tokens_per_second": (
                     number_of_tokens / total_step_time if total_step_time > 0 else 0
                 ),
-                "train_actor_performance/time_weight_sync (s)": time_weight_sync,
-                "train_actor_performance/pct_time_weight_sync (%)": (
+                "train_worker_performance/time_weight_sync (s)": time_weight_sync,
+                "train_worker_performance/pct_time_weight_sync (%)": (
                     time_weight_sync / total_step_time * 100
                     if total_step_time > 0
                     else 0
                 ),
-                "train_actor_performance/padded_tokens_percentage (%)": padded_tokens_percentage,
-                "train_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
-                "train_actor_performance/pct_time_waiting_buffer (%)": (
+                "train_worker_performance/padded_tokens_percentage (%)": padded_tokens_percentage,
+                "train_worker_performance/time_waiting_buffer (s)": time_waiting_buffer,
+                "train_worker_performance/pct_time_waiting_buffer (%)": (
                     time_waiting_buffer / total_step_time * 100
                     if total_step_time > 0
                     else 0
                 ),
-                "train_actor_performance/time_weight_gather (s)": time_weight_gather,
-                "train_actor_performance/pct_time_weight_gather (%)": (
+                "train_worker_performance/time_weight_gather (s)": time_weight_gather,
+                "train_worker_performance/pct_time_weight_gather (%)": (
                     time_weight_gather / total_step_time * 100
                     if total_step_time > 0
                     else 0
                 ),
-                "queues/train_actor_policy_age_mean": policy_age,
+                "queues/train_worker_policy_age_mean": policy_age,
                 "queues/train_replay_buffer_size": train_replay_buffer_size,
             }
         )
@@ -640,9 +640,9 @@ class TrainingWorker:
                 )
             else:
                 beyond_seq_len = 0
-            per_sample_dict[
-                "beyond_seq_len_masking_is_positive (should be 0)"
-            ] = beyond_seq_len
+            per_sample_dict["beyond_seq_len_masking_is_positive (should be 0)"] = (
+                beyond_seq_len
+            )
 
             per_sample_dict["num_tokens_response"] = seq_len
             per_sample_dict["step"] = self._steps_run
