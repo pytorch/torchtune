@@ -4,18 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 from typing import List
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+from torchtune.utils import deprecated
 
-from torchtune.utils import get_logger, log_once
-
-logger = get_logger("DEBUG")
+from .loss_types import SFTLoss
 
 
-class CEWithChunkedOutputLoss(torch.nn.Module):
+@deprecated("Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead.")
+class CEWithChunkedOutputLoss(torch.nn.Module, SFTLoss):
     """
     Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.
 
@@ -34,11 +34,6 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
 
     def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
         super().__init__()
-        msg = (
-            "'CEWithChunkedOutputLoss' is deprecated and will be removed in future versions. "
-            "Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead."
-        )
-        log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
 
@@ -58,6 +53,10 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             self.compute_cross_entropy, *args, **kwargs
         )
         return self
+
+    def set_model_output(self, model: nn.Module) -> None:
+        """Modify model output to match the expected input for the loss function."""
+        model.set_num_output_chunks(self.num_output_chunks)
 
     def forward(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
         """
@@ -87,6 +86,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             target_chunk.reshape(-1)
             for target_chunk in labels.tensor_split(self.num_output_chunks, dim=1)
         ]
+
         # reshape logits [(bsz, num_tokens/num_chunks, vocab)] -> [(bsz*num_tokens/num_chunks, vocab)]
         logits = [
             logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits
