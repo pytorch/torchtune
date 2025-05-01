@@ -122,7 +122,7 @@ class PostProcessingWorker:
             memory_stats = training.get_memory_stats(device=self._device)
             log_dict.update(
                 {
-                    f"ref_actor_performance/memory/{k}": v
+                    f"postprocessing_worker_performance/memory/{k}": v
                     for k, v in memory_stats.items()
                 }
             )
@@ -140,20 +140,20 @@ class PostProcessingWorker:
 
         log_dict.update(
             {
-                "ref_actor_performance/time_total_ref_step (s)": time_total_ref_step,
-                "ref_actor_performance/time_model_running (s)": time_model_running,
-                "ref_actor_performance/pct_time_model_running (%)": pct_time_model_running,
-                "ref_actor_performance/time_waiting_buffer (s)": time_waiting_buffer,
-                "ref_actor_performance/pct_time_waiting_buffer (%)": pct_time_waiting_buffer,
-                # "queues/ref_actor_full_queue_data_discard": full_queue_data_discard,
+                "postprocessing_worker_performance/time_total_ref_step (s)": time_total_ref_step,
+                "postprocessing_worker_performance/time_model_running (s)": time_model_running,
+                "postprocessing_worker_performance/pct_time_model_running (%)": pct_time_model_running,
+                "postprocessing_worker_performance/time_waiting_buffer (s)": time_waiting_buffer,
+                "postprocessing_worker_performance/pct_time_waiting_buffer (%)": pct_time_waiting_buffer,
+                # "queues/postprocessing_worker_full_queue_data_discard": full_queue_data_discard,
                 "queues/rollout_queue_size": rollout_queue_size,
             }
         )
 
         log_dict.update(
             {
-                "ref_actor_rewards/rewards_mean": rewards_mean.item(),
-                "ref_actor_rewards/successes_mean": successes_mean.item(),
+                "postprocessing_worker_rewards/rewards_mean": rewards_mean.item(),
+                "postprocessing_worker_rewards/successes_mean": successes_mean.item(),
             }
         )
 
@@ -169,12 +169,12 @@ class PostProcessingWorker:
 
         # Per-function rewards and successes
         for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[
-                f"ref_actor_rewards/rewards_func_{func_name}_mean"
-            ] = func_mean.item()
+            log_dict[f"postprocessing_worker_rewards/rewards_func_{func_name}_mean"] = (
+                func_mean.item()
+            )
         for func_name, func_mean in zip(function_names, successes_mean_per_func):
             log_dict[
-                f"ref_actor_rewards/successes_func_{func_name}_mean"
+                f"postprocessing_worker_rewards/successes_func_{func_name}_mean"
             ] = func_mean.item()
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))

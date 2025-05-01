@@ -163,12 +163,12 @@ class TestPostProcessingWorker:
             replay_buffer = []
 
             # Ref actor handle
-            ref_actor = PostProcessingWorker.remote(
+            postprocessing_worker = PostProcessingWorker.remote(
                 cfg=cfg,
                 rollout_queue=rollout_queue,
                 replay_buffer=replay_buffer,
             )
-            actor_handles = [ref_actor.run.remote()]
+            actor_handles = [postprocessing_worker.run.remote()]
 
             # dummy trainer to wait for queue to empty
             dummy_trainer = DummyTrainer.remote(rollout_queue=rollout_queue)

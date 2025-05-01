@@ -607,7 +607,6 @@ class TransformerDecoder(nn.Module):
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
         input_embeds: Optional[torch.Tensor] = None,
-        output_mask: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
@@ -639,9 +638,6 @@ class TransformerDecoder(nn.Module):
                 This parameter is required during inference if caches have been setup. Default is None.
             input_embeds (Optional[torch.Tensor]): Pass these instead of tokens to short-circuit token embeddings
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
-            output_mask (Optional[torch.Tensor]): Boolean tensor with shape ``[b x s]``. A value of True in row ``i``
-                and column ``j`` means token ``i`` is included in the output. A value of False means token ``i`` is not
-                included in the output. Default is None, which means all tokens are included in the output.
 
         Returns:
             Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_linear_projection=False`
@@ -699,18 +695,14 @@ class TransformerDecoder(nn.Module):
             hidden.append(h)
 
         # shape: [b, seq_len, out_dim]
-        output = self.unembed(h, output_mask=output_mask)
+        output = self.unembed(h)
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type
         output = output if not hidden else [*hidden, output]
         return output
 
-    def unembed(self, h, output_mask=None):
-        if output_mask is not None:
-            bsz, _, dim = h.shape
-            h = h[output_mask]
-            h = h.reshape(bsz, -1, dim)
+    def unembed(self, h):
         # shape: [b, s, d]
         h = self.norm(h)
         if self.skip_linear_projection:
