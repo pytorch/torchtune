@@ -92,7 +92,7 @@ training:
     lr: 1e-5
     fused: True
   loss:
-    _component_: torchtune.dev.grpo.loss.GRPOWithChunkedOutputLoss
+    _component_: torchtune.dev.rl.linear_grpo_loss.LinearGRPOLoss
     kl_coeff: 0.01
     epsilon: 0.2
   seed: null

@@ -10,10 +10,10 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from torchtune.modules.loss.loss_protocols import SFTLinearLoss
+from torchtune.modules.loss.loss_protocols import RLLinearLoss
 
 
-class LinearGRPOLoss(nn.Module, SFTLinearLoss):
+class LinearGRPOLoss(nn.Module, RLLinearLoss):
     """Memory efficient GRPO loss that incrementally computes loss for chunks of tokens
     by masking ignored tokens, calculating logits and then applying GRPO loss. Combines
     the linear projection with the GRPO calculation for futher memory savings.
@@ -94,16 +94,7 @@ class LinearGRPOLoss(nn.Module, SFTLinearLoss):
         ref_logprobs: torch.Tensor,
         advantages: torch.Tensor,
         padding_masks: Optional[torch.Tensor] = None,  # [B*G, response_length]
-        *args,
-        **kwargs,
-    ) -> Tuple[
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor,
-    ]:
+    ) -> Tuple[torch.Tensor, ...]:
         """
         Args:
             weight (torch.Tensor): Tensor with weights of the model output projection layer. Shape ``[vocab_size, emb_dim]``
@@ -111,17 +102,11 @@ class LinearGRPOLoss(nn.Module, SFTLinearLoss):
             targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
             ref_logprobs (torch.Tensor): Reference logprobs for KL loss. Shape ``[bsz, seq_len, vocab_size]``
             advantages (torch.Tensor): Advantages for KL loss. Shape ``[bsz, seq_len, vocab_size?]``
+            padding_masks (Optional[torch.Tensor]): Mask for padding tokens. Shape ``[bsz, seq_len]``
 
-            *args: Additional positional arguments.
-            **kwargs: Additional keyword arguments.
         Returns:
-            torch.Tensor: loss tensor
+            Tuple[torch.Tensor, ...]: loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs
         """
-
-        # Total number of non-ignored tokens across the entire batch
-        mask = targets != self.ignore_index
-        total_elements = mask.sum()
-
         # Chunk along sequence dimension
         hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
         target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)

@@ -169,13 +169,13 @@ class PostProcessingWorker:
 
         # Per-function rewards and successes
         for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[f"ref_actor_rewards/rewards_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/rewards_func_{func_name}_mean"
+            ] = func_mean.item()
         for func_name, func_mean in zip(function_names, successes_mean_per_func):
-            log_dict[f"ref_actor_rewards/successes_func_{func_name}_mean"] = (
-                func_mean.item()
-            )
+            log_dict[
+                f"ref_actor_rewards/successes_func_{func_name}_mean"
+            ] = func_mean.item()
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 

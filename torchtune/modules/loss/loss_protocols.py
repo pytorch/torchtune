@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Protocol
+from typing import Any, Optional, Protocol
 
 import torch
 
@@ -42,8 +42,8 @@ class SFTLinearLoss(Protocol):
         ...
 
 
-class OnlineReinforcementLearningLinearLoss(Protocol):
-    """Protocol for loss functions in torchtune used in Online RL recipes that require
+class RLLinearLoss(Protocol):
+    """Protocol for loss functions in torchtune used in RL recipes that require
     model output linear projection weights in loss computation."""
 
     linear_loss: bool = True
@@ -63,16 +63,19 @@ class OnlineReinforcementLearningLinearLoss(Protocol):
         padding_masks: Optional[torch.Tensor] = None,  # [B x G, L]
         *args,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> Any:
         """
         Args:
-            weight (torch.Tensor): Tensor with weights of the model output projection layer. Shape ``[vocab_size, emb_dim]``
-            outputs (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
-            targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
+            pi_old_logprobs (torch.Tensor): Log probabilities of the old policy. Shape ``[B x G, L]``
+            pi_logprobs (torch.Tensor): Log probabilities of the new policy. Shape ``[B x G, L]
+            ref_logprobs (torch.Tensor): Log probabilities of the reference policy. Shape ``[B x G, L
+            advantages (torch.Tensor): Advantages of the new policy. Shape ``[B x G]``
+            padding_masks (Optional[torch.Tensor]): Mask for padding tokens. Shape ``[B x G, L]``
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
+
         Returns:
-            torch.Tensor: loss tensor
+            Any: Object containing the relevant loss information
         """
         ...
 

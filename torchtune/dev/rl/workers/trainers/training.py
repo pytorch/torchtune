@@ -16,8 +16,8 @@ from omegaconf import DictConfig
 from torch.optim import Optimizer
 from torchrl.data import RayReplayBuffer
 from torchtune import config, training, utils
-from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
 from torchtune.dev.rl.datatypes import Trajectory
+from torchtune.dev.rl.types import GRPOStats, GRPOTrajectory
 from torchtune.dev.rl.utils import stateless_init_process_group
 from torchtune.generation import (
     get_causal_mask_from_padding_mask,
@@ -316,6 +316,9 @@ class TrainingWorker:
         Args:
             trajectory (GRPOTrajectory): a batch of trajectories
             context_length (int): the length of the context window
+
+        Raises:
+            NotImplementedError: If the loss is not a LinearGRPOLoss.
 
         Returns:
             GRPOStats: Instance of :class:`~torchtune.rlhf.GRPOStats`
@@ -637,9 +640,9 @@ class TrainingWorker:
                 )
             else:
                 beyond_seq_len = 0
-            per_sample_dict["beyond_seq_len_masking_is_positive (should be 0)"] = (
-                beyond_seq_len
-            )
+            per_sample_dict[
+                "beyond_seq_len_masking_is_positive (should be 0)"
+            ] = beyond_seq_len
 
             per_sample_dict["num_tokens_response"] = seq_len
             per_sample_dict["step"] = self._steps_run

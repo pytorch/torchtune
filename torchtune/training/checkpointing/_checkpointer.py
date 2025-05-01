@@ -110,9 +110,11 @@ class _CheckpointerInterface(Protocol):
 
     """
 
-    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: ...
+    def load_checkpoint(self, **kwargs) -> Dict[str, Any]:
+        ...
 
-    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: ...
+    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None:
+        ...
 
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
@@ -428,20 +430,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._safe_serialization = safe_serialization
         self._checkpoint_dir = checkpoint_dir
         self._model_type = ModelType[model_type]
-        self._output_dir = output_dir if output_dir is not None else "./"
-        check_outdir_not_in_ckptdir(
-            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
-        )
         self._enable_dcp = enable_dcp
-
         self._fs, _ = url_to_fs(self._checkpoint_dir)
-        output_fs, _ = url_to_fs(self._output_dir)
-        if self._fs != output_fs:
-            raise ValueError(
-                f"Checkpoint and output directories must be on the same filesystem. "
-                f"Got {self._fs} and {output_fs} instead."
+        self._output_dir = output_dir
+
+        if self._output_dir is not None:
+            check_outdir_not_in_ckptdir(
+                ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
             )
-        self._fs.mkdirs(output_dir, exist_ok=True)
+            output_fs, _ = url_to_fs(self._output_dir)
+            if self._fs != output_fs:
+                raise ValueError(
+                    f"Checkpoint and output directories must be on the same filesystem. "
+                    f"Got {self._fs} and {output_fs} instead."
+                )
+            self._fs.mkdirs(output_dir, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -707,6 +710,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
+        if self._output_dir is None:
+            raise ValueError(
+                "Output directory not specified. Please specify an output directory to save the checkpoint."
+            )
         output_dirname = f"step_{step}" if step is not None else f"epoch_{epoch}"
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
@@ -836,9 +843,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
                     map_original_name_to_new_name[cpt_idx] = shard_name
                     output_path = os.path.join(
-                        self._output_dir, f"epoch_{epoch}", shard_name
+                        self._output_dir, output_dirname, shard_name
                     )
                     self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
+
                     if not self._safe_serialization:
                         output_path = output_path = ".bin"
                         torch.save(model_state_dict, output_path)
@@ -871,7 +879,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     index_file_name = TORCH_INDEX_FNAME
 
                 index_path = os.path.join(
-                    self._output_dir, f"epoch_{epoch}", index_file_name
+                    self._output_dir, output_dirname, index_file_name
                 )
 
                 index_data = {
@@ -909,14 +917,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead"
                 )
             else:
-                state_dict[training.ADAPTER_KEY] = (
-                    convert_weights.tune_to_peft_adapter_weights(
-                        state_dict[training.ADAPTER_KEY],
-                        num_heads=self._config["num_attention_heads"],
-                        num_kv_heads=self._config["num_key_value_heads"],
-                        dim=self._config["hidden_size"],
-                        head_dim=self._config.get("head_dim", None),
-                    )
+                state_dict[
+                    training.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
+                    state_dict[training.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
                 output_path = os.path.join(
                     self._output_dir, output_dirname, ADAPTER_MODEL_FNAME
@@ -954,11 +962,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     "PEFT integration for Llama3.2 Vision is not supported, skipping adapter config save"
                 )
             else:
-                state_dict[training.ADAPTER_CONFIG] = (
-                    convert_weights.tune_to_peft_adapter_config(
-                        adapter_config=state_dict[training.ADAPTER_CONFIG],
-                        base_model_name_or_path=self.repo_id,
-                    )
+                state_dict[
+                    training.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    adapter_config=state_dict[training.ADAPTER_CONFIG],
+                    base_model_name_or_path=self.repo_id,
                 )
                 output_path = (
                     os.path.join(self._output_dir, output_dirname, ADAPTER_CONFIG_FNAME)
