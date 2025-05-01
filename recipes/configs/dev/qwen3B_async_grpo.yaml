@@ -10,7 +10,7 @@
 # numbers of workers.
 
 # To launch, run the following:
-#     tune run dev/async_grpo --config recipes/configs/dev/qwen3B_async_grpo.yaml
+#     tune run dev/async_grpo_full_finetune_distributed --config dev/qwen3B_async_grpo
 
 # Note that unlike in synchronous recipes (all the existing ones), we don't follow a SPMD model here so passing a flag like `--nproc-per-node 8`
 # won't help here. This is instead launching just the controller, which is a CPU process. The controller will in turn launch every other worker.

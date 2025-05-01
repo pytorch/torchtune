@@ -4,18 +4,25 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import sys
+import importlib
 import time
 
 import pytest
 
+_has_ray = importlib.util.find_spec("ray") is not None
+
 # Do not import anything if not running on Python >= 3.10
-if sys.version_info >= (3, 10):
+if _has_ray:
     import ray
+    from ray import remote
     from ray.util.queue import Queue
     from tensordict import NonTensorData
     from torchtune.dev.rl.datatypes.trajectory import Trajectory
     from torchtune.dev.rl.workers.postprocessing import PostProcessingWorker
+else:
+    # dummy decorator - never used bc tests are skipped
+    def remote(*args, **kwargs):
+        return lambda cls: cls
 
 
 import torch
@@ -26,7 +33,7 @@ grpo_samples = 4
 max_generated_tokens = 32
 
 
-@ray.remote(num_cpus=1, num_gpus=0)
+@remote(num_cpus=1, num_gpus=0)
 class DummyTrainer:
     def __init__(self, rollout_queue):
         self.rollout_queue = rollout_queue
@@ -39,35 +46,6 @@ class DummyTrainer:
                 time.sleep(15.0)
                 return
             time.sleep(0.1)
-
-
-@pytest.fixture
-def rollout_queue():
-    queue = Queue(
-        actor_options={"num_cpus": 10, "num_gpus": 0},
-        maxsize=2,
-    )
-    for i in range(2):
-        queue.put(
-            Trajectory(
-                query_responses=torch.randn(grpo_samples, max_generated_tokens + i),
-                responses=torch.randn(grpo_samples, max_generated_tokens),
-                logprobs=torch.randn(grpo_samples, max_generated_tokens),
-                ref_logprobs=None,
-                query_response_padding_masks=torch.randint(
-                    0, 2, (grpo_samples, max_generated_tokens + i)
-                ).to(dtype=torch.bool),
-                seq_lens=torch.randint(0, 100, (grpo_samples,)),
-                answers=NonTensorData(["42"] * grpo_samples),
-                policy_version=None,
-                rewards=None,
-                advantages=None,
-                successes=None,
-                reward_metadata=None,
-                sequence_ids=None,
-            )
-        )
-    return queue
 
 
 class TestPostProcessingWorker:
@@ -94,21 +72,19 @@ class TestPostProcessingWorker:
                 "num_kv_heads": 2,
             },
             "dtype": "fp32",
-            "ref_checkpointer": {
-                "_component_": "torchtune.training.FullModelHFCheckpointer",
-                "checkpoint_dir": "/tmp/test-artifacts/llama3-hf-04232025",
-                "checkpoint_files": ["model.safetensors"],
-                "output_dir": str(tmpdir),
-                "model_type": "LLAMA3",
+            "postprocessing": {
+                "ref_checkpointer": {
+                    "_component_": "torchtune.training.FullModelHFCheckpointer",
+                    "checkpoint_dir": "/tmp/test-artifacts/llama3-hf-04232025",
+                    "checkpoint_files": ["model.safetensors"],
+                    "output_dir": str(tmpdir),
+                    "model_type": "LLAMA3",
+                },
             },
             "metric_logger": {
                 "_component_": "torchtune.training.metric_logging.DiskLogger",
                 "log_dir": str(tmpdir),
                 "filename": log_file,
-            },
-            "postprocessing": {
-                "device_type": "cuda",
-                "dtype": "bf16",
             },
             "output_dir": str(tmpdir),
             "inference": {
