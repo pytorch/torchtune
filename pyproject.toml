@@ -72,11 +72,11 @@ async_rl = [
     # Regular PyPI dependencies
     "ray",
     "readerwriterlock",
-    "vllm",
+    "vllm==0.8.4",
     "wandb",
 
     # For working w/ math datasets in default config
-    "math-verify",
+    "math-verify[antlr4_9_3]",
 ]
 
 [tool.setuptools.dynamic]

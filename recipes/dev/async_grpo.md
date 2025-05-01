@@ -50,34 +50,33 @@ The following works for us:
 ```bash
 conda create --name tunerl python=3.10
 conda activate tunerl
-git clone https://github.com/joecummings/r1-zero.git
-cd r1-zero
+git clone https://github.com/pytorch/torchtune.git
+cd torchtune
 pip install torch torchvision torchao
 pip install -e .[async_rl]
 
 ```
+Before running this, you need to a) download the model file and b) be logged into Weights and Biases to track the experiment. So let's make sure of that:
 
-With these installed you can run the recipe with
+```
+conda activate tunerl
+tune download Qwen/Qwen2.5-3B --output-dir /tmp/Qwen2.5-3B --ignore-patterns "original/consolidated.00.pth"
+wandb login
+```
+
+Now everything should be taken care of! From your conda env, now you can run:
 
 ```bash
 tune run dev/async_grpo_full_finetune_distributed --config recipes/configs/dev/qwen3B_async_grpo.yaml
 ```
 
-Apart from the standard config options, GRPO introduces
-- grpo_samples
-- forward_batch_size
-- max_generated_tokens
-- top_k
-- temperature
-- replay_buffer_size
-- ppo_epochs
-- num_steps
-- steps_before_sync
-- num_ref_workers
-- num_fsdp_workers
-- vllm
-   num_workers
-   tp_size
-   batch_size
-   steps_before_sync
-   queue_maxsize
+We can run the above successfully on a server using 8x H100 nodes. We left GPU memory to spare so we think it should work on cards with less VRAM, but if not we recommend reducing batch sizes to make this fit.
+
+Note that we currently haven't focused on memory optimization for this prototype, so it's very possible that even training a small model like Qwen-3B can use more memory than what we normally use in SFT. We accept PRs!
+
+# What's next
+This is just a prototype to outline what a fully asynchronous RL training loop can look like. We wanted to build this directly in Tune to have a working example to compare to the sync implementation.
+
+In the next phase of this project, we are going to factor out components into another library, and we are going to spend more time on API design to make sure we can craft something that people will love. We will post a public RFC when we are ready...
+
+For the time being, please play with this prototype, tell us what you like, and most importantly tell us what we can be doing better!
