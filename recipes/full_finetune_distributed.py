@@ -145,6 +145,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.method = cfg.method
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+
         # Look for the date_run pattern in all path segments
         date_run_pattern = None
         for part in path_parts:
@@ -222,6 +223,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
+        # Initialize epsilon values for importance sampling
+        self.epsilon_low_pos = cfg.get("epsilon_low_pos", 0.8)
+        self.epsilon_low_neg = cfg.get("epsilon_low_neg", 0.8)
+        self.epsilon_high_pos = cfg.get("epsilon_high_pos", 1.2)
+        self.epsilon_high_neg = cfg.get("epsilon_high_neg", 1.2)
+        self.use_reference = cfg.get("use_reference", False)
+
+
+        # Add storage for precomputed reference logprobs
+        self.reference_logprobs_cache = {}
+
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -310,6 +322,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "Checkpoint does not contain the required keys needed for updating recipe state. "
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
+    def load_model(self, cfg: DictConfig) -> None:
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+            
+        self._model = self._setup_model(
+            cfg_model=cfg.model,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
+            reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
+            model_state_dict=checkpoint_dict[training.MODEL_KEY],
+            ac_mode=cfg.get("ac_mode", None),
+            ac_option=cfg.get("ac_option", None),
+        )
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -323,6 +349,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "project": cfg.get("wandb_project", None),
                 "log_dir": cfg.metric_logger.get("log_dir", None),
                 "seed": self.seed,
+                "group": cfg.get("wandb_group", None),
             }
             self._metric_logger = config.instantiate(cfg.metric_logger, **wandb_kwargs)
 
@@ -1248,6 +1275,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     (idx + 1) == n_samples
                 ):
 
+
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
                         torch.distributed.all_reduce(num_tokens)
@@ -1290,10 +1318,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     )
 
                     # Log per-step metrics
-                    if (
-                        self.global_step % self._log_every_n_steps == 0
-                        and self._is_rank_zero
-                    ):
+                    if ( self._is_rank_zero):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,

@@ -327,6 +327,15 @@ _ALL_RECIPES = [
         supports_distributed=True,
 
     ),
+    Recipe(
+        name="full_finetune_distributed_plus",
+        file_path="full_finetune_distributed_plus.py",
+        configs=[
+            Config(name="llama3_1/8B_full_finetune_distributed", file_path="llama3_1/8B_full.yaml"),
+        ],
+        supports_distributed=True,
+
+    ),
 
 
     Recipe(
