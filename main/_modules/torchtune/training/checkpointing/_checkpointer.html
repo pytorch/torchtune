@@ -1357,15 +1357,24 @@
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                     <span class="s2">&quot;Saving Llama3.2 Vision adapter weights to PEFT format is not supported, saving to torchtune format instead&quot;</span>
                 <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA4</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Saving Llama4 adapter weights to PEFT format is not supported, saving to torchtune format instead&quot;</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;text_config&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="s2">&quot;text_config&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span>
+                    <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span>
+                <span class="p">)</span>
                 <span class="n">state_dict</span><span class="p">[</span>
                     <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span>
                 <span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_peft_adapter_weights</span><span class="p">(</span>
                     <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span>
-                    <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
-                    <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
-                    <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
-                    <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                    <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                    <span class="n">head_dim</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                 <span class="p">)</span>
                 <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epoch_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">ADAPTER_MODEL_FNAME</span>
