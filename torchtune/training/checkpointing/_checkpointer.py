@@ -19,6 +19,7 @@ from fsspec.core import url_to_fs
 from safetensors.torch import save as save_safetensors, save_file
 from torch.distributed.checkpoint import (
     async_save,
+    DefaultLoadPlanner,
     FileSystemReader,
     FileSystemWriter,
     load,
@@ -1360,6 +1361,9 @@ class DistributedCheckpointer(_CheckpointerInterface):
             state_dict=state_dict,
             storage_reader=FileSystemReader(checkpoint_path),
             process_group=self._process_group,
+            planner=DefaultLoadPlanner(
+                allow_partial_load=True
+            ),  # this is because we add initial_lr to the state dict, but not all recipes have it
         )
 
         return state_dict
