@@ -468,6 +468,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">safetensors.torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span> <span class="k">as</span> <span class="n">save_safetensors</span><span class="p">,</span> <span class="n">save_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">async_save</span><span class="p">,</span>
+    <span class="n">DefaultLoadPlanner</span><span class="p">,</span>
     <span class="n">FileSystemReader</span><span class="p">,</span>
     <span class="n">FileSystemWriter</span><span class="p">,</span>
     <span class="n">load</span><span class="p">,</span>
@@ -1809,6 +1810,9 @@
             <span class="n">state_dict</span><span class="o">=</span><span class="n">state_dict</span><span class="p">,</span>
             <span class="n">storage_reader</span><span class="o">=</span><span class="n">FileSystemReader</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">),</span>
             <span class="n">process_group</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_group</span><span class="p">,</span>
+            <span class="n">planner</span><span class="o">=</span><span class="n">DefaultLoadPlanner</span><span class="p">(</span>
+                <span class="n">allow_partial_load</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">),</span>  <span class="c1"># this is because we add initial_lr to the state dict, but not all recipes have it</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">state_dict</span>
