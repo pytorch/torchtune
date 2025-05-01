@@ -892,14 +892,25 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history()
 
                 utils.batch_to_device(batch, self._device)
+                model_inputs = list(batch.values())
+                buffers = list(self._model.buffers())
                 optional_context_parallel_context_manager = (
-                    training.get_context_parallel_context_manager(
+                    training.create_consolidated_train_context(
                         cp_enabled=self.cp_degree > 1,
-                        model=self._model,
                         cp_mesh=self.world_mesh["cp"],
-                        model_inputs=list(batch.values()),
+                        cp_buffers=model_inputs + buffers,
+                        cp_seq_dims=[1] * len(model_inputs) + [0] * len(buffers),
+                        cp_no_restore_buffers=set(model_inputs),
                     )
                 )
+                # optional_context_parallel_context_manager = (
+                #     training.get_context_parallel_context_manager(
+                #         cp_enabled=self.cp_degree > 1,
+                #         model=self._model,
+                #         cp_mesh=self.world_mesh["cp"],
+                #         model_inputs=list(batch.values()),
+                #     )
+                # )
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
                 current_num_tokens = (
@@ -911,16 +922,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 with optional_context_parallel_context_manager:
                     current_loss = self._loss_step(batch) * current_num_tokens
-                running_loss += current_loss
-
-                # For optimizer in backward, we need to normalize before calling backward
-                # This case and gradient accumulation are mutually exclusive
-                if self._optimizer_in_bwd:
-                    torch.distributed.all_reduce(num_tokens)
-                    torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss * (self.dp_degree / num_tokens)
-                with optional_context_parallel_context_manager:
+                    # For optimizer in backward, we need to normalize before calling backward
+                    # This case and gradient accumulation are mutually exclusive
+                    if self._optimizer_in_bwd:
+                        torch.distributed.all_reduce(num_tokens)
+                        torch.distributed.all_reduce(running_loss)
+                        current_loss = current_loss * (self.dp_degree / num_tokens)
                     current_loss.backward()
+
                 # Optimizer step (if not fused in backward call)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
