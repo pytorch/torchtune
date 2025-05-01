@@ -318,9 +318,9 @@ def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
     param_name="apply_lora_to_output", msg="Please use state_dict_keys instead."
 )
 def validate_missing_and_unexpected_for_lora(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
-    apply_lora_to_mlp: bool,
-    apply_lora_to_output: bool,
+    lora_attn_modules: Optional[List[LORA_ATTN_MODULES]] = None,
+    apply_lora_to_mlp: Optional[bool] = None,
+    apply_lora_to_output: Optional[bool] = None,
     state_dict_keys: Optional[List[str]] = None,
     base_missing: Optional[List[str]] = None,
     base_unexpected: Optional[List[str]] = None,
@@ -333,13 +333,13 @@ def validate_missing_and_unexpected_for_lora(
     unexpected as returned by the load_state_dict API with strict=False.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (Optional[List[LORA_ATTN_MODULES]]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
             DEPRECATED: use state_dict_keys instead.
-        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_mlp (Optional[bool]): whether LoRA is applied to each MLP linear.
             DEPRECATED: use state_dict_keys instead.
-        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
+        apply_lora_to_output (Optional[bool]): whether LoRA is applied to the final output projection.
             DEPRECATED: use state_dict_keys instead.
         state_dict_keys (Optional[List[str]]): ground truth model state dict we are validating against
         base_missing (Optional[List[str]]): List of missing keys when loading base model weights.
@@ -385,6 +385,9 @@ def validate_missing_and_unexpected_for_lora(
                 "Missing keys when validating state dict: \n" + "\n".join(err_msgs)
             )
     else:
+        assert lora_attn_modules is not None
+        assert apply_lora_to_mlp is not None
+        assert apply_lora_to_output is not None
         lora_modules = get_lora_module_names(
             lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
         )
