@@ -35,7 +35,6 @@ from torchtune.training.checkpointing._utils import (
     safe_torch_load,
     SHARD_FNAME,
 )
-from torchtune.training.quantization import _torchao_0_7_supported
 
 
 class TestQATLoRAFinetuneDistributedRecipe:
@@ -53,17 +52,21 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama3": [11.9835, 11.9694, 11.9615, 11.9383],
+            "llama3": [
+                11.977421760559082,
+                11.979637145996094,
+                11.948746681213379,
+                11.912514686584473,
+            ],
         }
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     @pytest.mark.parametrize(
         "micro_batch_size, gradient_accumulation_steps, should_compile",
         [(4, 1, True), (1, 4, False)],
     )
-    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
     def test_loss(
         self,
         micro_batch_size,
@@ -78,7 +81,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed
             --config llama3/8B_qat_lora \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
@@ -103,20 +106,20 @@ class TestQATLoRAFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
+
         expected_loss_values = self._fetch_expected_loss_values("llama3")
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, save_adapter_weights_only",
         [
             ("llama3/8B_qat_lora", "llama3", "tune", False),
         ],
     )
-    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
     def test_training_state_on_resume(
         self,
         config,
@@ -149,7 +152,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \
@@ -177,7 +180,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \
@@ -216,8 +219,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
             ("llama3/8B_qat_lora", "llama3", "tune"),
         ],
     )
-    @gpu_test(gpu_count=2)
-    @pytest.mark.skipif(not _torchao_0_7_supported, reason="needs torchao 0.7+")
+    @gpu_test(gpu_count=4)
     def test_save_and_load_merged_weights(
         self, recipe_config, model_type, ckpt_type, tmpdir, monkeypatch
     ):
@@ -227,7 +229,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {recipe_config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \

@@ -194,6 +194,11 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
         self.ignore_index = ignore_index
         self.fkl_loss = ForwardKLLoss(ignore_index)
 
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile only to the fkl_loss function."""
+        self.fkl_loss = torch.compile(self.fkl_loss, *args, **kwargs)
+        return self
+
     def forward(
         self,
         student_logits: List[torch.Tensor],
@@ -217,8 +222,8 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
             >>> loss_fn = ForwardKLWithChunkedOutputLoss()
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
-            >>> output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]
-            >>> teacher_chunks = [teacher_model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]
+            >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
+            >>> teacher_chunks = [teacher_model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
             >>> labels = torch.tensor([bsz, num_tokens])
             >>> loss = loss_fn(output_chunks, teacher_chunks, labels)
         """
@@ -236,7 +241,7 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
         # chunk and reshape labels (bsz, num_tokens, vocab) -> [(bsz*num_tokens/num_chunks, vocab)]
         labels = [
             target_chunk.reshape(-1)
-            for target_chunk in labels.chunk(self.num_output_chunks, dim=1)
+            for target_chunk in labels.tensor_split(self.num_output_chunks, dim=1)
         ]
 
         total_fkl_loss = 0.0
@@ -278,6 +283,11 @@ class ReverseKLWithChunkedOutputLoss(torch.nn.Module):
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
         self.rkl_loss = ReverseKLLoss(ignore_index)
+
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile only to the rkl_loss function."""
+        self.rkl_loss = torch.compile(self.rkl_loss, *args, **kwargs)
+        return self
 
     def forward(
         self,
@@ -370,6 +380,11 @@ class SymmetricKLWithChunkedOutputLoss(torch.nn.Module):
         self.sym_kl_loss = SymmetricKLLoss(
             sym_kd_ratio=self.sym_kd_ratio, ignore_index=self.ignore_index
         )
+
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile only to the sym_kl_loss function."""
+        self.sym_kl_loss = torch.compile(self.sym_kl_loss, *args, **kwargs)
+        return self
 
     def forward(
         self,

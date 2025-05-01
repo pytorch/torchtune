@@ -11,7 +11,7 @@ from typing import Any, Dict
 
 import ray
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from ray.util.queue import Queue
 from tensordict import TensorDict, TensorDictBase
 from tensordict.utils import expand_as_right
@@ -107,15 +107,12 @@ def _get_output_tokens_and_log_probs(
     tokens_out, tokenizer, log_prob_key, token_response_key, text_response_key
 ):
     tokens_out = RequestOutput.from_request_output(tokens_out)
-
     tokens_response_td = tokens_out.outputs._tensordict.select(
         "text", "token_ids", "logprobs", strict=False
     )
-
     tokens_response_td.rename_key_("token_ids", token_response_key)
     tokens_response_td.rename_key_("text", text_response_key)
     tokens_response_td.rename_key_("logprobs", log_prob_key)
-
     return tokens_response_td
 
 
@@ -322,8 +319,6 @@ class RayGRPORecipe(OrchestrationRecipeInterface):
 
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
-    from omegaconf import OmegaConf
-
     OmegaConf.register_new_resolver("eval", eval)
     OmegaConf.resolve(cfg)
 

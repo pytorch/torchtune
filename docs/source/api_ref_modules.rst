@@ -25,6 +25,7 @@ Modeling Components and Building Blocks
     VisionTransformer
     LayerDropout
     prepare_layer_dropout
+    classifier_model
 
 Losses
 ------
@@ -33,9 +34,11 @@ Losses
     :toctree: generated/
     :nosignatures:
 
-    loss.CEWithChunkedOutputLoss
+    loss.LinearCrossEntropyLoss
     loss.ForwardKLLoss
     loss.ForwardKLWithChunkedOutputLoss
+    loss.ReverseKLWithChunkedOutputLoss
+    loss.SymmetricKLWithChunkedOutputLoss
 
 Base Tokenizers
 ---------------

@@ -277,8 +277,8 @@ class VisionTransformer(nn.Module):
 
         Args:
             images (torch.Tensor): torch.Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).
-            aspect_ratio (Optional[torch.Tensor]): torch.Tensor with shape (bsz, n_imgs, 2). If all
-                images have a single tile, i.e. they were not tile-cropped, it should be None.
+            aspect_ratio (Optional[torch.Tensor]): torch.Tensor with shape (bsz, n_imgs, 2). If there are no
+                tile positional embeddings, i.e. they were not tile-cropped, it should be None.
                 Used to calculate the positional embeddings for the tiles.
 
         Returns:
@@ -286,9 +286,6 @@ class VisionTransformer(nn.Module):
                 where x is a torch.tensor of shape (bsz, n_imgs, n_tiles, n_tokens, embed_dim) and
                 hidden_states has shape is a list of len(out_indices) torch.tensor with shape
                 (bsz, n_imgs, n_tiles, n_tokens, embed_dim).
-
-        Raises:
-            ValueError: If aspect_ratio is None, but n_tiles > 1 in the batch.
 
         Examples:
 
@@ -346,18 +343,9 @@ class VisionTransformer(nn.Module):
         bsz, n_imgs, n_tiles, nch, w, h = images.shape
         bsz_and_n_imgs = bsz * n_imgs
 
-        # if aspect_ratio is not provided, it defaults to one tile [1,1]
-        if aspect_ratio is None:
-            aspect_ratio = torch.ones(
-                (bsz_and_n_imgs, 2), dtype=torch.int, device=images.device
-            )
-            if n_tiles > 1:
-                raise ValueError(
-                    f"aspect_ratio was not provided, but found n_tiles>1 for {images.shape=}. Please provide aspect_ratio."
-                )
-
         images = images.reshape(bsz_and_n_imgs * n_tiles, nch, w, h)
-        aspect_ratio = aspect_ratio.reshape(bsz_and_n_imgs, 2)
+        if aspect_ratio is not None:
+            aspect_ratio = aspect_ratio.reshape(bsz_and_n_imgs, 2)
 
         # patch embeddings (tokens)
         # A tile becomes a grid of patch_grid_size X patch_grid_size patches

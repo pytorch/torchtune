@@ -10,6 +10,7 @@ import pytest
 import torch
 from tests.test_utils import DummyTokenizer
 from torch.utils.data import Dataset
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import PackedDataset
 
@@ -23,7 +24,7 @@ class DummyDataset(Dataset):
             raise IndexError()
         return {
             "tokens": [index] * self.sample_size,
-            "labels": [index] * self.sample_size,
+            "labels": [index] * (self.sample_size - 1) + [CROSS_ENTROPY_IGNORE_IDX],
         }
 
     def __len__(self):
@@ -41,7 +42,8 @@ class DummyRealDataset(Dataset):
 
     def __getitem__(self, index):
         tokens = self.tokenizer.encode(self.samples_list[index])
-        return {"tokens": tokens, "labels": tokens}
+        labels = tokens[1:] + [CROSS_ENTROPY_IGNORE_IDX]
+        return {"tokens": tokens, "labels": labels}
 
     def __len__(self):
         return len(self.samples_list)
@@ -182,9 +184,9 @@ class TestPackedDataset:
             torch.tensor([4, 3, 2, 5, 7, -1, 0, 0, 0, 0]),
         ]
         expected_tokenized_labels = [
-            torch.tensor([0, 4, 2, 1, 7, 4, -1, 0, 1, 9]),
-            torch.tensor([5, 2, 6, 4, 3, 8, -1, 0, 4, 3]),
-            torch.tensor([4, 3, 2, 5, 7, -1, -100, -100, -100, -100]),
+            torch.tensor([4, 2, 1, 7, 4, -1, -100, 1, 9, 5]),
+            torch.tensor([2, 6, 4, 3, 8, -1, -100, 4, 3, 4]),
+            torch.tensor([3, 2, 5, 7, -1, -100, -100, -100, -100, -100]),
         ]
         expected_seq_lens = [
             torch.tensor(

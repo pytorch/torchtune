@@ -18,6 +18,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
@@ -31,7 +32,6 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
-
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -282,6 +282,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             assert (
                 self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
             ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
+        elif getattr(self._loss_fn, "linear_loss", False):
+            raise ValueError(
+                "Linear losses are not supported yet for KD. Please use the deprecated CEWithChunkedOutputLoss."
+            )
 
         log.info("Loss is initialized.")
 
@@ -326,11 +330,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -446,6 +445,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
+            state_dict_keys=model.state_dict().keys(),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -546,10 +546,17 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
+        sampler = StatefulDistributedSampler(
+            ds,
+            num_replicas=1,
+            rank=0,
+            shuffle=shuffle,
+            seed=0,
+        )
         dataloader = StatefulDataLoader(
             dataset=ds,
             batch_size=batch_size,
-            shuffle=shuffle,
+            sampler=sampler,
             collate_fn=(
                 partial(
                     padded_collate_sft,
@@ -562,12 +569,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-
-        if dataloader_state_dict is not None:
-            dataloader.load_state_dict(dataloader_state_dict)
-            # B/c we currently only save at epoch boundaries, if we cut the previous epoch short
-            # we need to force the dataloader to finish the last iteration before it's actually used
-            list(dataloader)
 
         return dataloader
 
@@ -650,12 +651,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         with torch.no_grad():
             teacher_logits = self._teacher_model(tokens, mask=mask, input_pos=input_pos)
 
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
         if not isinstance(logits, list):
             labels = labels.reshape(-1)
             logits = logits.reshape(-1, logits.size(-1))
@@ -692,8 +687,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             pbar = tqdm(total=self._steps_per_epoch)
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
 
                 # Start tracking CUDA memory for active steps for just the first epoch
@@ -736,8 +731,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.global_step += 1
 
-                    class_loss_to_log = running_class_loss.item() / num_tokens
-                    kd_loss_to_log = running_kd_loss.item() / num_tokens
+                    class_loss_to_log = running_class_loss.detach().item() / num_tokens
+                    kd_loss_to_log = running_kd_loss.detach().item() / num_tokens
                     loss_to_log = (
                         1 - self._kd_ratio
                     ) * class_loss_to_log + self._kd_ratio * kd_loss_to_log

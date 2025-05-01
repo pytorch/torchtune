@@ -61,7 +61,7 @@ optimizer:
   lr: 5e-6
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 clip_grad_norm: null
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 

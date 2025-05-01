@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-import torch.nn.functional as F
 from torch import nn
 
 
@@ -35,9 +34,27 @@ class RMSNorm(nn.Module):
             torch.Tensor: The normalized and scaled tensor having the same shape as ``x``.
         """
         # computation is in fp32
-        return F.rms_norm(
-            x.float(),
-            normalized_shape=self.normalized_shape,
-            weight=self.scale,
-            eps=self.eps,
-        ).to(x.dtype)
+        x_fp32 = x.float()
+        x_normed = (
+            x_fp32 * torch.rsqrt(x_fp32.pow(2).mean(-1, keepdim=True) + self.eps)
+        ).type_as(x)
+        return x_normed * self.scale
+
+
+def rms_norm(x: torch.Tensor, eps: float = 1e-6):
+    """
+    This is just a functional RMSNorm without the trainable scale parameter.
+
+    Args:
+        x (torch.Tensor): input tensor to normalize
+        eps (float): small value to avoid division by zero. Default: 1e-6
+
+    Returns:
+        torch.Tensor: The normalized tensor having the same shape as ``x``.
+
+    """
+    x_fp32 = x.float()
+    x_normed = (
+        x_fp32 * torch.rsqrt(x_fp32.pow(2).mean(-1, keepdim=True) + eps)
+    ).type_as(x)
+    return x_normed

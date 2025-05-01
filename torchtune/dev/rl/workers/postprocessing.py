@@ -12,8 +12,8 @@ import torchtune.training as training
 from omegaconf import DictConfig
 
 from torchtune import config, generation, rlhf, utils
-from torchtune.dev.grpo.rewards import batched_rewards
 from torchtune.dev.rl.datatypes import Trajectory
+from torchtune.dev.rl.rewards import batched_rewards
 
 log = utils.get_logger("DEBUG")
 
@@ -169,20 +169,19 @@ class PostProcessingWorker:
 
         # Per-function rewards and successes
         for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[
-                f"ref_actor_rewards/rewards_func_{func_name}_mean"
-            ] = func_mean.item()
+            log_dict[f"ref_actor_rewards/rewards_func_{func_name}_mean"] = (
+                func_mean.item()
+            )
         for func_name, func_mean in zip(function_names, successes_mean_per_func):
-            log_dict[
-                f"ref_actor_rewards/successes_func_{func_name}_mean"
-            ] = func_mean.item()
+            log_dict[f"ref_actor_rewards/successes_func_{func_name}_mean"] = (
+                func_mean.item()
+            )
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
     def run(self):
         import time
 
-        log.info("running ref actor")
         idx = 0
         while True:
             # Start measuring total step time
@@ -237,24 +236,14 @@ class PostProcessingWorker:
             # masking of ref_logprobs is done in grpo_step
 
             # Extract components from raw trajectory: these have size [B * G, T]
-            print(f"Extracting components from raw trajectory: {trajectory}")
             query_responses = trajectory.query_responses
             responses = trajectory.responses
             query_response_padding_masks = trajectory.query_response_padding_masks
-            seq_lens = trajectory.seq_lens
             answers = trajectory.answers  # list[str] of len (B * G)
             answers = [
                 answers[i : i + self.group_size]
                 for i in range(0, len(answers), self.group_size)
             ]  # list[list[str]] of len [B, G]. Basically a reshape
-
-            # Compute padded tokens percentage
-            total_tokens = query_responses.numel()
-            padded_tokens = (query_responses == self._tokenizer.pad_id).sum().item()
-            padded_tokens_percentage = (
-                (padded_tokens / total_tokens) * 100 if total_tokens > 0 else 0
-            )
-            number_of_tokens = seq_lens.sum().item()
 
             # Truncate sequences at first stop token
             (
@@ -284,7 +273,6 @@ class PostProcessingWorker:
 
             # Compute advantages: B, G, num_funcs -> B, G
             group_rewards = rewards_by_fn.sum(-1)
-            group_successes = successes_by_fn.sum(-1)
 
             # To compute advantage, subtract the mean of the group rewards from each group reward
             group_advantages = (group_rewards - group_rewards.mean(1, keepdim=True)) / (

@@ -70,7 +70,8 @@ class TestSlimOrcaDataset:
         }
         assert Counter(input) == expected_counts
         if train_on_input:
-            assert Counter(labels) == expected_counts
+            # Check that system is masked but not input
+            assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 35
         else:
             # Check that the input is masked
             assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == 104

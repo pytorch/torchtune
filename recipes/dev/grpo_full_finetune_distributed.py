@@ -20,9 +20,9 @@ from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
-from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import batched_rewards
-from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
+from torchtune.dev.rl.generation import generate
+from torchtune.dev.rl.rewards import batched_rewards
+from torchtune.dev.rl.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
@@ -320,6 +320,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
                 self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
                 self.profiler_active_steps = profiler_cfg["active_steps"]
+                self.profiler_num_cycles = profiler_cfg["num_cycles"]
 
         return profiler
 
@@ -612,10 +613,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                 return_logits=False,
             )
 
-        torch.distributed.barrier()
-        training._distributed.recursive_reshard(self._model)
-        torch.cuda.empty_cache()
-
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
@@ -812,6 +809,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
 
@@ -846,6 +844,19 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
+                # Stop tracking CUDA memory now that active steps are complete
+                if (
+                    self._is_rank_zero
+                    and curr_epoch == 0
+                    and self.profiler_profile_memory
+                    and idx
+                    == self.profiler_wait_steps
+                    + self.profiler_warmup_steps
+                    + self.profiler_active_steps
+                    and self._device.type == "cuda"
+                ):
+                    torch.cuda.memory._record_memory_history(enabled=None)
+
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
                     extra_metrics = {}
@@ -860,6 +871,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
                     )
 
                 self.cleanup_after_step(trajectory, grpo_stats)
+                self._profiler.step()
+
                 pbar.update(1)
 
                 if self._steps_run == self._total_steps:

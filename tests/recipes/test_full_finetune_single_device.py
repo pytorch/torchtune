@@ -26,6 +26,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    gpu_test,
     TOKENIZER_PATHS,
 )
 
@@ -39,7 +40,6 @@ from torchtune.training.checkpointing._utils import (
 class TestFullFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self):
         return [
-            "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "enable_activation_offloading=False",
@@ -56,8 +56,8 @@ class TestFullFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "llama2": [10.5219, 10.5292, 10.5475, 10.5195],
-            "llama3": [11.9611, 11.9432, 11.9326, 11.9807],
+            "llama2": [10.5201, 10.5217, 10.4945, 10.5136],
+            "llama3": [11.9839, 11.9684, 11.9596, 11.9366],
         }
 
         return loss_values_map[model_type]
@@ -75,6 +75,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             ("llama3/8B_full_single_device", "llama3", "tune"),
         ],
     )
+    @gpu_test(gpu_count=1)
     def test_loss(
         self,
         compile,
@@ -141,6 +142,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         "optimizer_in_bwd",
         [True, False],
     )
+    @gpu_test(gpu_count=1)
     def test_training_state_on_resume(self, tmpdir, monkeypatch, optimizer_in_bwd):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test

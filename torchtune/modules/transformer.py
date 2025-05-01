@@ -4,12 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
+import logging
 from typing import Callable, Dict, List, Optional, Union
 
 import torch
 from torch import nn
+from torch.distributed.fsdp import FSDPModule
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
+from torchtune.utils import get_logger, log_once
+
+logger = get_logger("DEBUG")
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -23,6 +28,8 @@ class TransformerSelfAttentionLayer(nn.Module):
         mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.
         sa_scale (Optional[nn.Module]): Module to scale self-attention output.
         mlp_scale (Optional[nn.Module]): Module to scale the feed-forward output.
+        mask_mod (Optional[Callable[[_MaskType, int, int, int], _MaskType]]): A callable
+            taking a _MaskType, bsz, and seq_len, and modifying the mask (e.g. for chunked attention).
     """
 
     def __init__(
@@ -34,6 +41,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         mlp_norm: Optional[nn.Module] = None,
         sa_scale: Optional[nn.Module] = None,
         mlp_scale: Optional[nn.Module] = None,
+        mask_mod: Optional[Callable[[_MaskType, int, int, int], _MaskType]] = None,
     ) -> None:
         super().__init__()
         self.attn = attn
@@ -42,6 +50,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.mlp_norm = mlp_norm or nn.Identity()
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
+        self.mask_mod = mask_mod or None
 
     def setup_caches(
         self,
@@ -119,8 +128,11 @@ class TransformerSelfAttentionLayer(nn.Module):
         # [b, s, d]
         # Norm applied before self-attention
         h = self.sa_norm(x)
+        if self.mask_mod is not None:
+            # With TP we need to use a replicated tensor here
+            bsz, seq_len, *_ = h.shape
+            mask = self.mask_mod(mask=mask, bsz=bsz, seq_len=seq_len)
         attn_out = self.attn(h, h, mask=mask, input_pos=input_pos)
-
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.sa_scale(attn_out) + x
 
@@ -389,6 +401,7 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.num_output_chunks = 0
+        self.skip_linear_projection = False
 
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
@@ -397,6 +410,12 @@ class TransformerDecoder(nn.Module):
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
+        msg = (
+            "'set_num_output_chunks' is deprecated and will be removed in future versions. "
+            "Please use self.skip_linear_projection=True and do the chunking in your loss instead, "
+            "e.g. loss(weight, input, label)."
+        )
+        log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.num_output_chunks = num_output_chunks
 
     def setup_caches(
@@ -478,7 +497,20 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.reset_cache()
 
-    @torch.compiler.disable
+    @property
+    def linear_projection_weight(self) -> torch.Tensor:
+        """Returns the output weight matrix. Useful when a finer control of the output projection is needed,
+        for example when using a custom loss function or when interested in applying it to only some tokens.
+        """
+        # Accessing the weight directly will not trigger FSDP hooks
+        # to gather the full tensor so we have to unshard manually
+        if isinstance(self.output, FSDPModule):
+            self.output.unshard()
+            weight = self.output.weight.clone()
+            self.output.reshard()
+            return weight
+        return self.output.weight
+
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
         """
         Apply output projection in chunks. This should be applied in conjunction with
@@ -495,9 +527,15 @@ class TransformerDecoder(nn.Module):
             List[torch.Tensor]: List of num_chunks output tensors, each with shape
                 [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
         """
+        msg = (
+            "'chunked_output' is deprecated and will be removed in future versions. "
+            "Use self.skip_linear_projection=True and do the chunking in your loss instead, "
+            "e.g. loss(weight, input, label)."
+        )
+        log_once(logger=logger, msg=msg, level=logging.WARNING)
         return [
             self.output(chunk)
-            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+            for chunk in last_hidden_state.tensor_split(self.num_output_chunks, dim=1)
         ]
 
     def _validate_inputs(
@@ -606,9 +644,9 @@ class TransformerDecoder(nn.Module):
                 included in the output. Default is None, which means all tokens are included in the output.
 
         Returns:
-            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer
-                output tensors defined by ``output_hidden_states`` with the
-                final output tensor appended to the list.
+            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_linear_projection=False`
+            and ``[b x s x d]`` otherwise, or a list of layer output tensors defined by ``output_hidden_states`` with the
+            final output tensor appended to the list.
 
         Note:
             At the very first step of inference, when the model is provided with a prompt,
@@ -657,6 +695,9 @@ class TransformerDecoder(nn.Module):
                 input_pos=input_pos,
             )
 
+        if len(self.layers) in self.output_hidden_states:
+            hidden.append(h)
+
         # shape: [b, seq_len, out_dim]
         output = self.unembed(h, output_mask=output_mask)
 
@@ -672,8 +713,9 @@ class TransformerDecoder(nn.Module):
             h = h.reshape(bsz, -1, dim)
         # shape: [b, s, d]
         h = self.norm(h)
-
-        if self.num_output_chunks > 0:
+        if self.skip_linear_projection:
+            output = h
+        elif self.num_output_chunks > 0:
             output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]

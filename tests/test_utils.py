@@ -8,7 +8,6 @@ import math
 import os
 import re
 import sys
-import unittest
 from contextlib import contextmanager
 from functools import partial
 from io import StringIO
@@ -23,9 +22,6 @@ from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
-skip_if_cuda_not_available = unittest.skipIf(
-    not torch.cuda.is_available(), "CUDA is not available"
-)
 
 CKPT_MODEL_PATHS = {
     "llama2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
@@ -56,14 +52,17 @@ MESSAGE_SAMPLE_TRAIN_ON_INPUT = [
     Message(
         role="system",
         content=CHAT_SAMPLE["system"],
+        masked=True,
     ),
     Message(
         role="user",
         content=CHAT_SAMPLE["user"],
+        masked=False,
     ),
     Message(
         role="assistant",
         content=CHAT_SAMPLE["assistant"],
+        masked=False,
     ),
 ]
 
@@ -73,7 +72,24 @@ MESSAGE_SAMPLE = [
     Message(
         role="assistant",
         content=CHAT_SAMPLE["assistant"],
+        masked=False,
     ),
+]
+
+MESSAGE_SAMPLE_TRAIN_ON_ASSISTANT = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
+]
+
+MESSAGE_SAMPLE_TRAIN_ON_LAST = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(role="assistant", content=CHAT_SAMPLE["assistant"], masked=False),
 ]
 
 
@@ -246,6 +262,15 @@ def assert_expected(
         check_device=check_device,
         msg=f"actual: {actual}, expected: {expected}",
     )
+
+
+def assert_expected_dict(actual_dict, expected_dict, rtol=1e-5, atol=1e-8):
+    for k in expected_dict:
+        if isinstance(expected_dict[k], dict):
+            assert k in actual_dict and isinstance(actual_dict[k], dict)
+            assert_expected_dict(actual_dict[k], expected_dict[k])
+        else:
+            assert_expected(actual_dict[k], expected_dict[k])
 
 
 @contextmanager

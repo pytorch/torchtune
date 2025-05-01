@@ -1,14 +1,14 @@
+from functools import partial
 from typing import List, Optional
 
-from torchtune.models.phi3._component_builders import phi3, lora_phi3
-from torchtune.models.phi4._tokenizer import Phi4MiniTokenizer
+from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
+
+from torchtune.models.phi3._component_builders import lora_phi3, phi3
+from torchtune.models.phi4._tokenizer import Phi4Tokenizer
 
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from functools import partial
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
-from torchtune.data._prompt_templates import _TemplateType
-from torchtune.data._prompt_templates import _get_prompt_template
 
 
 """
@@ -36,13 +36,23 @@ def phi4_14b() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi4_14b_tokenizer(vocab_path: str = None, merges_path: str = None, special_tokens_path: Optional[str] = None, max_seq_len: Optional[int] = None, prompt_template: Optional[_TemplateType] = None) -> Phi4MiniTokenizer:
-    """Phi4 (14B) tokenizer.
+
+def phi4_tokenizer(
+    vocab_path: str = None,
+    merges_path: str = None,
+    special_tokens_path: Optional[str] = None,
+    max_seq_len: Optional[int] = None,
+    prompt_template: Optional[_TemplateType] = None,
+    truncation_type: str = "right",
+) -> Phi4Tokenizer:
+    """
+    Phi4 tokenizer.
+
     Args:
         vocab_path (str): Path to vocab.json.
         merges_path (str): Path to merges.txt.
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens, or a local json file 
+            model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Phi4 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
@@ -50,13 +60,28 @@ def phi4_14b_tokenizer(vocab_path: str = None, merges_path: str = None, special_
             If a string, it is assumed to be the dotpath of a :class:`~torchtune.data.PromptTemplateInterface`
             class. If a dictionary, it is assumed to be a custom prompt template mapping role to the
             prepend/append tags.
+        truncation_type (str): type of truncation to apply, either "left" or "right".
+            Default is "right".
 
     Returns:
-        Phi4MiniTokenizer: Instantiation of the Phi-4 (14B) tokenizer.
+        Phi4Tokenizer: Instantiation of the Phi-4 (14B) tokenizer.
     """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    template = _get_prompt_template(prompt_template) if prompt_template is not None else None
-    return Phi4MiniTokenizer(vocab_path=vocab_path, merges_path=merges_path, special_tokens=special_tokens, max_seq_len=max_seq_len, prompt_template=template)
+    special_tokens = (
+        parse_hf_tokenizer_json(special_tokens_path)
+        if special_tokens_path is not None
+        else None
+    )
+    template = (
+        _get_prompt_template(prompt_template) if prompt_template is not None else None
+    )
+    return Phi4Tokenizer(
+        vocab_path=vocab_path,
+        merges_path=merges_path,
+        special_tokens=special_tokens,
+        max_seq_len=max_seq_len,
+        prompt_template=template,
+        truncation_type=truncation_type,
+    )
 
 
 def lora_phi4_14b(

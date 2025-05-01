@@ -136,10 +136,9 @@ class TrainingWorker:
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        # TODO: generalize this to any chunked loss
-        # set num_output_chunks for model
-        if self._loss_fn.__class__.__name__ == "GRPOWithChunkedOutputLoss":
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
 
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
 
@@ -332,24 +331,32 @@ class TrainingWorker:
 
         # call model
         with self.activations_handling_ctx:
-            pi_logits = self._model(
+            outputs = self._model(
                 trajectory.query_responses,
                 input_pos=trajectory.position_ids,
                 mask=trajectory.masks,
-                output_mask=output_mask,
             )
-
-        # apply to targets
+        bsz, _, dim = outputs.shape
+        outputs = outputs[output_mask]
+        outputs = outputs.reshape(bsz, -1, dim)
         targets = trajectory.query_responses[:, context_length:]
 
-        # Compute GRPO loss
-        loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs = self._loss_fn(
-            pi_logits=pi_logits,
-            targets=targets,
-            ref_logprobs=trajectory.ref_logprobs,
-            advantages=trajectory.advantages,
-            padding_masks=~trajectory.response_padding_masks,
-        )
+        if self.linear_loss:
+            weight = self._model.linear_projection_weight
+            # Compute GRPO loss
+            loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs = self._loss_fn(
+                # pi_logits=pi_logits,
+                weight=weight,
+                outputs=outputs,
+                targets=targets,
+                ref_logprobs=trajectory.ref_logprobs,
+                advantages=trajectory.advantages,
+                padding_masks=~trajectory.response_padding_masks,
+            )
+        else:
+            raise NotImplementedError(
+                "We currently only support linear losses. Please use LinearGRPOLoss."
+            )
 
         with torch.no_grad():
             mask = ~trajectory.response_padding_masks  # True for non-padded tokens
@@ -372,7 +379,7 @@ class TrainingWorker:
             metadata=metadata,
         )
 
-        del pi_logits, pi_logprobs
+        del outputs, pi_logprobs
         torch.cuda.empty_cache()  # TODO: Test if this is needed
         loss.backward()
 
@@ -630,9 +637,9 @@ class TrainingWorker:
                 )
             else:
                 beyond_seq_len = 0
-            per_sample_dict[
-                "beyond_seq_len_masking_is_positive (should be 0)"
-            ] = beyond_seq_len
+            per_sample_dict["beyond_seq_len_masking_is_positive (should be 0)"] = (
+                beyond_seq_len
+            )
 
             per_sample_dict["num_tokens_response"] = seq_len
             per_sample_dict["step"] = self._steps_run
