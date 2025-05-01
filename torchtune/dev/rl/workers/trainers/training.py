@@ -640,9 +640,9 @@ class TrainingWorker:
                 )
             else:
                 beyond_seq_len = 0
-            per_sample_dict["beyond_seq_len_masking_is_positive (should be 0)"] = (
-                beyond_seq_len
-            )
+            per_sample_dict[
+                "beyond_seq_len_masking_is_positive (should be 0)"
+            ] = beyond_seq_len
 
             per_sample_dict["num_tokens_response"] = seq_len
             per_sample_dict["step"] = self._steps_run
