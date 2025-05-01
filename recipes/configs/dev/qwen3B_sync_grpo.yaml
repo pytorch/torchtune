@@ -8,7 +8,7 @@
 #   tune download Qwen/Qwen2.5-3B --output-dir /tmp/Qwen2.5-3B
 #
 # To launch on 4 devices, run the following command from root:
-# tune run --nproc_per_node 8 dev/grpo_full_finetune_distributed --config dev/qwen3B_sync_grpo
+# tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/qwen3B_sync_grpo
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
@@ -20,7 +20,7 @@
 # Furthermore, you can launch it on multiple nodes by going to recipes/dev/ and using
 #  sbatch multinode_grpo.sbatch
 
-name: grpo_async_qwen3b
+name: grpo_sync_qwen3b
 
 output_dir: /tmp/checkpoints/${name}
 base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
