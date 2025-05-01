@@ -448,6 +448,7 @@ class CheckpointClient:
                 checkpoint_dict[training.ADAPTER_KEY],
                 adapter_only=True,
             )
+
             progress_state_dict = torch.load(
                 os.path.join(checkpoint_path, "training_progress.pt"), weights_only=True
             )
@@ -462,9 +463,7 @@ class CheckpointClient:
             return checkpoint_dict
 
         # Load the checkpoint state dict from the distributed checkpoint
-        checkpoint_dict = self._get_dcp_checkpointer().load_checkpoint(
-            checkpoint_dict,
-        )
+        checkpoint_dict = self._get_dcp_checkpointer().load_checkpoint(checkpoint_dict)
 
         options = StateDictOptions(strict=False)
         # Load the checkpoint state dict into model and optimizer
