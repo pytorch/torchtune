@@ -17,6 +17,7 @@ from tests.test_utils import (
     gen_log_file_name,
     get_loss_values_from_metric_logger,
     gpu_test,
+    skip_if_lt_python_310,
     TOKENIZER_PATHS,
 )
 
@@ -55,6 +56,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=4)
+    @skip_if_lt_python_310()
     def test_basic_run(self, tmpdir, monkeypatch):
         """Test that the recipe runs without errors with minimal configuration."""
         import ray

@@ -334,6 +334,13 @@ def gpu_test(gpu_count: int = 1):
     return pytest.mark.skipif(local_gpu_count < gpu_count, reason=message)
 
 
+def skip_if_lt_python_310(reason: str = "Python 3.10+ required"):
+    """
+    Annotation for tests that require Python 3.10 or higher
+    """
+    return pytest.mark.skipif(sys.version_info < (3, 10), reason=reason)
+
+
 def get_loss_values_from_metric_logger(log_file_path: str) -> List[float]:
     """
     Given an output directory containing metric logger .txt file,
