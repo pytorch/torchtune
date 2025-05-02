@@ -36,7 +36,8 @@ import re
 import random
 from tqdm import tqdm
 import torch.nn.functional as F
-from full_finetune_distributed import (FullFinetuneRecipeDistributed)
+from full_finetune_distributed import FullFinetuneRecipeDistributed
+
 log = utils.get_logger("DEBUG")
 
 
@@ -122,7 +123,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
 
     def __init__(self, cfg: DictConfig) -> None:
         super().__init__(cfg=cfg)
-        
+
     def precompute_reference_logprobs(self, labels=None):
         """
         Precompute reference logprobs for the reference model.
@@ -141,7 +142,6 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
             for batch_idx, batch in enumerate(
                 tqdm(self._dataloader, desc="Precomputing reference logprobs")
             ):
-
                 # Move batch to device
                 batch = {k: v.to(self._device) for k, v in batch.items()}
                 # Get a unique identifier for the batch (hash of input tokens)
@@ -159,11 +159,39 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                     (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
                 )
 
-                # Process all chunks at once with the updated function
-                all_log_probs = log_softmax(ref_logits, shifted_labels)
+                # Process reference logits - chunking them like in the original code
+                logits_chunks = [
+                    logit_chunk.reshape(-1, logit_chunk.size(-1))
+                    for logit_chunk in ref_logits
+                ]
 
-                # Concatenate all chunks and move to CPU to save memory
-                self.reference_logprobs_cache[batch_key] = [x.to('cpu') for x in all_log_probs]
+                # Chunk labels too
+                labels_chunks = [
+                    target_chunk.reshape(-1)
+                    for target_chunk in shifted_labels.chunk(
+                        self._loss_fn.num_output_chunks, dim=1
+                    )
+                ]
+
+                # Pre-gather log probabilities for each chunk
+                ref_gathered_logprobs = []
+                for i, (logits_chunk, labels_chunk) in enumerate(
+                    zip(logits_chunks, labels_chunks)
+                ):
+                    # Convert to log probabilities
+                    log_probs = F.log_softmax(logits_chunk.float(), dim=-1)
+
+                    # Perform the gather operation now to save computation later
+                    vocab_size = log_probs.size(-1)
+                    valid_indices = labels_chunk.clamp(0, vocab_size - 1)
+                    gathered_logprobs = torch.gather(
+                        log_probs, dim=-1, index=valid_indices.unsqueeze(-1)
+                    ).squeeze(-1)
+
+                    ref_gathered_logprobs.append(gathered_logprobs.to("cpu"))
+
+                # Store the pre-gathered values
+                self.reference_logprobs_cache[batch_key] = ref_gathered_logprobs
 
                 # Put labels back for subsequent processing
                 batch["labels"] = labels
@@ -174,6 +202,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
         )
         # set model back to train
         self._model.train()
+
     def _calculate_importance_ratio(
         self, new_log_ps, old_log_ps, epsilon_low, epsilon_high, indices
     ):
@@ -571,57 +600,6 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
         if self._is_rank_zero:
             self._metric_logger.close()
         destroy_process_group()
-
-
-def log_softmax(logits, index):
-    """
-    A memory-efficient implementation of the common `log_softmax -> gather` operation.
-    Supports both single logits tensor and list of chunked logits.
-
-    Args:
-        logits (`torch.Tensor` or list of `torch.Tensor`):
-            Single logits tensor of shape `(..., num_classes)` or a list of logit chunks.
-        index (`torch.Tensor`):
-            Index tensor of shape `(...)`, specifying the positions to gather from the log-softmax output.
-
-    Returns:
-        `torch.Tensor` or list of `torch.Tensor`:
-            Gathered log probabilities with the same shape as `index` or a list of log probabilities for each chunk.
-    """
-    # Handle case for chunked logits (list of tensors)
-    is_list = isinstance(logits, list)
-    assert is_list or isinstance(
-        logits, torch.Tensor
-    ), "logits must be either a list of tensors or a single tensor"
-
-    if is_list:
-        all_log_probs = []
-        reshaped_index = index.reshape(-1)
-
-        for chunk_logits in logits:
-            reshaped_logits = chunk_logits.reshape(-1, chunk_logits.size(-1))
-            log_probs = log_softmax_single(reshaped_logits, reshaped_index)
-            all_log_probs.append(log_probs)
-
-        return all_log_probs
-    else:
-        # Original case for a single logits tensor
-        return log_softmax_single(logits, index)
-
-
-def log_softmax_single(logits, index):
-    """Helper function for log_softmax that processes a single logits tensor."""
-    if logits.dtype in [torch.float32, torch.float64]:
-        selected_logits = torch.gather(
-            logits, dim=-1, index=index.unsqueeze(-1)
-        ).squeeze(-1)
-        # loop to reduce peak mem consumption
-        row_logps = torch.logsumexp(logits, dim=-1)
-    else:
-        # logsumexp approach is unstable with bfloat16, fall back to slightly less efficent approach
-        row_logps = F.log_softmax(logits, dim=-1)
-
-    return row_logps
 
 
 @config.parse
