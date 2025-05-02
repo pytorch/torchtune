@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 import time
 
@@ -307,18 +306,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Load the base model
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
-        compile = cfg.get("compile")
-        compile_bool = bool(compile)
-        self._compile_backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-
-        self._compile_model = compile_bool
-        self._compile_loss = compile_bool
-        self._compile_optimizer_step = compile_bool
-        if isinstance(compile, DictConfig):
-            self._compile_model = compile.get("model", True)
-            self._compile_loss = compile.get("loss", True)
-            self._compile_optimizer_step = compile.get("optimizer_step", False)
-
+        self._compile = cfg.get("compile", False)
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -341,11 +329,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 else None
             ),
         )
-        if self._compile_optimizer_step:
-            self._optimizer.step = torch.compile(
-                self._optimizer.step,
-                backend=self._compile_backend,
-            )
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
@@ -375,7 +358,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
 
-        if self._compile_loss:
+        if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         # The loss may handle the output projection. If true, the model should skip it.
@@ -586,7 +569,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        if self._compile_model:
+        if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
 
         if self._enable_fp8_training:
