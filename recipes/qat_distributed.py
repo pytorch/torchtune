@@ -310,9 +310,9 @@ class QATRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
@@ -806,19 +806,22 @@ class QATRecipeDistributed(FTRecipeInterface):
                 labels = batch.pop("labels")
 
                 with self.activations_handling_ctx:
-                    logits = self._model(**batch)
+                    outputs = self._model(**batch)
 
-                if not isinstance(logits, list):
+                if self.linear_loss:
+                    weight = self._model.linear_projection_weight
+                    current_loss = self._loss_fn(weight, outputs, labels)
+                else:
                     labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1))
+                    outputs = outputs.reshape(-1, outputs.size(-1))
+                    current_loss = self._loss_fn(outputs, labels)
 
-                # Compute loss
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = current_loss * current_num_tokens
 
-                # free logits otherwise it peaks backward memory
-                del logits
+                # free outputs otherwise it peaks backward memory
+                del outputs
 
                 running_loss += current_loss
 

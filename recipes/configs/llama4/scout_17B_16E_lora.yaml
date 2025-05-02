@@ -5,24 +5,27 @@
 #   tune download meta-llama/Llama-4-Scout-17B-16E-Instruct
 #
 # To launch on 8 devices, run the following command from root:
-#   tune run --nproc_per_node 8 full_finetune_distributed --config llama4/scout_17B_16E_full
+#   tune run --nproc_per_node 8 lora_finetune_distributed --config llama4/scout_17B_16E_lora
 #
 # You can add specific overrides through the command line. For example, to use a larger bsz:
-#   tune run --nproc_per_node 8 full_finetune_distributed --config llama4/scout_17B_16E_full batch_size=8
+#   tune run --nproc_per_node 8 lora_finetune_distributed --config llama4/scout_17B_16E_lora batch_size=8
 #
-# This config was only tested on 8xA100 machine and 16xH100 machines.
+# This config was only tested on 8xA100 machine.
 
-output_dir: /tmp/torchtune/llama4_17Bx16E/full
+output_dir: /tmp/torchtune/llama4_17Bx16E/lora
 
-# Modeling arguments
+# Modeling Arguments
 model:
-  _component_: torchtune.models.llama4.llama4_scout_17b_16e
-
-tensor_parallel_dim: 2 # For multi-node training we recommend tensor_parallel_dim: 8
-tensor_parallel_plan:
-  _component_: torchtune.models.llama4.decoder_only_tp_plan
-data_parallel_shard_dim: -1 # Will infer based on TP dim, effectively controls FSDP
-data_parallel_replicate_dim: 1
+  _component_: torchtune.models.llama4.lora_llama4_scout_17b_16e
+  decoder_trainable: "lora"
+  encoder_trainable: "frozen"
+  fusion_trainable: "lora"
+  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  apply_lora_to_mlp: True
+  apply_lora_to_output: False
+  lora_rank: 16  # higher increases accuracy and memory
+  lora_alpha: 32  # usually alpha=2*rank
+  lora_dropout: 0.0
 
 tokenizer:
   _component_: torchtune.models.llama4.llama4_transform
@@ -39,6 +42,7 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA4
+save_adapter_weights_only: True # use this for faster checkpoint save
 resume_from_checkpoint: False
 
 # Dataset
@@ -58,6 +62,9 @@ optimizer:
   lr: 2e-5
   fused: False
 optimizer_in_bwd: False
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 clip_grad_norm: null
@@ -68,15 +75,9 @@ device: cuda
 # Memory management / performance
 enable_activation_checkpointing: True
 enable_activation_offloading: False
-fsdp_cpu_offload: True
-# compile True means use torch.compile for all components
-# compile False means no torch.compile
-# compile Dictionary with keys: "model", "loss", "optimizer_step"
-# enables torch.compile only for specified components.
-compile: False
-#    model: True
-#    loss: True
-#    optimizer_step: False
+custom_sharded_layers: ['tok_embeddings']
+fsdp_cpu_offload: False
+compile: False # torch.compile, set to true for perf/memory improvement
 
 # Reduced precision
 dtype: bf16
