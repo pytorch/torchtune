@@ -1,35 +1,36 @@
-# Config for multi-node GRPO in dev/grpo_full_finetune_distributed.py
-# using a Llama3.2 3B Base model
+# Config for sync multi-node GRPO in dev/grpo_full_finetune_distributed.py
+# using a Qwen-3B Base model (which is known to train quickly on this task).
+#
+# Also check out the async implementation of this workflow in this directory.
 #
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download Qwen/Qwen2.5-3B --output-dir /tmp/Qwen2.5-3B
 #
-# It can be beneficial to first train the base model with SFT using the 3B_sft recipe.
-#
 # To launch on 4 devices, run the following command from root:
-# tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/3B_full_grpo
+# tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/qwen3B_sync_grpo
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/grpo/3B_full_rl checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 4 dev/grpo_full_finetune_distributed --config dev/qwen3B_sync_grpo checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 #
 # Furthermore, you can launch it on multiple nodes by going to recipes/dev/ and using
 #  sbatch multinode_grpo.sbatch
 
-name: grpo_llama3b
+name: grpo_sync_qwen3b
 
 output_dir: /tmp/checkpoints/${name}
-base_model_path: /tmp/llama3B_gsm8k_sft_part0/epoch_0  # Use this to train from the slightly trained SFT model
+base_model_path: /tmp/Qwen2.5-3B  # Use this to train from the slightly trained SFT model
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Llama-3.2-3B/original/tokenizer.model
-  max_seq_len: null
+  _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
+  path: /tmp/Qwen2.5-3B/vocab.json
+  merges_file: /tmp/Qwen2.5-3B/merges.txt
+  max_seq_len: 1024
 
 # Dataset
 dataset:
@@ -40,7 +41,7 @@ shuffle: False
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3_2.llama3_2_3b
+  _component_: torchtune.models.qwen2_5.qwen2_5_3b
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
@@ -51,7 +52,7 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: LLAMA3
+  model_type: QWEN2
 
 
 ref_checkpointer:
@@ -63,7 +64,7 @@ ref_checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}/ref  # shouldn't be used?
-  model_type: LLAMA3
+  model_type: QWEN2
 
 
 resume_from_checkpoint: False
@@ -109,11 +110,10 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.training.metric_logging.DiskLogger
+  _component_: torchtune.training.metric_logging.WandBLogger
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
-log_level: INFO  # DEBUG, WARN, etc.
 
 # Profiler (disabled)
 profiler:
