@@ -619,19 +619,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             if "text_config" in self._config:
                 converted_state_dict[training.MODEL_KEY] = gemma3_hf_to_tune(
                     merged_state_dict,
-                    num_heads=self._config["text_config"]["num_attention_heads"],
-                    num_kv_heads=self._config["text_config"]["num_key_value_heads"],
-                    dim=self._config["text_config"]["hidden_size"],
-                    head_dim=self._config["text_config"].get("head_dim", None),
+                    num_heads=self._config["text_config"].get("num_attention_heads", 8),
+                    num_kv_heads=self._config["text_config"].get("num_key_value_heads", 4),
+                    dim=self._config["text_config"].get("hidden_size", 2560),
+                    head_dim=self._config["text_config"].get("head_dim", 256),
                 )
             else:
                 # We are in 1B model!
                 converted_state_dict[training.MODEL_KEY] = gemma3_hf_to_tune(
                     merged_state_dict,
-                    num_heads=self._config.get("num_attention_heads", 8),
-                    num_kv_heads=self._config.get("num_key_value_heads", 4),
-                    dim=self._config.get("hidden_size", 2560),
-                    head_dim=self._config.get("head_dim", 256),
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
 
         elif self._model_type == ModelType.T5_ENCODER:
