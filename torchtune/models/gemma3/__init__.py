@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from ._component_builders import gemma3, lora_gemma3, qlora_gemma3  # noqa
+from ._component_builders import gemma3, lora_gemma3  # noqa
 from ._model_builders import (  # noqa  # noqa
     gemma3_12b,
     gemma3_1b,
@@ -22,7 +22,6 @@ from ._model_builders import (  # noqa  # noqa
 __all__ = [
     "gemma3",
     "lora_gemma3",
-    "qlora_gemma3",
     "gemma3_12b",
     "gemma3_1b",
     "gemma3_27b",
