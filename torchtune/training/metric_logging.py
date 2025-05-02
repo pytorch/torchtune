@@ -198,7 +198,7 @@ class WandBLogger(MetricLoggerInterface):
         self.log_dir = kwargs.pop("dir", log_dir)
         # Extract seed from log_dir if not provided explicitly
         self.seed = seed
-                    
+
         _, self.rank = get_world_size_and_rank()
 
         if self._wandb.run is None and self.rank == 0:
@@ -215,7 +215,7 @@ class WandBLogger(MetricLoggerInterface):
             run = self._wandb.init(
                 project=project,
                 entity=entity,
-                group=run_id,
+                group=group,
                 dir=self.log_dir,
                 id=run_id_seed,
                 name = run_id_seed,

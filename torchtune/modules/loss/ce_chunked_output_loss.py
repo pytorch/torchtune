@@ -68,7 +68,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
     def _calculate_importance_ratio(
         self,
         new_log_ps: torch.Tensor,
-        ref_log_ps: torch.Tensor,
+        old_log_ps: torch.Tensor,  # This is now the pre-gathered value
         labels: torch.Tensor,
         epsilon_low: float = 0.0,
         epsilon_high: float = float("inf"),
@@ -78,7 +78,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
 
         Args:
             new_log_ps: Log probabilities from the current model
-            ref_log_ps: Log probabilities from the reference model
+            old_log_ps: Precomputed log probabilities from the reference model
             labels: Token indices for selecting the correct log probabilities
             epsilon_low: Lower bound for importance ratio clipping
             epsilon_high: Upper bound for importance ratio clipping
@@ -94,14 +94,13 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             vocab_size = new_log_ps.size(-1)
             valid_indices = labels.clamp(0, vocab_size - 1)
 
-            # Use the valid indices for gathering
+            # Use the valid indices for gathering only current model log probs
             new_selected = torch.gather(
                 new_log_ps, dim=-1, index=valid_indices.unsqueeze(-1)
             ).squeeze(-1)
 
-            old_selected = torch.gather(
-                ref_log_ps, dim=-1, index=valid_indices.unsqueeze(-1)
-            ).squeeze(-1)
+            # old_log_ps is already the selected value
+            old_selected = old_log_ps
 
             # Calculate the importance ratio (unclipped)
             importance_ratio = torch.exp(new_selected - old_selected)
@@ -178,9 +177,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         # Process reference logprobs for importance sampling
         ratio_chunks = None
         if ref_logprobs is not None:
-            ref_logprob_chunks = [
-                r_chunk.reshape(-1, r_chunk.size(-1)) for r_chunk in ref_logprobs
-            ]
+            ref_logprob_chunks = [r_chunk.reshape(-1) for r_chunk in ref_logprobs]
 
             # Precompute importance ratios
             ratio_chunks = []
