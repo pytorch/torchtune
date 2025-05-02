@@ -156,16 +156,9 @@ class TestDistributedCheckpointer:
         self, distributed_checkpointer, state_dict, empty_state_dict
     ):
         """
-        <<<<<<< HEAD
-                Test ``load_checkpoint`` method of an adapter checkpoint within the DistributedCheckpointer.
-        =======
-                Test ``load_checkpoint`` method within the DistributedCheckpointer.
-
-                We test:
-                * ``load_checkpoint`` loads the right sets of keys
-                * Internal state of the checkpointer is correctly updated.
-        >>>>>>> c63bac3b (squashed commit)
+        Test ``load_checkpoint`` method of an adapter checkpoint within the DistributedCheckpointer.
         """
+
         distributed_checkpointer.save_checkpoint(
             state_dict=state_dict, epoch=1, save_async=False, adapter_only=True
         )
