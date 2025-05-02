@@ -248,6 +248,8 @@ class CheckpointClient:
                 log.info(
                     f"Getting full model state dict took {time.perf_counter() - cp_start:.2f} secs"
                 )
+        elif no_dist:
+            model_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
         else:
             model_state_dict = model.state_dict()
 
