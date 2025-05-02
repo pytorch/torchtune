@@ -74,23 +74,22 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
             torch.Tensor: Sum of cross-entropy loss for non-ignored tokens in the chunk
 
         Raises:
-            TypeError: if you use this method with a DTensor
             AttributeError: if called before update_model
         """
         # Select hidden states and targets where mask is True
         if self.mask_pre_projection:
-            if isinstance(hidden_chunk, DTensor):
-                raise TypeError(
-                    "LinearCrossEntropyLoss doesn't work with distributed models. Please use CEWithChunkedOutputLoss."
-                )
-                # TODO: Fix linear_loss for TP models
-                # target_chunk = distribute_tensor(
-                #     target_chunk,
-                #     hidden_chunk.device_mesh,
-                # )
             mask_chunk = target_chunk != self.ignore_index
-            hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
             target_chunk = target_chunk[mask_chunk]  # [num_valid]
+            if isinstance(hidden_chunk, DTensor):
+                # DTensor doesn't support masks so we have to mask locally
+                mesh = hidden_chunk.device_mesh
+                placements = hidden_chunk.placements
+                local_hidden_chunk = hidden_chunk.to_local()[mask_chunk]
+                hidden_chunk = DTensor.from_local(
+                    local_hidden_chunk, mesh, placements
+                )  # [num_valid, embed_dim]
+            else:
+                hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
         else:
             hidden_chunk = hidden_chunk.reshape(-1, hidden_chunk.shape[-1])
             target_chunk = target_chunk.reshape(-1)
@@ -99,9 +98,8 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         if self.linear_projection is None:
             raise AttributeError("forward called before update_model")
         logits = self.linear_projection(hidden_chunk)  # [num_valid, vocab_size]
-        # TODO: fix linear_loss for TP models
-        # if isinstance(logits, DTensor):
-        #    logits = logits.full_tensor()
+        if isinstance(logits, DTensor):
+            logits = logits.full_tensor()
 
         return F.cross_entropy(
             logits.float(),
