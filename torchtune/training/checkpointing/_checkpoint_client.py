@@ -268,10 +268,10 @@ class CheckpointClient:
                     )
                 else:
                     for param, opt in optimizer.optim_map.items():
-                        optim_state_dict[param] = (
-                            training.get_full_optimizer_state_dict(
-                                model, opt, self._is_rank_zero, device=self._device
-                            )
+                        optim_state_dict[
+                            param
+                        ] = training.get_full_optimizer_state_dict(
+                            model, opt, self._is_rank_zero, device=self._device
                         )
             else:
                 optim_state_dict = optimizer.state_dict()
@@ -407,9 +407,9 @@ class CheckpointClient:
         if "param_groups" in optim_state_dict:
             for param_group in optim_state_dict["param_groups"]:
                 if param_group.get("initial_lr") is None:
-                    param_group["initial_lr"] = (
-                        0.0  # This will get overriden by the actual value in optimizer
-                    )
+                    param_group[
+                        "initial_lr"
+                    ] = 0.0  # This will get overriden by the actual value in optimizer
 
         checkpoint_dict.update(
             {
