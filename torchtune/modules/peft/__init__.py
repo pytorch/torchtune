@@ -16,7 +16,7 @@ from ._utils import (  # noqa
     validate_missing_and_unexpected_for_lora,
 )
 from .dora import DoRALinear
-from .lora import LoRALinear, TrainableParams, QATLoRALinear
+from .lora import LoRALinear, QATLoRALinear, TrainableParams
 
 
 __all__ = [
