@@ -24,12 +24,11 @@ from torchtune import config, modules, training, utils
 from torchtune.data import padded_collate_packed, padded_collate_sft
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
-    DoRALinear,
+    AdapterModule,
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -116,6 +115,16 @@ class KDRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
+
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.distributed_backend = training.get_distributed_backend(
+            cfg.device,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
+            or self._enable_async_checkpointing,
+        )
+        init_process_group(self.distributed_backend)
 
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
@@ -286,6 +295,10 @@ class KDRecipeDistributed(FTRecipeInterface):
             assert (
                 self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
             ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
+        elif getattr(self._loss_fn, "linear_loss", False):
+            raise ValueError(
+                "Linear losses are not supported yet for KD. Please use the deprecated CEWithChunkedOutputLoss."
+            )
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
@@ -468,9 +481,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
-                if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
-                ) and not lora_weights_state_dict:
+                if isinstance(m, AdapterModule) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.to_empty(device=lora_device)
@@ -959,7 +970,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU

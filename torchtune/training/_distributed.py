@@ -8,6 +8,7 @@
 import logging
 import os
 from dataclasses import dataclass
+from functools import cached_property
 from itertools import chain
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple
 
@@ -122,6 +123,11 @@ class ParallelDims:
     def tp_enabled(self):
         return self.tp > 1
 
+    @cached_property
+    def non_data_parallel_size(self):
+        # update below as more parallelism options are implemented
+        return self.tp
+
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
     """Helper function to convert sharding strategy strings to ShardingStrategy enum."""
@@ -165,6 +171,8 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         device = tensor.device
         if dist.get_backend() == "nccl":
             tensor = tensor.to(get_device("cuda"))
+        elif dist.get_backend() == "xccl":
+            tensor = tensor.to(get_device("xpu"))
         dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
     else:
