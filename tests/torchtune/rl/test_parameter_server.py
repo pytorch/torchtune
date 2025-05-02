@@ -5,13 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import importlib
-import sys
 
 _has_ray = importlib.util.find_spec("ray") is not None
 _has_vllm = importlib.util.find_spec("vllm") is not None
 
 # Do not import anything unless Python >= 3.10
-if sys.version_info >= (3, 10):
+if _has_ray:
     import ray
     from ray import remote
 else:
