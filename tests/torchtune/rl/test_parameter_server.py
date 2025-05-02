@@ -133,6 +133,7 @@ vllm:
         cfg = OmegaConf.create(config_str)
         return cfg
 
+    @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_receive_from_trainer(self) -> None:
         import ray
@@ -166,6 +167,7 @@ vllm:
         finally:
             ray.shutdown()
 
+    @pytest.mark.integration_test
     @gpu_test(gpu_count=4)
     @pytest.mark.parametrize("tp_size", (1, 2))
     def test_send_to_generator(self, tp_size) -> None:
