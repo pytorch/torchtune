@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Protocol
+from typing import Any, Optional, Protocol
 
 import torch
 
@@ -38,6 +38,44 @@ class SFTLinearLoss(Protocol):
             **kwargs: Additional keyword arguments.
         Returns:
             torch.Tensor: loss tensor
+        """
+        ...
+
+
+class RLLinearLoss(Protocol):
+    """Protocol for loss functions in torchtune used in RL recipes that require
+    model output linear projection weights in loss computation."""
+
+    linear_loss: bool = True
+
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Torch compiles the loss function. Can be useful when greater control is needed,
+        for example when only compiling a portion of the loss calculation."""
+        self.forward = torch.compile(self.forward, *args, **kwargs)
+        return self
+
+    def forward(
+        self,
+        pi_old_logprobs: torch.Tensor,  # [B x G, L]
+        pi_logprobs: torch.Tensor,  # [B x G, L]
+        ref_logprobs: torch.Tensor,  # [B x G, L]
+        advantages: torch.Tensor,  # [B x G]
+        padding_masks: Optional[torch.Tensor] = None,  # [B x G, L]
+        *args,
+        **kwargs,
+    ) -> Any:
+        """
+        Args:
+            pi_old_logprobs (torch.Tensor): Log probabilities of the old policy. Shape ``[B x G, L]``
+            pi_logprobs (torch.Tensor): Log probabilities of the new policy. Shape ``[B x G, L]
+            ref_logprobs (torch.Tensor): Log probabilities of the reference policy. Shape ``[B x G, L
+            advantages (torch.Tensor): Advantages of the new policy. Shape ``[B x G]``
+            padding_masks (Optional[torch.Tensor]): Mask for padding tokens. Shape ``[B x G, L]``
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Any: Object containing the relevant loss information
         """
         ...
 
