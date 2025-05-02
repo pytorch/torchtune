@@ -16,8 +16,7 @@ from torch import nn
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed._tensor import DTensor, Replicate
 
-# from torch.testing._internal.common_fsdp import FSDPTest
-from torch.testing._internal.common_distributed import MultiProcessTestCase
+from torch.testing._internal.common_fsdp import FSDPTest
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import training
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
@@ -275,7 +274,7 @@ class TestDoRALinear:
             dora_linear.initialize_dora_magnitude()
 
 
-class TestDistributedDoRALinear(MultiProcessTestCase):
+class TestDistributedDoRALinear(FSDPTest):
     @property
     def world_size(self) -> int:
         return 2

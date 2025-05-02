@@ -4,10 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import List
 
 import torch
 import torch.nn.functional as F
+
+from torchtune.utils import get_logger, log_once
+
+logger = get_logger("DEBUG")
 
 
 class CEWithChunkedOutputLoss(torch.nn.Module):
@@ -29,6 +34,11 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
 
     def __init__(self, num_output_chunks: int = 8, ignore_index: int = -100):
         super().__init__()
+        msg = (
+            "'CEWithChunkedOutputLoss' is deprecated and will be removed in future versions. "
+            "Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead."
+        )
+        log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.num_output_chunks = num_output_chunks
         self.ignore_index = ignore_index
 
@@ -42,6 +52,13 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             logits.float(), labels, ignore_index=self.ignore_index, reduction="sum"
         )
 
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile only to the fkl_loss function."""
+        self.compute_cross_entropy = torch.compile(
+            self.compute_cross_entropy, *args, **kwargs
+        )
+        return self
+
     def forward(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
         """
         Args:
@@ -54,7 +71,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             torch.Tensor: Cross entropy loss of shape (1,).
 
         Example:
-            >>> loss_fn = ChunkedCrossEntropyLoss()
+            >>> loss_fn = CEWithChunkedOutputLoss()
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
             >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
