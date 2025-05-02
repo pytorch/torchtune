@@ -37,7 +37,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             "orchestration.num_inference_workers=1",  # 1 vLLM worker
             "inference.tensor_parallel_dim=1",
             "orchestration.num_postprocessing_workers=1",  # Use 1 reference model worker
-            "orchestration.num_training_workers=2",  # 2 FSDP trainer workers
+            "orchestration.num_training_workers=1",  # 2 FSDP trainer workers
             "inference.queue_maxsize=1",
             "inference.total_batch_size=2",
             "orchestration.replay_buffer_size=2",
