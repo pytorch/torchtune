@@ -14,12 +14,11 @@ from torchtune.models.llama3_2_vision._component_builders import (  # noqa
     llama3_2_vision_encoder,
     lora_llama3_2_vision_decoder,
     lora_llama3_2_vision_encoder,
-    LoRATrainable,
 )
 
 from torchtune.models.llama3_2_vision._transform import Llama3VisionTransform
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.modules.peft import LORA_ATTN_MODULES, LoRATrainable
 
 
 def llama3_2_vision_transform(

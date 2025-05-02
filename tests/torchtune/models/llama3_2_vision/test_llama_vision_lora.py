@@ -10,10 +10,9 @@ from tests.test_utils import fixed_init_model
 from torchtune.models.llama3_2_vision._component_builders import (
     lora_llama3_2_vision_decoder,
     lora_llama3_2_vision_encoder,
-    LoRATrainable,
 )
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.modules.peft import get_adapter_params
+from torchtune.modules.peft import get_adapter_params, LoRATrainable
 from torchtune.training.seed import set_seed
 
 EMBED_DIM = 128

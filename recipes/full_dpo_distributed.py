@@ -23,6 +23,11 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import ChosenRejectedOutputs
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
+
+from torchtune.training.checkpointing._checkpoint_client import (
+    CheckpointClient,
+    TrainingProgress,
+)
 from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
@@ -129,11 +134,21 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
+        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
             log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
+
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.distributed_backend = training.get_distributed_backend(
+            cfg.device, offload_ops_to_cpu=True
+        )
+        init_process_group(self.distributed_backend)
+        self._checkpoint_client = CheckpointClient(cfg)
 
         self.world_size, self.rank = get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
@@ -189,21 +204,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-
-    def _load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
-        """
-        self._checkpointer = config.instantiate(
-            cfg_checkpointer,
-            should_load_recipe_state=self._resume_from_checkpoint,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
 
     def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -267,7 +267,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         # Load the base model
-        checkpoint_dict = self._load_checkpoint(cfg.checkpointer)
+        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
         ref_checkpoint_dict = self._load_ref_checkpoint(cfg.ref_checkpointer)
 
         self._compile = cfg.get("compile", False)
@@ -291,16 +291,32 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
+                if training.OPT_KEY in checkpoint_dict
                 else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
+                    self._model,
+                    (
+                        self._optim_ckpt_wrapper
+                        if self._optimizer_in_bwd
+                        else self._optimizer
+                    ),
+                )
+
+            self._update_recipe_state(checkpoint_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -708,92 +724,21 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self,
         epoch: int,
     ) -> None:
-        """
-        Checkpoint the state of the recipe. The constructed checkpoint state dict
-        contains the following information:
-        - Model weights with key training.MODEL_KEY
-        - Relevant recipe state if training is not complete
-
-        Checkpointer will save the model weights and recipe state in
-        different checkpoint files. To correctly resume training from an intermediate checkpoint,
-        the model weights and recipe state must be provided.
-        """
-        # final dict passed onto the checkpointer
-        checkpoint_dict = {}
-
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
-
-        if self._is_rank_zero:
-            log.info(
-                "Saving checkpoint. This may take some time. Retrieving full model state dict..."
-            )
-            start = time.perf_counter()
-
-        # To prevent GPU memory from spiking during checkpoint save,
-        # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.gather_cpu_state_dict(
-            self._model,
-            self._is_rank_zero,
-            device=self._device,
+        self._checkpoint_client.save_checkpoint(
+            model=self._model,
+            optimizer=(
+                self._optimizer
+                if not self._optimizer_in_bwd
+                else self._optim_ckpt_wrapper
+            ),
+            training_progress=TrainingProgress(
+                seed=self.seed,
+                epochs_run=self.epochs_run,
+                total_epochs=self.total_epochs,
+                max_steps_per_epoch=self.max_steps_per_epoch,
+            ),
+            epoch=epoch,
         )
-
-        if self._is_rank_zero:
-            log.info(
-                f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
-            )
-
-        if intermediate_checkpoint:
-            start = time.perf_counter()
-            utils.log_rank_zero(log, "Getting optimizer state dict...")
-            if not self._optimizer_in_bwd:
-                opt_state_dict = training.get_full_optimizer_state_dict(
-                    self._model,
-                    self._optimizer,
-                    self._is_rank_zero,
-                    device=self._device,
-                )
-            else:
-                opt_state_dict = {}
-                for param, opt in self._optim_ckpt_wrapper.optim_map.items():
-                    opt_state_dict[param] = training.get_full_optimizer_state_dict(
-                        self._model, opt, self._is_rank_zero, device=self._device
-                    )
-            utils.log_rank_zero(
-                log,
-                f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
-            )
-        else:
-            opt_state_dict = None
-
-        # Now that we have the model and opt state dict, create the actual checkpoint dict
-        # to be sent to the checkpointer and ultimately written to file
-
-        if self._is_rank_zero:
-            start = time.perf_counter()
-            checkpoint_dict.update({training.MODEL_KEY: cpu_state_dict})
-
-            # if training is in-progress, checkpoint the optimizer state and recipe state
-            # as well.
-            if intermediate_checkpoint:
-                checkpoint_dict.update(
-                    {
-                        training.OPT_KEY: opt_state_dict,
-                        training.SEED_KEY: self.seed,
-                        training.EPOCHS_KEY: self.epochs_run,
-                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                        training.DATALOADER_KEY: self._dataloader.state_dict(),
-                    }
-                )
-
-            self._checkpointer.save_checkpoint(
-                checkpoint_dict,
-                epoch=epoch,
-                intermediate_checkpoint=intermediate_checkpoint,
-            )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
-
-        torch.distributed.barrier()
 
     def concatenated_forward(
         self,
@@ -1070,8 +1015,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-
-    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
