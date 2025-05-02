@@ -32,6 +32,8 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.lr_schedulers import get_lr
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -50,12 +52,24 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             come at the cost of training performance. In most cases training can slow-down quite a bit as
             a result of this activation recomputation.
 
+        - Activation Offloading. This can be controlled using the ``enable_activation_offloading``
+            flag. Activation offloading is a technique similar to activations checkpointing that helps
+            reduce the memory footprint to prevent OOMs on CUDA and enable bigger batches. Where activations
+            checkpointing drops the activation in the forward to recompute it later in the backward,
+            activations offloading will drop the activation in the forward to the CPU and bring it
+            back during the backward pass. As always, there is a tradeoff--these savings in memory can
+            come at the cost of training performance and CPU resources. To recover some runtime cost,
+            we've added an option to enable offloading on a different stream to permit overlapping with
+            the computation. This option is currently only available on PyTorch 2.5 or later and will
+            be enabled by default if an acceptable torch version is found. Activation offloading can be
+            used in conjunction with activation checkpointing.
+
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
             most cases this should halve the memory footprint of full precision (fp32) training, without
             loss in model quality (will depend on the model, training data and other settings). For
             GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-            precision are currently not supported.g
+            precision are currently not supported.
 
         - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
             controlled using the ``gradient_accumulation_steps`` flag.
@@ -67,6 +81,12 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             Gradient accumulation is especially useful when you are memory constrained. In this case,
             accumulating gradients might give you better training speed than enabling activation
             checkpointing.
+
+        - Optimizer in Backward. Fusing the optimizer step into the backward pass helps reduce the memory
+            footprint associated with gradients. This can be especially helpful when you are memory
+            constrained. Note that users can only use ONE of gradient accumulation or optimizer in backward.
+            These features currently do not work together. For more details on optimizer in backward, please
+            see this tutorial: https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html
 
         - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
             library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
@@ -101,7 +121,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
     Raises:
         ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-
+        RuntimeError: If ``enable_activation_offloading`` is True and device is not CUDA.
+        RuntimeError: If ``enable_activation_offloading`` is True and ``enable_activation_checkpointing`` is False.
+        RuntimeError: If  ``optimizer_in_bwd`` is `True` and ``gradient_accumulation_steps > 1``.
+        RuntimeError: If ``optimizer_in_bwd`` is `True` and ``clip_grad_norm`` is not `None`.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -140,6 +163,45 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self._kd_ratio = cfg.get("kd_ratio", 0.5)
+        self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
+        self._enable_activation_checkpointing = cfg.get(
+            "enable_activation_checkpointing", False
+        )
+        self._enable_activation_offloading = cfg.get(
+            "enable_activation_offloading", False
+        )
+
+        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
+        if self._optimizer_in_bwd:
+            if self._gradient_accumulation_steps > 1:
+                raise RuntimeError(
+                    "Gradient accumulation is not supported with optimizer in backward."
+                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+                )
+            if self._clip_grad_norm is not None:
+                raise RuntimeError(
+                    "Gradient clipping is not supported with optimizer in backward."
+                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
+                )
+
+        if self._enable_activation_offloading:
+            if self._device.type != "cuda":
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when training on CUDA"
+                )
+            if not self._enable_activation_checkpointing:
+                raise RuntimeError(
+                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
+                )
+        elif (
+            self._enable_activation_checkpointing
+            and cfg.checkpointer.model_type != "LLAMA3_VISION"
+        ):
+            utils.log_rank_zero(
+                log,
+                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
+                "Enabling activation offloading should reduce memory further.",
+            )
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -241,7 +303,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         # set up model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            enable_activation_offloading=self._enable_activation_offloading,
             compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
@@ -261,6 +324,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
+            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
                 if self._resume_from_checkpoint
@@ -402,6 +466,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        enable_activation_offloading: bool,
         compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
@@ -425,6 +490,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
+        self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
+            model, enable_activation_offloading
+        )
 
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
@@ -498,14 +566,39 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self,
+        cfg_optimizer: DictConfig,
+        optimizer_in_bwd: bool = False,
+        opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
-        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-        if opt_state_dict:
-            optimizer.load_state_dict(opt_state_dict)
+        if optimizer_in_bwd:
+            optim_dict = {
+                p: config.instantiate(cfg_optimizer, [p])
+                for p in self._model.parameters()
+            }
+            training.register_optim_in_bwd_hooks(
+                model=self._model, optim_dict=optim_dict
+            )
+            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
+                model=self._model, optim_dict=optim_dict
+            )
+            if opt_state_dict is not None:
+                try:
+                    self._optim_ckpt_wrapper.load_state_dict(opt_state_dict)
+                except BaseException as e:
+                    raise RuntimeError(
+                        "Failed loading in-backward optimizer checkpoints."
+                        "Please make sure run being restored from was using in-backward optimizer."
+                    ) from e
+            log.info("In-backward optimizers are set up.")
+            return None
+        else:
+            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+            if opt_state_dict:
+                optimizer.load_state_dict(opt_state_dict)
 
-        log.info("Optimizer and loss are initialized.")
-        return optimizer
+            log.info("Optimizer and loss are initialized.")
+            return optimizer
 
     def _setup_lr_scheduler(
         self,
@@ -513,12 +606,21 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optimizer:
+
+        if self._optimizer_in_bwd:
+            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
+        else:
+            optimizer = self._optimizer
+
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
-            self._optimizer,
+            optimizer,
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
+
+        if self._optimizer_in_bwd:
+            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
@@ -590,7 +692,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         if intermediate_checkpoint:
             ckpt_dict.update(
                 {
-                    training.OPT_KEY: self._optimizer.state_dict(),
                     training.SEED_KEY: self.seed,
                     training.EPOCHS_KEY: self.epochs_run,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
@@ -598,6 +699,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
+            if not self._optimizer_in_bwd:
+                ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
+            else:
+                ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
 
         # Move to CPU to avoid a copy on GPU
         state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
@@ -678,6 +783,9 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
 
+        if not self._optimizer_in_bwd:
+            self._optimizer.zero_grad()
+
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
         running_class_loss = 0
@@ -717,19 +825,21 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 ) * class_loss + self._kd_ratio * kd_loss
                 current_loss.backward()
 
-                # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    training.scale_grads(self._model, 1 / num_tokens)
-                    if self._clip_grad_norm is not None:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
-                    # Update the number of steps when the weights are updated
-                    self.global_step += 1
+                    # Step with optimizer
+                    if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        if not self._optimizer_in_bwd:
+                            training.scale_grads(self._model, 1 / num_tokens)
+                            if self._clip_grad_norm is not None:
+                                grad_norm = torch.nn.utils.clip_grad_norm_(
+                                    self._model.parameters(),
+                                    max_norm=float(self._clip_grad_norm),
+                                )
+                            self._optimizer.step()
+                            self._optimizer.zero_grad(set_to_none=True)
+
+                        self._lr_scheduler.step()
+                        # Update the number of steps when the weights are updated
+                        self.global_step += 1
 
                     class_loss_to_log = running_class_loss.detach().item() / num_tokens
                     kd_loss_to_log = running_kd_loss.detach().item() / num_tokens
@@ -741,26 +851,35 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
-                    # Log per-step metrics
-                    if self.global_step % self._log_every_n_steps == 0:
-                        time_per_step = time.perf_counter() - t0
-                        log_dict = {
-                            "loss": loss_to_log,
-                            "class_loss": class_loss_to_log,
-                            "kd_loss": kd_loss_to_log,
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                        }
-                        if self._device.type != "cpu" and self._log_peak_memory_stats:
-                            log_dict.update(
-                                training.get_memory_stats(device=self._device)
+                        # Log per-step metrics
+                        if self.global_step % self._log_every_n_steps == 0:
+                            time_per_step = time.perf_counter() - t0
+                            log_dict = {
+                                "loss": loss_to_log,
+                                "class_loss": class_loss_to_log,
+                                "kd_loss": kd_loss_to_log,
+                                "lr": get_lr(
+                                    (
+                                        self._optimizer
+                                        if not self._optimizer_in_bwd
+                                        else self._optim_ckpt_wrapper
+                                    ),
+                                ),
+                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            }
+                            if (
+                                self._device.type != "cpu"
+                                and self._log_peak_memory_stats
+                            ):
+                                log_dict.update(
+                                    training.get_memory_stats(device=self._device)
+                                )
+                            if self._clip_grad_norm is not None:
+                                log_dict.update({"grad_norm": grad_norm})
+                            self._metric_logger.log_dict(
+                                log_dict,
+                                step=self.global_step,
                             )
-                        if self._clip_grad_norm is not None:
-                            log_dict.update({"grad_norm": grad_norm})
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
-                        )
 
                     # Reset running stats for the next step
                     running_class_loss = 0
