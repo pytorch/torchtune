@@ -35,8 +35,6 @@ from torchtune.rlhf import ChosenRejectedOutputs
 
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class LoRADPORecipeSingleDevice(FTRecipeInterface):
     """
@@ -99,9 +97,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type == "cpu":
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -124,7 +123,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 )
         elif self._enable_activation_checkpointing:
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -231,7 +230,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+        self._logger.info("Tokenizer is initialized from file.")
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -243,7 +242,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        log.info("Loss function is initialized.")
+        self._logger.info("Loss function is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -327,7 +326,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             model, enable_activation_offloading
         )
 
-        log.info(f"Model is initialized with precision {self._dtype}.")
+        self._logger.info(f"Model is initialized with precision {self._dtype}.")
 
         # Compile model, if enabled.
         if compile_model:
@@ -344,7 +343,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
 
-        log.info("Optimizer and loss are initialized.")
+        self._logger.info("Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -354,7 +353,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         last_epoch: int,
     ) -> Optional[Optimizer]:
         if cfg_lr_scheduler is None:
-            log.info(
+            self._logger.info(
                 "No learning rate scheduler configured. Using constant learning rate."
             )
             return None
@@ -366,7 +365,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        log.info("Learning rate scheduler is initialized.")
+        self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -407,7 +406,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
         )
-        log.info("Dataset and Sampler are initialized.")
+        self._logger.info("Dataset and Sampler are initialized.")
 
         return dataloader
 
