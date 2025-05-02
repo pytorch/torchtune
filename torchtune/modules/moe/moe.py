@@ -104,6 +104,7 @@ class MoE(nn.Module):
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
+        self.use_grouped_mm = True
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -132,6 +133,36 @@ class MoE(nn.Module):
             index=token_indices,
         )
         routed_input = routed_input * top_scores.reshape(-1, 1)
+
+        if self.use_grouped_mm:
+            # NOTE: In order to use torch._grouped_mm, we need to make sure
+            # the number of tokens each expert gets is a multiple of 16.
+            # The following kernel helps achieve this via padding, without
+            # incurring synchronization between device and host.
+            from torchtune.modules.moe.indices import (
+                generate_permute_indices,
+            )
+
+            ALIGN_SIZE_M = 16
+
+            with torch.no_grad():
+                (
+                    permuted_indices,
+                    num_tokens_per_expert,
+                    _,
+                ) = generate_permute_indices(
+                    num_tokens_per_expert,
+                    self.experts.num_experts,
+                    1,
+                    token_indices.shape[0] + self.experts.num_experts * ALIGN_SIZE_M,
+                    ALIGN_SIZE_M,
+                )
+            token_indices = torch.vstack(
+                (token_indices, token_indices.new_zeros((dim)))
+            )
+            token_indices = token_indices[permuted_indices, :]
+            routed_input = torch.vstack((routed_input, routed_input.new_zeros((dim))))
+            routed_input = routed_input[permuted_indices, :]
 
         # shape (bs*slen*top_k, dim)
         routed_output = self.experts(routed_input, num_tokens_per_expert)

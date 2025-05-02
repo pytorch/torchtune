@@ -5,7 +5,18 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set, Union
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    runtime_checkable,
+    Set,
+    Union,
+)
 
 import torch
 from torch import nn
@@ -15,6 +26,7 @@ from torchtune.utils._logging import deprecate_parameter
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 
+@runtime_checkable
 class AdapterModule(Protocol):
     """
     Interface for an ``nn.Module`` containing adapter weights.
@@ -145,12 +157,44 @@ def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     Returns:
         Set[str]: Set of keys in the state dict that correspond to LoRA modules.
     """
-    lora_keys = [k for k in state_dict.keys() if "lora" in k or "magnitude" in k]
+    lora_keys = [
+        k
+        for k in state_dict.keys()
+        if ("lora" in k or "magnitude" in k) and ("experts" not in k)
+    ]
     return set(
         [
             k.replace(".lora_a.weight", "")
             .replace(".lora_b.weight", "")
             .replace(".magnitude", "")
+            for k in lora_keys
+        ]
+    )
+
+
+def _get_lora_moe_modules(state_dict: Dict[str, Any]) -> Set[str]:
+    """
+    Get the keys from a state dict that correspond to LoRAGroupedExperts modules.
+
+    For example, if state_dict is the state dict of model and model.x.y.z is a
+    LoRAGroupedExperts, this method will return "model.x.y.z", not
+    "model.x.y.z.lora_a.weight" or "model.x.y.z.lora_b.weight".
+
+    Args:
+        state_dict (Dict[str, Any]): State dict from a model.
+
+    Returns:
+        Set[str]: Set of keys in the state dict that correspond to LoRA MoE modules.
+    """
+    lora_keys = [k for k in state_dict.keys() if "lora" in k and "experts" in k]
+    return set(
+        [
+            k.replace(".lora_gate_a", "")
+            .replace(".lora_gate_b", "")
+            .replace(".lora_down_a", "")
+            .replace(".lora_down_b", "")
+            .replace(".lora_up_a", "")
+            .replace(".lora_up_b", "")
             for k in lora_keys
         ]
     )
@@ -179,7 +223,22 @@ def get_merged_lora_ckpt(
         Dict[str, Any]: The merged state dict.
     """
     lora_modules = _get_lora_modules(state_dict)
-    for module in lora_modules:
+    lora_moe_modules = _get_lora_moe_modules(state_dict)
+    for module in lora_modules.union(lora_moe_modules):
+        # TODO: we don't currently support DoRA for MoE layers
+        if "experts" in module:
+            for param in ["gate", "up", "down"]:
+                lora_a_weight = state_dict[f"{module}.lora_{param}_a"]
+                lora_b_weight = state_dict[f"{module}.lora_{param}_b"]
+                state_dict[f"{module}.{param}_proj"] += (
+                    (alpha / rank)
+                    * lora_b_weight.transpose(1, 2)
+                    @ lora_a_weight.transpose(1, 2)
+                ).transpose(1, 2)
+                del state_dict[f"{module}.lora_{param}_a"]
+                del state_dict[f"{module}.lora_{param}_b"]
+            continue
+
         lora_a_weight = state_dict[f"{module}.lora_a.weight"]
         lora_b_weight = state_dict[f"{module}.lora_b.weight"]
         lora_magnitude = state_dict.get(f"{module}.magnitude", None)
@@ -259,9 +318,9 @@ def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
     param_name="apply_lora_to_output", msg="Please use state_dict_keys instead."
 )
 def validate_missing_and_unexpected_for_lora(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
-    apply_lora_to_mlp: bool,
-    apply_lora_to_output: bool,
+    lora_attn_modules: Optional[List[LORA_ATTN_MODULES]] = None,
+    apply_lora_to_mlp: Optional[bool] = None,
+    apply_lora_to_output: Optional[bool] = None,
     state_dict_keys: Optional[List[str]] = None,
     base_missing: Optional[List[str]] = None,
     base_unexpected: Optional[List[str]] = None,
@@ -274,13 +333,13 @@ def validate_missing_and_unexpected_for_lora(
     unexpected as returned by the load_state_dict API with strict=False.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (Optional[List[LORA_ATTN_MODULES]]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
             DEPRECATED: use state_dict_keys instead.
-        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_mlp (Optional[bool]): whether LoRA is applied to each MLP linear.
             DEPRECATED: use state_dict_keys instead.
-        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
+        apply_lora_to_output (Optional[bool]): whether LoRA is applied to the final output projection.
             DEPRECATED: use state_dict_keys instead.
         state_dict_keys (Optional[List[str]]): ground truth model state dict we are validating against
         base_missing (Optional[List[str]]): List of missing keys when loading base model weights.
@@ -326,6 +385,9 @@ def validate_missing_and_unexpected_for_lora(
                 "Missing keys when validating state dict: \n" + "\n".join(err_msgs)
             )
     else:
+        assert lora_attn_modules is not None
+        assert apply_lora_to_mlp is not None
+        assert apply_lora_to_output is not None
         lora_modules = get_lora_module_names(
             lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
         )
