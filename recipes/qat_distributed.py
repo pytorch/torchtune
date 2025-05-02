@@ -32,8 +32,6 @@ from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class QATRecipeDistributed(FTRecipeInterface):
     """
@@ -145,9 +143,10 @@ class QATRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -197,7 +196,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -313,7 +312,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        utils.log_rank_zero(log, "Loss is initialized.")
+        utils.log_rank_zero(self._logger, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -403,7 +402,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
         utils.log_rank_zero(
-            log, f" Profiler config after instantiation: {profiler_cfg}"
+            self._logger, f" Profiler config after instantiation: {profiler_cfg}"
         )
         if self._is_rank_zero:
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
@@ -436,7 +435,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         """
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -518,7 +517,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         training.validate_no_params_on_meta_device(model)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
         if self._is_rank_zero:
@@ -568,7 +567,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                             "Failed loading in-backward optimizer checkpoints."
                             "Please make sure run being restored from was using in-backward optimizer."
                         ) from e
-            utils.log_rank_zero(log, "In-backward optimizers are set up.")
+            utils.log_rank_zero(self._logger, "In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
@@ -580,7 +579,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     self._device,
                 )
 
-            utils.log_rank_zero(log, "Optimizer is initialized.")
+            utils.log_rank_zero(self._logger, "Optimizer is initialized.")
             return optimizer
 
     def _setup_data(
@@ -632,7 +631,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
+        utils.log_rank_zero(self._logger, "Dataset and Sampler are initialized.")
 
         return dataloader
 
@@ -656,7 +655,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "Saving checkpoint. This may take some time. Retrieving full model state dict...",
         )
         start = time.perf_counter()
@@ -670,13 +669,13 @@ class QATRecipeDistributed(FTRecipeInterface):
         )
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
         )
 
         if intermediate_checkpoint:
             start = time.perf_counter()
-            utils.log_rank_zero(log, "Getting optimizer state dict...")
+            utils.log_rank_zero(self._logger, "Getting optimizer state dict...")
             if not self._optimizer_in_bwd:
                 opt_state_dict = training.get_full_optimizer_state_dict(
                     self._model,
@@ -691,7 +690,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                         self._model, opt, self._is_rank_zero, device=self._device
                     )
             utils.log_rank_zero(
-                log,
+                self._logger,
                 f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
             )
         else:
@@ -723,7 +722,9 @@ class QATRecipeDistributed(FTRecipeInterface):
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
             )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+            self._logger.info(
+                f"Saving checkpoint took {time.perf_counter() - start:.2f} secs"
+            )
 
         torch.distributed.barrier()
 
@@ -774,7 +775,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                 # Optionally wait N steps before enabling fake quant
                 if self._fake_quant_after_n_steps is not None:
                     if self.global_step == 0:
-                        log.info(
+                        self._logger.info(
                             "Step 0: Disabling fake quant, will re-enable in step %s"
                             % self._fake_quant_after_n_steps
                         )
@@ -783,7 +784,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                         )
                         self._model.apply(disable_fq)
                     elif self.global_step == self._fake_quant_after_n_steps:
-                        log.info(
+                        self._logger.info(
                             "Step %s: Enabling fake quant"
                             % self._fake_quant_after_n_steps
                         )
