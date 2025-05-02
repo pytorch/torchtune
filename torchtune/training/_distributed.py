@@ -88,8 +88,8 @@ class ParallelDims:
         dims = []
         names = []
         for d, name in zip(
-            [self.dp_replicate, self.dp_shard, self.tp, self.cp],
-            ["dp_replicate", "dp_shard", "tp", "cp"],
+            [self.dp_replicate, self.dp_shard, self.cp, self.tp],
+            ["dp_replicate", "dp_shard", "cp", "tp"],
         ):
             if d > 1:
                 dims.append(d)
@@ -113,7 +113,7 @@ class ParallelDims:
             dp_shard_cp_mesh_dim_names.append("dp_shard")
             dp_cp_mesh_dim_names.append("dp_shard")
         if self.cp_enabled:
-            dp_mesh_dim_names.append("cp")
+            dp_shard_cp_mesh_dim_names.append("cp")
             dp_cp_mesh_dim_names.append("cp")
 
         if dp_mesh_dim_names != []:
@@ -903,9 +903,10 @@ def create_context_parallel_ctx(
     )
 
 
+# TODO: refactor these args
 def create_consolidated_train_context(
     cp_enabled: bool = False,
-    cp_mesh: Optional[torch.distributed.DeviceMesh] = None,
+    world_mesh: Optional[torch.distributed.DeviceMesh] = None,
     cp_buffers: Optional[List[torch.Tensor]] = None,
     cp_seq_dims: Optional[List[int]] = None,
     cp_no_restore_buffers: Optional[Set[torch.Tensor]] = None,
@@ -946,12 +947,12 @@ def create_consolidated_train_context(
         cp_context = None
         if (
             cp_enabled
-            and cp_mesh is not None
+            and world_mesh is not None
             and cp_buffers is not None
             and cp_seq_dims is not None
         ):
             cp_context = create_context_parallel_ctx(
-                cp_mesh=cp_mesh,
+                cp_mesh=world_mesh["cp"],
                 cp_buffers=cp_buffers,
                 cp_seq_dims=cp_seq_dims,
                 cp_no_restore_buffers=cp_no_restore_buffers or set(),

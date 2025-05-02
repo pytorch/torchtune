@@ -797,8 +797,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
+            print("gonna forward model")
             outputs = self._model(**batch)
-
+            print("done forward model")
+        print("gonna forward loss")
         if self.linear_loss:
             weight = self._model.linear_projection_weight
             loss = self._loss_fn(weight, outputs, labels)
@@ -806,6 +808,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             labels = labels.reshape(-1)
             outputs = outputs.reshape(-1, outputs.size(-1))
             loss = self._loss_fn(outputs, labels)
+        print("done forward loss")
 
         # free logits otherwise it peaks backward memory
         del outputs
@@ -881,6 +884,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                print(batch["tokens"].shape)
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -897,7 +901,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 optional_context_parallel_context_manager = (
                     training.create_consolidated_train_context(
                         cp_enabled=self.cp_degree > 1,
-                        cp_mesh=self.world_mesh["cp"],
+                        world_mesh=self.world_mesh,
                         cp_buffers=model_inputs + buffers,
                         cp_seq_dims=[1] * len(model_inputs) + [0] * len(buffers),
                         cp_no_restore_buffers=set(model_inputs),
@@ -921,14 +925,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 with optional_context_parallel_context_manager:
+                    print("gonna forward")
                     current_loss = self._loss_step(batch) * current_num_tokens
+                    print("done forward")
+                    running_loss += current_loss
                     # For optimizer in backward, we need to normalize before calling backward
                     # This case and gradient accumulation are mutually exclusive
                     if self._optimizer_in_bwd:
                         torch.distributed.all_reduce(num_tokens)
                         torch.distributed.all_reduce(running_loss)
                         current_loss = current_loss * (self.dp_degree / num_tokens)
+                    print("gonna backward")
                     current_loss.backward()
+                    print("done backward")
 
                 # Optimizer step (if not fused in backward call)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
