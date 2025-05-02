@@ -48,6 +48,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
             "training.save_every_n_steps=2",
             "training.steps_before_weight_sync=1",
             "inference.steps_before_weight_sync=1",
+            "inference.engine_args.gpu_memory_utilization=0.33",
             # Logging
             "metric_logger._component_=torchtune.training.metric_logging.DiskLogger",
             f"metric_logger.filename={log_file}",

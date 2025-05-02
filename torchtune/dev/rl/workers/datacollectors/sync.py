@@ -57,7 +57,6 @@ class SyncLLMCollector(SyncDataCollector):
     ):
         if async_envs:
             raise NotImplementedError
-
         self.cfg = cfg
         self.rollout_queue = queue
         self.worker_id = worker_id
@@ -65,7 +64,7 @@ class SyncLLMCollector(SyncDataCollector):
         self.tp_size = self.cfg.inference.tensor_parallel_dim
         self.batch_size = self.cfg.inference.batch_size
         self._sequence_counter = 0  # Used to assign unique sequence IDs to each sample
-
+        self.engine_args = self.cfg.inference.get("engine_args", {})
         self.inference_server = LLM(
             model=llm,
             enforce_eager=True,
@@ -73,6 +72,7 @@ class SyncLLMCollector(SyncDataCollector):
             dtype="bfloat16",
             worker_cls=VLLMWorkerWrapper,
             tensor_parallel_size=self.tp_size,
+            **self.engine_args,
         )
 
         # local import below LLM call to avoid vLLM no CUDA GPUs available error
