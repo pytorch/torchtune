@@ -289,6 +289,7 @@ def load_from_full_model_state_dict(
     strict: bool = False,
     cpu_offload: bool = False,
     use_distributed_state_dict: bool = False,
+    release_sd: bool = True,
 ) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
@@ -301,6 +302,7 @@ def load_from_full_model_state_dict(
         cpu_offload (bool): flag to check if offload to CPU is enabled
         use_distributed_state_dict (bool): Whether to use set_model_state_dict for loading
             state dict. Default: False. (TODO: this should be True once 3.2 Vision is fixed)
+        release_sd (bool): whether to release memory of full_sd to save ram usage
     Returns:
         ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
             * **missing_keys** is a list of str containing the missing keys
@@ -399,7 +401,8 @@ def load_from_full_model_state_dict(
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
             sharded_sd[param_name] = nn.Parameter(sharded_tensor)
-            full_sd[param_name] = None
+            if release_sd:
+                full_sd[param_name] = None
         # choose `assign=True` since we cannot call `copy_` on meta tensor
         return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 

@@ -386,6 +386,7 @@ class TestDistributedDoRALinear(MultiProcessTestCase):
             ffn,
             base_model_state_dict,
             device,
+            release_sd=False,
         )
 
         # After this, everything should be off meta device
