@@ -73,7 +73,7 @@ fsdp_cpu_offload: True
 # compile False means no torch.compile
 # compile Dictionary with keys: "model", "loss", "optimizer_step"
 # enables torch.compile only for specified components.
-compile: True
+compile: False
 #    model: True
 #    loss: True
 #    optimizer_step: True

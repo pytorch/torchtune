@@ -9,6 +9,8 @@ from typing import Optional
 import torch
 from torch import nn
 
+USE_GROUPED_MM = False
+
 
 class TokenChoiceTopKRouter(nn.Module):
     """This class implements Token Choice routing. In Token Choice top K routing, each token is
@@ -104,7 +106,7 @@ class MoE(nn.Module):
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
-        self.use_grouped_mm = True
+        self.use_grouped_mm = USE_GROUPED_MM
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

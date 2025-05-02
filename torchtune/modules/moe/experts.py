@@ -11,6 +11,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torchtune.modules.peft import AdapterModule
+from torchtune.modules.moe.moe import USE_GROUPED_MM
 
 
 class GroupedExperts(nn.Module):
@@ -50,7 +51,7 @@ class GroupedExperts(nn.Module):
     # TODO: force no inference mode as a hack to get around
     # "Cannot set version_counter for inference tensor"
     @torch.inference_mode(mode=False)
-    @torch._dynamo.disable(recursive=False)
+    # @torch._dynamo.disable(recursive=False)
     def forward(
         self,
         x: torch.Tensor,
@@ -65,7 +66,7 @@ class GroupedExperts(nn.Module):
         Returns:
             torch.Tensor: tensor with shape ``(bsz * seq_len * experts_per_token, dim)``
         """
-        self.use_grouped_mm = True
+        self.use_grouped_mm = USE_GROUPED_MM
         if not self.use_grouped_mm:
             # a tuple of tensors indexed by experts
             # each with shape (tokens_per_expert(varying), dim)

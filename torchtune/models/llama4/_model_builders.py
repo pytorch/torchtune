@@ -78,7 +78,7 @@ def llama4_scout_17b_16e(
         norm_eps=1e-5,
         num_experts=16,
         use_shared_expert=True,
-        skip_rope_interval=None,
+        skip_rope_interval=4,
         attention_chunk_size=8192,
         use_scaled_rope=True,
     )
@@ -149,7 +149,7 @@ def llama4_maverick_17b_128e(
         use_qk_norm=False,
         moe_every_n_layers=2,
         mlp_hidden_dim=16384,
-        skip_rope_interval=None,
+        skip_rope_interval=4,
         attention_chunk_size=8192,
     )
     return EarlyFusionModel(
