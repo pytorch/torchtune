@@ -16,7 +16,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._tensor import DTensor
+from torch.distributed.tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
 from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
@@ -357,13 +357,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, modules.loss.SFTLoss):
+            self._loss_fn.set_model_output(self._model)
 
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-
-        # Update model output to match execpted loss input
-        if isinstance(self._loss_fn, modules.loss.SFTLoss):
-            self._loss_fn.set_model_output(self._model)
 
         utils.log_rank_zero(log, "Loss is initialized.")
 
@@ -795,9 +793,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with self.activations_handling_ctx:
             outputs = self._model(**batch)
 
+        # post process for third party loss functions
         if not isinstance(self._loss_fn, modules.loss.SFTLoss):
             labels = labels.reshape(-1)
             outputs = outputs.reshape(-1, outputs.size(-1))
+            if isinstance(outputs, DTensor):
+                outputs = outputs.full_tensor()
 
         # Compute loss
         loss = self._loss_fn(outputs, labels)

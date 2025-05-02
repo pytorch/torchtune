@@ -9,12 +9,15 @@ from typing import List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchtune.utils import deprecated
+from torch.distributed.tensor import DTensor
+
+# from torchtune.utils import deprecated
 
 from .loss_types import SFTLoss
 
 
-@deprecated("Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead.")
+# TODO: switch to linear_loss
+# @deprecated("Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead.")
 class CEWithChunkedOutputLoss(torch.nn.Module, SFTLoss):
     """
     Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.
@@ -43,6 +46,8 @@ class CEWithChunkedOutputLoss(torch.nn.Module, SFTLoss):
         """
         Upcast logits to fp32 and compute cross entropy loss.
         """
+        if isinstance(logits, DTensor):
+            logits = logits.full_tensor()
         return F.cross_entropy(
             logits.float(), labels, ignore_index=self.ignore_index, reduction="sum"
         )
