@@ -89,7 +89,6 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
                 #     hidden_chunk.device_mesh,
                 # )
             mask_chunk = target_chunk != self.ignore_index
-            torch.distributed.breakpoint(0)
             hidden_chunk = hidden_chunk[mask_chunk]  # [num_valid, embed_dim]
             target_chunk = target_chunk[mask_chunk]  # [num_valid]
         else:
