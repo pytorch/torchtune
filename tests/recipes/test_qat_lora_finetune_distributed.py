@@ -213,7 +213,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
-    @gpu_test(gpu_count=2)
+    @gpu_test(gpu_count=4)
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, save_adapter_weights_only",
         [
@@ -252,7 +252,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \
@@ -281,7 +281,7 @@ class TestQATLoRAFinetuneDistributedRecipe:
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 qat_lora_finetune_distributed \
+        tune run --nnodes 1 --nproc_per_node 4 qat_lora_finetune_distributed \
             --config {config} \
             batch_size=4 \
             gradient_accumulation_steps=1 \
