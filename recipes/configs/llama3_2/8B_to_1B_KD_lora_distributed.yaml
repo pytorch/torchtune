@@ -99,6 +99,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Environment
 device: cuda

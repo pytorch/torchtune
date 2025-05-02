@@ -37,8 +37,6 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class KDRecipeDistributed(FTRecipeInterface):
     """
@@ -134,6 +132,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
@@ -265,7 +264,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        utils.log_rank_zero(log, "Tokenizer is initialized from file.")
+        utils.log_rank_zero(self._logger, "Tokenizer is initialized from file.")
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -295,8 +294,12 @@ class KDRecipeDistributed(FTRecipeInterface):
             assert (
                 self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
             ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
+        elif getattr(self._loss_fn, "linear_loss", False):
+            raise ValueError(
+                "Linear losses are not supported yet for KD. Please use the deprecated CEWithChunkedOutputLoss."
+            )
 
-        utils.log_rank_zero(log, "Loss is initialized.")
+        utils.log_rank_zero(self._logger, "Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -393,7 +396,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
         utils.log_rank_zero(
-            log, f" Profiler config after instantiation: {profiler_cfg}"
+            self._logger, f" Profiler config after instantiation: {profiler_cfg}"
         )
         if self._is_rank_zero:
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
@@ -430,7 +433,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -510,7 +513,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         training.validate_no_params_on_meta_device(model)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating student model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
         if self._is_rank_zero:
@@ -541,7 +544,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         """
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP enabled. Instantiating teacher model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -594,7 +597,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         training.validate_no_params_on_meta_device(model)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating teacher model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
         if self._is_rank_zero:
@@ -620,7 +623,7 @@ class KDRecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        utils.log_rank_zero(log, "Optimizer is initialized.")
+        utils.log_rank_zero(self._logger, "Optimizer is initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -636,7 +639,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
+        utils.log_rank_zero(self._logger, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -688,7 +691,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             drop_last=True,
         )
 
-        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
+        utils.log_rank_zero(self._logger, "Dataset and Sampler are initialized.")
 
         return dataloader
 
