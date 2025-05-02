@@ -11,11 +11,9 @@ from functools import partial
 from typing import Any, Dict, Optional, Union
 from warnings import warn
 
-import omegaconf
-
 import torch
 import torchtune.modules.common_utils as common_utils
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from torch import nn
 from torch.optim import Optimizer
@@ -151,10 +149,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         Extract the teacher checkpoint state from file.
         """
-        dictionary = {}
-        dictionary["checkpointer"] = cfg_checkpointer
+        # add checkpointer class to config to work with checkpoint_client
+        checkpointer_dict = {"checkpointer": cfg_checkpointer}
 
-        new_cfg_checkpointer = omegaconf.OmegaConf.create(dictionary)
+        new_cfg_checkpointer = OmegaConf.create(checkpointer_dict)
         teacher_checkpoint_client = CheckpointClient(
             new_cfg_checkpointer,
         )
