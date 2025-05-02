@@ -32,8 +32,6 @@ from torchtune.training.lr_schedulers import get_lr
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class FullDPORecipeDistributed(FTRecipeInterface):
     """
@@ -136,7 +134,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
                 "Setting log_peak_memory_stats=False."
             )
@@ -191,7 +189,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                 )
         elif self._enable_activation_checkpointing:
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -326,7 +324,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
         if self._is_rank_zero:
-            log.info("Loss is initialized.")
+            self._logger.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are initialized
@@ -420,7 +418,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
         if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
+            self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
 
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
             if profiler_cfg["enabled"]:
@@ -449,7 +447,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         """
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -505,7 +503,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         training.validate_no_params_on_meta_device(model)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
 
@@ -542,7 +540,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         """
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating reference model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -587,7 +585,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         training.validate_no_params_on_meta_device(model)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating reference model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
 
@@ -647,7 +645,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                             "Failed loading in-backward optimizer checkpoints."
                             "Please make sure run being restored from was using in-backward optimizer."
                         ) from e
-            utils.log_rank_zero(log, "In-backward optimizers are set up.")
+            utils.log_rank_zero(self._logger, "In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
@@ -659,7 +657,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
                     self._device,
                 )
 
-            utils.log_rank_zero(log, "Optimizer and loss are initialized.")
+            utils.log_rank_zero(self._logger, "Optimizer and loss are initialized.")
             return optimizer
 
     def _setup_lr_scheduler(
@@ -675,7 +673,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
             last_epoch=last_epoch,
         )
         if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+            self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -717,7 +715,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         )
 
         if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+            self._logger.info("Dataset and Sampler are initialized.")
 
         return dataloader
 
