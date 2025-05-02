@@ -56,7 +56,7 @@ optimizer:
   fused: True
   lr: 2e-5
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 8  # Use to increase effective batch size
 clip_grad_norm: null

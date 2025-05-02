@@ -442,6 +442,10 @@ _ALL_RECIPES = [
                 name="llama3_2_vision/90B_qlora",
                 file_path="llama3_2_vision/90B_qlora.yaml",
             ),
+            Config(
+                name="llama4/scout_17B_16E_lora",
+                file_path="llama4/scout_17B_16E_lora.yaml",
+            ),
         ],
         supports_distributed=True,
     ),

@@ -19,8 +19,8 @@ from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
-from torch.testing._internal.common_distributed import MultiProcessTestCase
-from torch.testing._internal.common_fsdp import MLP
+
+from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, training
 from torchtune.models.llama2._component_builders import lora_llama2
@@ -121,7 +121,7 @@ def _get_n_lora_and_tformer_layers(model):
     return num_lora_ab, num_transformer_layers
 
 
-class TestFullyShardState(MultiProcessTestCase):
+class TestFullyShardState(FSDPTest):
     @property
     def world_size(self) -> int:
         return 2
@@ -388,7 +388,7 @@ class TestFullyShardState(MultiProcessTestCase):
         return result[0]
 
 
-class TestTensorParalell(MultiProcessTestCase):
+class TestTensorParalell(FSDPTest):
     @property
     def world_size(self) -> int:
         return 2
