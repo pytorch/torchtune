@@ -183,6 +183,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
+        self._logger = utils.get_logger(cfg.log_level)
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
