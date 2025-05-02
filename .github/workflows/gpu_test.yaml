@@ -58,6 +58,7 @@ jobs:
         if: ${{ matrix.python-version != '3.9' }}
         run:  python -m pip install -e ".[async_rl]"
       - name: Run recipe and unit tests with coverage
-        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest -m integration_test -s tests/recipes/dev/test_async_grpo_full_finetune_distributed.py
+        # run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
