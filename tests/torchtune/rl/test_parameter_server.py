@@ -127,7 +127,7 @@ class TestParamServer:
     def _get_config(self, tp_size: int = 1):
         config_str = f"""
 inference:
-    tp_size: {tp_size}
+    tensor_parallel_dim: {tp_size}
         """
         cfg = OmegaConf.create(config_str)
         return cfg
