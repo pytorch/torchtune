@@ -466,7 +466,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama4._transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama4Transform</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">EarlyFusionModel</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRATrainable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">TrainableParams</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">torch_version_ge</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -702,10 +702,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        EarlyFusionModel: Instantiation of a 17B Llama4 MOE LoRA model with encoders.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">decoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">decoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="n">vision_encoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">encoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="n">fusion_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">fusion_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="k">assert</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="n">decoder_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">decoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">vision_encoder_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">encoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">fusion_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">fusion_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="n">decoder_type</span><span class="p">,</span>
         <span class="n">vision_encoder_type</span><span class="p">,</span>
         <span class="n">fusion_type</span><span class="p">,</span>
@@ -714,8 +714,8 @@
     <span class="n">decoder_embed_dim</span> <span class="o">=</span> <span class="mi">5120</span>
 
     <span class="n">vision_encoder</span> <span class="o">=</span> <span class="n">lora_llama4_vision_encoder</span><span class="p">(</span>
-        <span class="n">encoder_lora</span><span class="o">=</span><span class="n">vision_encoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
-        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">encoder_lora</span><span class="o">=</span><span class="n">vision_encoder_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
         <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
@@ -736,7 +736,7 @@
     <span class="p">)</span>
 
     <span class="n">decoder</span> <span class="o">=</span> <span class="n">lora_llama4_decoder</span><span class="p">(</span>
-        <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
         <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
@@ -768,10 +768,10 @@
             <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">LLAMA4_SPECIAL_TOKENS</span><span class="p">[</span><span class="s2">&quot;&lt;|patch|&gt;&quot;</span><span class="p">],</span>
         <span class="p">},</span>
         <span class="n">encoders_trainable</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">encoder_trainable</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+            <span class="s2">&quot;vision&quot;</span><span class="p">:</span> <span class="n">encoder_trainable</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
         <span class="p">},</span>
-        <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_trainable</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
-        <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_trainable</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_trainable</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_trainable</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
     <span class="p">)</span>
 </pre></div>
 

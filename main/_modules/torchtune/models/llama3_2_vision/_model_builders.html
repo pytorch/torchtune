@@ -467,7 +467,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">Llama3VisionTransform</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.model_fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepFusionModel</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRATrainable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.peft</span><span class="w"> </span><span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">TrainableParams</span>
 
 
 <div class="viewcode-block" id="llama3_2_vision_transform"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2_vision.llama3_2_vision_transform.html#torchtune.models.llama3_2_vision.llama3_2_vision_transform">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_vision_transform</span><span class="p">(</span>
@@ -611,17 +611,17 @@
 <span class="sd">        a subset of the attention projections in each layer.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">decoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">decoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="n">encoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">encoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="n">fusion_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">fusion_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="k">assert</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="n">decoder_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">decoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">encoder_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">encoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">fusion_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">fusion_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="n">decoder_type</span><span class="p">,</span>
         <span class="n">encoder_type</span><span class="p">,</span>
         <span class="n">fusion_type</span><span class="p">,</span>
     <span class="p">],</span> <span class="s2">&quot;We&#39;ve temporarily removed support for mixed LoRA + Full Finetuning yet. Please don&#39;t use the &#39;full&#39; option and use llama3_2_vision_11b if you need full finetuning&quot;</span>
     <span class="n">encoder</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_encoder</span><span class="p">(</span>
-        <span class="n">encoder_lora</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
-        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">encoder_lora</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
         <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
@@ -645,8 +645,8 @@
         <span class="n">scaler_block_size</span><span class="o">=</span><span class="mi">200</span> <span class="k">if</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">decoder</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_decoder</span><span class="p">(</span>
-        <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
-        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
         <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
@@ -670,9 +670,9 @@
     <span class="k">return</span> <span class="n">DeepFusionModel</span><span class="p">(</span>
         <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
         <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
-        <span class="n">encoder_trainable</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
-        <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
-        <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">encoder_trainable</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -774,17 +774,17 @@
 <span class="sd">        a subset of the attention projections in each layer.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">decoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">decoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="n">encoder_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">encoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="n">fusion_type</span> <span class="o">=</span> <span class="n">LoRATrainable</span><span class="p">(</span><span class="n">fusion_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="k">assert</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="n">decoder_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">decoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">encoder_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">encoder_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="n">fusion_type</span> <span class="o">=</span> <span class="n">TrainableParams</span><span class="p">(</span><span class="n">fusion_trainable</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="n">decoder_type</span><span class="p">,</span>
         <span class="n">encoder_type</span><span class="p">,</span>
         <span class="n">fusion_type</span><span class="p">,</span>
     <span class="p">],</span> <span class="s2">&quot;We&#39;ve temporarily removed support for mixed LoRA + Full Finetuning yet. Please don&#39;t use the &#39;full&#39; option and use llama3_2_vision_90b if you need full finetuning&quot;</span>
     <span class="n">encoder</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_encoder</span><span class="p">(</span>
-        <span class="n">encoder_lora</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
-        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">encoder_lora</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
         <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
@@ -808,8 +808,8 @@
         <span class="n">scaler_block_size</span><span class="o">=</span><span class="mi">200</span> <span class="k">if</span> <span class="n">quantize_base</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">decoder</span> <span class="o">=</span> <span class="n">lora_llama3_2_vision_decoder</span><span class="p">(</span>
-        <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
-        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">decoder_lora</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
+        <span class="n">fusion_lora</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">==</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">LORA</span><span class="p">,</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
         <span class="n">apply_lora_to_output</span><span class="o">=</span><span class="n">apply_lora_to_output</span><span class="p">,</span>
@@ -833,9 +833,9 @@
     <span class="k">return</span> <span class="n">DeepFusionModel</span><span class="p">(</span>
         <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
         <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
-        <span class="n">encoder_trainable</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
-        <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
-        <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">!=</span> <span class="n">LoRATrainable</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">encoder_trainable</span><span class="o">=</span><span class="n">encoder_type</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">decoder_trainable</span><span class="o">=</span><span class="n">decoder_type</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
+        <span class="n">fusion_trainable</span><span class="o">=</span><span class="n">fusion_type</span> <span class="o">!=</span> <span class="n">TrainableParams</span><span class="o">.</span><span class="n">FROZEN</span><span class="p">,</span>
     <span class="p">)</span>
 
 
