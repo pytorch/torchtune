@@ -37,8 +37,6 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
@@ -152,9 +150,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
                 "Setting log_peak_memory_stats=False."
             )
@@ -202,7 +201,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -329,7 +328,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
         self._model.skip_linear_projection = self.linear_loss
 
-        utils.log_rank_zero(log, "Loss is initialized.")
+        utils.log_rank_zero(self._logger, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -443,7 +442,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
         utils.log_rank_zero(
-            log, f" Profiler config after instantiation: {profiler_cfg}"
+            self._logger, f" Profiler config after instantiation: {profiler_cfg}"
         )
         if self._is_rank_zero:
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
@@ -481,7 +480,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -566,7 +565,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # log
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
         if self._is_rank_zero:
@@ -590,7 +589,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        utils.log_rank_zero(log, "Optimizer is initialized.")
+        utils.log_rank_zero(self._logger, "Optimizer is initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -605,7 +604,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
+        utils.log_rank_zero(self._logger, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -684,7 +683,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "Saving checkpoint. This may take some time. Retrieving full model state dict...",
         )
         start = time.perf_counter()
@@ -698,12 +697,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             adapter_weights_only=self._save_adapter_weights_only,
         )
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
         )
 
         if intermediate_checkpoint:
-            utils.log_rank_zero(log, "Retrieving optimizer state dict...")
+            utils.log_rank_zero(self._logger, "Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._model,
                 self._optimizer,
@@ -711,7 +710,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 device=self._device,
             )
             utils.log_rank_zero(
-                log,
+                self._logger,
                 f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
             )
         else:
@@ -769,7 +768,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=self._save_adapter_weights_only,
             )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+            self._logger.info(
+                f"Saving checkpoint took {time.perf_counter() - start:.2f} secs"
+            )
 
         torch.distributed.barrier()
 
