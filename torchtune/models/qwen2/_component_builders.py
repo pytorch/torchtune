@@ -48,6 +48,11 @@ def qwen2(
     norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
     tie_word_embeddings: bool = False,
+    q_proj_bias: bool = True,
+    k_proj_bias: bool = True,
+    v_proj_bias: bool = True,
+    q_norm: bool = True,
+    k_norm: bool = True,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the Qwen2 model. This includes:
@@ -74,6 +79,11 @@ def qwen2(
         norm_eps (float): epsilon in RMS norms.
         rope_base (float): the base period of the RoPE embeddings.
         tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
+        q_proj_bias (bool): whether to use bias in the query projection.
+        k_proj_bias (bool): whether to use bias in the key projection.
+        v_proj_bias (bool): whether to use bias in the value projection.
+        q_norm (bool): whether to use normalization in the query projection.
+        k_norm (bool): whether to use normalization in the key projection.
 
     Returns:
         TransformerDecoder: Instantiation of Qwen2 model.
@@ -90,11 +100,13 @@ def qwen2(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=True),
-            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
-            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=q_proj_bias),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=k_proj_bias),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=v_proj_bias),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
+            q_norm=nn.RMSNorm(eps=norm_eps) if q_norm else None,
+            k_norm=nn.RMSNorm(eps=norm_eps) if k_norm else None,
             kv_cache=None,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
