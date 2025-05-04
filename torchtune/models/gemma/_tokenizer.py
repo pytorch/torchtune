@@ -6,12 +6,11 @@
 
 from typing import Any, List, Mapping, Optional, Tuple
 
-from torchtune.data import Message, PromptTemplate
+from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
-    tokenize_messages_no_special_tokens,
 )
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
@@ -104,50 +103,90 @@ class GemmaTokenizer(ModelTokenizer, Transform):
         self,
         messages: List[Message],
         *,
-        add_eos: bool = True,
+        add_end_tokens: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
-
-        Example:
-            >>> tokenizer = GemmaTokenizer(tokenizer_path, max_seq_len)
-            >>> messages = [
-                Message(role="system", content="system message\n", masked=True),
-                Message(role="user", content="user prompt\n", masked=True),
-                Message(role="assistant", content="assistant response\n"),
-            ]
-
-            >>> # tokenize_messages encodes messages separately and concats
-            >>> tokenizer.tokenize_messages(messages)[0]
-            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
-
-
-            >>> # Same result as encoding the full string in one go
-            >>> tokenizer.encode(''.join([message.content for message in messages]))
-            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
-
-
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
-                and masked attributes.
-            add_eos (bool): Whether to append EOS after assistant message, default to True
+                and masked attributes. Messages should be in prompt-answer format.
+            add_end_tokens (bool): Whether to append the EOS token at the end of the
+                entire token sequence. This is typically True for training/fine-tuning
+                and False for inference/generation. Default is True.
 
         Returns:
-            Tuple[List[int], List[bool]]: The tokenized messages
+            Tuple[List[int], List[bool]]: A tuple containing the list of token IDs
+            and a corresponding list of boolean masks.
+
+        Examples:
+            >>> tokenizer = GemmaTokenizer("/path/to/spm_model", max_seq_len=100)
+            >>> messages = [
+            ...     Message(role="user", content="Hello", masked=True),
+            ...     Message(role="assistant", content="World!"),
+            ... ]
+
+            >>> # Training/Finetuning (add_end_tokens=True)
+            >>> tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=True)
+            >>> print(tokens) # Example output, specific IDs depend on tokenizer
+            [1, 765, 20916, 102]
+            >>> print(mask)
+            [True, True, False, True]
+
+            >>> # Inference (add_end_tokens=False)
+            >>> tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=False)
+            >>> print(tokens) # Example output, no final EOS
+            [1, 765, 20916]
+            >>> print(mask)
+            [True, True, False]
         """
         templated_messages = (
             self.prompt_template(messages)
             if self.prompt_template is not None
             else messages
         )
-        return tokenize_messages_no_special_tokens(
-            tokenizer=self,
-            messages=templated_messages,
-            bos_id=self.bos_id,
-            eos_id=self.eos_id if add_eos else None,
-            truncation_type=self.truncation_type,
-        )
+
+        tokens = [self.bos_id]
+        # bos and eos are always masked
+        mask = [True]
+
+        for message in templated_messages:
+            # Gemma assumes text-only content, extract it
+            if isinstance(message.content, list): # Handle potential multi-part format after templating
+                text_content = "".join(part["content"] for part in message.content if part["type"] == "text")
+            else:
+                text_content = message.content
+
+            encoded_tokens = self.encode(
+                text_content, add_bos=False, add_eos=False
+            )
+            tokens.extend(encoded_tokens)
+            mask.extend([message.masked] * len(encoded_tokens))
+
+            # Check for max_seq_len after each message to potentially break early
+            # Note: This doesn't perfectly guarantee length if a single message exceeds max_seq_len
+            if self.max_seq_len and len(tokens) >= self.max_seq_len:
+                 break
+
+        if add_end_tokens:
+            tokens.append(self.eos_id)
+            mask.append(True) # Mask applied to EOS
+
+        if self.max_seq_len:
+            tokens = truncate(
+                tokens=tokens,
+                max_seq_len=self.max_seq_len,
+                eos_id=self.eos_id if add_end_tokens else None,
+                truncation_type=self.truncation_type,
+            )
+            mask = truncate(
+                tokens=mask,
+                max_seq_len=self.max_seq_len,
+                eos_id=True if add_end_tokens else None, # EOS mask is always True
+                truncation_type=self.truncation_type,
+            )
+
+        return tokens, mask
 
     def __call__(
         self, sample: Mapping[str, Any], inference: bool = False
@@ -159,13 +198,15 @@ class GemmaTokenizer(ModelTokenizer, Transform):
             sample (Mapping[str, Any]): A sample with a "messages" field containing
                 a List[Message] to tokenize
             inference (bool): Whether the template is being used for inference or not.
+                If True, the final EOS token will not be added. Default is False.
 
         Returns:
             Mapping[str, Any]: The sample with added "tokens" and "mask" fields
                 and the "messages" field removed.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        # Pass add_end_tokens based on the inverse of inference flag
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample
