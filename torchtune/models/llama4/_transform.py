@@ -14,7 +14,7 @@ from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
 from torchtune.models.clip import CLIPImageTransform
 from torchtune.models.llama4._tokenizer import Llama4Tokenizer
-from torchtune.modules.tokenizers import ModelTokenizer, parse_hf_tokenizer_json
+from torchtune.modules.transforms.tokenizers import ModelTokenizer, parse_hf_tokenizer_json
 from torchtune.modules.transforms import Transform
 from torchvision.transforms import v2
 

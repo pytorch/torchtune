@@ -8,7 +8,7 @@ from torchtune.models.phi4._tokenizer import Phi4Tokenizer
 
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
+from torchtune.modules.transforms.tokenizers import parse_hf_tokenizer_json
 
 
 """

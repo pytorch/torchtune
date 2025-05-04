@@ -11,7 +11,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 
 BASE_PROMPT = (

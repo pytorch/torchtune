@@ -7,7 +7,7 @@
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, PromptTemplate, truncate
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import GPT2BaseTokenizer
 

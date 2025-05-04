@@ -7,7 +7,7 @@ import re
 from typing import Any, Callable, Dict, Optional
 
 from torchtune.datasets import SFTDataset
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 from .data import ReasoningProblem, RLDataset
 
