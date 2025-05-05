@@ -513,7 +513,7 @@
 <span class="sd">            already been filled, use ``.reset()``, which will reset the cache to the zero-th position.</span>
 
 <span class="sd">        Example:</span>
-<span class="sd">            &gt;&gt;&gt; cache = KVCache(batch_size=2, max_seq_len=16, num_kv_heads=4, head_dim=32, dtype=torch.bfloat16)</span>
+<span class="sd">            &gt;&gt;&gt; cache = KVCache(batch_size=2, num_kv_heads=4, max_seq_len=16, head_dim=32, dtype=torch.bfloat16)</span>
 <span class="sd">            &gt;&gt;&gt; keys, values = torch.ones((2, 4, 8, 32)), torch.ones((2, 4, 8, 32))</span>
 <span class="sd">            &gt;&gt;&gt; cache.update(keys, values)</span>
 <span class="sd">            &gt;&gt;&gt; # now positions 0 through 7 are filled</span>
