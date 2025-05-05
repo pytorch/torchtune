@@ -43,7 +43,7 @@ checkpointer:
   checkpoint_dir: /tmp/Qwen3-8B
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: "00050"
+    max_filename: "00005"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: QWEN2
@@ -56,7 +56,7 @@ teacher_checkpointer:
   checkpoint_dir: /tmp/Qwen3-14B
   checkpoint_files:
     filename_format: model-{}-of-{}.safetensors
-    max_filename: "00050"
+    max_filename: "00008"
   recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: QWEN2
