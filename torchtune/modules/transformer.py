@@ -11,7 +11,7 @@ from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
 
-# from torchtune.utils import deprecated
+from torchtune.utils import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -404,8 +404,7 @@ class TransformerDecoder(nn.Module):
         self.encoder_max_cache_seq_len = None
         self.decoder_max_cache_seq_len = None
 
-    # TODO: switch to linear_loss
-    # @deprecated("Please use LinearCrossEntropyLoss instead")
+    @deprecated("Please use LinearCrossEntropyLoss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -490,8 +489,7 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.reset_cache()
 
-    # TODO: switch to linear_loss
-    # @deprecated("Please use self.skip_output=True and use a linear loss instead")
+    @deprecated("Please use self.skip_output=True and use a linear loss instead")
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
         """
         Apply output projection in chunks. This should be applied in conjunction with

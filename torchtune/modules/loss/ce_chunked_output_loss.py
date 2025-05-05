@@ -11,13 +11,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributed.tensor import DTensor
 
-# from torchtune.utils import deprecated
+from torchtune.utils import deprecated
 
 from .loss_types import SFTLoss
 
 
-# TODO: switch to linear_loss
-# @deprecated("Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead.")
+@deprecated("Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead.")
 class CEWithChunkedOutputLoss(torch.nn.Module, SFTLoss):
     """
     Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.
