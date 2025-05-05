@@ -33,7 +33,7 @@ class TestMultimodalInstructDataset:
         ]
 
         expected_labels = [
-            [-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 7, 5, -1]
+            [-100, -100, -100, -100, -100, -100, -100, -100, -100, 7, 5, -1, -100]
         ]
 
         assert len(dataset) == 1

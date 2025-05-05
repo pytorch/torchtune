@@ -63,7 +63,7 @@ lr_scheduler:
   num_warmup_steps: 10
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 
 # Fine-tuning arguments
 batch_size: 4
@@ -89,6 +89,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training

@@ -10,10 +10,9 @@ from tests.test_utils import fixed_init_model
 from torchtune.models.llama3_2_vision._component_builders import (
     lora_llama3_2_vision_decoder,
     lora_llama3_2_vision_encoder,
-    LoRATrainable,
 )
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.modules.peft import get_adapter_params
+from torchtune.modules.peft import get_adapter_params, TrainableParams
 from torchtune.training.seed import set_seed
 
 EMBED_DIM = 128
@@ -37,8 +36,8 @@ def lora_llama3_2_vision(
     fusion_type,
 ) -> DeepFusionModel:
     encoder = lora_llama3_2_vision_encoder(
-        encoder_lora=encoder_type == LoRATrainable.LORA,
-        fusion_lora=fusion_type == LoRATrainable.LORA,
+        encoder_lora=encoder_type == TrainableParams.LORA,
+        fusion_lora=fusion_type == TrainableParams.LORA,
         lora_attn_modules=LORA_ATTN_MODULES,
         apply_lora_to_mlp=False,
         apply_lora_to_output=False,
@@ -59,8 +58,8 @@ def lora_llama3_2_vision(
         quantize_base=False,
     )
     decoder = lora_llama3_2_vision_decoder(
-        decoder_lora=decoder_type == LoRATrainable.LORA,
-        fusion_lora=fusion_type == LoRATrainable.LORA,
+        decoder_lora=decoder_type == TrainableParams.LORA,
+        fusion_lora=fusion_type == TrainableParams.LORA,
         lora_attn_modules=LORA_ATTN_MODULES,
         apply_lora_to_mlp=False,
         apply_lora_to_output=False,
@@ -84,9 +83,9 @@ def lora_llama3_2_vision(
     return DeepFusionModel(
         encoder=encoder,
         decoder=decoder,
-        encoder_trainable=encoder_type != LoRATrainable.FROZEN,
-        decoder_trainable=decoder_type != LoRATrainable.FROZEN,
-        fusion_trainable=fusion_type != LoRATrainable.FROZEN,
+        encoder_trainable=encoder_type != TrainableParams.FROZEN,
+        decoder_trainable=decoder_type != TrainableParams.FROZEN,
+        fusion_trainable=fusion_type != TrainableParams.FROZEN,
     )
 
 
@@ -102,17 +101,17 @@ class TestLlamaVisionLora:
 
     def test_lora_args(self):
         model = lora_llama3_2_vision(
-            LoRATrainable.LORA,
-            LoRATrainable.FROZEN,
-            LoRATrainable.FROZEN,
+            TrainableParams.LORA,
+            TrainableParams.FROZEN,
+            TrainableParams.FROZEN,
         )
         encoder = set(get_adapter_params(model).keys())
         assert len(encoder) == 32, "Only the clip encoder should be trainable."
 
         model = lora_llama3_2_vision(
-            LoRATrainable.FROZEN,
-            LoRATrainable.LORA,
-            LoRATrainable.FROZEN,
+            TrainableParams.FROZEN,
+            TrainableParams.LORA,
+            TrainableParams.FROZEN,
         )
         decoder = set(get_adapter_params(model).keys())
         assert (
@@ -120,9 +119,9 @@ class TestLlamaVisionLora:
         ), "Only the decoder self attention layers should be trainable."
 
         model = lora_llama3_2_vision(
-            LoRATrainable.FROZEN,
-            LoRATrainable.FROZEN,
-            LoRATrainable.LORA,
+            TrainableParams.FROZEN,
+            TrainableParams.FROZEN,
+            TrainableParams.LORA,
         )
         fusion = set(get_adapter_params(model).keys())
         assert len(fusion) == 48, "Only the fusion layers should be trainable."
@@ -134,9 +133,9 @@ class TestLlamaVisionLora:
 
     def test_forward(self, inputs):
         model = lora_llama3_2_vision(
-            LoRATrainable.LORA,
-            LoRATrainable.LORA,
-            LoRATrainable.LORA,
+            TrainableParams.LORA,
+            TrainableParams.LORA,
+            TrainableParams.LORA,
         )
         fixed_init_model(model, min_val=-0.25, max_val=0.5)
         tokens = torch.randint(0, VOCAB_SIZE, (BSZ, SEQ_LEN))

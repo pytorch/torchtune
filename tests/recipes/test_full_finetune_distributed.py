@@ -130,7 +130,7 @@ class TestFullFinetuneDistributedRecipe:
         )
 
     @pytest.mark.skipif(
-        torch.__version__ < "2.7.0", reason="2D parallel test requires PyTorch >= 2.7"
+        torch.__version__ < "2.8.0", reason="2D parallel test requires PyTorch >= 2.8"
     )
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
@@ -274,6 +274,9 @@ class TestFullFinetuneDistributedRecipe:
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
+    @pytest.mark.skipif(
+        torch.__version__ < "2.7.0", reason="Test requires at least PyTorch 2.7"
+    )
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type, micro_batch_size, gradient_accumulation_steps, optim_in_bwd",

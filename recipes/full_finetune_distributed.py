@@ -41,8 +41,6 @@ from torchtune.training.quantization import (
 
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class FullFinetuneRecipeDistributed(FTRecipeInterface):
     """
@@ -177,9 +175,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-        if self._log_peak_memory_stats and device_type != "cuda":
-            log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+        self._logger = utils.get_logger(cfg.log_level)
+        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
+            self._logger.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -232,7 +232,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -347,7 +347,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         )
                     )
                 except Exception as e:
-                    log.warning(
+                    self._logger.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
                     )
 
@@ -360,11 +360,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
 
-        utils.log_rank_zero(log, "Loss is initialized.")
+        utils.log_rank_zero(self._logger, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -421,9 +421,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             if self._val_dataloader is None
             else max(cfg.batch_size, self._val_dataloader.batch_size)
         )
-        self.ignore_labels_cache = torch.full(
-            (bsz_cache, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_lr_scheduler(
         self,
@@ -445,7 +442,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
         if cfg_lr_scheduler is None:
             if self._is_rank_zero:
-                log.info(
+                self._logger.info(
                     "No learning rate scheduler configured. Using constant learning rate."
                 )
             return None
@@ -470,7 +467,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
         if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+            self._logger.info("Learning rate scheduler is initialized.")
 
         return lr_scheduler
 
@@ -531,7 +528,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
         utils.log_rank_zero(
-            log, f" Profiler config after instantiation: {profiler_cfg}"
+            self._logger, f" Profiler config after instantiation: {profiler_cfg}"
         )
         if self._is_rank_zero:
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
@@ -563,7 +560,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         """
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "Distributed training is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -672,7 +669,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         training.validate_no_params_on_meta_device(model)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
 
@@ -723,7 +720,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             "Failed loading in-backward optimizer checkpoints."
                             "Please make sure run being restored from was using in-backward optimizer."
                         ) from e
-            utils.log_rank_zero(log, "In-backward optimizers are set up.")
+            utils.log_rank_zero(self._logger, "In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
@@ -735,7 +732,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     self._device,
                 )
 
-            utils.log_rank_zero(log, "Optimizer is initialized.")
+            utils.log_rank_zero(self._logger, "Optimizer is initialized.")
             return optimizer
 
     def _setup_data(
@@ -795,22 +792,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
-            logits = self._model(**batch)
+            outputs = self._model(**batch)
 
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
-        if not isinstance(logits, list):
+        if self.linear_loss:
+            weight = self._model.linear_projection_weight
+            loss = self._loss_fn(weight, outputs, labels)
+        else:
             labels = labels.reshape(-1)
-            logits = logits.reshape(-1, logits.size(-1))
+            outputs = outputs.reshape(-1, outputs.size(-1))
+            loss = self._loss_fn(outputs, labels)
 
-        # Compute loss
-        loss = self._loss_fn(logits, labels)
         # free logits otherwise it peaks backward memory
-        del logits
+        del outputs
 
         return loss
 
@@ -849,7 +842,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         log_dict = {"val_loss": avg_val_loss}
 
         if self._is_rank_zero:
-            log.info(f"Validation loss: {avg_val_loss:.4f}")
+            self._logger.info(f"Validation loss: {avg_val_loss:.4f}")
             self._metric_logger.log_dict(
                 log_dict,
                 step=self.global_step,
@@ -973,7 +966,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                                     else self._optim_ckpt_wrapper
                                 ),
                             ),
-                            "tokens_per_second_per_gpu": num_tokens
+                            "tokens_per_second_per_gpu": (
+                                num_tokens / self.parallel_dims.non_data_parallel_size
+                            )
                             / (time_per_step * self.world_size),
                         }
                         if self._log_peak_memory_stats:

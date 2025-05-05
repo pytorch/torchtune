@@ -23,21 +23,18 @@ from torchtune import config, modules, rlhf, training, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, padded_collate_dpo
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
+    AdapterModule,
     disable_adapter,
-    DoRALinear,
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import ChosenRejectedOutputs
 from tqdm import tqdm
-
-log = utils.get_logger("DEBUG")
 
 
 class LoRADPORecipeDistributed(FTRecipeInterface):
@@ -134,6 +131,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.distributed_backend = training.get_distributed_backend(
+            cfg.device, offload_ops_to_cpu=True
+        )
+        init_process_group(self.distributed_backend)
+
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
         self._is_rank_zero = self.rank == 0
@@ -142,10 +147,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
-            log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
+            self._logger.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -167,7 +174,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 )
         elif self._enable_activation_checkpointing:
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -261,7 +268,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
-        utils.log_rank_zero(log, "metric logger is initialized.")
+        utils.log_rank_zero(self._logger, "metric logger is initialized.")
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
@@ -292,7 +299,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         self._loss_fn = config.instantiate(cfg.loss)
 
-        utils.log_rank_zero(log, "Loss is initialized.")
+        utils.log_rank_zero(self._logger, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -355,7 +362,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         init_start = time.perf_counter()
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
 
@@ -398,9 +405,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
-                if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
-                ) and not lora_weights_state_dict:
+                if (isinstance(m, AdapterModule)) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.to_empty(device=lora_device)
@@ -443,7 +448,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         training.validate_no_params_on_meta_device(model)
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
         if self._is_rank_zero:
@@ -467,7 +472,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        utils.log_rank_zero(log, "Optimizer and loss are initialized.")
+        utils.log_rank_zero(self._logger, "Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -483,7 +488,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
+        utils.log_rank_zero(self._logger, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -524,7 +529,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
+        utils.log_rank_zero(self._logger, "Dataset and Sampler are initialized.")
 
         return dataloader
 
@@ -851,7 +856,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU

@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.bin" --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 2 lora_dpo_distributed --config llama2/7B_lora_dpo
@@ -37,8 +37,10 @@ tokenizer:
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-7b-hf
-  checkpoint_files:
-    [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors
+  ]
   adapter_checkpoint: null
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -80,6 +82,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Environment
 device: cuda

@@ -16,7 +16,7 @@ from ._utils import (  # noqa
     validate_missing_and_unexpected_for_lora,
 )
 from .dora import DoRALinear
-from .lora import LoRALinear, QATLoRALinear
+from .lora import LoRALinear, QATLoRALinear, TrainableParams
 
 
 __all__ = [
@@ -31,4 +31,5 @@ __all__ = [
     "get_adapter_state_dict",
     "get_merged_lora_ckpt",
     "get_lora_module_names",
+    "TrainableParams",
 ]

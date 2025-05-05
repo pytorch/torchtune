@@ -36,8 +36,6 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
@@ -136,9 +134,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type == "cpu":
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -178,7 +177,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -281,7 +280,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+        self._logger.info("Tokenizer is initialized from file.")
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -297,11 +296,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if self._compile:
             self._loss_fn = training.compile_loss(self._loss_fn)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
 
-        log.info("Loss is initialized.")
+        self._logger.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -346,11 +345,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Used to ignore labels for loss computation
-        self.ignore_labels_cache = torch.full(
-            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -409,7 +403,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
 
         self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
         if profiler_cfg["enabled"]:
@@ -486,7 +480,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             model, enable_activation_offloading
         )
 
-        log.info(f"Model is initialized with precision {self._dtype}.")
+        self._logger.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
@@ -500,7 +494,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
 
-        log.info("Optimizer and loss are initialized.")
+        self._logger.info("Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -516,7 +510,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        log.info("Learning rate scheduler is initialized.")
+        self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -642,22 +636,18 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         labels = batch.pop("labels")
         # run model
         with self.activations_handling_ctx:
-            logits = self._model(**batch)
+            outputs = self._model(**batch)
 
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
-        if not isinstance(logits, list):
+        if self.linear_loss:
+            weight = self._model.linear_projection_weight
+            loss = self._loss_fn(weight, outputs, labels)
+        else:
             labels = labels.reshape(-1)
-            logits = logits.reshape(-1, logits.size(-1))
+            outputs = outputs.reshape(-1, outputs.size(-1))
+            loss = self._loss_fn(outputs, labels)
 
-        loss = self._loss_fn(logits, labels)
-
-        # free logits otherwise it peaks backward memory
-        del logits
+        # free outputs otherwise it peaks backward memory
+        del outputs
 
         return loss
 
@@ -667,7 +657,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
 
         if self._compile:
-            log.info(
+            self._logger.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
 
@@ -777,9 +767,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 self.epochs_run += 1
                 start_save_checkpoint = time.perf_counter()
-                log.info("Starting checkpoint save...")
+                self._logger.info("Starting checkpoint save...")
                 self.save_checkpoint(epoch=curr_epoch)
-                log.info(
+                self._logger.info(
                     "Checkpoint saved in {:.2f} seconds.".format(
                         time.perf_counter() - start_save_checkpoint
                     )

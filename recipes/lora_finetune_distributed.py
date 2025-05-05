@@ -25,20 +25,17 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
-    DoRALinear,
+    AdapterModule,
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
-
-log = utils.get_logger("DEBUG")
 
 
 class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
@@ -135,6 +132,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.distributed_backend = training.get_distributed_backend(
+            cfg.device,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
+            or self._enable_async_checkpointing,
+        )
+        init_process_group(self.distributed_backend)
+
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
         self._is_rank_zero = self.rank == 0
@@ -143,10 +150,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
-            log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
+            self._logger.info(
+                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -192,7 +201,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -273,6 +282,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
+        if (
+            cfg.checkpointer.model_type == "LLAMA4"
+            and self._save_adapter_weights_only is False
+        ):
+            raise ValueError(
+                "For Llama4 training, you should set save_adapter_weights_only to True."
+            )
+
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
         self._compile = cfg.get("compile", False)
 
@@ -307,10 +324,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-        utils.log_rank_zero(log, "Loss is initialized.")
+        # The loss may handle the output projection. If true, the model should skip it.
+        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
+        self._model.skip_linear_projection = self.linear_loss
+
+        utils.log_rank_zero(self._logger, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -366,16 +384,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
-
-        # Used to ignore labels for loss computation
-        bsz_cache = (
-            cfg.batch_size
-            if self._val_dataloader is None
-            else max(cfg.batch_size, self._val_dataloader.batch_size)
-        )
-        self.ignore_labels_cache = torch.full(
-            (bsz_cache, 1), self._loss_fn.ignore_index, device=self._device
-        )
 
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
@@ -434,7 +442,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
         utils.log_rank_zero(
-            log, f" Profiler config after instantiation: {profiler_cfg}"
+            self._logger, f" Profiler config after instantiation: {profiler_cfg}"
         )
         if self._is_rank_zero:
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
@@ -472,7 +480,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
         init_start = time.perf_counter()
@@ -518,9 +526,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
-                if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
-                ) and not lora_weights_state_dict:
+                if (isinstance(m, AdapterModule)) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.to_empty(device=lora_device)
@@ -559,7 +565,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # log
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
         if self._is_rank_zero:
@@ -583,7 +589,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        utils.log_rank_zero(log, "Optimizer is initialized.")
+        utils.log_rank_zero(self._logger, "Optimizer is initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -598,7 +604,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
+        utils.log_rank_zero(self._logger, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -677,7 +683,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "Saving checkpoint. This may take some time. Retrieving full model state dict...",
         )
         start = time.perf_counter()
@@ -691,12 +697,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             adapter_weights_only=self._save_adapter_weights_only,
         )
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Getting full model state dict took {time.perf_counter() - start:.2f} secs",
         )
 
         if intermediate_checkpoint:
-            utils.log_rank_zero(log, "Retrieving optimizer state dict...")
+            utils.log_rank_zero(self._logger, "Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._model,
                 self._optimizer,
@@ -704,7 +710,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 device=self._device,
             )
             utils.log_rank_zero(
-                log,
+                self._logger,
                 f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
             )
         else:
@@ -762,7 +768,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=self._save_adapter_weights_only,
             )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+            self._logger.info(
+                f"Saving checkpoint took {time.perf_counter() - start:.2f} secs"
+            )
 
         torch.distributed.barrier()
 
@@ -909,22 +917,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
-            logits = self._model(**batch)
+            outputs = self._model(**batch)
 
-        # Shift labels to compute loss
-        # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
-        # But this way we dont need to slice the logits. We just add an ignore index to labels.
-        labels = torch.hstack(
-            (labels[..., 1:], self.ignore_labels_cache[: labels.shape[0]])
-        )
-        if not isinstance(logits, list):
+        if self.linear_loss:
+            weight = self._model.linear_projection_weight
+            loss = self._loss_fn(weight, outputs, labels)
+        else:
             labels = labels.reshape(-1)
-            logits = logits.reshape(-1, logits.size(-1))
+            outputs = outputs.reshape(-1, outputs.size(-1))
+            loss = self._loss_fn(outputs, labels)
 
-        # Compute loss
-        loss = self._loss_fn(logits, labels)
         # free logits otherwise it peaks backward memory
-        del logits
+        del outputs
 
         return loss
 
@@ -993,7 +997,6 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-    init_process_group("cuda:nccl,cpu:gloo")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
