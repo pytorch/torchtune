@@ -1,18 +1,22 @@
-# Config for evaluating a Qwen3 model
+# Config for EleutherEvalRecipe in eleuther_eval.py
 #
-# This config assumes that you've run the following command before launching:
-#   tune download Qwen/Qwen3-0.6B --output-dir /tmp/Qwen3-0.6B
-#
-# To launch evaluation, run the following command from root:
-#   tune run evaluate --config qwen3/evaluation
-#
-# You can add specific overrides through the command line. For example
-# to override the model or checkpoint directory:
-#   tune run evaluate --config qwen3/evaluation model._component_=torchtune.models.qwen3.qwen3_1_7b_instruct checkpointer.checkpoint_dir=/tmp/Qwen3-1.7B-Instruct
+# To launch, run the following command from root torchtune directory:
+#    tune run eleuther_eval --config qwen3/evaluation
 
-# Model arguments - change to the specific model you want to evaluate
+output_dir: ./ # Not needed
+
+# Model Arguments
 model:
   _component_: torchtune.models.qwen3.qwen3_0_6b_instruct
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Qwen3-0.6B
+  checkpoint_files: [
+    model.safetensors,
+  ]
+  output_dir: ${output_dir}
+  model_type: QWEN2
 
 # Tokenizer
 tokenizer:
@@ -21,24 +25,17 @@ tokenizer:
   merges_file: /tmp/Qwen3-0.6B/merges.txt
   max_seq_len: null
 
-# Checkpointer
-checkpointer:
-  _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen3-0.6B
-  checkpoint_files: [model.safetensors]
-  recipe_checkpoint: null
-  model_type: QWEN2
-
-# Evaluation dataset
-dataset:
-  _component_: torchtune.datasets.alpaca_eval_dataset
-  split: test
-
-# Evaluation parameters
-batch_size: 1
+# Environment
 device: cuda
 dtype: bf16
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
 
-# Logging
-output_dir: /tmp/torchtune/qwen3_evaluation
-log_level: INFO
+# EleutherAI specific eval args
+tasks: ["truthfulqa_mc2"]
+limit: null
+max_seq_length: 4096
+batch_size: 8
+enable_kv_cache: True
+
+# Quantization specific args
+quantizer: null
