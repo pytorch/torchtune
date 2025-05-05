@@ -17,7 +17,7 @@ from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: 
 from torchtune.modules.peft import AdapterModule
 
 
-class LoRATrainable(Enum):
+class TrainableParams(Enum):
     FULL = "full"
     LORA = "lora"
     FROZEN = "frozen"

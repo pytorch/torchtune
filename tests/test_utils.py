@@ -32,6 +32,7 @@ CKPT_MODEL_PATHS = {
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
     "llama3_2_vision_hf": "/tmp/test-artifacts/small-ckpt-hf-vision-10172024.pt",
     "llama3_2_vision_meta": "/tmp/test-artifacts/small-ckpt-meta-vision-10172024.pt",
+    "llama3_137M": "/tmp/test-artifacts/llama3-hf-04232025/model.safetensors",
 }
 
 TOKENIZER_PATHS = {
@@ -331,6 +332,13 @@ def gpu_test(gpu_count: int = 1):
     message = f"Not enough GPUs to run the test: requires {gpu_count}"
     local_gpu_count: int = torch.cuda.device_count()
     return pytest.mark.skipif(local_gpu_count < gpu_count, reason=message)
+
+
+def skip_if_lt_python_310(reason: str = "Python 3.10+ required"):
+    """
+    Annotation for tests that require Python 3.10 or higher
+    """
+    return pytest.mark.skipif(sys.version_info < (3, 10), reason=reason)
 
 
 def get_loss_values_from_metric_logger(log_file_path: str) -> List[float]:

@@ -17,7 +17,7 @@ from torchtune.models.llama4._tokenizer import LLAMA4_SPECIAL_TOKENS
 from torchtune.models.llama4._transform import Llama4Transform
 
 from torchtune.modules.model_fusion import EarlyFusionModel
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRATrainable
+from torchtune.modules.peft import LORA_ATTN_MODULES, TrainableParams
 from torchtune.utils import torch_version_ge
 
 """
@@ -253,10 +253,10 @@ def lora_llama4_scout_17b_16e(
     Returns:
         EarlyFusionModel: Instantiation of a 17B Llama4 MOE LoRA model with encoders.
     """
-    decoder_type = LoRATrainable(decoder_trainable.lower())
-    vision_encoder_type = LoRATrainable(encoder_trainable.lower())
-    fusion_type = LoRATrainable(fusion_trainable.lower())
-    assert LoRATrainable.FULL not in [
+    decoder_type = TrainableParams(decoder_trainable.lower())
+    vision_encoder_type = TrainableParams(encoder_trainable.lower())
+    fusion_type = TrainableParams(fusion_trainable.lower())
+    assert TrainableParams.FULL not in [
         decoder_type,
         vision_encoder_type,
         fusion_type,
@@ -265,8 +265,8 @@ def lora_llama4_scout_17b_16e(
     decoder_embed_dim = 5120
 
     vision_encoder = lora_llama4_vision_encoder(
-        encoder_lora=vision_encoder_type == LoRATrainable.LORA,
-        fusion_lora=fusion_type == LoRATrainable.LORA,
+        encoder_lora=vision_encoder_type == TrainableParams.LORA,
+        fusion_lora=fusion_type == TrainableParams.LORA,
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -287,7 +287,7 @@ def lora_llama4_scout_17b_16e(
     )
 
     decoder = lora_llama4_decoder(
-        decoder_lora=decoder_type == LoRATrainable.LORA,
+        decoder_lora=decoder_type == TrainableParams.LORA,
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -319,8 +319,8 @@ def lora_llama4_scout_17b_16e(
             "vision": LLAMA4_SPECIAL_TOKENS["<|patch|>"],
         },
         encoders_trainable={
-            "vision": encoder_trainable != LoRATrainable.FROZEN,
+            "vision": encoder_trainable != TrainableParams.FROZEN,
         },
-        decoder_trainable=decoder_trainable != LoRATrainable.FROZEN,
-        fusion_trainable=fusion_trainable != LoRATrainable.FROZEN,
+        decoder_trainable=decoder_trainable != TrainableParams.FROZEN,
+        fusion_trainable=fusion_trainable != TrainableParams.FROZEN,
     )

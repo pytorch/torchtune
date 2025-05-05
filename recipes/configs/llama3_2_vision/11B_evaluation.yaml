@@ -35,7 +35,7 @@ checkpointer:
 device: cuda
 dtype: bf16
 seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
-log_level: INFO
+log_level: INFO  # DEBUG, WARN, etc.
 
 # EleutherAI specific eval args
 # Llama3.2 vision reports on MMMU Val using chain-of-thought reasoning
