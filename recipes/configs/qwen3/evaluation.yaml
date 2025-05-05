@@ -1,0 +1,44 @@
+# Config for evaluating a Qwen3 model
+#
+# This config assumes that you've run the following command before launching:
+#   tune download Qwen/Qwen3-0.6B --output-dir /tmp/Qwen3-0.6B
+#
+# To launch evaluation, run the following command from root:
+#   tune run evaluate --config qwen3/evaluation
+#
+# You can add specific overrides through the command line. For example
+# to override the model or checkpoint directory:
+#   tune run evaluate --config qwen3/evaluation model._component_=torchtune.models.qwen3.qwen3_1_7b_instruct checkpointer.checkpoint_dir=/tmp/Qwen3-1.7B-Instruct
+
+# Model arguments - change to the specific model you want to evaluate
+model:
+  _component_: torchtune.models.qwen3.qwen3_0_6b_instruct
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.qwen3.qwen3_tokenizer
+  path: /tmp/Qwen3-0.6B/vocab.json
+  merges_file: /tmp/Qwen3-0.6B/merges.txt
+  max_seq_len: null
+
+# Checkpointer
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Qwen3-0.6B
+  checkpoint_files: [model.safetensors]
+  recipe_checkpoint: null
+  model_type: QWEN2
+
+# Evaluation dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_eval_dataset
+  split: test
+
+# Evaluation parameters
+batch_size: 1
+device: cuda
+dtype: bf16
+
+# Logging
+output_dir: /tmp/torchtune/qwen3_evaluation
+log_level: INFO
