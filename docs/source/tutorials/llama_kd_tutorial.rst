@@ -108,7 +108,7 @@ Finally, we can run the following command to distill the fine-tuned 8B model int
 
 .. code-block:: bash
 
-    tune run knowledge_distillation_single_device --config llama3_2/knowledge_distillation_single_device
+    tune run knowledge_distillation_single_device --config llama3_2/8B_to_1B_KD_lora_single_device
 
 Ablation studies
 ----------------
@@ -193,7 +193,7 @@ you can simply override the learning rate parameter using:
 
 .. code-block:: bash
 
-    tune run knowledge_distillation_single_device --config llama3_2/knowledge_distillation_single_device optimizer.lr=1e-3
+    tune run knowledge_distillation_single_device --config llama3_2/8B_to_1B_KD_lora_single_device optimizer.lr=1e-3
 
 Based on the results, the optimal learning rate changes depending on which metric you are optimizing for.
 
@@ -210,7 +210,7 @@ Similar to changing the learning rate, the KD ratio can be adjusted using:
 
 .. code-block:: bash
 
-    tune run knowledge_distillation_single_device --config llama3_2/knowledge_distillation_single_device kd_ratio=0.25
+    tune run knowledge_distillation_single_device --config llama3_2/8B_to_1B_KD_lora_single_device kd_ratio=0.25
 
 
 Overall, the evaluation results are slightly better for higher KD ratios.
@@ -222,7 +222,7 @@ Qwen2 1.5B to 0.5B
 
 The KD recipe can also be applied to different model families. Here we look at the effect of KD when the number of
 parameters between the teacher and student models are closer. For this experiment, we used Qwen2 1.5B and Qwen2 0.5B, the configs for which can be found in
-`qwen2/knowledge_distillation_single_device <https://github.com/pytorch/torchtune/blob/4234b78b914af23384ce0348f564e2119d107a96/recipes/configs/qwen2/knowledge_distillation_single_device.yaml>`_
+`qwen2/1.5_to_0.5B_KD_lora_single_device <https://github.com/pytorch/torchtune/blob/113807c2ce44791ac3354a40c93b87720c5bfc45/recipes/configs/qwen2/1.5_to_0.5B_KD_lora_single_device.yaml>`_
 config. Here we see that training on the alpaca cleaned dataset only improves truthful_qa performance and drops the metrics for the other evaluation tasks.
 For truthful_qa, KD improves the student model performance by 5.8% whereas fine-tuning improves performance by 1.3%.
 
