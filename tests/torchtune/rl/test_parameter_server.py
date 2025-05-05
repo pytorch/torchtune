@@ -134,6 +134,7 @@ inference:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
+    @pytest.mark.rl_test
     def test_receive_from_trainer(self) -> None:
         import ray
         from torchtune.dev.rl.workers import VLLMParameterServer
@@ -169,6 +170,7 @@ inference:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=4)
     @pytest.mark.parametrize("tp_size", (1, 2))
+    @pytest.mark.rl_test
     def test_send_to_generator(self, tp_size) -> None:
         import ray
 

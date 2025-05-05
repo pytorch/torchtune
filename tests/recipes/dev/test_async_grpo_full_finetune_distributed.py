@@ -58,6 +58,7 @@ class TestAsyncGRPOFullFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=4)
     @skip_if_lt_python_310()
+    @pytest.mark.rl_test
     def test_basic_run(self, tmpdir, monkeypatch):
         """Test that the recipe runs without errors with minimal configuration."""
         import ray
