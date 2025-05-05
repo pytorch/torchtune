@@ -142,7 +142,7 @@ class TestVisionTransformer:
 
         assert_expected(x.mean(), torch.tensor(1.0172), atol=1e-3, rtol=1e-3)
 
-        # assertion hidden
+        # +1 because we return before layer 0 and after all layers
         num_hidden_layers_expected = len(transformer_config["out_indices"])
 
         expected_shape_hidden_layers = (
