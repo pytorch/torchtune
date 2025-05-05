@@ -557,7 +557,7 @@ we’ve found that KD performs better when the teacher model is already fine-tun
 </pre></div>
 </div>
 <p>Finally, we can run the following command to distill the fine-tuned 8B model into the 1B model on a single GPU.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>knowledge_distillation_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/knowledge_distillation_single_device
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>knowledge_distillation_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/8B_to_1B_KD_lora_single_device
 </pre></div>
 </div>
 </section>
@@ -630,7 +630,7 @@ starts to increase when using a fine-tuned student model.</p>
 <p>By default, the config has the learning rate as <span class="math notranslate nohighlight">\(3e^{-4}\)</span>, which is the same as the LoRA configs. For these experiments,
 we changed the learning rate from as high as <span class="math notranslate nohighlight">\(1e^{-3}\)</span> to as low as <span class="math notranslate nohighlight">\(1e^{-5}\)</span>. To change the learning rate,
 you can simply override the learning rate parameter using:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>knowledge_distillation_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/knowledge_distillation_single_device<span class="w"> </span>optimizer.lr<span class="o">=</span>1e-3
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>knowledge_distillation_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/8B_to_1B_KD_lora_single_device<span class="w"> </span>optimizer.lr<span class="o">=</span>1e-3
 </pre></div>
 </div>
 <p>Based on the results, the optimal learning rate changes depending on which metric you are optimizing for.</p>
@@ -642,7 +642,7 @@ you can simply override the learning rate parameter using:</p>
 <p>In the config, we have the <code class="docutils literal notranslate"><span class="pre">kd_ratio</span></code> as 0.5, which gives even weightings to both the class and KD loss. In these experiments,
 we look at the effects of different KD ratios, where 0 only uses the class loss and 1 only uses the KD loss.
 Similar to changing the learning rate, the KD ratio can be adjusted using:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>knowledge_distillation_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/knowledge_distillation_single_device<span class="w"> </span><span class="nv">kd_ratio</span><span class="o">=</span><span class="m">0</span>.25
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>knowledge_distillation_single_device<span class="w"> </span>--config<span class="w"> </span>llama3_2/8B_to_1B_KD_lora_single_device<span class="w"> </span><span class="nv">kd_ratio</span><span class="o">=</span><span class="m">0</span>.25
 </pre></div>
 </div>
 <p>Overall, the evaluation results are slightly better for higher KD ratios.</p>
@@ -652,7 +652,7 @@ Similar to changing the learning rate, the KD ratio can be adjusted using:</p>
 <h3>Qwen2 1.5B to 0.5B<a class="headerlink" href="#qwen2-1-5b-to-0-5b" title="Permalink to this heading">¶</a></h3>
 <p>The KD recipe can also be applied to different model families. Here we look at the effect of KD when the number of
 parameters between the teacher and student models are closer. For this experiment, we used Qwen2 1.5B and Qwen2 0.5B, the configs for which can be found in
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/4234b78b914af23384ce0348f564e2119d107a96/recipes/configs/qwen2/knowledge_distillation_single_device.yaml">qwen2/knowledge_distillation_single_device</a>
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/113807c2ce44791ac3354a40c93b87720c5bfc45/recipes/configs/qwen2/1.5_to_0.5B_KD_lora_single_device.yaml">qwen2/1.5_to_0.5B_KD_lora_single_device</a>
 config. Here we see that training on the alpaca cleaned dataset only improves truthful_qa performance and drops the metrics for the other evaluation tasks.
 For truthful_qa, KD improves the student model performance by 5.8% whereas fine-tuning improves performance by 1.3%.</p>
 <img alt="../_images/kd-qwen2-res.png" src="../_images/kd-qwen2-res.png" />
