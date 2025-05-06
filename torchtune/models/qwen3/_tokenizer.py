@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 from typing import Dict, Optional
 
-from torchtune.data import PromptTemplate, truncate
+from torchtune.data import PromptTemplate
 from torchtune.models.qwen2._tokenizer import (
     DEFAULT_QWEN2_TOKENIZER_BPE_CACHE_SIZE,
     ENDOFTEXT,
