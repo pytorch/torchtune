@@ -471,7 +471,7 @@ any collation (see example below).</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>batch</strong> (<em>List</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em><em>]</em><em>]</em>) – A list of dictionaries containing inputs.</p></li>
 <li><p><strong>pad_direction</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – whether to pad entries from the left, or right. If <code class="docutils literal notranslate"><span class="pre">pad_direction=&quot;right&quot;</span></code>, we use
-<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_sequence.html#torch.nn.utils.rnn.pad_sequence" title="(in PyTorch v2.7)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.nn.utils.rnn.pad_sequence()</span></code></a>, otherwise if <code class="docutils literal notranslate"><span class="pre">pad_direction=&quot;left&quot;</span></code>,
+<a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.rnn.pad_sequence.html#torch.nn.utils.rnn.pad_sequence" title="(in PyTorch v2.7)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.nn.utils.rnn.pad_sequence()</span></code></a>, otherwise if <code class="docutils literal notranslate"><span class="pre">pad_direction=&quot;left&quot;</span></code>,
 we use <a class="reference internal" href="torchtune.data.left_pad_sequence.html#torchtune.data.left_pad_sequence" title="torchtune.data.left_pad_sequence"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.data.left_pad_sequence()</span></code></a>.</p></li>
 <li><p><strong>keys_to_pad</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – Batch element keys to apply padding to. Should be a subset
 of keys in the batch.</p></li>
@@ -486,7 +486,7 @@ padding values.</p></li>
 <dd class="field-even"><p>The padded tensor of input ids with shape <code class="docutils literal notranslate"><span class="pre">[batch_size,</span> <span class="pre">max_seq_len]</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)">torch.Tensor</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)">torch.Tensor</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">pad_direction</span></code> is not one of “left” or “right”, <strong>or</strong>
