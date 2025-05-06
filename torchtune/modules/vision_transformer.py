@@ -381,6 +381,9 @@ class VisionTransformer(nn.Module):
                 h = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
                 hidden_states.append(h)
             x = transformer_layer(x)
+        if len(self.layers) in self.out_indices:
+            h = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
+            hidden_states.append(h)
 
         # norm
         x = self.ln_post(x)
