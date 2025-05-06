@@ -398,7 +398,7 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.num_output_chunks = 0
-        self.skip_output = False
+        self.skip_output_layer = False
 
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
@@ -489,7 +489,7 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.reset_cache()
 
-    @deprecated("Please use self.skip_output=True and use a linear loss instead")
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
         """
         Apply output projection in chunks. This should be applied in conjunction with
@@ -613,7 +613,7 @@ class TransformerDecoder(nn.Module):
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
-            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output=False`
+            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_layer=False`
             and ``[b x s x d]`` otherwise, or a list of layer output tensors defined by ``output_hidden_states`` with the
             final output tensor appended to the list.
 
@@ -678,7 +678,7 @@ class TransformerDecoder(nn.Module):
     def unembed(self, h):
         # shape: [b, s, d]
         h = self.norm(h)
-        if self.skip_output:
+        if self.skip_output_layer:
             output = h
         elif self.num_output_chunks > 0:
             output = self.chunked_output(h)

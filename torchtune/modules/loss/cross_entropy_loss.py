@@ -15,9 +15,9 @@ from .loss_types import SFTLoss
 class LinearCrossEntropyLoss(nn.Module, SFTLoss):
     """Memory efficient Cross-entropy loss that incrementally computes loss for chunks of tokens
     by masking ignored tokens, calculating logits and then applying cross-entropy loss. Combines
-    the linear projection with the cross-entropy calculation for futher memory savings.
+    the linear projection with the cross-entropy calculation for further memory savings.
 
-    Linear cross entropy entropy masks out ignored tokens before the projection layer to save memory.
+    Linear cross entropy masks out ignored tokens before the projection layer to save memory.
     You therefore need to skip the final projection layer in your model and pass it to the loss instead.
     You can setup the loss with the model and compile it as shown below.
 
@@ -52,7 +52,7 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
 
     def set_model_output(self, model: nn.Module) -> None:
         """Modify model output to match the expected input for the loss function."""
-        model.skip_output = True
+        model.skip_output_layer = True
         self.linear_projection = model.output
 
     def compute_cross_entropy(
@@ -75,7 +75,7 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         # Select hidden states and targets where mask is True
         mask_chunk = target_chunk != self.ignore_index
         if mask_chunk.sum() == 0:
-            # dummy call to sync data parallel workers
+            # Unmask 1 token to allow loss to sync with all data parallel workers
             mask_chunk[0] = True
 
         target_chunk = target_chunk[mask_chunk]  # [num_valid]

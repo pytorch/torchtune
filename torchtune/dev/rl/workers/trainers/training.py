@@ -15,7 +15,7 @@ import torch.nn as nn
 from omegaconf import DictConfig
 from torch.optim import Optimizer
 from torchrl.data import RayReplayBuffer
-from torchtune import config, training, utils
+from torchtune import config, modules, training, utils
 from torchtune.dev.rl.datatypes import Trajectory
 from torchtune.dev.rl.types import GRPOStats, GRPOTrajectory
 from torchtune.dev.rl.utils import stateless_init_process_group
@@ -132,13 +132,11 @@ class TrainingWorker:
         )
         self._optimizer = self._setup_optimizer(cfg_optimizer=cfg.training.optimizer)
         self._loss_fn = config.instantiate(cfg.training.loss)
+        if isinstance(self._loss_fn, modules.loss.RLLoss):
+            self._loss_fn.set_model_output(self._model)
 
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-
-        # The loss may handle the output projection. If true, the model should skip it.
-        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
-        self._model.skip_linear_projection = self.linear_loss
 
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
 
@@ -317,9 +315,6 @@ class TrainingWorker:
             trajectory (GRPOTrajectory): a batch of trajectories
             context_length (int): the length of the context window
 
-        Raises:
-            NotImplementedError: If the loss is not a LinearGRPOLoss.
-
         Returns:
             GRPOStats: Instance of :class:`~torchtune.rlhf.GRPOStats`
         """
@@ -344,22 +339,14 @@ class TrainingWorker:
         outputs = outputs.reshape(bsz, -1, dim)
         targets = trajectory.query_responses[:, context_length:]
 
-        if self.linear_loss:
-            weight = self._model.linear_projection_weight
-            # Compute GRPO loss
-            loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs = self._loss_fn(
-                # pi_logits=pi_logits,
-                weight=weight,
-                outputs=outputs,
-                targets=targets,
-                ref_logprobs=trajectory.ref_logprobs,
-                advantages=trajectory.advantages,
-                padding_masks=~trajectory.response_padding_masks,
-            )
-        else:
-            raise NotImplementedError(
-                "We currently only support linear losses. Please use LinearGRPOLoss."
-            )
+        # Compute GRPO loss
+        loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs = self._loss_fn(
+            pi_old_outputs=outputs,
+            pi_outputs=targets,
+            ref_outputs=trajectory.ref_logprobs,
+            advantages=trajectory.advantages,
+            padding_masks=~trajectory.response_padding_masks,
+        )
 
         with torch.no_grad():
             mask = ~trajectory.response_padding_masks  # True for non-padded tokens

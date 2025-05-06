@@ -42,10 +42,7 @@ def classifier_model(
 
     """
     model = _get_component_from_path(base_model_path)(**base_model_kwargs)
-    if hasattr(model, "decoder"):
-        decoder = model.decoder
-    else:
-        decoder = model
+    decoder = getattr(model, "decoder", model)
 
     if hasattr(model, "output"):
         decoder.output = nn.Linear(
