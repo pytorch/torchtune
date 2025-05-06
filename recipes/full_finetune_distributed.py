@@ -313,10 +313,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._compile_model = compile_bool
         self._compile_loss = compile_bool
         self._compile_optimizer_step = compile_bool
+        self._compile_scale_grads = compile_bool
         if isinstance(compile, DictConfig):
             self._compile_model = compile.get("model", True)
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
+            self._compile_scale_grads = compile.get("scale_grads", True)
+
+        # This indirection is needed to apply torch.compile to scale_grads step.
+        self._grad_scaler = training.scale_grads_
+        if self._compile_scale_grads:
+            self._grad_scaler = torch.compile(
+                self._grad_scaler, backend=self._compile_backend
+            )
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -932,8 +941,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(num_tokens)
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
+
                         # Manually scale the gradients from unnormalized loss by total # of tokens
-                        training.scale_grads(self._model, self.dp_degree / num_tokens)
+                        self._grad_scaler(
+                            self._model.parameters(), self.dp_degree / num_tokens
+                        )
+
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
