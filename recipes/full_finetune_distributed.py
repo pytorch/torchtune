@@ -16,7 +16,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._tensor import DTensor
+from torch.distributed.tensor import distribute_tensor, DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
 from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
@@ -796,6 +796,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self.linear_loss:
             weight = self._model.linear_projection_weight
+
+            if self.parallel_dims.tp_enabled:
+                labels = distribute_tensor(
+                    labels, outputs.device_mesh, outputs.placements
+                )
+
             loss = self._loss_fn(weight, outputs, labels)
         else:
             labels = labels.reshape(-1)
@@ -904,6 +910,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # This case and gradient accumulation are mutually exclusive
                 if self._optimizer_in_bwd:
                     torch.distributed.all_reduce(num_tokens)
+
+                    if isinstance(running_loss, DTensor):
+                        running_loss = running_loss.to_local()
+
                     torch.distributed.all_reduce(running_loss)
                     current_loss = current_loss * (self.dp_degree / num_tokens)
 
@@ -913,6 +923,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
                         torch.distributed.all_reduce(num_tokens)
+
+                        if isinstance(running_loss, DTensor):
+                            running_loss = running_loss.to_local()
+
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
