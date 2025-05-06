@@ -5,6 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+print(sys.path)
 
 from tests.common import ASSETS
 from torchtune.data import Message
@@ -120,7 +125,7 @@ class TestPhi3MiniTokenizer:
                 "good conversation over coffee.",
             ),
         ]
-        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
+        tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=False)
 
         # Drop eos token
         expected_tokens = expected_tokens[:]
@@ -128,3 +133,18 @@ class TestPhi3MiniTokenizer:
         expected_mask = [True] * 86 + [False] * 126
         assert expected_tokens == tokens
         assert expected_mask == mask
+
+
+# obj = TestPhi3MiniTokenizer()
+# tokenizer = obj.tokenizer()
+# expected_tokens = [1, 32010, 323, 418, 202, 31, 128, 15, 120, 47, 88, 584, 23, 1665, 182, 9, 434, 295, 85, 4,
+#                     780, 47, 636, 9, 1094, 213, 23, 9, 69, 69, 164, 1153, 299, 35, 961, 132, 237, 7, 5, 761, 4,
+#                     12, 0, 313, 120, 47, 88, 584, 166, 493, 171, 54, 299, 9, 906, 244, 19, 186, 767, 303, 671,
+#                     92, 209, 24, 190, 52, 38, 4, 12, 0, 1243, 7, 69, 135, 213, 166, 32007, 32001, 6, 21, 45, 128,
+#                     71, 58, 38, 14, 10, 652, 35, 462, 101, 1306, 7, 341, 171, 20, 14, 127, 26, 652, 7, 10, 1268,
+#                     4, 6, 21, 45, 591, 9, 566, 22, 994, 913, 38, 20, 52, 24, 10, 1306, 734, 14, 71, 365, 1382, 7,
+#                     10, 801, 105, 88, 244, 985, 7, 4, 6, 21, 45, 9, 566, 126, 180, 11, 5, 1137, 7, 10, 1089, 151,
+#                     8, 1156, 213, 342, 7, 10, 384, 104, 54, 470, 4, 6, 21, 45, 287, 14, 33, 125, 135, 24, 101,
+#                     512, 66, 7, 28, 822, 15, 542, 69, 59, 110, 14, 365, 229, 7, 3, 36, 267, 36, 125, 135, 24,
+#                     101, 1503, 182, 9, 222, 1661, 191, 332, 92, 92, 24, 24, 4, 32007]
+# obj.test_tokenize_messages_drop_eos(obj.tokenizer, expected_tokens)
