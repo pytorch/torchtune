@@ -298,7 +298,7 @@ def qwen3_14b_instruct() -> TransformerDecoder:
 
 def qwen3_32b() -> TransformerDecoder:
     """
-    Builder for creating a Qwen3 32B model (base or instruct) initialized w/ the default parameter values
+    Builder for creating a Qwen3 32B model (instruct, no base variant) initialized w/ the default parameter values
     from https://huggingface.co/Qwen/Qwen3-32B
 
     Returns:
@@ -385,7 +385,7 @@ def lora_qwen3_0_6b_base(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Builder for creating a Qwen3 0.6B model (base or instruct) with LoRA enabled.
+    Builder for creating a Qwen3 0.6B base model with LoRA enabled.
 
     The Qwen3 defaults are the same as in :func:`~torchtune.models.qwen2_5.qwen2_5_0_5b`,
     while LoRA default params are based on

@@ -23,6 +23,9 @@ QWEN3_SPECIAL_TOKENS = {
 }
 
 
+# TODO: Refactor the tokenizer classes for the Qwen2/2.5/3 family of models. We should have a single base tokenizer that
+# all other tokenizers extend, move all common logic to the base so that the child tokenizers can override the
+# behaviour that's specific to them.
 class Qwen3Tokenizer(Qwen2_5Tokenizer):  # noqa: N801
     """This tokenizer is simply a wrapper around the Qwen2_5Tokenizer, with a few extra tokens added.
 
