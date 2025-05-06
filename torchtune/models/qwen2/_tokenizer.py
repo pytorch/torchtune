@@ -326,35 +326,45 @@ class Qwen2Tokenizer(ModelTokenizer):
         return text
 
     def _tokenize_header(self, message: Message) -> List[int]:
+        """
+        Tokenize header start, message role, and header end as list of ids
+        """
         return (
             [self.im_start_id]
             + self.encode(f"{message.role}\n", add_bos=False, add_eos=False)
         )
 
     def _tokenize_body(self, message: Message) -> List[int]:
+        """
+        Tokenize message content as list of ids
+        """
         tokenized_body = []
         for item in message.content:
             if item["type"] == "text":
                 tokenized_body += self.encode(
-                    item["content"], add_bos=False, add_eos=False,
-                )
+                        item["content"],
+                        add_bos=False,
+                        add_eos=False,
+                    )
             else:
-                raise RuntimeError(f"Unsupported message content type: {item['type']}")
+                raise RuntimeError(
+                    f"Unsupported message content type: {item['type']}"
+                )
         return tokenized_body
 
     def _tokenize_end(self, message: Message) -> List[int]:
         return (
             [self.im_end_id]
-            +self.encode("\n", add_bos=False, add_eos=False)
+            + self.encode("\n", add_bos=False, add_eos=False)
         )
-
 
     def tokenize_message(
         self,
         message: Message,
+        index: int,
+        num_messages: int,
         *,
         add_start_tokens: bool = True,
-        add_end_tokens: bool = True
     ) -> List[int]:
         """
         Tokenize a message into a list of token ids.
@@ -367,9 +377,9 @@ class Qwen2Tokenizer(ModelTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        tokenized_header = self._tokenize_header(message) if add_start_tokens else []
+        tokenized_header = self._tokenize_header(message) if message.role != "ipython" and add_start_tokens else []
         tokenized_body = self._tokenize_body(message)
-        tokenized_end = self._tokenize_end(message) if add_end_tokens else []
+        tokenized_end = self._tokenize_end(message) if message.role != "ipython" and (message.role != "assistant" or index != num_messages - 1) else []
 
         tokenized_message = tokenized_header + tokenized_body + tokenized_end
         return tokenized_message
@@ -381,29 +391,19 @@ class Qwen2Tokenizer(ModelTokenizer):
         add_end_tokens: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
-        Tokenize a list of messages into a list of token ids and masks.
+        Given a list of messages, return a list of tokens for the concatenated
+        and formatted messages.
 
         Args:
-            messages (List[Message]): The list of messages to tokenize.
-            add_end_tokens (bool): Whether to append end tokens ids (end-of-seq, end-of-turn, end-of-message) at the end of the
-                last assistant message. This value should be set to False for generation. Default is True.
-
-        Examples:
-            >>> # Tokenize a list of messages with default settings
-            >>> messages = [
-            ...     Message(role="user", content="Hello world!", masked=True),
-            ...     Message(role="assistant", content="How are you?", masked=False),
-            ... ]
-            >>> tokenizer = Qwen2Tokenizer("/path/to/tt_model")
-            >>> tokenizer.tokenize_messages(messages)
-            ([1, 31587, 29644, 102, 1, 31587, 29644, 102, 2], [True, True, True, True, True, False, False, False, True])
-
-            >>> # Tokenize a list of messages with add_end_tokens set to False
-            >>> tokenizer.tokenize_messages(messages, add_end_tokens=False)
-            ([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])
+            messages (List[Message]): The message list to tokenize.
+            add_eos (bool): Wether to add the tokenizer's eos_id at the end of the
+                sequence of messages. Default is True.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+
+        Raises:
+            RuntimeError: If a message contains non-text content
         """
         assert not isinstance(self.prompt_template, ChatMLTemplate), (
             "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
@@ -414,33 +414,23 @@ class Qwen2Tokenizer(ModelTokenizer):
             if self.prompt_template is not None
             else messages
         )
-        tokens = [self.bos_id]
-        # bos and eos are always masked
-        mask = [True]
+
+        tokens = []
+        mask = []
 
         num_messages = len(templated_messages)
         for i, message in enumerate(templated_messages):
-            # Add end tokens to the last assistant message if add_end_tokens is True
-            # Otherwise, end tokens should always be added
-            add_end_tokens_to_message = (
-                add_end_tokens if i == num_messages - 1 else True
-            )
-            tokenized_message = self.tokenize_message(
-                message, add_end_tokens=add_end_tokens_to_message
-            )
-
+            tokenized_message = self.tokenize_message(message, index=i, num_messages=num_messages)
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
 
-            # Break out early if we reach max_seq_len
             if self.max_seq_len and len(tokens) >= self.max_seq_len:
                 break
 
         if add_end_tokens:
             tokens = tokens + [self.eos_id]
-            mask = mask + [True]
+            mask = mask + [mask[-1] if mask else True]
 
-        # Finally, truncate if necessary
         if self.max_seq_len:
             tokens = truncate(
                 tokens=tokens,
