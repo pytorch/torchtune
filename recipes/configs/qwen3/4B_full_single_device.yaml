@@ -4,10 +4,6 @@
 # This config assumes that you've run the following command before launching:
 #   tune download Qwen/Qwen3-4B --output-dir /tmp/Qwen3-4B
 #
-# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
-# you can install it with:
-#   pip install bitsandbytes
-#
 # To launch on a single device, run the following command from root:
 #   tune run full_finetune_single_device --config qwen3/4B_full_single_device
 #
@@ -55,9 +51,10 @@ resume_from_checkpoint: False
 batch_size: 2
 epochs: 1
 optimizer:
-  _component_: bitsandbytes.optim.PagedAdamW
-  lr: 5e-6
-optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
+  _component_: torch.optim.AdamW
+  fused: True
+  lr: 2e-5
+optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 max_steps_per_epoch: null

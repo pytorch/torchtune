@@ -91,7 +91,7 @@ def qwen3_1_7b_base() -> TransformerDecoder:
         num_kv_heads=8,
         embed_dim=2048,
         intermediate_dim=6144,
-        max_seq_len=32678,
+        max_seq_len=32768,
         attn_dropout=0.0,
         norm_eps=1e-6,
         rope_base=1000000.0,
@@ -463,11 +463,10 @@ def lora_qwen3_0_6b_instruct(
         TransformerDecoder: Instantiation of Qwen3 0.6B model with LoRA applied
 
     Note:
-        Qwen3 0.5B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
+        Qwen3 0.6B-3B model builders will enable ``tie_word_embeddings`` by default (see :func:`~torchtune.models.qwen2.qwen2`)
 
     Note:
-        The base and instruct versions have slightly different architectures for all Qwen3 model sizes
-        except 0.5B and 3B. Make sure to select the correct model builder for the weights.
+        The base and instruct versions have the exact same arch for all Qwen3 model sizes, except for `max_seq_len`. Make sure to select the correct model builder for the weights.
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,

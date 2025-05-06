@@ -24,7 +24,7 @@ QWEN3_SPECIAL_TOKENS = {
 
 
 class Qwen3Tokenizer(Qwen2_5Tokenizer):  # noqa: N801
-    """This tokenizer is simply a wrapper around the Qwen2Tokenizer, with a few extra tokens added.
+    """This tokenizer is simply a wrapper around the Qwen2_5Tokenizer, with a few extra tokens added.
 
     See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2.py>
     and <https://huggingface.co/Qwen/Qwen3-8B/blob/main/tokenizer_config.json>.

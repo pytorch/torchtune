@@ -4,10 +4,6 @@
 # This config assumes that you've run the following command before launching:
 #   tune download Qwen/Qwen3-1.7B --output-dir /tmp/Qwen3-1.7B
 #
-# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
-# you can install it with:
-#   pip install bitsandbytes
-#
 # To launch on a single device, run the following command from root:
 #   tune run full_finetune_single_device --config qwen3/1.7B_full_single_device
 #
@@ -56,9 +52,10 @@ max_steps_per_epoch: null
 batch_size: 4
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 optimizer:
-  _component_: bitsandbytes.optim.PagedAdamW
+  _component_: torch.optim.AdamW
+  fused: True
   lr: 2e-5
-optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
+optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 
@@ -66,7 +63,7 @@ loss:
 device: cuda
 
 # Memory management / performance
-enable_activation_checkpointing: True  # True reduces memory
+enable_activation_checkpointing: False  # True reduces memory
 enable_activation_offloading: False  # True reduces memory
 dtype: bf16
 clip_grad_norm: null

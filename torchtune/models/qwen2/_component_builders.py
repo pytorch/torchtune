@@ -51,8 +51,8 @@ def qwen2(
     q_proj_bias: bool = True,
     k_proj_bias: bool = True,
     v_proj_bias: bool = True,
-    q_norm: bool = True,
-    k_norm: bool = True,
+    q_norm: bool = False,
+    k_norm: bool = False,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the Qwen2 model. This includes:
