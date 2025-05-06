@@ -349,11 +349,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 else None
             ),
         )
-        if self._compile_optimizer_step:
-            self._optimizer.step = torch.compile(
-                self._optimizer.step,
-                backend=self._compile_backend,
-            )
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
@@ -436,6 +431,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
+        if self._compile_optimizer_step:
+            self._optimizer.step = torch.compile(
+                self._optimizer.step,
+                backend=self._compile_backend,
+            )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
