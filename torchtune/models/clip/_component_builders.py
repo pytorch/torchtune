@@ -496,6 +496,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -515,6 +516,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -537,6 +539,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -559,6 +562,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
