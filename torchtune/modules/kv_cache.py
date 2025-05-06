@@ -64,7 +64,7 @@ class KVCache(nn.Module):
             already been filled, use ``.reset()``, which will reset the cache to the zero-th position.
 
         Example:
-            >>> cache = KVCache(batch_size=2, max_seq_len=16, num_kv_heads=4, head_dim=32, dtype=torch.bfloat16)
+            >>> cache = KVCache(batch_size=2, num_kv_heads=4, max_seq_len=16, head_dim=32, dtype=torch.bfloat16)
             >>> keys, values = torch.ones((2, 4, 8, 32)), torch.ones((2, 4, 8, 32))
             >>> cache.update(keys, values)
             >>> # now positions 0 through 7 are filled

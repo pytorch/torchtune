@@ -85,3 +85,36 @@ class EvalRecipeInterface(Protocol):
         All of the evaluation logic, including reporting.
         """
         ...
+
+
+class OrchestrationRecipeInterface(Protocol):
+    """
+    This class provides a loose structure which every LLM orchestration recipe
+    should follow. Orchestration recipes coordinate multiple distributed components
+    such as inference workers, scoring workers, and training workers.
+    """
+
+    def setup(self, **kwargs) -> None:
+        """
+        Responsible for setting up all components needed for orchestration,
+        including workers, parameter servers, queues, and other distributed resources.
+        """
+        ...
+
+    def run(self, **kwargs) -> None:
+        """
+        Execute the orchestrated training process, coordinating all workers
+        and handling communication between them.
+        """
+        ...
+
+    def cleanup(self, **kwargs) -> None:
+        """
+        Properly shut down all distributed resources and workers.
+        """
+        ...
+
+    # TODO implement in the future
+    # def allocate_resources(self, **kwargs) -> None:
+    #   we would use this function to stop hardcoding resources
+    #   pass

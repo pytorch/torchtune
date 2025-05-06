@@ -38,7 +38,7 @@ checkpointer:
 device: cuda
 dtype: bf16
 seed: 1234
-log_level: INFO
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Generation arguments
 prompt:

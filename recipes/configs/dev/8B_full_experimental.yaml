@@ -82,6 +82,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: null
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 
 # Profiler (disabled)
