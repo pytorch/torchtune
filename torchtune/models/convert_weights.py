@@ -24,6 +24,15 @@ _FROM_META = {
     "layers.{}.feed_forward.w1.weight": "layers.{}.mlp.w1.weight",
     "layers.{}.feed_forward.w2.weight": "layers.{}.mlp.w2.weight",
     "layers.{}.feed_forward.w3.weight": "layers.{}.mlp.w3.weight",
+    # lora weights
+    "layers.{}.attention.wq.lora_a.weight": "layers.{}.attn.q_proj.lora_a.weight",
+    "layers.{}.attention.wq.lora_b.weight": "layers.{}.attn.q_proj.lora_b.weight",
+    "layers.{}.attention.wk.lora_a.weight": "layers.{}.attn.k_proj.lora_a.weight",
+    "layers.{}.attention.wk.lora_b.weight": "layers.{}.attn.k_proj.lora_b.weight",
+    "layers.{}.attention.wv.lora_a.weight": "layers.{}.attn.v_proj.lora_a.weight",
+    "layers.{}.attention.wv.lora_b.weight": "layers.{}.attn.v_proj.lora_b.weight",
+    "layers.{}.attention.wo.lora_a.weight": "layers.{}.attn.output_proj.lora_a.weight",
+    "layers.{}.attention.wo.lora_b.weight": "layers.{}.attn.output_proj.lora_b.weight",
 }
 
 # state dict key mappings from HF's format to torchtune's format

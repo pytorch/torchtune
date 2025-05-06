@@ -387,7 +387,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             containing the keys keys ["filename_format", "max_filename"]. Since the checkpointer takes care
             of sorting by file ID, the order in this list does not matter.
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
-        output_dir (str): Directory to save the checkpoint files
+        output_dir (Optional[str]): Directory to save the checkpoint files, default None.
         adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
             and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
             Default is None.
@@ -413,7 +413,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         checkpoint_dir: str,
         checkpoint_files: Union[List[str], Dict[str, str]],
         model_type: str,
-        output_dir: str,
+        output_dir: Optional[str] = None,
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
@@ -431,21 +431,21 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._safe_serialization = safe_serialization
         self._checkpoint_dir = checkpoint_dir
         self._model_type = ModelType[model_type]
-        self._output_dir = output_dir
-        check_outdir_not_in_ckptdir(
-            ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
-        )
         self._enable_dcp = enable_dcp
-
         self._fs, _ = url_to_fs(self._checkpoint_dir)
-        output_fs, _ = url_to_fs(self._output_dir)
-        if self._fs != output_fs:
-            raise ValueError(
-                f"Checkpoint and output directories must be on the same filesystem. "
-                f"Got {self._fs} and {output_fs} instead."
-            )
+        self._output_dir = output_dir
 
-        self._fs.mkdirs(output_dir, exist_ok=True)
+        if self._output_dir is not None:
+            check_outdir_not_in_ckptdir(
+                ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
+            )
+            output_fs, _ = url_to_fs(self._output_dir)
+            if self._fs != output_fs:
+                raise ValueError(
+                    f"Checkpoint and output directories must be on the same filesystem. "
+                    f"Got {self._fs} and {output_fs} instead."
+                )
+            self._fs.mkdirs(output_dir, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -689,6 +689,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
+        *,
+        step: Optional[int] = None,
     ) -> None:
         """
         Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -704,10 +706,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+            step (Optional[int]): Step number. Used to create the checkpoint file name.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
+        if self._output_dir is None:
+            raise ValueError(
+                "Output directory not specified. Please specify an output directory to save the checkpoint."
+            )
+        output_dirname = f"step_{step}" if step is not None else f"epoch_{epoch}"
         # convert the state_dict back to hf format; do this inplace
         if not adapter_only:
             if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
@@ -836,9 +844,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
                     map_original_name_to_new_name[cpt_idx] = shard_name
                     output_path = os.path.join(
-                        self._output_dir, f"epoch_{epoch}", shard_name
+                        self._output_dir, output_dirname, shard_name
                     )
                     self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
+
                     if not self._safe_serialization:
                         output_path = output_path = ".bin"
                         torch.save(model_state_dict, output_path)
@@ -871,7 +880,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     index_file_name = TORCH_INDEX_FNAME
 
                 index_path = os.path.join(
-                    self._output_dir, f"epoch_{epoch}", index_file_name
+                    self._output_dir, output_dirname, index_file_name
                 )
 
                 index_data = {
@@ -888,7 +897,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # convert_weights.peft_to_tune. The .pt format is not needed, but
             # it is an easy way to distinguish the adapters. Ideally we should save only one.
             output_path = (
-                os.path.join(self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME)
+                os.path.join(self._output_dir, output_dirname, ADAPTER_MODEL_FNAME)
                 + ".pt"
             )
             self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
@@ -928,7 +937,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=config.get("head_dim", None),
                 )
                 output_path = os.path.join(
-                    self._output_dir, f"epoch_{epoch}", ADAPTER_MODEL_FNAME
+                    self._output_dir, output_dirname, ADAPTER_MODEL_FNAME
                 )
                 self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
                 if not self._safe_serialization:
@@ -969,11 +978,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     adapter_config=state_dict[training.ADAPTER_CONFIG],
                     base_model_name_or_path=self.repo_id,
                 )
-
                 output_path = (
-                    os.path.join(
-                        self._output_dir, f"epoch_{epoch}", ADAPTER_CONFIG_FNAME
-                    )
+                    os.path.join(self._output_dir, output_dirname, ADAPTER_CONFIG_FNAME)
                     + ".json"
                 )
                 with self._fs.open(output_path, "w") as f:
@@ -988,7 +994,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # So its easy to run inference with the model using this epoch's checkpoint
         copy_files(
             self._checkpoint_dir,
-            os.path.join(self._output_dir, f"epoch_{epoch}"),
+            os.path.join(self._output_dir, output_dirname),
             ignore_suffixes=SUFFIXES_TO_NOT_COPY,
         )
 
