@@ -41,7 +41,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
@@ -63,7 +63,7 @@ lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
@@ -86,6 +86,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 
 # Profiler (disabled)
