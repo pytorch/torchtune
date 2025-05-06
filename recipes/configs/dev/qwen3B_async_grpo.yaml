@@ -1,0 +1,112 @@
+# Config for async multi-node GRPO in dev/async_grpo.py
+# using a Qwen-3B Base model (which is known to train quickly on this task).
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download Qwen/Qwen2.5-3B
+#
+# This config is meant to run on a whole node with 8 GPUs. You can tweak the number of workers here to change it
+# but note that some workers have currently been hardcoded in the prototype and we haven't yet tested on different
+# numbers of workers.
+
+# To launch, run the following:
+#     tune run dev/async_grpo_full_finetune_distributed --config dev/qwen3B_async_grpo
+
+# Note that unlike in synchronous recipes (all the existing ones), we don't follow a SPMD model here so passing a flag like `--nproc-per-node 8`
+# won't help here. This is instead launching just the controller, which is a CPU process. The controller will in turn launch every other worker.
+
+name: grpo_async_qwen3b
+output_dir: /tmp/checkpoints/${name}
+base_model_path: /tmp/Qwen2.5-3B
+
+# Model architecture (Qwen2.5-3B)
+model:
+  _component_: torchtune.models.qwen2_5.qwen2_5_3b
+tokenizer:
+  _component_: torchtune.models.qwen2_5.qwen2_5_tokenizer
+  path: ${base_model_path}/vocab.json
+  merges_file: ${base_model_path}/merges.txt
+  max_seq_len: 1024
+
+# Data!
+dataset:
+  _component_: torchtune.dev.grpo.gsm8k.gsm8k_dataset
+  partition: 1-9/10
+shuffle: False
+
+# All orchestration args
+orchestration:
+  num_inference_workers: 4
+  num_postprocessing_workers: 1
+  num_training_workers: 2
+  replay_buffer_size: ${inference.batch_size}  # TODO: Right now this can't be bigger, or else we'll get padding issues
+  num_steps: 250
+
+# All inference args
+inference:
+  engine: vllm
+  model: ${base_model_path}
+  top_k: null
+  temperature: 1.0
+  tensor_parallel_dim: 1
+  max_generated_tokens: 512
+  batch_size: 1
+  group_size: 16
+  total_batch_size: ${eval:'${inference.batch_size} * ${inference.group_size}'}
+  steps_before_weight_sync: 1
+  queue_maxsize: ${eval:'${orchestration.num_inference_workers} * ${training.steps_before_weight_sync}'}
+
+# All post-processing args
+postprocessing:
+  ref_checkpointer:
+    _component_: torchtune.training.FullModelHFCheckpointer
+    checkpoint_dir: ${base_model_path}
+    checkpoint_files: [
+      model-00001-of-00002.safetensors,
+      model-00002-of-00002.safetensors,
+    ]
+    model_type: QWEN2
+
+# All training args
+training:
+  checkpointer:
+    _component_: torchtune.training.FullModelHFCheckpointer
+    checkpoint_dir: ${base_model_path}
+    checkpoint_files: [
+      model-00001-of-00002.safetensors,
+      model-00002-of-00002.safetensors,
+    ]
+    recipe_checkpoint: null
+    output_dir: ${output_dir}
+    model_type: QWEN2
+  batch_size: 16
+  ppo_epochs: 1
+  clip_grad_norm: 1.0
+  save_every_n_steps: 250
+  enable_activation_checkpointing: True  # True reduces memory
+  enable_activation_offloading: True  # True reduces memory.
+  compile: False  # torch.compile, set to true for better perf/memory
+  steps_before_weight_sync: 2
+  optimizer:
+    _component_: torch.optim.AdamW
+    lr: 1e-5
+    fused: True
+  loss:
+    _component_: torchtune.dev.rl.linear_grpo_loss.LinearGRPOLoss
+    kl_coeff: 0.01
+    epsilon: 0.2
+  seed: null
+
+# All logging args
+metric_logger:
+  _component_: torchtune.training.metric_logging.WandBLogger
+  log_dir: ${output_dir}/logs
+
+log_every_n_steps: 1
+log_peak_memory_stats: True
+debug_logging_enabled: False
+debug_num_samples_per_step: 1
+
+profiler: # Useful for understanding how to optimize memory and performance
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False

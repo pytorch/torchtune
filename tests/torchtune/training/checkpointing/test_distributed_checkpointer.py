@@ -151,3 +151,35 @@ class TestDistributedCheckpointer:
 
         # clean ups
         shutil.rmtree(checkpoint_path)
+
+    def test_save_load_adapter_checkpoint(
+        self, distributed_checkpointer, state_dict, empty_state_dict
+    ):
+        """
+        Test ``load_checkpoint`` method of an adapter checkpoint within the DistributedCheckpointer.
+        """
+        distributed_checkpointer.save_checkpoint(
+            state_dict=state_dict, epoch=1, save_async=False, adapter_only=True
+        )
+        distributed_checkpointer.save_checkpoint(
+            state_dict=state_dict, epoch=1, save_async=False, adapter_only=True
+        )
+
+        checkpoint_path = Path.joinpath(
+            distributed_checkpointer._output_dir,
+            f"{distributed_checkpointer._checkpoint_dir_prefix}_1",
+            "adapter_model",
+        )
+
+        assert os.path.exists(checkpoint_path)
+
+        distributed_checkpointer.load_checkpoint(
+            state_dict=empty_state_dict,
+            adapter_only=True,
+        )
+
+        for key in state_dict.keys():
+            assert torch.equal(state_dict[key], empty_state_dict[key])
+
+        # clean ups
+        shutil.rmtree(checkpoint_path)
