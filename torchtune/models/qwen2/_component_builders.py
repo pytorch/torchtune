@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List
+from typing import List, Optional
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torch import nn
@@ -44,6 +44,7 @@ def qwen2(
     embed_dim: int,
     intermediate_dim: int,
     max_seq_len: int,
+    head_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
@@ -76,6 +77,8 @@ def qwen2(
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
+        head_dim (Optional[int]): dimension of each head. If not specified,
+            this is computed as `embed_dim` // `num_heads`.
         norm_eps (float): epsilon in RMS norms.
         rope_base (float): the base period of the RoPE embeddings.
         tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
@@ -88,7 +91,7 @@ def qwen2(
     Returns:
         TransformerDecoder: Instantiation of Qwen2 model.
     """
-    head_dim = embed_dim // num_heads
+    head_dim = head_dim or embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = Qwen2RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
@@ -159,6 +162,7 @@ def lora_qwen2(
     embed_dim: int,
     intermediate_dim: int,
     max_seq_len: int,
+    head_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
@@ -223,6 +227,7 @@ def lora_qwen2(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             max_seq_len=max_seq_len,
+            head_dim=head_dim,
             attn_dropout=attn_dropout,
             rope_base=rope_base,
             lora_rank=lora_rank,
@@ -304,6 +309,7 @@ def lora_qwen2_self_attention(
     num_heads: int,
     num_kv_heads: int,
     max_seq_len: int,
+    head_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
     rope_base: float = 1_000_000.0,
     # LoRA args
@@ -332,6 +338,8 @@ def lora_qwen2_self_attention(
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         rope_base (float): the base period of the RoPE embeddings. Default: 1_000_000.0
+        head_dim (Optional[int]): the dimension of each head. If not specified, is computed 
+            as `embed_dim` // `num_heads`
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -348,7 +356,7 @@ def lora_qwen2_self_attention(
     if not lora_modules:
         raise ValueError(f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules")
 
-    head_dim = embed_dim // num_heads
+    head_dim = head_dim or embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     adapter_cls = DoRALinear if use_dora else LoRALinear
     q_proj = (
