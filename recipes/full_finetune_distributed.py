@@ -946,7 +946,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         self._grad_scaler(
                             self._model.parameters(),
                             self.world_size / num_tokens,
-                            not self.parallel_dims.tp_enabled,
+                            False if self.parallel_dims.tp_enabled else None,
                         )
 
                         if self._clip_grad_norm is not None:
