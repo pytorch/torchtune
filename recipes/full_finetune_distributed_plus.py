@@ -269,6 +269,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
         t0 = time.perf_counter()
         running_loss = 0
         num_tokens = 0
+        running_ent = 0
 
         # NOTE: added by us - sample just once at the beginning of the epoch loop
         self._sampler.set_epoch(0)
@@ -478,6 +479,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                             current_loss = current_loss * reward.mean()
                         else:
                             current_loss = current_loss * reward
+                entropy = self._loss_fn.compute_entropy(logits,labels)
 
                 # Clean up intermediate tensors to free memory
                 del logits
@@ -486,6 +488,8 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                 torch.cuda.empty_cache()  # Force CUDA to release memory
 
                 running_loss += current_loss
+                running_ent += entropy.detach()
+                del entropy
 
                 # For optimizer in backward, we need to normalize before calling backward
                 # This case and gradient accumulation are mutually exclusive
@@ -505,6 +509,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
+                        torch.distributed.all_reduce(running_ent)
                         training.scale_grads(self._model, 1 / num_tokens)
                         # scale grads by max_batchsize and real_batchsize
                         if self.max_bsize and (idx + 1) == n_samples:
@@ -553,7 +558,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                             ),
                             "tokens_per_second_per_gpu": real_num_tokens  # NOTE: added by us
                             / (time_per_step * world_size),
-                            # "entropy": running_ent.item() / real_num_tokens,
+                            "entropy": running_ent.item() / real_num_tokens,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
