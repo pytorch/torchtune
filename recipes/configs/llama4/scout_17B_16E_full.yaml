@@ -77,6 +77,7 @@ compile: False
 #    model: True
 #    loss: True
 #    optimizer_step: False
+#    scale_grads: True
 
 # Reduced precision
 dtype: bf16

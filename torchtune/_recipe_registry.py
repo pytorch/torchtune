@@ -586,6 +586,8 @@ _ALL_RECIPES = [
         configs=[
             Config(name="llama2/7B_qat_full", file_path="llama2/7B_qat_full.yaml"),
             Config(name="llama3/8B_qat_full", file_path="llama3/8B_qat_full.yaml"),
+            Config(name="llama3_1/8B_qat_full", file_path="llama3_1/8B_qat_full.yaml"),
+            Config(name="llama3_2/3B_qat_full", file_path="llama3_2/3B_qat_full.yaml"),
         ],
         supports_distributed=True,
     ),
