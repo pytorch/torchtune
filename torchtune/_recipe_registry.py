@@ -166,6 +166,10 @@ _ALL_RECIPES = [
                 name="llama4/maverick_17B_128E_full",
                 file_path="llama4/maverick_17B_128E_full.yaml",
             ),
+            Config(
+                name="llama4/tiny_llama4_debug_full",
+                file_path="llama4/tiny_llama4_debug_full.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
