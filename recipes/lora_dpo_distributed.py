@@ -153,7 +153,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         if self._log_peak_memory_stats and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS:
             log.info(
-                f"log_peak_memory_stats was set to True, however, training device does not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
+                f"log_peak_memory_stats was set to True; however, training device is not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
                 "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
