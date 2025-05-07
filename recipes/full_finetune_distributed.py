@@ -944,7 +944,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         self._grad_scaler(
-                            self._model.parameters(), self.dp_degree / num_tokens
+                            self._model.parameters(),
+                            self.world_size / num_tokens,
+                            not self.parallel_dims.tp_enabled,
                         )
 
                         if self._clip_grad_norm is not None:
