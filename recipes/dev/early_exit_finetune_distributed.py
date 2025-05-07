@@ -375,9 +375,9 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
             # set num_output_chunks for model
             self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-        elif getattr(self._loss_fn, "linear_loss", False):
+        elif getattr(self._loss_fn, "linear_projection", False):
             raise ValueError(
-                "Linear losses are not supported yet for KD. Please use the deprecated CEWithChunkedOutputLoss."
+                "Linear losses are not supported yet for EarlyExit. Please use the deprecated CEWithChunkedOutputLoss."
             )
 
         if self._is_rank_zero:

@@ -16,6 +16,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed.tensor import DTensor
 
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -337,13 +338,11 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, modules.loss.SFTLoss):
+            self._loss_fn.set_model_output(self._model)
 
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-
-        # The loss may handle the output projection. If true, the model should skip it.
-        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
-        self._model.skip_linear_projection = self.linear_loss
 
         if self._is_rank_zero:
             self._logger.info("Loss is initialized.")
@@ -853,13 +852,15 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 with self.activations_handling_ctx:
                     outputs = self._model(**batch)
 
-                if self.linear_loss:
-                    weight = self._model.linear_projection_weight
-                    current_loss = self._loss_fn(weight, outputs, labels)
-                else:
+                # post process for third party loss functions
+                if not isinstance(self._loss_fn, modules.loss.SFTLoss):
                     labels = labels.reshape(-1)
                     outputs = outputs.reshape(-1, outputs.size(-1))
-                    current_loss = self._loss_fn(outputs, labels)
+                    if isinstance(outputs, DTensor):
+                        outputs = outputs.full_tensor()
+
+                # Compute loss
+                current_loss = self._loss_fn(outputs, labels)
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
