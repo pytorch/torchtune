@@ -9,7 +9,10 @@ import torch.nn.functional as F
 from torch import nn
 from torch.distributed.tensor import DTensor
 
-from .loss_types import SFTLoss
+from torchtune.modules.loss.loss_types import SFTLoss
+from torchtune.utils import get_logger
+
+log = get_logger()
 
 
 class LinearCrossEntropyLoss(nn.Module, SFTLoss):
@@ -45,9 +48,11 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
     def apply_compile_strategy(self, *args, **kwargs):
         """Applies compile only to the compute_cross_entropy function.
         If compiling CE + chunking operation together, memory requirement is higher."""
-        self.compute_cross_entropy = torch.compile(
-            self.compute_cross_entropy, *args, **kwargs
-        )
+        log.warning("Skipping compile loss, as it is not supported at this time")
+        # TODO fix compile and re-enable
+        # self.compute_cross_entropy = torch.compile(
+        #     self.compute_cross_entropy, *args, **kwargs
+        # )
         return self
 
     def set_model_output(self, model: nn.Module) -> None:
