@@ -59,7 +59,7 @@ optimizer:
   fused: False
 optimizer_in_bwd: False
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 clip_grad_norm: null
 
 # cuda, cpu, rocm, xpu...
@@ -69,7 +69,15 @@ device: cuda
 enable_activation_checkpointing: True
 enable_activation_offloading: False
 fsdp_cpu_offload: True
-compile: False # torch.compile, set to true for perf/memory improvement
+# compile True means use torch.compile for all components
+# compile False means no torch.compile
+# compile Dictionary with keys: "model", "loss", "optimizer_step"
+# enables torch.compile only for specified components.
+compile: False
+#    model: True
+#    loss: True
+#    optimizer_step: False
+#    scale_grads: True
 
 # Reduced precision
 dtype: bf16
@@ -80,6 +88,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Useful for understanding how to optimize memory and performance
 profiler:

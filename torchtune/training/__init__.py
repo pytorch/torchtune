@@ -26,7 +26,7 @@ from torchtune.training._distributed import (
     validate_no_params_on_meta_device,
     VALID_BACKENDS_FOR_MEMORY_STATS,
 )
-from torchtune.training._grad_scaler import scale_grads
+from torchtune.training._grad_scaler import scale_grads, scale_grads_
 from torchtune.training._model_util import disable_dropout
 from torchtune.training._profiler import (
     DEFAULT_PROFILE_DIR,
@@ -141,6 +141,7 @@ __all__ = [
     "OffloadActivations",
     "FormattedCheckpointFiles",
     "scale_grads",
+    "scale_grads_",
     "get_distributed_backend",
     "disable_dropout",
     "DATALOADER_KEY",

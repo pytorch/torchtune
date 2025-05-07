@@ -28,8 +28,19 @@ _ALL_RECIPES = [
         file_path="dev/grpo_full_finetune_distributed.py",
         configs=[
             Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
+            Config(name="dev/qwen3B_sync_grpo", file_path="dev/qwen3B_sync_grpo.yaml"),
         ],
         supports_distributed=True,
+    ),
+    Recipe(
+        name="dev/async_grpo_full_finetune_distributed",
+        file_path="dev/async_grpo_full_finetune_distributed.py",
+        configs=[
+            Config(
+                name="dev/qwen3B_async_grpo", file_path="dev/qwen3B_async_grpo.yaml"
+            ),
+        ],
+        supports_distributed=False,
     ),
     Recipe(
         name="full_finetune_single_device",
@@ -575,6 +586,8 @@ _ALL_RECIPES = [
         configs=[
             Config(name="llama2/7B_qat_full", file_path="llama2/7B_qat_full.yaml"),
             Config(name="llama3/8B_qat_full", file_path="llama3/8B_qat_full.yaml"),
+            Config(name="llama3_1/8B_qat_full", file_path="llama3_1/8B_qat_full.yaml"),
+            Config(name="llama3_2/3B_qat_full", file_path="llama3_2/3B_qat_full.yaml"),
         ],
         supports_distributed=True,
     ),

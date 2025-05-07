@@ -15,12 +15,6 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerSelfAttentionLayer,
 )
-from torchtune.modules.loss import (
-    CEWithChunkedOutputLoss,
-    ForwardKLWithChunkedOutputLoss,
-    ReverseKLWithChunkedOutputLoss,
-    SymmetricKLWithChunkedOutputLoss,
-)
 from torchtune.modules.model_fusion import DeepFusionModel
 from torchtune.utils import get_logger
 
@@ -59,30 +53,21 @@ def compile_model(
 
 def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     """
-    Utility to compile and return loss function. If the loss function is chunked cross-entropy,
-    we only compile the upcast + cross-entropy calculation, not the chunking. For other losses
-    we compile the entire loss function.
+    Utility to compile and return loss function
 
     Args:
         loss (nn.Module): A loss function to compile.
         verbose (bool): Whether to log compile info. Default: True
     Returns:
-        loss (nn.Module): loss with either entire module compiled or (in the case of
-            CEWithChunkedOutputLoss) only the upcast and cross-entropy calculation compiled.
+        loss (nn.Module): Compiled loss function
     """
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
     if verbose:
         log.info("Compiling loss with torch.compile...")
-    if isinstance(loss, CEWithChunkedOutputLoss):
-        loss.compute_cross_entropy = torch.compile(
-            loss.compute_cross_entropy, backend=backend
-        )
-    elif isinstance(loss, ForwardKLWithChunkedOutputLoss):
-        loss.fkl_loss = torch.compile(loss.fkl_loss, backend=backend)
-    elif isinstance(loss, ReverseKLWithChunkedOutputLoss):
-        loss.rkl_loss = torch.compile(loss.rkl_loss, backend=backend)
-    elif isinstance(loss, SymmetricKLWithChunkedOutputLoss):
-        loss.sym_kl_loss = torch.compile(loss.sym_kl_loss, backend=backend)
+
+    if hasattr(loss, "apply_compile_strategy"):
+        loss = loss.apply_compile_strategy(backend=backend)
     else:
         loss = torch.compile(loss, backend=backend)
+
     return loss
