@@ -399,7 +399,6 @@ def get_act_offloading_ctx_manager(
     Raises:
         NotImplementedError: If the model is a multimodal model and activation offloading is enabled.
     """
-    print(f"HEY HI YA DINGUS {enable_activation_offloading}, {type(model)}")
     if enable_activation_offloading:
         activations_handling_ctx = OffloadActivations(use_streams=use_streams)
         # Below is our hack to disable offloading the last output Linear in every
