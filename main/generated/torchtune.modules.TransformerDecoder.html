@@ -570,7 +570,7 @@ and skip straight to the transformer layers. Shape <code class="docutils literal
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>output tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">v]</span></code> if <cite>self.skip_linear_projection=False</cite>
+<dd class="field-even"><p>output tensor with shape <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">v]</span></code> if <cite>self.skip_output_layer=False</cite>
 and <code class="docutils literal notranslate"><span class="pre">[b</span> <span class="pre">x</span> <span class="pre">s</span> <span class="pre">x</span> <span class="pre">d]</span></code> otherwise, or a list of layer output tensors defined by <code class="docutils literal notranslate"><span class="pre">output_hidden_states</span></code> with the
 final output tensor appended to the list.</p>
 </dd>
@@ -603,13 +603,6 @@ the position(s) of the current token(s) <code class="docutils literal notranslat
 </ul>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.linear_projection_weight">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_projection_weight</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#torchtune.modules.TransformerDecoder.linear_projection_weight" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the output weight matrix. Useful when a finer control of the output projection is needed,
-for example when using a custom loss function or when interested in applying it to only some tokens.</p>
 </dd></dl>
 
 <dl class="py method">

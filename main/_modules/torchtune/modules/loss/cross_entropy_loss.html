@@ -456,68 +456,100 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">DTensor</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.loss_protocols</span><span class="w"> </span><span class="kn">import</span> <span class="n">SFTLinearLoss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.loss.loss_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SFTLoss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="LinearCrossEntropyLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">LinearCrossEntropyLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">SFTLinearLoss</span><span class="p">):</span>
+<div class="viewcode-block" id="LinearCrossEntropyLoss"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">LinearCrossEntropyLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">SFTLoss</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Memory efficient Cross-entropy loss that incrementally computes loss for chunks of tokens</span>
 <span class="sd">    by masking ignored tokens, calculating logits and then applying cross-entropy loss. Combines</span>
-<span class="sd">    the linear projection with the cross-entropy calculation for futher memory savings.</span>
+<span class="sd">    the linear projection with the cross-entropy calculation for further memory savings.</span>
+
+<span class="sd">    Linear cross entropy masks out ignored tokens before the projection layer to save memory.</span>
+<span class="sd">    You therefore need to skip the final projection layer in your model and pass it to the loss instead.</span>
+<span class="sd">    You can setup the loss with the model and compile it as shown below.</span>
+
+<span class="sd">    &gt;&gt;&gt; model = Transformer(...)</span>
+<span class="sd">    &gt;&gt;&gt; loss = LinearCrossEntropyLoss(...)</span>
+<span class="sd">    &gt;&gt;&gt; loss.set_model_output(model)</span>
+<span class="sd">    &gt;&gt;&gt; loss.apply_compile_strategy()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">num_output_chunks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
         <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">mask_pre_projection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            num_output_chunks (int): Number of chunks to split the output tensor into. Default is 8.</span>
 <span class="sd">            ignore_index (int): Index to ignore in the target tensor. Default is -100.</span>
-<span class="sd">            mask_pre_projection (bool): Whether to mask the output tensor before projection, avoiding</span>
-<span class="sd">                computing it for tokens that will be ignored during CE anyway. Default is True.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_output_chunks</span> <span class="o">=</span> <span class="n">num_output_chunks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span> <span class="o">=</span> <span class="n">ignore_index</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mask_pre_projection</span> <span class="o">=</span> <span class="n">mask_pre_projection</span>
 
 <div class="viewcode-block" id="LinearCrossEntropyLoss.apply_compile_strategy"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.apply_compile_strategy">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply_compile_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies compile only to the compute_cross_entropy function.</span>
 <span class="sd">        If compiling CE + chunking operation together, memory requirement is higher.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">compute_cross_entropy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">compute_cross_entropy</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Skipping compile loss, as it is not supported at this time&quot;</span><span class="p">)</span>
+        <span class="c1"># TODO fix compile and re-enable</span>
+        <span class="c1"># self.compute_cross_entropy = torch.compile(</span>
+        <span class="c1">#     self.compute_cross_entropy, *args, **kwargs</span>
+        <span class="c1"># )</span>
         <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="LinearCrossEntropyLoss.set_model_output"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.set_model_output">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">set_model_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Modify model output to match the expected input for the loss function.&quot;&quot;&quot;</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">skip_output_layer</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">output</span></div>
 
 <div class="viewcode-block" id="LinearCrossEntropyLoss.compute_cross_entropy"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.compute_cross_entropy">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_cross_entropy</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">weight</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">hidden_chunk</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">target_chunk</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes cross-entropy by masking tokens, calculating logits and then applying cross-entropy loss.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            weight (torch.Tensor): [vocab_size, embed_dim]</span>
 <span class="sd">            hidden_chunk (torch.Tensor): [batch_size, chunk_size, embed_dim]</span>
 <span class="sd">            target_chunk (torch.Tensor): [batch_size, chunk_size]</span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: Sum of cross-entropy loss for non-ignored tokens in the chunk</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AttributeError: if called before update_model</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Select hidden states and targets where mask is True</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pre_projection</span><span class="p">:</span>
-            <span class="n">mask_chunk</span> <span class="o">=</span> <span class="n">target_chunk</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span>
-            <span class="n">hidden_chunk</span> <span class="o">=</span> <span class="n">hidden_chunk</span><span class="p">[</span><span class="n">mask_chunk</span><span class="p">]</span>  <span class="c1"># [num_valid, embed_dim]</span>
-            <span class="n">target_chunk</span> <span class="o">=</span> <span class="n">target_chunk</span><span class="p">[</span><span class="n">mask_chunk</span><span class="p">]</span>  <span class="c1"># [num_valid]</span>
+        <span class="n">mask_chunk</span> <span class="o">=</span> <span class="n">target_chunk</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span>
+        <span class="k">if</span> <span class="n">mask_chunk</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Unmask 1 token to allow loss to sync with all data parallel workers</span>
+            <span class="n">mask_chunk</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">target_chunk</span> <span class="o">=</span> <span class="n">target_chunk</span><span class="p">[</span><span class="n">mask_chunk</span><span class="p">]</span>  <span class="c1"># [num_valid]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hidden_chunk</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
+            <span class="c1"># DTensor doesn&#39;t support masks so we have to mask locally</span>
+            <span class="n">mesh</span> <span class="o">=</span> <span class="n">hidden_chunk</span><span class="o">.</span><span class="n">device_mesh</span>
+            <span class="n">placements</span> <span class="o">=</span> <span class="n">hidden_chunk</span><span class="o">.</span><span class="n">placements</span>
+            <span class="n">local_hidden_chunk</span> <span class="o">=</span> <span class="n">hidden_chunk</span><span class="o">.</span><span class="n">to_local</span><span class="p">()[</span><span class="n">mask_chunk</span><span class="p">]</span>
+            <span class="n">hidden_chunk</span> <span class="o">=</span> <span class="n">DTensor</span><span class="o">.</span><span class="n">from_local</span><span class="p">(</span>
+                <span class="n">local_hidden_chunk</span><span class="p">,</span> <span class="n">mesh</span><span class="p">,</span> <span class="n">placements</span>
+            <span class="p">)</span>  <span class="c1"># [num_valid, embed_dim]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">hidden_chunk</span> <span class="o">=</span> <span class="n">hidden_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">hidden_chunk</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-            <span class="n">target_chunk</span> <span class="o">=</span> <span class="n">target_chunk</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">hidden_chunk</span> <span class="o">=</span> <span class="n">hidden_chunk</span><span class="p">[</span><span class="n">mask_chunk</span><span class="p">]</span>  <span class="c1"># [num_valid, embed_dim]</span>
 
         <span class="c1"># [num_valid, embed_dim] @ [embed_dim, vocab_size]</span>
-        <span class="n">logits</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">hidden_chunk</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>  <span class="c1"># [num_valid, vocab_size]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;forward called before update_model&quot;</span><span class="p">)</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span><span class="p">(</span><span class="n">hidden_chunk</span><span class="p">)</span>  <span class="c1"># [num_valid, vocab_size]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">DTensor</span><span class="p">):</span>
+            <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">full_tensor</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span>
             <span class="n">logits</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
@@ -528,19 +560,14 @@
 
 <div class="viewcode-block" id="LinearCrossEntropyLoss.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.loss.LinearCrossEntropyLoss.html#torchtune.modules.loss.LinearCrossEntropyLoss.forward">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">weight</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">outputs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">targets</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
-<span class="sd">            weight (torch.Tensor): Tensor with weights of the model output projection layer. Shape ``[vocab_size, emb_dim]``</span>
 <span class="sd">            outputs (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``</span>
 <span class="sd">            targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``</span>
-<span class="sd">            *args: Additional positional arguments.</span>
-<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: loss tensor</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -556,12 +583,15 @@
         <span class="n">total_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hidden_chunks</span><span class="p">)):</span>
             <span class="n">total_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_cross_entropy</span><span class="p">(</span>
-                <span class="n">weight</span><span class="p">,</span>
                 <span class="n">hidden_chunks</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
                 <span class="n">target_chunks</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">total_loss</span> <span class="o">/</span> <span class="n">total_elements</span></div></div>
+        <span class="k">if</span> <span class="n">total_elements</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># must return after calling compute_cross_entropy to not hang during data parallel training</span>
+            <span class="k">return</span> <span class="n">total_loss</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">total_loss</span> <span class="o">/</span> <span class="n">total_elements</span></div></div>
 </pre></div>
 
              </article>

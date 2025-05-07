@@ -576,9 +576,9 @@ KV values for each position.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.linear_projection_weight">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_projection_weight</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.linear_projection_weight" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the output weight matrix. Useful when a finer control of the output projection is needed,
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.output">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">output</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><span class="pre">Tensor</span></a></em><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output layer. Useful when a finer control of the output projection is needed,
 for example when using a custom loss function or when interested in applying it to only some tokens.</p>
 </dd></dl>
 
@@ -617,8 +617,8 @@ For each layer in <code class="docutils literal notranslate"><span class="pre">s
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.skip_linear_projection">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">skip_linear_projection</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.skip_linear_projection" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="torchtune.modules.model_fusion.DeepFusionModel.skip_output_layer">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">skip_output_layer</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><a class="headerlink" href="#torchtune.modules.model_fusion.DeepFusionModel.skip_output_layer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns whether to skip output layer projection and return hidden states instead.</p>
 </dd></dl>
 

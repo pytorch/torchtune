@@ -459,6 +459,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_component_from_path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transformer</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformerDecoder</span>
 
+
 <span class="c1"># TODO (SalmanMohammadi) - add a tutorial for fine-tuning classifiers</span>
 <div class="viewcode-block" id="classifier_model"><a class="viewcode-back" href="../../../generated/torchtune.modules.classifier_model.html#torchtune.modules.classifier_model">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">classifier_model</span><span class="p">(</span>
     <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">base_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">base_model_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
@@ -490,16 +491,11 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">_get_component_from_path</span><span class="p">(</span><span class="n">base_model_path</span><span class="p">)(</span><span class="o">**</span><span class="n">base_model_kwargs</span><span class="p">)</span>
+    <span class="n">decoder</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">):</span>
-        <span class="k">del</span> <span class="n">model</span><span class="o">.</span><span class="n">output</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">*</span> <span class="n">model</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span>
-        <span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">):</span>
-        <span class="k">del</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">output</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">*</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span>
+        <span class="n">decoder</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+            <span class="n">decoder</span><span class="o">.</span><span class="n">head_dim</span> <span class="o">*</span> <span class="n">decoder</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Could not find a valid output layer to adapt.&quot;</span><span class="p">)</span>
