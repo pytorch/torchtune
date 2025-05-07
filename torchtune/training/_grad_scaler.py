@@ -102,4 +102,7 @@ def _scale_grad_(
         else:
             scaler_device = scaler.to(device)
             for g in device_grads:
-                g.mul_(scaler_device)
+                if isinstance(g, DTensor):
+                    g[:] = g * scaler_device
+                else:
+                    g.mul_(scaler_device)
