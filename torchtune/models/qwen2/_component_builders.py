@@ -77,8 +77,9 @@ def qwen2(
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
-        head_dim (Optional[int]): dimension of each head. If not specified,
-            this is computed as `embed_dim` // `num_heads`.
+        head_dim (Optional[int]): Dimension of each attention head. If not
+            specified, it defaults to `embed_dim // num_heads`. In GQA, `head_dim` is not necessarily equal to
+            `embed_dim // num_heads`, so this parameter allows the caller to explicitly specify a custom value.
         norm_eps (float): epsilon in RMS norms.
         rope_base (float): the base period of the RoPE embeddings.
         tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
@@ -106,10 +107,10 @@ def qwen2(
             q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=q_proj_bias),
             k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=k_proj_bias),
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=v_proj_bias),
-            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
             pos_embeddings=rope,
-            q_norm=RMSNorm(dim=embed_dim, eps=norm_eps) if q_norm else None,
-            k_norm=RMSNorm(dim=embed_dim, eps=norm_eps) if k_norm else None,
+            q_norm=RMSNorm(dim=head_dim, eps=norm_eps) if q_norm else None, # norm on head_dim
+            k_norm=RMSNorm(dim=head_dim, eps=norm_eps) if k_norm else None,
             kv_cache=None,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
