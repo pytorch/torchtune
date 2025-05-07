@@ -48,6 +48,9 @@ torch_version = torch.__version__
 # ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = False
 
+# Valid backends for logging memory stats
+VALID_BACKENDS_FOR_MEMORY_STATS = ("cuda", "xpu", "npu")
+
 
 @dataclass
 class ParallelDims:
@@ -173,6 +176,8 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
             tensor = tensor.to(get_device("cuda"))
         elif dist.get_backend() == "xccl":
             tensor = tensor.to(get_device("xpu"))
+        elif dist.get_backend() == "hccl":
+            tensor = tensor.to(get_device("npu"))
         dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
     else:
@@ -289,6 +294,7 @@ def load_from_full_model_state_dict(
     strict: bool = False,
     cpu_offload: bool = False,
     use_distributed_state_dict: bool = False,
+    release_sd: bool = True,
 ) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
@@ -301,6 +307,7 @@ def load_from_full_model_state_dict(
         cpu_offload (bool): flag to check if offload to CPU is enabled
         use_distributed_state_dict (bool): Whether to use set_model_state_dict for loading
             state dict. Default: False. (TODO: this should be True once 3.2 Vision is fixed)
+        release_sd (bool): whether to release memory of full_sd to save ram usage
     Returns:
         ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
             * **missing_keys** is a list of str containing the missing keys
@@ -341,6 +348,7 @@ def load_from_full_model_state_dict(
         sharded_sd = {}
         for param_name, full_tensor in full_sd.items():
             sharded_meta_param = meta_sharded_sd.get(param_name)
+            assert sharded_meta_param is not None, f"{param_name} not found in model"
             full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
             if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
                 sharded_meta_param._local_tensor, NF4Tensor
@@ -359,7 +367,7 @@ def load_from_full_model_state_dict(
                 mesh = sharded_meta_param.device_mesh
                 if mesh.ndim > 1:
                     raise NotImplementedError(
-                        f"only support 1D FSDP but got {mesh.ndim=}"
+                        f"only support 1D FSDP but got {mesh.ndim}"
                     )
                 shard_mesh_dim = 0
                 shard_world_size = mesh.size(shard_mesh_dim)
@@ -399,6 +407,8 @@ def load_from_full_model_state_dict(
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
             sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+            if release_sd:
+                full_sd[param_name] = None
         # choose `assign=True` since we cannot call `copy_` on meta tensor
         return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 

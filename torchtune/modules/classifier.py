@@ -10,6 +10,7 @@ import torch.nn as nn
 from torchtune.config._utils import _get_component_from_path
 from torchtune.modules.transformer import TransformerDecoder
 
+
 # TODO (SalmanMohammadi) - add a tutorial for fine-tuning classifiers
 def classifier_model(
     num_classes: int, base_model_path: str, **base_model_kwargs: Dict[str, Any]
@@ -41,16 +42,11 @@ def classifier_model(
 
     """
     model = _get_component_from_path(base_model_path)(**base_model_kwargs)
+    decoder = getattr(model, "decoder", model)
 
     if hasattr(model, "output"):
-        del model.output
-        model.output = nn.Linear(
-            model.head_dim * model.num_heads, num_classes, bias=False
-        )
-    elif hasattr(model, "decoder") and hasattr(model.decoder, "output"):
-        del model.decoder.output
-        model.decoder.output = nn.Linear(
-            model.decoder.head_dim * model.decoder.num_heads, num_classes, bias=False
+        decoder.output = nn.Linear(
+            decoder.head_dim * decoder.num_heads, num_classes, bias=False
         )
     else:
         raise ValueError("Could not find a valid output layer to adapt.")
