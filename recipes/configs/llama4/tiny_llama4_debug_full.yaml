@@ -18,6 +18,12 @@ output_dir: /tmp/torchtune/tiny-random-Llama-4/lora
 model:
   _component_: torchtune.models.llama4._model_builders.llama4_tiny
 
+tensor_parallel_dim: 2 # For multi-node training we recommend tensor_parallel_dim: 8
+tensor_parallel_plan:
+  _component_: torchtune.models.llama4.decoder_only_tp_plan
+data_parallel_shard_dim: -1 # Will infer based on TP dim, effectively controls FSDP
+data_parallel_replicate_dim: 1
+
 tokenizer:
   _component_: torchtune.models.llama4.llama4_transform
   path: /tmp/tiny-random-Llama-4/tokenizer.model
