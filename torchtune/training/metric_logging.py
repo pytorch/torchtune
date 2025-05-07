@@ -3,7 +3,9 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+from collections import defaultdict
 import os
+import pickle
 import re
 import sys
 import time
@@ -69,21 +71,17 @@ class MetricLoggerInterface(Protocol):
 
 
 class DiskLogger(MetricLoggerInterface):
-    """Logger to disk.
+    """Logger to disk with in-memory accumulation of logs for pickling.
 
     Args:
         log_dir (str): directory to store logs
         filename (Optional[str]): optional filename to write logs to.
             Default: None, in which case log_{unixtimestamp}.txt will be used.
-        **kwargs: additional arguments
-
     Warning:
         This logger is not thread-safe.
-
     Note:
         This logger creates a new file based on the current time.
     """
-
     def __init__(self, log_dir: str, filename: Optional[str] = None, **kwargs):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -94,25 +92,40 @@ class DiskLogger(MetricLoggerInterface):
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
 
+        # In-memory log accumulation
+        self._log_dict = defaultdict(list)
+
     def path_to_log_file(self) -> Path:
         return self._file_name
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._file.write(f"Step {step} | {name}:{data}\n")
         self._file.flush()
+        # Convert tensor to CPU value if needed
+        if isinstance(data, torch.Tensor):
+            data = data.cpu().item()
+        self._log_dict[name].append((step, data))
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         self._file.write(f"Step {step} | ")
         for name, data in payload.items():
             self._file.write(f"{name}:{data} ")
+            self._log_dict[name].append((step, data))
         self._file.write("\n")
         self._file.flush()
 
     def __del__(self) -> None:
-        self._file.close()
+        self.close()
 
     def close(self) -> None:
-        self._file.close()
+        if not self._file.closed:
+            self._file.close()
+
+        # Save log_dict to a pickle file
+        pickle_path = self.log_dir / "log_dict.pkl"
+        with open(pickle_path, "wb") as f:
+            pickle.dump(dict(self._log_dict), f)
+        print(f"Saved log dictionary to {pickle_path}")
 
 
 class StdoutLogger(MetricLoggerInterface):
@@ -211,9 +224,9 @@ class WandBLogger(MetricLoggerInterface):
                 tags.append(f"seed_{self.seed}")
 
 
-            run_id_seed = f"{run_id}_seed_{self.seed}" if run_id and self.seed is not None else run_id
+            run_id_seed = f"torchtune_{run_id}"
             run = self._wandb.init(
-                project=project,
+                project='Torchtune_dummy',
                 entity=entity,
                 group=group,
                 dir=self.log_dir,
