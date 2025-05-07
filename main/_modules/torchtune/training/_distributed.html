@@ -497,6 +497,9 @@
 <span class="c1"># ) or (&quot;dev&quot; in torch_version and torch_version.split(&quot;dev&quot;)[1] &gt;= &quot;20241220&quot;)</span>
 <span class="n">_DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
 
+<span class="c1"># Valid backends for logging memory stats</span>
+<span class="n">VALID_BACKENDS_FOR_MEMORY_STATS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="s2">&quot;xpu&quot;</span><span class="p">,</span> <span class="s2">&quot;npu&quot;</span><span class="p">)</span>
+
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ParallelDims</span><span class="p">:</span>
@@ -622,6 +625,8 @@
             <span class="n">tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">get_device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_backend</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;xccl&quot;</span><span class="p">:</span>
             <span class="n">tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">get_device</span><span class="p">(</span><span class="s2">&quot;xpu&quot;</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_backend</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;hccl&quot;</span><span class="p">:</span>
+            <span class="n">tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">get_device</span><span class="p">(</span><span class="s2">&quot;npu&quot;</span><span class="p">))</span>
         <span class="n">dist</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -811,7 +816,7 @@
                 <span class="n">mesh</span> <span class="o">=</span> <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">device_mesh</span>
                 <span class="k">if</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;only support 1D FSDP but got </span><span class="si">{</span><span class="n">mesh</span><span class="o">.</span><span class="n">ndim</span><span class="si">=}</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;only support 1D FSDP but got </span><span class="si">{</span><span class="n">mesh</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">&quot;</span>
                     <span class="p">)</span>
                 <span class="n">shard_mesh_dim</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">shard_world_size</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">shard_mesh_dim</span><span class="p">)</span>
