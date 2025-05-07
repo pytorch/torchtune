@@ -759,7 +759,7 @@
 <span class="sd">        num_heads (int): The number of attention heads in each transformer layer.</span>
 <span class="sd">        activation (Callable): The activation function to use in the MLP layer.</span>
 <span class="sd">        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.</span>
-<span class="sd">        attn_bias (bool): Boolean for if to use bias in the attention module. Default False.</span>
+<span class="sd">        attn_bias (bool): whether to use bias in Q, K, V, output projections. Default: False</span>
 <span class="sd">        out_indices (Optional[List[int]]): The indices of hidden layers to return.</span>
 <span class="sd">            If provided, it will return the intermediate results of the transformer layers</span>
 <span class="sd">            before they go through a next layer. For example, ``out_indices=[0,3]`` will</span>
@@ -776,6 +776,10 @@
 <span class="sd">        quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base</span>
 <span class="sd">            weights within linear layers LoRA is applied to. The final output linear projection is not</span>
 <span class="sd">            supported for quantization currently.</span>
+<span class="sd">        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.</span>
+<span class="sd">            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of</span>
+<span class="sd">            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.</span>
+<span class="sd">            Default None</span>
 
 
 <span class="sd">    Returns:</span>
@@ -918,12 +922,17 @@
 <span class="sd">            for GQA `num_kv_heads` &lt; `num_heads`, and for MQA set `num_kv_heads` == 1.</span>
 <span class="sd">        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.</span>
 <span class="sd">            Default: 0.0</span>
+<span class="sd">        attn_bias (bool): whether to use bias in Q, K, V, output projections. Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
 <span class="sd">        use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model parameters for linear layers</span>
 <span class="sd">            LoRA is being applied to. Default is ``False``.</span>
+<span class="sd">        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.</span>
+<span class="sd">            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of</span>
+<span class="sd">            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.</span>
+<span class="sd">            Default None</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        MultiHeadAttention: instantiation of self-attention module with LoRA</span>
@@ -945,6 +954,7 @@
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
             <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
         <span class="p">)</span>
@@ -964,6 +974,7 @@
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
             <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
         <span class="p">)</span>
@@ -986,6 +997,7 @@
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
             <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1008,6 +1020,7 @@
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">attn_bias</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
             <span class="o">**</span><span class="n">quantization_kwargs</span><span class="p">,</span>
         <span class="p">)</span>
