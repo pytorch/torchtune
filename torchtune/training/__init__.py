@@ -23,8 +23,8 @@ from torchtune.training._distributed import (
     prepare_mha_for_tp,
     set_torch_num_threads,
     shard_model,
-    validate_no_params_on_meta_device,
     VALID_BACKENDS_FOR_MEMORY_STATS,
+    validate_no_params_on_meta_device,
 )
 from torchtune.training._grad_scaler import scale_grads, scale_grads_
 from torchtune.training._model_util import disable_dropout

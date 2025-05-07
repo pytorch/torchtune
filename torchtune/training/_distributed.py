@@ -48,7 +48,7 @@ torch_version = torch.__version__
 # ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = False
 
-
+# Valid backends for logging memory stats
 VALID_BACKENDS_FOR_MEMORY_STATS = ("cuda", "xpu", "npu")
 
 

@@ -28,7 +28,11 @@ from torchtune.modules.common_utils import slice_str_to_array
 from torchtune.modules.early_exit_loss import early_exit_loss, EarlyExitCurriculum
 from torchtune.modules.layer_dropout import prepare_layer_dropout
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY, VALID_BACKENDS_FOR_MEMORY_STATS
+from torchtune.training import (
+    DummyProfiler,
+    PROFILER_KEY,
+    VALID_BACKENDS_FOR_MEMORY_STATS,
+)
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.lr_schedulers import get_lr
 
@@ -185,7 +189,10 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
-        if self._log_peak_memory_stats and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS:
+        if (
+            self._log_peak_memory_stats
+            and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS
+        ):
             log.info(
                 f"log_peak_memory_stats was set to True; however, training device is not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
                 "Setting log_peak_memory_stats=False."
