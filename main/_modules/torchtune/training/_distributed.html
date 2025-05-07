@@ -738,6 +738,7 @@
     <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">cpu_offload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">use_distributed_state_dict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">release_sd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_IncompatibleKeys</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting full state dict into a sharded state dict</span>
@@ -750,6 +751,7 @@
 <span class="sd">        cpu_offload (bool): flag to check if offload to CPU is enabled</span>
 <span class="sd">        use_distributed_state_dict (bool): Whether to use set_model_state_dict for loading</span>
 <span class="sd">            state dict. Default: False. (TODO: this should be True once 3.2 Vision is fixed)</span>
+<span class="sd">        release_sd (bool): whether to release memory of full_sd to save ram usage</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:</span>
 <span class="sd">            * **missing_keys** is a list of str containing the missing keys</span>
@@ -849,6 +851,8 @@
             <span class="k">if</span> <span class="n">cpu_offload</span><span class="p">:</span>
                 <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">sharded_tensor</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
             <span class="n">sharded_sd</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sharded_tensor</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">release_sd</span><span class="p">:</span>
+                <span class="n">full_sd</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="c1"># choose `assign=True` since we cannot call `copy_` on meta tensor</span>
         <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sharded_sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
