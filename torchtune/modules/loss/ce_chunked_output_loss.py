@@ -242,28 +242,60 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         # Normalize the loss
         return total_loss / total_elements
 
-    def compute_entropy(self, logits: List[torch.Tensor]) -> torch.Tensor:
+    def compute_entropy(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
         """
-        Computes the entropy of the model's output probabilities.
-
+        Computes the entropy of the model's output probabilities for the target labels.
+        
         Args:
-            logits (List[Tensor]): List of chunked logits, each of shape
-                (batch_size, num_tokens / num_chunks, vocab_size)
-
+            logits (List[Tensor]): List of chunked logits from the model output
+            labels (torch.Tensor): The target labels
+            
         Returns:
             Tensor: Scalar entropy value.
         """
-        entropies = []
-        for logit_chunk in logits:
-            # shape: (batch_size * chunk_size, vocab_size)
-            log_probs = torch.nn.functional.log_softmax(
-                logit_chunk.reshape(-1, logit_chunk.size(-1)), dim=-1
-            )
-            probs = log_probs.exp()
-            entropy = -(probs * log_probs).sum(
-                dim=-1
-            )  # shape: (batch_size * chunk_size,)
-            entropies.append(entropy)
-
-        all_entropies = torch.cat(entropies)  # flatten
-        return all_entropies.mean()
+        with torch.no_grad():
+            
+            # Process logits - chunking them like in the reference code
+            logits_chunks = [
+                logit_chunk.reshape(-1, logit_chunk.size(-1))
+                for logit_chunk in logits
+            ]
+            
+            # Chunk labels too
+            labels_chunks = [
+                target_chunk.reshape(-1)
+                for target_chunk in labels.chunk(
+                    self.num_output_chunks, dim=1
+                )
+            ]
+            
+            # Pre-compute entropy for each chunk
+            chunk_entropies = []
+            for i, (logits_chunk, labels_chunk) in enumerate(
+                zip(logits_chunks, labels_chunks)
+            ):
+                # Convert to log probabilities
+                log_probs = F.log_softmax(logits_chunk.float(), dim=-1)
+                
+                # Get the log probabilities for the target labels
+                vocab_size = log_probs.size(-1)
+                valid_indices = labels_chunk.clamp(0, vocab_size - 1)
+                
+                # Extract the log probabilities for the specific target labels
+                gathered_log_probs = torch.gather(
+                    log_probs, dim=-1, index=valid_indices.unsqueeze(-1)
+                ).squeeze(-1)
+                
+                # Calculate probabilities from log probabilities
+                gathered_probs = gathered_log_probs.exp()
+                
+                # Calculate entropy: -p * log(p) for the specific targets
+                entropy = -gathered_probs * gathered_log_probs  # shape: (batch_size * chunk_size)
+                
+                chunk_entropies.append(entropy)
+                
+            # Combine all chunk entropies
+            all_entropies = torch.cat(chunk_entropies)
+            
+            # Return mean entropy
+            return all_entropies.mean()

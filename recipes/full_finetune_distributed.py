@@ -347,7 +347,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             wandb_kwargs = {
                 "epoch": self.epoch,  # Not resuming but creating new run with constructed ID
-                "run_id": self.run_id,
+                "run_id": cfg.get("wandb_job_id", None),
                 "project": cfg.get("wandb_project", None),
                 "log_dir": cfg.metric_logger.get("log_dir", None),
                 "seed": self.seed,
@@ -1256,9 +1256,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 current_loss = (
                     self._loss_fn(logits, labels) * current_num_tokens * reward
                 )
-                entropy = self._loss_fn.compute_entropy(logits)
+                #before you compute the entropy extract the single logit from the label 
+               
+                entropy = self._loss_fn.compute_entropy(logits,labels)
                 # free logits otherwise it peaks backward memory
                 del logits
+
 
                 running_ent += entropy.detach()
                 running_loss += current_loss
