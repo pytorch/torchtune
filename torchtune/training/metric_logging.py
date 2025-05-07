@@ -102,18 +102,20 @@ class DiskLogger(MetricLoggerInterface):
         self._file.write(f"Step {step} | {name}:{data}\n")
         self._file.flush()
         # Convert tensor to CPU value if needed
-        if isinstance(data, torch.Tensor):
-            data = data.cpu().item()
+
         self._log_dict[name].append((step, data))
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         self._file.write(f"Step {step} | ")
         for name, data in payload.items():
+            if isinstance(data, torch.Tensor):
+                data = data.cpu().item()
+           
             self._file.write(f"{name}:{data} ")
             self._log_dict[name].append((step, data))
         self._file.write("\n")
         self._file.flush()
-
+        
     def __del__(self) -> None:
         self.close()
 

@@ -1325,7 +1325,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if ( self._is_rank_zero):
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
-                            "loss": loss_to_log,
+                            "loss": loss_to_log.cpu().item(),
                             "lr": get_lr(
                                 (
                                     self._optimizer
