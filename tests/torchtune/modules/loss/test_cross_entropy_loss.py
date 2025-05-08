@@ -8,8 +8,18 @@ import pytest
 import torch
 import torch.nn.functional as F
 from tests.test_utils import assert_expected
+from torch import nn
 from torchtune.modules.loss import LinearCrossEntropyLoss
 from torchtune.training.seed import set_seed
+
+
+class Model(nn.Module):
+    def __init__(self, vocab_size, embed_dim):
+        super().__init__()
+        self.output = nn.Linear(embed_dim, vocab_size)
+
+    def forward(self, x):
+        return self.output(x)
 
 
 @pytest.fixture(autouse=True)
@@ -40,16 +50,19 @@ class TestCEWithLinearChunkedOutputLoss:
         targets[mask] = ignore_index
 
         # Create a dummy linear layer weight
-        weight = torch.randn(vocab_size, embed_dim, dtype=torch.float32)
+        model = Model(vocab_size, embed_dim)
 
         # compute chunked CE
         chunked_ce_loss_fn = LinearCrossEntropyLoss(
             num_output_chunks=num_chunks, ignore_index=ignore_index
         )
-        chunked_loss = chunked_ce_loss_fn(weight, hidden, targets)
+        chunked_ce_loss_fn.set_model_output(model)
+        chunked_loss = chunked_ce_loss_fn(hidden, targets)
 
         # Compute standard cross entropy for comparison
-        logits = F.linear(hidden, weight)  # [batch_size, seq_len, vocab_size]
+        logits = F.linear(
+            hidden, model.output.weight
+        )  # [batch_size, seq_len, vocab_size]
         logits = logits.reshape(-1, vocab_size)
         targets = targets.reshape(-1)
         standard_loss = F.cross_entropy(
