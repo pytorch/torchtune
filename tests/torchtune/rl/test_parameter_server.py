@@ -25,7 +25,7 @@ from typing import Dict
 import pytest
 import torch
 from omegaconf import OmegaConf
-from tests.test_utils import gpu_test, skip_if_lt_python_310
+from tests.test_utils import gpu_test, rl_test, skip_if_lt_python_310
 
 
 @remote(num_cpus=1, num_gpus=1)
@@ -134,7 +134,7 @@ inference:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
-    @pytest.mark.rl_test
+    @rl_test()
     def test_receive_from_trainer(self) -> None:
         import ray
         from torchtune.dev.rl.workers import VLLMParameterServer
@@ -170,7 +170,7 @@ inference:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=4)
     @pytest.mark.parametrize("tp_size", (1, 2))
-    @pytest.mark.rl_test
+    @rl_test()
     def test_send_to_generator(self, tp_size) -> None:
         import ray
 
