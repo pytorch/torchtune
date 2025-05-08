@@ -25,6 +25,7 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import (
     DummyProfiler,
@@ -324,7 +325,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        if isinstance(self._loss_fn, modules.loss.SFTLoss):
+        if isinstance(self._loss_fn, SFTLoss):
             self._loss_fn.set_model_output(self._model)
 
         if self._compile:
@@ -827,7 +828,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     outputs = self._model(**batch)
 
                 # post process for third party loss functions
-                if not isinstance(self._loss_fn, modules.loss.SFTLoss):
+                if not isinstance(self._loss_fn, SFTLoss):
                     labels = labels.reshape(-1)
                     outputs = outputs.reshape(-1, outputs.size(-1))
                     if isinstance(outputs, DTensor):
