@@ -944,9 +944,7 @@
 <span class="sd">    &quot;exp_avg.full_tensor()&quot; converts it to plain tensor on rank 0</span>
 <span class="sd">    Returning non-empty cpu state dict on rank 0</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">options</span> <span class="o">=</span> <span class="n">StateDictOptions</span><span class="p">(</span>
-        <span class="n">full_state_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">broadcast_from_rank0</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cpu_offload</span><span class="o">=</span><span class="kc">True</span>
-    <span class="p">)</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">StateDictOptions</span><span class="p">(</span><span class="n">full_state_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cpu_offload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">full_state_dict</span> <span class="o">=</span> <span class="n">get_optimizer_state_dict</span><span class="p">(</span>
         <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="n">opt</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span>
     <span class="p">)</span>
