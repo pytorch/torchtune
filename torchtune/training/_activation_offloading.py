@@ -407,25 +407,25 @@ def get_act_offloading_ctx_manager(
         # we actually use more memory if we offload it as it interferes with chunkedCE.
         output_head_detected = False
         noop_ctx = NoOpManager()
-        if hasattr(model, "output"):
-            if isinstance(model.output, nn.Module):
-                model.output.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.output.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
-                output_head_detected = True
-            elif isinstance(model.output, TiedLinear):
-                model.output.linear.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.output.linear.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
-                output_head_detected = True
+        # if hasattr(model, "output"):
+        #     if isinstance(model.output, nn.Module):
+        #         model.output.register_forward_pre_hook(
+        #             lambda *args: noop_ctx.__enter__()
+        #         )
+        #         model.output.register_forward_hook(
+        #             lambda *args: noop_ctx.__exit__(), always_call=True
+        #         )
+        #         output_head_detected = True
+        #     elif isinstance(model.output, TiedLinear):
+        #         model.output.linear.register_forward_pre_hook(
+        #             lambda *args: noop_ctx.__enter__()
+        #         )
+        #         model.output.linear.register_forward_hook(
+        #             lambda *args: noop_ctx.__exit__(), always_call=True
+        #         )
+        #         output_head_detected = True
 
-        elif hasattr(model, "decoder"):
+        if hasattr(model, "decoder"):
             # TODO: it errors out. Needs debugging.
             # assert_size_stride(rsqrt_2, (4, 32, 1601, 1), (52224, 1632, 1, 1))
             # AssertionError: expected size 4==4, stride 51232==52224 at dim=0;

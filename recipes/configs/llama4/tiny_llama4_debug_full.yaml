@@ -41,8 +41,9 @@ resume_from_checkpoint: False
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: False
+  _component_: torchtune.datasets.multimodal.the_cauldron_dataset
+  packed: False  # True increases speed
+  subset: ocrvqa
 seed: null
 shuffle: True
 
