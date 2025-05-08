@@ -496,7 +496,7 @@ def get_full_optimizer_state_dict(
     Returning non-empty cpu state dict on rank 0
     """
     options = StateDictOptions(
-        full_state_dict=True, broadcast_from_rank0=True, cpu_offload=True
+        full_state_dict=True, cpu_offload=True
     )
     full_state_dict = get_optimizer_state_dict(
         model=model, optimizers=opt, options=options
