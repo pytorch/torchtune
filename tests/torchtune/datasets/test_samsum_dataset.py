@@ -69,7 +69,7 @@ class TestSamsumDataset:
             9,
             -1,
         ]
-        assert labels == input
+        assert labels[:-1] == input[1:]
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):

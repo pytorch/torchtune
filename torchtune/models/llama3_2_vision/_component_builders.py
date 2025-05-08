@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from enum import Enum
 from functools import partial
 from typing import List, Optional
 
@@ -325,12 +324,6 @@ def llama3_2_vision_projection_head(
 
 
 # ------------------ LoRA Llama 3.2 Vision ------------------
-
-
-class LoRATrainable(Enum):
-    FULL = "full"
-    LORA = "lora"
-    FROZEN = "frozen"
 
 
 def lora_llama3_2_vision_encoder(

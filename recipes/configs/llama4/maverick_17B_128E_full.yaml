@@ -1,0 +1,87 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Llama4 17Bx128E MoE model
+#
+# This config assumes that you've run the following command before launching:
+#   tune download meta-llama/Llama-4-Maverick-17B-128E-Instruct
+#
+# Full finetuning of Llama4 17Bx128E is only possible in a multi-node setting
+# An example slurm script can be found under recipes/full_finetune_multinode.slurm.
+# Example usage:
+#   sbatch full_finetune_multinode.slurm
+#
+# This config is only tested on 2 8xH100 nodes.
+
+output_dir: /tmp/torchtune/llama4_17Bx128E/full
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama4.llama4_maverick_17b_128e
+
+tensor_parallel_dim: 8
+tensor_parallel_plan:
+  _component_: torchtune.models.llama4.decoder_only_tp_plan
+data_parallel_shard_dim: -1 # Will infer based on TP dim, effictively controls FSDP
+data_parallel_replicate_dim: 1
+
+tokenizer:
+  _component_: torchtune.models.llama4.llama4_transform
+  path: ${model_dir}/tokenizer.model
+  max_seq_len: null
+  max_num_tiles: 16
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-4-Maverick-17B-128E-Instruct
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00055"
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA4
+resume_from_checkpoint: False
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+  packed: False
+seed: null
+shuffle: True
+
+# Training arguments
+epochs: 1
+max_steps_per_epoch: null
+batch_size: 1
+gradient_accumulation_steps: 1 # Use to increase effective batch size
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+  fused: False
+optimizer_in_bwd: False
+loss:
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
+clip_grad_norm: null
+
+# cuda, cpu, rocm, xpu...
+device: cuda
+
+# Memory management / performance
+enable_activation_checkpointing: True
+enable_activation_offloading: False
+fsdp_cpu_offload: True
+compile: False # torch.compile, set to true for perf/memory improvement
+
+# Reduced precision
+dtype: bf16
+
+# Log metrics during training
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}/logs
+log_every_n_steps: 1
+log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
+
+# Useful for understanding how to optimize memory and performance
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False

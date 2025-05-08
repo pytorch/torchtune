@@ -103,7 +103,7 @@ def trace_handler(
 
     exporter = tensorboard_trace_handler(
         curr_trace_dir,
-        worker_name=f"r0-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}",
+        worker_name=f"r{rank}-{now.year}-{now.month}-{now.day}-{now.hour}-{now.minute}",
         use_gzip=True,
     )
     exporter(prof)
@@ -114,12 +114,6 @@ def trace_handler(
     # Memory timeline sometimes fails to export
     if prof.profile_memory and torch.cuda.is_available():
         if rank == 0:
-            try:
-                prof.export_memory_timeline(
-                    f"{curr_trace_dir}/rank{rank}_memory-timeline.html"
-                )
-            except Exception as e:
-                log.warn(f" Failed to export memory timeline: {e}")
 
             torch.cuda.memory._dump_snapshot(
                 f"{curr_trace_dir}/rank{rank}_memory_snapshot.pickle"

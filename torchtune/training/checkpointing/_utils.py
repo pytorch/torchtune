@@ -14,6 +14,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
+from fsspec.core import url_to_fs
+from huggingface_hub import HfFileSystem
 from safetensors import safe_open
 
 from torchtune.utils._logging import get_logger
@@ -88,8 +90,10 @@ class ModelType(Enum):
         LLAMA3 (str): Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`
         LLAMA3_2 (str): Llama3.2 family of models. See :func:`~torchtune.models.llama3_2.llama3_2`
         LLAMA3_VISION (str): LLama3 vision family of models. See :func:`~torchtune.models.llama3_2_vision.llama3_2_vision_decoder`
+        LLAMA4 (str): Llama4 family of models. See :func:`~torchtune.models.llama4.llama4`
         MISTRAL (str): Mistral family of models. See :func:`~torchtune.models.mistral.mistral`
         PHI3_MINI (str): Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`
+        PHI4 (str): Phi-4 family of models. See :func:`~torchtune.models.phi4.phi4`
         REWARD (str): A Llama2, Llama3, or Mistral model with a classification head projecting
             to a single class for reward modelling.
             See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`
@@ -111,8 +115,10 @@ class ModelType(Enum):
     LLAMA3: str = "llama3"
     LLAMA3_2: str = "llama3_2"
     LLAMA3_VISION: str = "llama3_vision"
+    LLAMA4: str = "llama4"
     MISTRAL: str = "mistral"
     PHI3_MINI: str = "phi3_mini"
+    PHI4: str = "phi4"
     REWARD: str = "reward"
     QWEN2: str = "qwen2"
     CLIP_TEXT: str = "clip_text"
@@ -188,28 +194,31 @@ class FormattedCheckpointFiles:
         ]
 
 
-def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
+def get_path(
+    input_dir: Union[Path, str], filename: str, missing_ok: bool = False
+) -> str:
     """
     Utility to recover and validate the path for a given file within a given directory.
 
     Args:
-        input_dir (Path): Directory containing the file
+        input_dir (Union[Path, str]): Directory containing the file
         filename (str): Name of the file
         missing_ok (bool): Whether to raise an error if the file is missing.
 
     Returns:
-        Path: Path to the file
+        str: Path to the file
 
     Raises:
         ValueError: If the file is missing and missing_ok is False.
     """
-    if not input_dir.is_dir():
+    fs, _ = url_to_fs(input_dir)
+    if not fs.isdir(input_dir):
         raise ValueError(f"{input_dir} is not a valid directory.")
 
-    file_path = Path.joinpath(input_dir, filename)
+    file_path = os.path.join(input_dir, filename)
 
     # If missing_ok is False, raise an error if the path is invalid
-    if not missing_ok and not file_path.is_file():
+    if not missing_ok and not fs.isfile(file_path):
         raise ValueError(f"No file with name: {filename} found in {input_dir}.")
     return file_path
 
@@ -236,22 +245,33 @@ def safe_torch_load(
     try:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
+        fs, _ = url_to_fs(str(checkpoint_path))
         is_safetensors_file = (
             True if str(checkpoint_path).endswith(".safetensors") else False
         )
         if is_safetensors_file:
-            result = {}
+            state_dict = {}
             with safe_open(checkpoint_path, framework="pt", device="cpu") as f:
                 for k in f.keys():
-                    result[k] = f.get_tensor(k)
-            state_dict = result
+                    state_dict[k] = f.get_tensor(k)
         else:
-            state_dict = torch.load(
-                str(checkpoint_path),
-                map_location="cpu",
-                mmap=mmap,
-                weights_only=weights_only,
-            )
+            if isinstance(fs, HfFileSystem):
+                # HfFileSystem does not support mmap
+                mmap = False
+                with fs.open(checkpoint_path, "rb") as checkpoint_file:
+                    state_dict = torch.load(
+                        checkpoint_file,
+                        map_location="cpu",
+                        mmap=mmap,
+                        weights_only=weights_only,
+                    )
+            else:
+                state_dict = torch.load(
+                    checkpoint_path,
+                    map_location="cpu",
+                    mmap=mmap,
+                    weights_only=weights_only,
+                )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
     return state_dict
@@ -317,8 +337,10 @@ def get_largest_iter_folder(
     iter_folders = []
     regex = re.compile(pattern)
 
+    fs, _ = url_to_fs(dir)
     # Iterate over the directory contents
-    for fname in os.listdir(dir):
+    for fpath in fs.ls(dir, detail=False):
+        fname = os.path.basename(fpath)
         match = regex.match(fname)
         if match:
             # Extract the number from the match
@@ -360,19 +382,23 @@ def copy_files(
     This will copy all files from 'path/to/input_dir' to 'path/to/output_dir', except those that
     already exist in the destination or have the specified suffixes.
     """
-
+    fs, _ = url_to_fs(input_dir)
     max_file_size = max_file_size_mb * 1024 * 1024
-    for root, dirs, files in os.walk(input_dir):
+    for root, dirs, files in fs.walk(input_dir):
 
         # Filter out directories that start with '.'. E.g. ".cache/"
         dirs[:] = [d for d in dirs if not d.startswith(".")]
 
         # Construct the corresponding directory in the output
-        relative_path = os.path.relpath(root, input_dir)
-        dest_dir = os.path.join(output_dir, relative_path)
+        protocol = fs.protocol if isinstance(fs.protocol, tuple) else (fs.protocol)
+        if "local" in protocol:
+            relative_path = os.path.relpath(root, input_dir)
+            dest_dir = os.path.join(output_dir, relative_path)
+        else:
+            dest_dir = output_dir
 
         # Create the directory in the output if it doesn't exist
-        os.makedirs(dest_dir, exist_ok=True)
+        fs.makedirs(dest_dir, exist_ok=True)
 
         for file in files:
             # Skip files that start with '.'. E.g. ".git"
@@ -389,15 +415,15 @@ def copy_files(
             dest_file = os.path.join(dest_dir, file)
 
             # Check the file size
-            if os.path.getsize(src_file) > max_file_size:
+            if fs.size(src_file) > max_file_size:
                 print(
                     f"Skipping copying {src_file} to {output_dir} as it exceeds the size limit of {max_file_size_mb} MiB."
                 )
                 continue
 
             # Copy the file if it doesn't already exist in the destination
-            if not os.path.exists(dest_file):
-                shutil.copy2(src_file, dest_file)
+            if not fs.exists(dest_file):
+                fs.cp_file(src_file, dest_file)
 
     return
 
@@ -501,15 +527,21 @@ def get_model_checkpoint_path(
     return checkpoint_paths
 
 
-def check_outdir_not_in_ckptdir(ckpt_dir: Path, out_dir: Path) -> bool:
+def check_outdir_not_in_ckptdir(
+    ckpt_dir: Union[Path, str], out_dir: Union[Path, str]
+) -> bool:
     """
     Checks that the output directory is not equal to or a subdirectory of the checkpoint directory.
     This is necessary to avoid making copies of copies when geting config files from ckpt_dir.
     """
-
     # Resolve the absolute paths to avoid issues with relative paths
-    _ckpt_dir = ckpt_dir.resolve()
-    _out_dir = out_dir.resolve()
+    if isinstance(ckpt_dir, Path):
+        _ckpt_dir = ckpt_dir.resolve()
+    if isinstance(out_dir, Path):
+        _out_dir = out_dir.resolve()
+
+    _ckpt_dir = Path(ckpt_dir)
+    _out_dir = Path(out_dir)
 
     # Check if out_dir is the same as ckpt_dir or a subdirectory of it
     if _out_dir == _ckpt_dir or _ckpt_dir in _out_dir.parents:

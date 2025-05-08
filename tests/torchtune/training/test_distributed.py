@@ -19,7 +19,7 @@ from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
-from torch.testing._internal.common_distributed import MultiProcessTestCase
+
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, training
@@ -132,6 +132,7 @@ class TestFullyShardState(FSDPTest):
         reason="torch >= 2.4 required",
     )
     def test_lora_state_dict(self):
+        torch.cuda.set_device(f"cuda:{self.rank}")  # Set device for this process
         rank = self.rank
         is_rank_zero = rank == 0
         mlp_dim = 4
@@ -272,6 +273,7 @@ class TestFullyShardState(FSDPTest):
     )
     @gpu_test(gpu_count=2)
     def test_qlora_state_dict(self):
+        torch.cuda.set_device(f"cuda:{self.rank}")  # Set device for this process
         self.run_subtests(
             {
                 "enable_activation_checkpointing": [False, True],
@@ -386,7 +388,7 @@ class TestFullyShardState(FSDPTest):
         return result[0]
 
 
-class TestTensorParalell(MultiProcessTestCase):
+class TestTensorParalell(FSDPTest):
     @property
     def world_size(self) -> int:
         return 2

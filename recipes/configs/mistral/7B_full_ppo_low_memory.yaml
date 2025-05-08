@@ -46,17 +46,18 @@ policy_model:
 # we need to manually build the mistral classifier model
 # because our reward model checkpoint has a larger vocabulary size (due to an added padding token)
 reward_and_value_model:
-  _component_: torchtune.models.mistral._component_builders.mistral_classifier
+  _component_: torchtune.modules.classifier_model
+  base_model_path: torchtune.models.mistral.mistral_7b
+  num_classes: 1
+  vocab_size: 32001
+  num_layers: 32
+  num_heads: 32
+  num_kv_heads: 8
   attn_dropout: 0.0
   embed_dim: 4096
   intermediate_dim: 14336
   max_seq_len: 32768
   norm_eps: 1.0e-05
-  num_classes: 1
-  num_heads: 32
-  num_kv_heads: 8
-  num_layers: 32
-  vocab_size: 32001
 
 # checkpointer for the policy model - update this if resuming from checkpoint
 checkpointer:
@@ -181,6 +182,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 
 log_every_n_steps: 1
+log_level: INFO  # DEBUG, WARN, etc.
 
 profiler:
   _component_: torchtune.training.setup_torch_profiler
@@ -205,3 +207,7 @@ profiler:
   warmup_steps: 3
   active_steps: 3
   num_cycles: 1
+
+lr_scheduler:
+  _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100

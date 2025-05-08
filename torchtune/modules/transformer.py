@@ -11,6 +11,8 @@ from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
 
+from torchtune.utils import deprecated
+
 
 class TransformerSelfAttentionLayer(nn.Module):
     """
@@ -23,6 +25,8 @@ class TransformerSelfAttentionLayer(nn.Module):
         mlp_norm (Optional[nn.Module]): Normalization to be applied before the feed-forward layer.
         sa_scale (Optional[nn.Module]): Module to scale self-attention output.
         mlp_scale (Optional[nn.Module]): Module to scale the feed-forward output.
+        mask_mod (Optional[Callable[[_MaskType, int, int, int], _MaskType]]): A callable
+            taking a _MaskType, bsz, and seq_len, and modifying the mask (e.g. for chunked attention).
     """
 
     def __init__(
@@ -34,6 +38,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         mlp_norm: Optional[nn.Module] = None,
         sa_scale: Optional[nn.Module] = None,
         mlp_scale: Optional[nn.Module] = None,
+        mask_mod: Optional[Callable[[_MaskType, int, int, int], _MaskType]] = None,
     ) -> None:
         super().__init__()
         self.attn = attn
@@ -42,6 +47,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.mlp_norm = mlp_norm or nn.Identity()
         self.sa_scale = sa_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
+        self.mask_mod = mask_mod or None
 
     def setup_caches(
         self,
@@ -119,8 +125,11 @@ class TransformerSelfAttentionLayer(nn.Module):
         # [b, s, d]
         # Norm applied before self-attention
         h = self.sa_norm(x)
+        if self.mask_mod is not None:
+            # With TP we need to use a replicated tensor here
+            bsz, seq_len, *_ = h.shape
+            mask = self.mask_mod(mask=mask, bsz=bsz, seq_len=seq_len)
         attn_out = self.attn(h, h, mask=mask, input_pos=input_pos)
-
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.sa_scale(attn_out) + x
 
@@ -389,11 +398,13 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.num_output_chunks = 0
+        self.skip_output_layer = False
 
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
         self.decoder_max_cache_seq_len = None
 
+    @deprecated("Please use LinearCrossEntropyLoss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -478,7 +489,7 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.reset_cache()
 
-    @torch.compiler.disable
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
         """
         Apply output projection in chunks. This should be applied in conjunction with
@@ -497,33 +508,44 @@ class TransformerDecoder(nn.Module):
         """
         return [
             self.output(chunk)
-            for chunk in last_hidden_state.chunk(self.num_output_chunks, dim=1)
+            for chunk in last_hidden_state.tensor_split(self.num_output_chunks, dim=1)
         ]
 
     def _validate_inputs(
         self,
-        seq_len: int,
+        tokens: Optional[torch.Tensor],
         mask: Optional[torch.Tensor] = None,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
+        input_embeds: Optional[torch.Tensor] = None,
     ):
         """
         Validates inputs for ``forward``.
         Args:
-            seq_len (int): Input tensor sequence length.
+            tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``
             mask (Optional[torch.Tensor]): Attention mask used for inference and for sequence packing.
             encoder_input (Optional[torch.Tensor]): Encoder input for cross-attention.
             encoder_mask (Optional[torch.Tensor]): Encoder attention mask for cross-embedding attention.
             input_pos (Optional[torch.Tensor]): Input tensor position IDs.
+            input_embeds (Optional[torch.Tensor]): Input tensor embeddings (if short-circuiting token embeddings).
 
         Raises:
             ValueError:
+                If neither tokens nor input_embeds are passed **or**
                 If seq_len of x is bigger than max_seq_len, **or**
                 if the model has caches which have been setup with self-attention layers and ``mask`` is not provided, **or**
                 if the model has caches which have been setup with encoder layers and ``encoder_mask`` is not provided, **or**
                 if the model has caches which have been setup ``input_pos`` is not provided.
         """
+
+        if tokens is None and input_embeds is None:
+            raise ValueError(
+                "Either tokens or input_embeds must be provided to the decoder."
+            )
+
+        # input tensor of shape [b, s]
+        seq_len = tokens.shape[1] if tokens is not None else input_embeds.shape[1]
 
         if seq_len > self.max_seq_len:
             raise ValueError(
@@ -551,16 +573,17 @@ class TransformerDecoder(nn.Module):
 
     def forward(
         self,
-        tokens: torch.Tensor,
+        tokens: Optional[torch.Tensor],
         *,
         mask: Optional[_MaskType] = None,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
+        input_embeds: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Args:
-            tokens (torch.Tensor): input tensor with shape ``[b x s]``
+            tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``
             mask (Optional[_MaskType]): Used to mask the scores after the query-key multiplication
                 and before the softmax. This parameter is required during inference if caches have been setup.
                 Either:
@@ -586,11 +609,13 @@ class TransformerDecoder(nn.Module):
                 of each token relative to its sample when packed, shape ``[b x s]``.
                 During inference, this indicates the position of the current token.
                 This parameter is required during inference if caches have been setup. Default is None.
+            input_embeds (Optional[torch.Tensor]): Pass these instead of tokens to short-circuit token embeddings
+                and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
-            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer
-                output tensors defined by ``output_hidden_states`` with the
-                final output tensor appended to the list.
+            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_layer=False`
+            and ``[b x s x d]`` otherwise, or a list of layer output tensors defined by ``output_hidden_states`` with the
+            final output tensor appended to the list.
 
         Note:
             At the very first step of inference, when the model is provided with a prompt,
@@ -613,19 +638,18 @@ class TransformerDecoder(nn.Module):
             - d_e: encoder embed dim
             - m_s: max seq len
         """
-        # input tensor of shape [b, s]
-        seq_len = tokens.shape[1]
 
         self._validate_inputs(
-            seq_len,
+            tokens=tokens,
             mask=mask,
             encoder_input=encoder_input,
             encoder_mask=encoder_mask,
             input_pos=input_pos,
+            input_embeds=input_embeds,
         )
 
         # shape: [b, s, d]
-        h = self.tok_embeddings(tokens)
+        h = self.tok_embeddings(tokens) if input_embeds is None else input_embeds
 
         hidden = []
         for i, layer in enumerate(self.layers):
@@ -640,6 +664,9 @@ class TransformerDecoder(nn.Module):
                 input_pos=input_pos,
             )
 
+        if len(self.layers) in self.output_hidden_states:
+            hidden.append(h)
+
         # shape: [b, seq_len, out_dim]
         output = self.unembed(h)
 
@@ -651,8 +678,9 @@ class TransformerDecoder(nn.Module):
     def unembed(self, h):
         # shape: [b, s, d]
         h = self.norm(h)
-
-        if self.num_output_chunks > 0:
+        if self.skip_output_layer:
+            output = h
+        elif self.num_output_chunks > 0:
             output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]

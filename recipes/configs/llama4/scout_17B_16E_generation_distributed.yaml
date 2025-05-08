@@ -1,0 +1,49 @@
+# Config for running the InferenceRecipe in dev/generate_v2.py to generate output
+# from a Llama4 17Bx16E MoE model
+#
+# This config assumes that you've run the following command before launching
+#   tune download meta-llama/Llama-4-Scout-17B-16E-Instruct
+#
+# To launch, run the following command:
+#    tune run --nproc_per_node 4 dev/generate_v2_distributed --config llama4/scout_17B_16E_generation_distributed
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama4.llama4_scout_17b_16e
+
+tensor_parallel_plan:
+  _component_: torchtune.models.llama4.decoder_only_tp_plan
+
+tokenizer:
+  _component_: torchtune.models.llama4.llama4_transform
+  path: /tmp/Llama-4-Scout-17B-16E-Instruct/tokenizer.model
+  max_seq_len: null
+  max_num_tiles: 16
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-4-Scout-17B-16E-Instruct # You can also point this to your finetuned model!
+  checkpoint_files:
+    filename_format: model-{}-of-{}.safetensors
+    max_filename: "00050"
+  output_dir: ./ # No need for an output dir
+  model_type: LLAMA4
+
+use_distributed_state_dict: True
+use_flex: True # Use PyTorch's FlexAttention for construction of attention masks
+
+# Environment
+device: cuda
+dtype: bf16
+seed: 1234
+log_level: INFO  # DEBUG, WARN, etc.
+
+# Generation arguments
+prompt:
+  system: You are a helpful assistant who responds like the author Shakespeare.
+  user:
+    image: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Olive_baboon.jpg/330px-Olive_baboon.jpg
+    text: What is in this image?
+max_new_tokens: 200
+temperature: 0.6 # 0.8 and 0.6 are popular values to try
+top_k: 300

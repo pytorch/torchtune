@@ -290,3 +290,27 @@ class TestLlama3Tokenizer:
         tokens = user_text_message[1] + assistant_text_message[1]
         text = tokenizer.decode(tokens, skip_special_tokens=True)
         assert text == user_text_a + user_text_b + assistant_text
+
+    def test_all_tokens_work(
+        self,
+        tokenizer,
+    ):
+        # Check if all tokens can be detokenized, separately and together
+
+        normal_tokens = list(range(tokenizer.base_vocab_size))
+        special_tokens = list(
+            range(128000, tokenizer.vocab_size)
+        )  # Llama 3 special tokens start at 128000
+
+        all_tokens = normal_tokens + special_tokens
+
+        for token in all_tokens:
+            decoded = tokenizer.decode(
+                [token], skip_special_tokens=False, truncate_at_eos=False
+            )
+            assert isinstance(decoded, str)
+        decoded = tokenizer.decode(
+            all_tokens, skip_special_tokens=False, truncate_at_eos=False
+        )
+
+        assert isinstance(decoded, str)

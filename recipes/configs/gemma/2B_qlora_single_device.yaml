@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-2b --ignore-patterns "gemma-2b.gguf" --hf-token <HF_TOKEN>
+#   tune download google/gemma-2b --ignore-patterns "gemma-2b.gguf" --output-dir /tmp/gemma-2b --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config gemma/2B_qlora_single_device
@@ -61,7 +61,7 @@ lr_scheduler:
   num_warmup_steps: 10
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 
 # Fine-tuning arguments
 batch_size: 4
@@ -87,6 +87,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training

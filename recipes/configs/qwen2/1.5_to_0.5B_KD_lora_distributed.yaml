@@ -46,9 +46,9 @@ checkpointer:
 
 teacher_checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct-lora-finetune
+  checkpoint_dir: /tmp/Qwen2-1.5B-Instruct
   checkpoint_files: [
-    hf_model_0001_0.pt
+    model.safetensors
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -92,6 +92,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Environment
 device: cuda

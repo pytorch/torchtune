@@ -23,6 +23,11 @@ pip install -e ".[dev]"
 
 &nbsp;
 
+> [!NOTE]
+> PyPI releases for `bitsandbytes` may not be available for platforms without CUDA support, or which use other accelerator backends (e.g. MPS or XPU). If this is the case, you must remove the `bitsandbytes` dependency in the [`project.toml`](pyproject.toml) file. You may also wish to manually install `bitsandbytes` - please see the [`bitsandbytes` multi-backend documentation](https://huggingface.co/docs/bitsandbytes/main/en/installation#multi-backend) for more information.
+
+&nbsp;
+
 ## Contributing workflow
 We actively welcome your pull requests.
 
@@ -54,6 +59,12 @@ torchtune contains three different types of tests: unit tests, recipe tests, and
 Whenever running tests in torchtune, favor using the command line flags as much as possible (e.g. run `pytest tests -m integration_test` over `pytest tests/recipes`). This is because (a) the default behavior is to run unit tests only (so you will miss recipe tests without the flag), and (b) using the flags ensures pytest will automatically download any remote assets needed for your test run.
 
 Note that the above flags can be combined with other pytest flags, so e.g. `pytest tests -m integration_test -k 'test_loss'` will run only recipe tests matching the substring `test_loss`.
+
+> [!NOTE]
+> torchtune now contains a [prototype for an asynchronous implementation of GRPO](recipes/dev/async_grpo.md), complete with corresponding tests. Since this prototype brings with it additional dependencies, we do not run any of our async RL tests by default. To run an async RL test, you should append `--run-rl-tests` to your pytest command. E.g. `pytest --with-integration --run-rl-tests tests/recipes/dev/test_async_grpo_full_finetune_distributed.py`.
+
+> [!NOTE]
+> Expected reference values for many of our tests have been calculated on Intel-based CPUs, or CUDA-based GPUs. Precision differences when testing on other hardware may cause certain tests to fail due to calculated values falling outside the configured tolerance limits. These tests may be skipped based on detected hardware (e.g. for [MPS](https://github.com/pytorch/torchtune/blob/ca95345b732d41bab7261d208cd5c860a2f76a5a/tests/test_utils.py#L345)).
 
 &nbsp;
 

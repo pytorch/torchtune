@@ -104,8 +104,7 @@ def clip_vision_encoder(
         VisionRotaryPositionalEmbeddings(
             patch_size=patch_size,
             tile_size=tile_size,
-            max_num_tiles=max_num_tiles,
-            dim=head_dim // 2,
+            dim=head_dim,
             base=10_000,
             append_cls_token=append_cls_token,
         )
@@ -311,7 +310,7 @@ def lora_clip_vision_encoder(
         num_heads (int): The number of attention heads in each transformer layer.
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
-        attn_bias (bool): Boolean for if to use bias in the attention module. Default False.
+        attn_bias (bool): whether to use bias in Q, K, V, output projections. Default: False
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
@@ -328,6 +327,10 @@ def lora_clip_vision_encoder(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
 
 
     Returns:
@@ -470,12 +473,17 @@ def lora_clip_attention(
             for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
+        attn_bias (bool): whether to use bias in Q, K, V, output projections. Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
         use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
 
     Returns:
         MultiHeadAttention: instantiation of self-attention module with LoRA
@@ -497,6 +505,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -516,6 +525,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -538,6 +548,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -560,6 +571,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )

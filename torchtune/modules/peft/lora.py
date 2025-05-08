@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import math
+from enum import Enum
 from typing import List, Optional, Union
 
 import torch
@@ -14,6 +15,12 @@ from torch import nn
 from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
 from torchtune.modules.peft import AdapterModule
+
+
+class TrainableParams(Enum):
+    FULL = "full"
+    LORA = "lora"
+    FROZEN = "frozen"
 
 
 class LoRALinear(nn.Module, AdapterModule):
