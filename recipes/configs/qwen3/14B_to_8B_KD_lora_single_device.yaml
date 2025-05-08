@@ -28,8 +28,7 @@ model:
   lora_dropout: 0.0
 
 teacher_model:
-  _component_: torchtune.models.qwen3.lora_qwen3_14b_instruct
-  lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  _component_: torchtune.models.qwen3.qwen3_14b_instruct
 
 # Tokenizer
 tokenizer:
