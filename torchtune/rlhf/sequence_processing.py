@@ -125,6 +125,7 @@ def batched_logits_to_logprobs(
         chunk_end = min(chunk_start + chunk_size, batch_size)
 
         # Process log_softmax for this batch chunk
+        # TODO: this may duplicate memory. Maybe should do tensor.chunk() instead?
         chunk_log_probs = F.log_softmax(
             logits[chunk_start:chunk_end] / temperature, dim=-1
         )
@@ -191,5 +192,6 @@ def truncate_sequence_for_logprobs(
         context_length (int): The length of the context.
 
     Returns:
-        torch.Tensor: The truncated logits for the response with shape [b, response_length, vocab_size]."""
+        torch.Tensor: The truncated logits for the response with shape [b, response_length, vocab_size].
+    """
     return query_response_logits[:, context_length - 1 : -1]
