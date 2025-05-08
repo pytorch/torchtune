@@ -13,8 +13,9 @@ from typing import Optional, Union
 import numpy as np
 import torch
 
+from torchtune.training import get_world_size_and_rank
 from torchtune.training._distributed import _broadcast_tensor
-from torchtune.utils import get_logger, get_world_size_and_rank
+from torchtune.utils import get_logger
 
 _log: logging.Logger = get_logger()
 

@@ -14,7 +14,7 @@ import pytest
 import torch
 
 from torch.distributed import launcher
-from torchtune.utils._device import (
+from torchtune.training._device import (
     _get_device_type_from_env,
     _setup_device,
     batch_to_device,

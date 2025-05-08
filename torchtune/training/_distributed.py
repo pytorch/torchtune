@@ -35,7 +35,8 @@ from torchtune.modules import TransformerDecoder
 from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
-from torchtune.utils import get_device, get_logger
+from torchtune.training import get_device
+from torchtune.utils import get_logger
 from torchtune.utils._logging import deprecated
 
 _log: logging.Logger = get_logger()

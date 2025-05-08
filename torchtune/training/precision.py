@@ -9,8 +9,8 @@ from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
 import torch
 
+from torchtune.training._device import is_npu_available
 from torchtune.utils import get_logger
-from torchtune.utils._device import is_npu_available
 
 log = get_logger()
 

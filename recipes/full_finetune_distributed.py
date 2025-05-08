@@ -130,7 +130,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def __init__(self, cfg: DictConfig) -> None:
         device_type = cfg.device
-        self._device = utils.get_device(device=device_type)
+        self._device = training.get_device(device=device_type)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
@@ -149,7 +149,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         init_process_group(self.distributed_backend)
 
         # Initialize distributed variables
-        self.world_size, self.rank = utils.get_world_size_and_rank()
+        self.world_size, self.rank = training.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
         self.tp_plan = cfg.get("tensor_parallel_plan", None)
         self.tp_degree = cfg.get("tensor_parallel_dim", 1)
@@ -816,7 +816,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with torch.no_grad():
             for batch_idx, batch in enumerate(self._val_dataloader):
-                utils.batch_to_device(batch, self._device)
+                training.batch_to_device(batch, self._device)
 
                 # Count tokens excluding padding
                 current_num_tokens = (
@@ -885,7 +885,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history()
 
-                utils.batch_to_device(batch, self._device)
+                training.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step

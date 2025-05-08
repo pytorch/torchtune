@@ -135,7 +135,7 @@ Initialize recipe state including seed, device, dtype, metric loggers, relevant 
 
     def __init__(...):
 
-        self._device = utils.get_device(device=params.device)
+        self._device = training.get_device(device=params.device)
         self._dtype = training.get_dtype(dtype=params.dtype, device=self._device)
         ...
 

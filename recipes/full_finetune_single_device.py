@@ -115,7 +115,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
+        self._device = training.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
@@ -638,7 +638,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
-                utils.batch_to_device(batch, self._device)
+                training.batch_to_device(batch, self._device)
 
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step

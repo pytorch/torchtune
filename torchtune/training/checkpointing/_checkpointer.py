@@ -45,7 +45,8 @@ from torchtune.training.checkpointing._utils import (
     SUFFIXES_TO_NOT_COPY,
     TORCH_INDEX_FNAME,
 )
-from torchtune.utils import get_logger, get_world_size_and_rank, log_rank_zero
+from torchtune.training import get_world_size_and_rank
+from torchtune.utils import get_logger, log_rank_zero
 
 logger = get_logger("DEBUG")
 

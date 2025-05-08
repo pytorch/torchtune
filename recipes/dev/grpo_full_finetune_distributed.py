@@ -34,7 +34,7 @@ log = utils.get_logger("DEBUG")
 
 class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
+        self._device = training.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
         self._output_dir = cfg.output_dir
 
@@ -53,7 +53,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg.device, offload_ops_to_cpu=self.fsdp_cpu_offload
         )
         init_process_group(self.distributed_backend)
-        self.world_size, self.rank = utils.get_world_size_and_rank()
+        self.world_size, self.rank = training.get_world_size_and_rank()
         self._is_rank_zero = self.rank == 0
 
         # Training attributes

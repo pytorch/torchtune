@@ -189,7 +189,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
             pad_max_images=self._max_images_per_sample,
             pad_max_tiles=self._transform.max_num_tiles,
         )
-        utils.batch_to_device(tok_batch, self.device)
+        training.batch_to_device(tok_batch, self.device)
 
         # Convert the batch to the format expected by the HF
         tok_batch["input_ids"] = tok_batch.pop("tokens")
@@ -450,7 +450,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             )
 
         # General variable initialization
-        self.device = utils.get_device(device=cfg.device)
+        self.device = training.get_device(device=cfg.device)
         self.dtype = training.get_dtype(dtype=cfg.dtype, device=self.device)
         self.logger = utils.get_logger(cfg.get("log_level", "info"))
         training.set_seed(
@@ -552,7 +552,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         # Log metrics
         self.logger.info(f"Eval completed in {t1:.02f} seconds.")
         if self.device.type != "cpu":
-            torch_device = utils.get_torch_device_namespace()
+            torch_device = training.get_torch_device_namespace()
             self.logger.info(
                 f"Max memory allocated: {torch_device.max_memory_allocated() / 1e9:.02f} GB"
             )

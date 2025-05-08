@@ -8,7 +8,7 @@ from typing import Callable, List, Optional, Tuple
 
 import torch
 
-from torchtune import utils
+from torchtune import training
 from torchtune.generation import generate_next_token, get_causal_mask_from_padding_mask
 from torchtune.generation._generation import (
     get_position_ids_from_padding_mask,
@@ -181,7 +181,7 @@ def generate(
         if stop_token_reached.all().item():
             return generated_tokens, generated_logits if return_logits else None
 
-    world_size, rank = utils.get_world_size_and_rank()
+    world_size, rank = training.get_world_size_and_rank()
     for _ in (pbar := trange(max_generated_tokens - 1, leave=False, disable=rank > 0)):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask
