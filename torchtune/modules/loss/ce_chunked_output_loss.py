@@ -42,6 +42,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         labels: torch.Tensor,
         ratio: torch.Tensor = None,
         normalize: bool = True,
+        epsilon = 1e-10
     ) -> torch.Tensor:
         """
         Upcast logits to fp32 and compute cross entropy loss.
@@ -57,7 +58,7 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         loss = F.cross_entropy(
             logits.float(), labels, ignore_index=self.ignore_index, reduction="none"
         )
-
+        self.epsilon = epsilon
         # Apply ratio if provided
         if ratio is not None:
             loss = loss * ratio.squeeze(0)
@@ -270,12 +271,12 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             ]
             
             # Pre-compute entropy for each chunk
-            chunk_entropies = []
+            chunk_entropies,full_chunk_entropies = [],[]
             for i, (logits_chunk, labels_chunk) in enumerate(
                 zip(logits_chunks, labels_chunks)
             ):
                 # Convert to log probabilities
-                log_probs = F.log_softmax(logits_chunk.float(), dim=-1)
+                log_probs = torch.log(F.softmax(logits_chunk, dim=-1) + self.epsilon)
                 
                 # Get the log probabilities for the target labels
                 vocab_size = log_probs.size(-1)
@@ -287,15 +288,19 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
                 ).squeeze(-1)
                 
                 # Calculate probabilities from log probabilities
-                gathered_probs = gathered_log_probs.exp()
+                gathered_probs = gathered_log_probs.exp() + self.epsilon
+
+                ungathered_probs = log_probs.exp() + self.epsilon
                 
                 # Calculate entropy: -p * log(p) for the specific targets
-                entropy = -gathered_probs * gathered_log_probs  # shape: (batch_size * chunk_size)
+                per_token_entropy = -gathered_probs * gathered_log_probs  # shape: (batch_size * chunk_size)
                 
-                chunk_entropies.append(entropy)
-                
+                full_token_entropy = -ungathered_probs * log_probs
+                chunk_entropies.append(per_token_entropy)
+                full_chunk_entropies.append(full_token_entropy)
             # Combine all chunk entropies
             all_entropies = torch.cat(chunk_entropies)
-            
+
+            full_all_entropies = torch.cat(full_chunk_entropies)            
             # Return mean entropy
-            return all_entropies.mean()
+            return all_entropies.sum(), full_all_entropies.sum(),all_entropies.mean(), full_all_entropies.mean()
