@@ -407,6 +407,8 @@ def get_act_offloading_ctx_manager(
         # we actually use more memory if we offload it as it interferes with chunkedCE.
         output_head_detected = False
         noop_ctx = NoOpManager()
+        # Comment this out because https://github.com/pytorch/torchtune/pull/2667
+        # means that we will shortcut the decoder version otherwise
         # if hasattr(model, "output"):
         #     if isinstance(model.output, nn.Module):
         #         model.output.register_forward_pre_hook(
@@ -430,17 +432,17 @@ def get_act_offloading_ctx_manager(
             # assert_size_stride(rsqrt_2, (4, 32, 1601, 1), (52224, 1632, 1, 1))
             # AssertionError: expected size 4==4, stride 51232==52224 at dim=0;
             # # expected size 32==32, stride 1601==1632 at dim=1
-            raise NotImplementedError(
-                "Multimodal model does not support activation offloading yet. Please set enable_activation_offloading=False"
-            )
-            # if isinstance(model.decoder, nn.Module):
-            #     model.decoder.output.register_forward_pre_hook(
-            #         lambda *args: noop_ctx.__enter__()
-            #     )
-            #     model.decoder.output.register_forward_hook(
-            #         lambda *args: noop_ctx.__exit__(), always_call=True
-            #     )
-            #     output_head_detected = True
+            # raise NotImplementedError(
+            #     "Multimodal model does not support activation offloading yet. Please set enable_activation_offloading=False"
+            # )
+            if isinstance(model.decoder, nn.Module):
+                model.decoder.output.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.decoder.output.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
+                output_head_detected = True
 
         if not output_head_detected:
             log.warning(

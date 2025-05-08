@@ -18,12 +18,6 @@ output_dir: /tmp/torchtune/tiny-random-Llama-4/lora
 model:
   _component_: torchtune.models.llama4._model_builders.llama4_tiny
 
-tensor_parallel_dim: 2 # For multi-node training we recommend tensor_parallel_dim: 8
-tensor_parallel_plan:
-  _component_: torchtune.models.llama4.decoder_only_tp_plan
-data_parallel_shard_dim: -1 # Will infer based on TP dim, effectively controls FSDP
-data_parallel_replicate_dim: 1
-
 tokenizer:
   _component_: torchtune.models.llama4.llama4_transform
   path: /tmp/tiny-random-Llama-4/tokenizer.model
@@ -61,7 +55,7 @@ lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.nn.CrossEntropyLoss
 clip_grad_norm: null
 
 # cuda, cpu, rocm, xpu...
@@ -70,7 +64,6 @@ device: cuda
 # Memory management / performance
 enable_activation_checkpointing: True
 enable_activation_offloading: False
-custom_sharded_layers: ['tok_embeddings']
 fsdp_cpu_offload: False
 compile: False # torch.compile, set to true for perf/memory improvement
 
