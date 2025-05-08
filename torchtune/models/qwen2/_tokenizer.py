@@ -371,8 +371,9 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Args:
             message (Message): The message to tokenize.
+            index (int): The index of the current message.
+            num_messages (int): The total number of messages.
             add_start_tokens (bool): Whether to prepend a tokenized header to the message. Default is True.
-            add_end_tokens (bool): Whether to append eot or eom id at the end of the message. Default is True.
 
         Returns:
             List[int]: The list of token ids.
