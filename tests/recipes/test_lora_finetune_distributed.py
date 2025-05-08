@@ -280,8 +280,6 @@ class TestLoRAFinetuneDistributedRecipe:
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
             --config {config} \
@@ -293,8 +291,6 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.adapter_checkpoint={os.path.join(epoch_folder_minus_one, f"{ADAPTER_MODEL_FNAME}.pt")}
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
