@@ -55,7 +55,7 @@ lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 loss:
-  _component_: torchtune.nn.CrossEntropyLoss
+  _component_: torch.nn.CrossEntropyLoss
 clip_grad_norm: null
 
 # cuda, cpu, rocm, xpu...
