@@ -356,6 +356,7 @@ class TestDistributedDoRALinear(FSDPTest):
                 ffn,
                 adapter_state_dict,
                 device,
+                release_sd=False,
             )
             if is_rank_zero:
                 for dora_linear in [ffn.w1, ffn.w2, ffn.w3]:
@@ -385,6 +386,7 @@ class TestDistributedDoRALinear(FSDPTest):
             ffn,
             base_model_state_dict,
             device,
+            release_sd=False,
         )
 
         # After this, everything should be off meta device

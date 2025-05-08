@@ -15,6 +15,7 @@ from .kd_losses import (
     SymmetricKLLoss,
     SymmetricKLWithChunkedOutputLoss,
 )
+from .loss_types import RLLoss, SFTLoss
 
 __all__ = [
     "CEWithChunkedOutputLoss",
@@ -25,4 +26,6 @@ __all__ = [
     "SymmetricKLLoss",
     "SymmetricKLWithChunkedOutputLoss",
     "LinearCrossEntropyLoss",
+    "SFTLoss",
+    "RLLoss",
 ]

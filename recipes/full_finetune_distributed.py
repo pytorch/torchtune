@@ -17,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._tensor import DTensor
+from torch.distributed.tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
 from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
@@ -28,7 +28,11 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import (
+    DummyProfiler,
+    PROFILER_KEY,
+    VALID_BACKENDS_FOR_MEMORY_STATS,
+)
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing._checkpoint_client import (
     CheckpointClient,
@@ -177,9 +181,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self._logger = utils.get_logger(cfg.log_level)
-        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
+        if (
+            self._log_peak_memory_stats
+            and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS
+        ):
             self._logger.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                f"log_peak_memory_stats was set to True; however, training device is not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
                 "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -377,13 +384,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, modules.loss.SFTLoss):
+            self._loss_fn.set_model_output(self._model)
 
         if self._compile_loss:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-
-        # The loss may handle the output projection. If true, the model should skip it.
-        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
-        self._model.skip_linear_projection = self.linear_loss
 
         utils.log_rank_zero(self._logger, "Loss is initialized.")
 
@@ -820,13 +825,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with self.activations_handling_ctx:
             outputs = self._model(**batch)
 
-        if self.linear_loss:
-            weight = self._model.linear_projection_weight
-            loss = self._loss_fn(weight, outputs, labels)
-        else:
+        # post process for third party loss functions
+        if not isinstance(self._loss_fn, modules.loss.SFTLoss):
             labels = labels.reshape(-1)
             outputs = outputs.reshape(-1, outputs.size(-1))
-            loss = self._loss_fn(outputs, labels)
+            if isinstance(outputs, DTensor):
+                outputs = outputs.full_tensor()
+
+        # Compute loss
+        loss = self._loss_fn(outputs, labels)
 
         # free logits otherwise it peaks backward memory
         del outputs
