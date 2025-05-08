@@ -61,6 +61,9 @@ Whenever running tests in torchtune, favor using the command line flags as much 
 Note that the above flags can be combined with other pytest flags, so e.g. `pytest tests -m integration_test -k 'test_loss'` will run only recipe tests matching the substring `test_loss`.
 
 > [!NOTE]
+> torchtune now contains a [prototype for an asynchronous implementation of GRPO](recipes/dev/async_grpo.md), complete with corresponding tests. Since this prototype brings with it additional dependencies, we do not run any of our async RL tests by default. To run an async RL test, you should append `--run-rl-tests` to your pytest command. E.g. `pytest --with-integration --run-rl-tests tests/recipes/dev/test_async_grpo_full_finetune_distributed.py`.
+
+> [!NOTE]
 > Expected reference values for many of our tests have been calculated on Intel-based CPUs, or CUDA-based GPUs. Precision differences when testing on other hardware may cause certain tests to fail due to calculated values falling outside the configured tolerance limits. These tests may be skipped based on detected hardware (e.g. for [MPS](https://github.com/pytorch/torchtune/blob/ca95345b732d41bab7261d208cd5c860a2f76a5a/tests/test_utils.py#L345)).
 
 &nbsp;
