@@ -7,9 +7,11 @@
 from typing import Any, Callable, Dict, Mapping, Optional
 
 from torchtune.data import Message
+from torchtune.data._messages import mask_messages
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
+from warnings import warn
 
 
 class StackExchangePairedToMessages(Transform):
@@ -35,8 +37,10 @@ class StackExchangePairedToMessages(Transform):
         ]
 
     Args:
-        train_on_input (bool): Whether the model is trained on the user prompt or not.
-            Default is False.
+        masking_strategy (str): Masking strategy to use for model training.
+            Must be one of: ``train_on_all``, ``train_on_assistant``, ``train_on_last``.
+            Default is "train_on_assistant".
+        train_on_input (Optional[bool]): Deprecated. Whether the model is trained on the prompt or not. Default is False.
         column_map (Optional[Dict[str, str]]): a mapping to change the expected "prompt",
             "chosen", and "rejected" column names to the actual column names in the dataset.
             Keys should be "prompt", "chosen", and "rejected" and values should be the actual column names.
@@ -44,9 +48,23 @@ class StackExchangePairedToMessages(Transform):
     """
 
     def __init__(
-        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+        self, masking_strategy: str = "train_on_assistant", train_on_input: Optional[bool] = None, column_map: Optional[Dict[str, str]] = None
     ):
-        self.train_on_input = train_on_input
+        if train_on_input is not None:
+            warn(
+                "train_on_input is deprecated and will be removed in a future release. "
+                "Please use masking_strategy instead."
+                "You should replace train_on_input=True with masking_strategy='train_on_all', and "
+                "train_on_input=False with masking_strategy='train_on_assistant'."
+                "For backwards compatibility, if you pass both train_on_input and masking_strategy, "
+                "the value of masking_strategy will be ignored until torchtune 0.7. ",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            masking_strategy = (
+                "train_on_all" if train_on_input else "train_on_assistant"
+            )
+        self.masking_strategy = masking_strategy
         self._column_map = column_map
 
     def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -57,17 +75,19 @@ class StackExchangePairedToMessages(Transform):
 
         chosen_messages = [
             Message(
-                role="user", content=sample[key_prompt], masked=not self.train_on_input
+                role="user", content=sample[key_prompt]
             ),
             Message(role="assistant", content=sample[key_chosen]),
         ]
+        mask_messages(chosen_messages, self.masking_strategy)
 
         rejected_messages = [
             Message(
-                role="user", content=sample[key_prompt], masked=not self.train_on_input
+                role="user", content=sample[key_prompt]
             ),
             Message(role="assistant", content=sample[key_rejected]),
         ]
+        mask_messages(rejected_messages, self.masking_strategy)
 
         return {"chosen": chosen_messages, "rejected": rejected_messages}
 
@@ -77,7 +97,8 @@ def stack_exchange_paired_dataset(
     *,
     source: str = "lvwerra/stack-exchange-paired",
     column_map: Optional[Dict[str, str]] = None,
-    train_on_input: bool = False,
+    masking_strategy: str = "train_on_assistant",
+    train_on_input: Optional[bool] = None,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     **load_dataset_kwargs: Dict[str, Any],
@@ -100,7 +121,11 @@ def stack_exchange_paired_dataset(
             "chosen", and "rejected" column names to the actual column names in the dataset.
             Keys should be "prompt", "chosen", and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        masking_strategy (str): Masking strategy to use for model training.
+            Must be one of: ``train_on_all``, ``train_on_assistant``, ``train_on_last``.
+            Default is "train_on_assistant".
+        train_on_input (Optional[bool]): Deprecated. Whether the model is trained on the prompt or not. 
+            If provided, overrides masking_strategy. Default is None.
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
@@ -117,9 +142,9 @@ def stack_exchange_paired_dataset(
         "chosen": "response_j",
         "rejected": "response_k",
     }
-
+    
     message_transform = StackExchangePairedToMessages(
-        train_on_input=train_on_input, column_map=column_map
+        masking_strategy=masking_strategy, column_map=column_map
     )
 
     return PreferenceDataset(

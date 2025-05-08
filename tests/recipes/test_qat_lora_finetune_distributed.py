@@ -40,7 +40,7 @@ from torchtune.training.checkpointing._utils import (
 class TestQATLoRAFinetuneDistributedRecipe:
     def _get_test_config_overrides(self):
         return [
-            "dataset.train_on_input=False",
+            "dataset.masking_strategy='train_on_assistant'",
             "seed=9",
             "epochs=2",
             "dtype=fp32",

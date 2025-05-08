@@ -36,7 +36,6 @@ from torchtune.modules.attention import MultiHeadAttention
 from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
-from torchtune.utils._logging import deprecated
 
 _log: logging.Logger = get_logger()
 
@@ -213,30 +212,6 @@ def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) 
     return backend
 
 
-@deprecated(
-    msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
-)
-def init_distributed(**kwargs: Dict[str, Any]) -> bool:
-    """Initialize process group required for ``torch.distributed``.
-
-    Args:
-        **kwargs (Dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.
-
-    Returns:
-        bool: True if torch.distributed is initialized.
-
-    Raises:
-        RuntimeError: If torch.distributed is already initialized.
-    """
-    if is_distributed():
-        if dist.is_initialized():
-            raise RuntimeError("torch.distributed already initialized.")
-        dist.init_process_group(**kwargs)
-        return True
-    else:
-        return False
-
-
 def set_torch_num_threads() -> None:
     """
     Sets the number of threads used by torch to utilize all physical CPU
@@ -251,23 +226,6 @@ def set_torch_num_threads() -> None:
     )
     torch.set_num_threads(num_threads)
     _log.info(f"Set intra op parallelism no. of threads to {num_threads}")
-
-
-@deprecated(
-    msg="`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. "
-    "Please use `torchtune.utils.get_world_size_and_rank` instead."
-)
-def get_world_size_and_rank() -> Tuple[int, int]:
-    """Function that gets the current world size (aka total number
-    of ranks) and rank number of the current process in the default process group.
-
-    Returns:
-        Tuple[int, int]: world size, rank
-    """
-    if dist.is_available() and dist.is_initialized():
-        return torch.distributed.get_world_size(), torch.distributed.get_rank()
-    else:
-        return 1, 0
 
 
 def validate_no_params_on_meta_device(model: nn.Module) -> None:

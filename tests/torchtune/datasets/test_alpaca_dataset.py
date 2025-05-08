@@ -62,7 +62,7 @@ class TestAlpacaDataset:
         # mock the call to HF datasets
         load_dataset.return_value = Dataset.from_list([sample])
 
-        alpaca_ds = alpaca_dataset(tokenizer=tokenizer, train_on_input=False)
+        alpaca_ds = alpaca_dataset(tokenizer=tokenizer, masking_strategy="train_on_assistant")
 
         # Generate the input and labels
         input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
@@ -107,15 +107,15 @@ class TestAlpacaToMessages:
             "maybe_output": "hello world",
         }
 
-    @pytest.mark.parametrize("train_on_input", [True, False])
-    def test_call(self, train_on_input, sample):
+    @pytest.mark.parametrize("masking_strategy", ["train_on_all", "train_on_assistant"])
+    def test_call(self, masking_strategy, sample):
         transform = AlpacaToMessages(
             column_map={
                 "instruction": "maybe_instruction",
                 "input": "maybe_input",
                 "output": "maybe_output",
             },
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
         )
         actual = transform(sample)
         expected = [
@@ -131,15 +131,15 @@ class TestAlpacaToMessages:
         ]
         assert_dialogue_equal(actual["messages"], expected)
 
-    @pytest.mark.parametrize("train_on_input", [True, False])
-    def test_call_no_input(self, train_on_input, sample_no_input):
+    @pytest.mark.parametrize("masking_strategy", ["train_on_all", "train_on_assistant"])
+    def test_call_no_input(self, masking_strategy, sample_no_input):
         transform = AlpacaToMessages(
             column_map={
                 "instruction": "maybe_instruction",
                 "input": "maybe_input",
                 "output": "maybe_output",
             },
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
         )
         actual = transform(sample_no_input)
         expected = [

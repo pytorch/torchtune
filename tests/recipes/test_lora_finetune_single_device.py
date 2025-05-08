@@ -41,7 +41,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
             f"dtype={dtype_str}",
-            "dataset.train_on_input=False",
+            "dataset.masking_strategy=train_on_assistant",
             "seed=9",
             f"epochs={epochs}",
             "max_steps_per_epoch=2",

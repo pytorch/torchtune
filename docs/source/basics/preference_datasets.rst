@@ -62,7 +62,7 @@ Example local preference dataset
        source="json",
        column_map=column_map,
        data_files="my_preference_dataset.json",
-       train_on_input=False,
+       masking_strategy="train_on_assistant",
        split="train",
    )
    tokenized_dict = ds[0]
@@ -91,7 +91,7 @@ This can also be accomplished via the yaml config:
      column_map:
        chosen: chosen_conversations
        rejected: rejected_conversations
-     train_on_input: False
+     masking_strategy: train_on_assistant
      split: train
 
 In this example, we've also shown how `column_map` can be used when the "chosen" and/or "rejected" column names differ from the corresponding columns in your dataset.

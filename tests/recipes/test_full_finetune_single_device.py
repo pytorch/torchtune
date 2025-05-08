@@ -43,7 +43,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             "dtype=fp32",
             "enable_activation_checkpointing=False",
             "enable_activation_offloading=False",
-            "dataset.train_on_input=False",
+            "dataset.masking_strategy='train_on_assistant'",
             "seed=9",
             "epochs=2",
             "max_steps_per_epoch=2",

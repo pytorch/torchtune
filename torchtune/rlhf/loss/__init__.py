@@ -5,11 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from .dpo import DPOLoss, RSOLoss
+from .dpo import DPOLoss
 from .ppo import PPOLoss
 
 __all__ = [
     "DPOLoss",
-    "RSOLoss",
     "PPOLoss",
 ]

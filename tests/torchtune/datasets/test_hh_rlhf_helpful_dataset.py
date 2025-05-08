@@ -17,8 +17,8 @@ from torchtune.datasets._hh_rlhf_helpful import hh_rlhf_helpful_dataset
 
 class TestHHRLHFHelpfulDataset:
     @patch("torchtune.datasets._preference.load_dataset")
-    @pytest.mark.parametrize("train_on_input", [True, False])
-    def test_dataset_get_item(self, mock_load_dataset, train_on_input):
+    @pytest.mark.parametrize("masking_strategy", ["train_on_all", "train_on_assistant"])
+    def test_dataset_get_item(self, mock_load_dataset, masking_strategy):
         # Truncated sample data from HH RLHF Helpful dataset
         mock_load_dataset.return_value = Dataset.from_list(
             [
@@ -62,7 +62,7 @@ class TestHHRLHFHelpfulDataset:
         )
         ds = hh_rlhf_helpful_dataset(
             tokenizer=DummyTokenizer(),
-            train_on_input=train_on_input,
+            masking_strategy=masking_strategy,
         )
         # Generate the input and labels
         sample = ds[0]
@@ -81,7 +81,7 @@ class TestHHRLHFHelpfulDataset:
             11: 1,
         }
         assert Counter(sample["chosen_input_ids"]) == expected_chosen_counts
-        if train_on_input:
+        if masking_strategy == "train_on_all":
             assert Counter(sample["chosen_labels"]) == expected_chosen_counts
         else:
             # Check that the input is masked
@@ -102,7 +102,7 @@ class TestHHRLHFHelpfulDataset:
             9: 1,
         }
         assert Counter(sample["rejected_input_ids"]) == expected_rejected_counts
-        if train_on_input:
+        if masking_strategy == "train_on_all":
             assert Counter(sample["rejected_labels"]) == expected_rejected_counts
         else:
             # Check that the input is masked
@@ -115,6 +115,6 @@ class TestHHRLHFHelpfulDataset:
         ):
             hh_rlhf_helpful_dataset(
                 tokenizer=DummyTokenizer(),
-                train_on_input=True,
+                masking_strategy="train_on_all",
                 packed=True,
             )

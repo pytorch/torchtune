@@ -47,16 +47,13 @@ For this recipe we include different DPO-style losses:
   from a reference model to prevent policy degradation during training. Alongside RLHF, this is the most commonly used
   alignment technique and is used to train a growing number of state-of-the-art LLMs e.g. Llama3.1, Gemma 2, Qwen2, etc.
   This is a good starting point for alignment fine-tuning.
-* :class:`Statistical Rejection Sampling Optimization <torchtune.rlhf.loss.RSOLoss>` (RSO) or "hinge" loss [#]_.
-  RSO builds on concepts from support vector machines and DPO, applying a margin-based approach that penalizes
-  low-quality responses while ensuring a significant gap between chosen and un-chosen log probabilities.
 
 To use any of these, simply use the ``loss`` config entry or flag through the :ref:`cli_label`:
 
 .. code-block:: bash
 
     tune run lora_dpo_single_device --config llama2/7B_lora_dpo_single_device \
-    loss=torchtune.modules.loss.RSOLoss \
+    loss=torchtune.modules.loss.DPOLoss \
     gamma=0.5
 
 Also, you can pass your custom loss in our recipe. Note that its `forward` method should align with the following signature:

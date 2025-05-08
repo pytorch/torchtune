@@ -18,7 +18,8 @@ def slimorca_dataset(
     *,
     source: str = "Open-Orca/SlimOrca-Dedup",
     column_map: Optional[Dict[str, str]] = None,
-    train_on_input: bool = False,
+    masking_strategy: str = "train_on_assistant",
+    train_on_input: Optional[bool] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
@@ -29,11 +30,12 @@ def slimorca_dataset(
     Support for `SlimOrca-style <https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup>`_
     family of conversational datasets.
 
-    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
-    set to ``False`` by default
-    - If ``train_on_input`` is True, the prompt is used during training and
-    contributes to the loss.
-    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
+    Masking of the prompt during training is controlled by the ``masking_strategy`` parameter which is
+    set to ``train_on_assistant`` by default.
+    
+    - ``train_on_all``: both user and assistant messages are unmasked
+    - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+    - ``train_on_last``: only the last assistant message is unmasked
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -46,7 +48,10 @@ def slimorca_dataset(
             :class:`~torchtune.data.ShareGPTToMessages` to the new column names in the dataset. Key should
             be "conversations" and value should be the new column name. If None, use
             the default column name ``"conversations"`` in ``Open-Orca/SlimOrca-Dedup``.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        masking_strategy (str): Masking strategy to use for model training.
+            Must be one of: ``train_on_all``, ``train_on_assistant``, ``train_on_last``.
+            Default is "train_on_assistant".
+        train_on_input (bool): Deprecated. Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample. This can
             serve as instructions to guide the model response. Setting this will OVERRIDE any system
             messages already present in the dataset. Default is None.
@@ -78,6 +83,7 @@ def slimorca_dataset(
         train_on_input=train_on_input,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
+        masking_strategy=masking_strategy,
     )
     ds = SFTDataset(
         source=source,

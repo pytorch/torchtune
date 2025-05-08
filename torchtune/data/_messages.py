@@ -200,7 +200,7 @@ class InputOutputToMessages(Transform):
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
-        masking_strategy: Optional[str] = "train_on_assistant",
+        masking_strategy: str = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -349,7 +349,7 @@ class ChosenRejectedToMessages(Transform):
         train_on_input: Optional[bool] = None,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
-        masking_strategy: Optional[str] = "train_on_assistant",
+        masking_strategy: str = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -479,7 +479,7 @@ class ShareGPTToMessages(Transform):
         new_system_prompt: Optional[str] = None,
         image_dir: Optional[Path] = None,
         image_tag: Optional[str] = "<image>",
-        masking_strategy: Optional[str] = "train_on_assistant",
+        masking_strategy: str = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -643,7 +643,7 @@ class OpenAIToMessages(Transform):
         train_on_input: Optional[bool] = None,
         column_map: Optional[Dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
-        masking_strategy: Optional[str] = "train_on_assistant",
+        masking_strategy: str = "train_on_assistant",
     ):
         if train_on_input is not None:
             warn(
@@ -773,7 +773,7 @@ class AlpacaToMessages(Transform):
         self,
         train_on_input: Optional[bool] = None,
         column_map: Optional[Dict[str, str]] = None,
-        masking_strategy: Optional[str] = "train_on_all",
+        masking_strategy: str = "train_on_all",
     ):
         if train_on_input is not None:
             warn(
@@ -898,34 +898,34 @@ def validate_messages(
         last_message = message
 
 
-def mask_messages(messages: List[Message], masking_strategy: MaskingStrategy) -> None:
+def mask_messages(messages: List[Message], masking_strategy: str) -> None:
     """
     Set the masked attribute for each message in the list based on the specified masking strategy.
 
     Args:
         messages (List[Message]): a list of messages to mask.
-        masking_strategy (MaskingStrategy): masking strategy to use.
+        masking_strategy (str): masking strategy to use.
             Must be one of `train_on_all`, `train_on_assistant`, `train_on_last`.
 
             - ``train_on_all``: both user and assistant messages are unmasked
             - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
             - ``train_on_last``: only the last assistant message is unmasked
     """
-    masking_strategy = MaskingStrategy(masking_strategy)
+    strategy = MaskingStrategy(masking_strategy)
     marked_last_assistant_message = False
     for message in reversed(messages):
         # System messages are always masked
         if message.role == "system":
             message.masked = True
             continue
-        if masking_strategy == MaskingStrategy.TRAIN_ON_LAST:
+        if strategy == MaskingStrategy.TRAIN_ON_LAST:
             if message.role == "assistant" and not marked_last_assistant_message:
                 message.masked = False
                 marked_last_assistant_message = True
             else:
                 message.masked = True
         # Multimodal user messages are always masked
-        elif masking_strategy == MaskingStrategy.TRAIN_ON_ALL:
+        elif strategy == MaskingStrategy.TRAIN_ON_ALL:
             message.masked = message.role == "user" and message.contains_media
-        elif masking_strategy == MaskingStrategy.TRAIN_ON_ASSISTANT:
+        elif strategy == MaskingStrategy.TRAIN_ON_ASSISTANT:
             message.masked = message.role != "assistant"

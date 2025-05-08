@@ -166,7 +166,8 @@ def preference_dataset(
     *,
     source: str,
     column_map: Optional[Dict[str, str]] = None,
-    train_on_input: bool = False,
+    train_on_input: Optional[bool] = None,
+    masking_strategy: str = "train_on_assistant",
     new_system_prompt: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
@@ -212,12 +213,12 @@ def preference_dataset(
     :class:`~torchtune.data.ChosenRejectedToMessages` and using it in a custom dataset builder function similar
     to :class:`~torchtune.datasets.preference_dataset`.
 
-    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is:
-    set to ``False`` by default.
-
-    - If ``train_on_input`` is True, the prompt is used during training and
-      contributes to the loss.
-    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100).
+    Masking of the prompt during training is controlled by the ``masking_strategy`` parameter which is
+    set to ``train_on_assistant`` by default.
+    
+    - ``train_on_all``: both user and assistant messages are unmasked
+    - ``train_on_assistant``: user messages are masked, only assistant messages are unmasked
+    - ``train_on_last``: only the last assistant message is unmasked
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -230,7 +231,10 @@ def preference_dataset(
             in the message transform :class:`~torchtune.data.ChosenRejectedToMessages` to the new column names in
             the dataset. Keys should be "chosen" and "rejected" and values should be the actual column names.
             If None, keep the default columns "chosen" and "rejected".
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        masking_strategy (str): Masking strategy to use for model training.
+            Must be one of: ``train_on_all``, ``train_on_assistant``, ``train_on_last``.
+            Default is "train_on_assistant".
+        train_on_input (bool): Deprecated. Whether the model is trained on the prompt or not. Default is False.
         new_system_prompt (Optional[str]): if specified, prepend a system message to every sample for both chosen
             and rejected. This can serve as instructions to guide the model response. Setting this will OVERRIDE
             any system messages already present in the dataset. Default is None.
@@ -277,7 +281,7 @@ def preference_dataset(
         ...     source="json",
         ...     column_map=column_map,
         ...     data_files="my_preference_dataset.json",
-        ...     train_on_input=False,
+        ...     masking_strategy="train_on_assistant",
         ...     split="train",
         >>> )
         >>> tokenizer.decode(dataset[0]["chosen_input_ids"], skip_special_tokens=True)
@@ -296,18 +300,19 @@ def preference_dataset(
           column_map:
             chosen: chosen_conversations
             rejected: rejected_conversations
-          train_on_input: False
+          masking_strategy: train_on_assistant
           split: train
 
 
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.
     """
-
+    
     message_transform = ChosenRejectedToMessages(
-        train_on_input=train_on_input,
+        masking_strategy=masking_strategy,
         column_map=column_map,
         new_system_prompt=new_system_prompt,
+        train_on_input=train_on_input,
     )
 
     return PreferenceDataset(
