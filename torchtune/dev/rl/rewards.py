@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-import math_verify
 import torch
 
 
@@ -121,7 +120,8 @@ class FormattedMathCorrectnessReward(Reward):
         answers: List[str],
     ) -> RewardOutput:
         rewards = []
-        answer_pattern = rf"<{self.answer_tag}>(.*?)</{self.answer_tag}>"
+        import math_verify
+
         for completion, answer in zip(completions, answers):
             gold = math_verify.parse(answer)
             attempt = math_verify.parse(completion)
