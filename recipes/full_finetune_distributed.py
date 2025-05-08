@@ -232,10 +232,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.epsilon_high_neg = cfg.get("epsilon_high_neg", 1.2)
         self.use_reference = cfg.get("use_reference", False)
 
-
         # Add storage for precomputed reference logprobs
         self.reference_logprobs_cache = {}
-
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -324,9 +322,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "Checkpoint does not contain the required keys needed for updating recipe state. "
                 "Are you sure you passed in the right recipe checkpoint?"
             ) from e
+
     def load_model(self, cfg: DictConfig) -> None:
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-            
+
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
@@ -1181,7 +1180,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             num_tokens = 0
             real_num_tokens = 0
             max_len_samples = 0
-            running_ent = 0
+            # Update entropy tracking variables to include sum and mean metrics
+            running_per_token_ent_sum = 0
+            running_full_token_ent_sum = 0
+            running_per_token_ent_mean = 0
+            running_full_token_ent_mean = 0
             self._model.train()  # NOTE: added by us
 
             pbar = tqdm(
@@ -1256,16 +1259,27 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 current_loss = (
                     self._loss_fn(logits, labels) * current_num_tokens * reward
                 )
-                #before you compute the entropy extract the single logit from the label 
-               
-                entropy = self._loss_fn.compute_entropy(logits,labels)
+                # before you compute the entropy extract the single logit from the label
+
+                (
+                    per_token_entropy_sum,
+                    full_token_entropy_sum,
+                    per_token_entropy_mean,
+                    full_token_entropy_mean,
+                ) = self._loss_fn.compute_entropy(logits, labels)
                 # free logits otherwise it peaks backward memory
                 del logits
 
-
-                running_ent += entropy.detach()
+                # Update tracking with the correct variable names
+                running_per_token_ent_sum += per_token_entropy_sum.detach()
+                running_full_token_ent_sum += full_token_entropy_sum.detach()
+                running_per_token_ent_mean += per_token_entropy_mean.detach()
+                running_full_token_ent_mean += full_token_entropy_mean.detach()
                 running_loss += current_loss
-                del entropy
+                del per_token_entropy_sum
+                del full_token_entropy_sum
+                del per_token_entropy_mean
+                del full_token_entropy_mean
 
                 # For optimizer in backward, we need to normalize before calling backward
                 # This case and gradient accumulation are mutually exclusive
@@ -1279,13 +1293,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     (idx + 1) == n_samples
                 ):
 
-
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
                         torch.distributed.all_reduce(num_tokens)
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
-                        torch.distributed.all_reduce(running_ent)
+                        # All-reduce all entropy metrics
+                        torch.distributed.all_reduce(running_per_token_ent_sum)
+                        torch.distributed.all_reduce(running_full_token_ent_sum)
+                        torch.distributed.all_reduce(running_per_token_ent_mean)
+                        torch.distributed.all_reduce(running_full_token_ent_mean)
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         training.scale_grads(self._model, 1 / num_tokens)
                         # scale grads by max_batchsize and real_batchsize
@@ -1320,9 +1337,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
-
+                    n_samples
                     # Log per-step metrics
-                    if ( self._is_rank_zero):
+                    if self._is_rank_zero:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log.cpu().item(),
@@ -1335,7 +1352,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             ),
                             "tokens_per_second_per_gpu": real_num_tokens  # NOTE: added by us
                             / (time_per_step * world_size),
-                            "entropy": running_ent.item() / real_num_tokens,
+                            "per_token_entropy_sum": running_per_token_ent_sum.item()
+                            / n_samples,
+                            "full_token_entropy_sum": running_full_token_ent_sum.item()
+                            / n_samples,
+                            "per_token_entropy_mean": running_per_token_ent_mean.item()
+                            / n_samples,
+                            "full_token_entropy_mean": running_full_token_ent_mean.item()
+                            / n_samples,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -1352,6 +1376,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     real_num_tokens = 0  # NOTE: added by us
+                    # Reset all entropy tracking variables
+                    running_per_token_ent_sum = 0
+                    running_full_token_ent_sum = 0
+                    running_per_token_ent_mean = 0
+                    running_full_token_ent_mean = 0
                     t0 = time.perf_counter()
 
                     # Stop tracking CUDA memory now that active steps are complete

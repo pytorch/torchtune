@@ -361,7 +361,11 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
             num_tokens = 0
             real_num_tokens = 0
             max_len_samples = 0
-            running_ent = 0
+            # Update entropy tracking variables to include sum and mean metrics
+            running_per_token_ent_sum = 0
+            running_full_token_ent_sum = 0
+            running_per_token_ent_mean = 0
+            running_full_token_ent_mean = 0
             self._model.train()  # NOTE: added by us
 
             pbar = tqdm(
@@ -479,7 +483,13 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                             current_loss = current_loss * reward.mean()
                         else:
                             current_loss = current_loss * reward
-                entropy = self._loss_fn.compute_entropy(logits,labels)
+
+                (
+                    per_token_entropy_sum,
+                    full_token_entropy_sum,
+                    per_token_entropy_mean,
+                    full_token_entropy_mean,
+                ) = self._loss_fn.compute_entropy(logits, labels)
 
                 # Clean up intermediate tensors to free memory
                 del logits
@@ -488,8 +498,14 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                 torch.cuda.empty_cache()  # Force CUDA to release memory
 
                 running_loss += current_loss
-                running_ent += entropy.detach()
-                del entropy
+                running_per_token_ent_sum += per_token_entropy_sum.detach()
+                running_full_token_ent_sum += full_token_entropy_sum.detach()
+                running_per_token_ent_mean += per_token_entropy_mean.detach()
+                running_full_token_ent_mean += full_token_entropy_mean.detach()
+                del per_token_entropy_sum
+                del full_token_entropy_sum
+                del per_token_entropy_mean
+                del full_token_entropy_mean
 
                 # For optimizer in backward, we need to normalize before calling backward
                 # This case and gradient accumulation are mutually exclusive
@@ -508,8 +524,11 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                         torch.distributed.all_reduce(num_tokens)
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
-                        # Manually scale the gradients from unnormalized loss by total # of tokens
-                        torch.distributed.all_reduce(running_ent)
+                        # All-reduce all entropy metrics
+                        torch.distributed.all_reduce(running_per_token_ent_sum)
+                        torch.distributed.all_reduce(running_full_token_ent_sum)
+                        torch.distributed.all_reduce(running_per_token_ent_mean)
+                        torch.distributed.all_reduce(running_full_token_ent_mean)
                         training.scale_grads(self._model, 1 / num_tokens)
                         # scale grads by max_batchsize and real_batchsize
                         if self.max_bsize and (idx + 1) == n_samples:
@@ -548,7 +567,7 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                     if self._is_rank_zero:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
-                            "loss": loss_to_log,
+                            "loss": loss_to_log.cpu().item(),
                             "lr": get_lr(
                                 (
                                     self._optimizer
@@ -558,7 +577,14 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                             ),
                             "tokens_per_second_per_gpu": real_num_tokens  # NOTE: added by us
                             / (time_per_step * world_size),
-                            "entropy": running_ent.item() / real_num_tokens,
+                            "per_token_entropy_sum": running_per_token_ent_sum.item()
+                            / n_samples,
+                            "full_token_entropy_sum": running_full_token_ent_sum.item()
+                            / n_samples,
+                            "per_token_entropy_mean": running_per_token_ent_mean.item()
+                            / n_samples,
+                            "full_token_entropy_mean": running_full_token_ent_mean.item()
+                            / n_samples,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(
@@ -575,6 +601,11 @@ class FullFinetuneRecipeDistributedPlus(FullFinetuneRecipeDistributed):
                     running_loss = 0
                     num_tokens = 0
                     real_num_tokens = 0  # NOTE: added by us
+                    # Reset all entropy tracking variables
+                    running_per_token_ent_sum = 0
+                    running_full_token_ent_sum = 0
+                    running_per_token_ent_mean = 0
+                    running_full_token_ent_mean = 0
                     t0 = time.perf_counter()
 
                     # Stop tracking CUDA memory now that active steps are complete
