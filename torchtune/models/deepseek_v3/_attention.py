@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import torch
 import torch.nn as nn
 from typing import Optional
@@ -53,7 +59,7 @@ class DeepSeekV3Attention(nn.Module):
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        
+
         # q is sometimes decomposed into A/B
         # kv is *always* decomposed
 
@@ -61,7 +67,7 @@ class DeepSeekV3Attention(nn.Module):
         # not otherwise - in this case the norm
         # should be applied after q a proj and before q b proj
 
-        # for kv decomposition pos embeddings need to be extracted before 
+        # for kv decomposition pos embeddings need to be extracted before
         # projecting back up
 
         b, s_x, _ = x.shape

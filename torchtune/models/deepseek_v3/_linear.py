@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import torch
 import torch.nn as nn
 from typing import Optional, Optional
@@ -19,7 +25,7 @@ class DeepSeekV3LatentLinear(nn.Module):
         )
         self.b_proj = nn.Linear(in_features=intermediate_dim, out_features=out_dim, bias=False)
         self.norm = RMSNorm(rank)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, s_x, _ = x.shape
         out = self.a_proj(x)

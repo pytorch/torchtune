@@ -1,4 +1,10 @@
 
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import torch
 
 class DeepSeekV3MoE(nn.Module):
@@ -6,7 +12,7 @@ class DeepSeekV3MoE(nn.Module):
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
-        
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, s, h = x.shape
@@ -15,7 +21,7 @@ class DeepSeekV3MoE(nn.Module):
         routed_input = torch.gather(x.view(-1, h), dim=0, index=token_idxs)
         routed_input = routed_input.reshape(b, s, h)
         return self.experts(routed_input)
-    
+
 class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
     def __init__(self):
         self.gate = gate # nn.Linear
@@ -32,7 +38,7 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         n = x.shape[0]
         scores = self.gate(x)
         scores = torch.sigmoid(scores.to(torch.float32)).to(x.dtype)
-        
+
         scores_for_choice = scores + self.e_score_correction_bias.unsqueeze(0)
         group_scores = (
             scores_for_choice.view(n, self.n_groups, -1).topk(2, dim=-1)[0].sum(dim=-1)
