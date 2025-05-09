@@ -120,7 +120,7 @@ class TestPhi3MiniTokenizer:
                 "good conversation over coffee.",
             ),
         ]
-        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
+        tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=False)
 
         # Drop eos token
         expected_tokens = expected_tokens[:]

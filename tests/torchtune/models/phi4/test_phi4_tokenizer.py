@@ -42,7 +42,7 @@ class TestPhi4Tokenizer:
                 content="Yes, it is!",
             ),
         ]
-        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=True)
+        tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=True)
 
         expected_mask = [True] * 20 + [False] * 9
         assert expected_tokens == tokens
@@ -62,7 +62,7 @@ class TestPhi4Tokenizer:
             ),
         ]
         tokens, mask = tokenizer.tokenize_messages(
-            messages, ignore_system_prompt=True, add_eos=True
+            messages, ignore_system_prompt=True, add_end_tokens=True
         )
 
         # fmt: off
@@ -91,7 +91,7 @@ class TestPhi4Tokenizer:
             ),
         ]
 
-        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
+        tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=False)
         expected_mask = [True] * 20 + [False] * 8
         # Drop eos token.
         assert expected_tokens[:-1] == tokens

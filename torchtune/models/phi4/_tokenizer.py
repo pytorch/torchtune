@@ -112,7 +112,7 @@ class Phi4Tokenizer(ModelTokenizer, Transform):
         self,
         messages: List[Message],
         *,
-        add_eos: bool = False,
+        add_end_tokens: bool = False,
         ignore_system_prompt: bool = False,
     ) -> Tuple[List[int], List[bool]]:
         templated_messages = (
@@ -141,7 +141,7 @@ class Phi4Tokenizer(ModelTokenizer, Transform):
                         f"Unsupported message content type: {item['type']}"
                     )
 
-            if add_eos and message.role == "assistant":
+            if add_end_tokens and message.role == "assistant":
                 tokens.append(self.special_tokens["<|im_end|>"])
             elif message.role != "assistant":
                 tokens.append(self.special_tokens["<|im_end|>"])
@@ -157,13 +157,13 @@ class Phi4Tokenizer(ModelTokenizer, Transform):
             tokenized_messages = truncate(
                 tokens=tokenized_messages,
                 max_seq_len=self.max_seq_len,
-                eos_id=self.eos_id if add_eos else None,
+                eos_id=self.eos_id if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
             mask = truncate(
                 tokens=mask,
                 max_seq_len=self.max_seq_len,
-                eos_id=True if add_eos else None,
+                eos_id=True if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
 
