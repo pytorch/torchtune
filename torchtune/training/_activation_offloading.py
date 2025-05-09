@@ -378,7 +378,9 @@ class NoOpManager(saved_tensors_hooks):
 
 
 def get_act_offloading_ctx_manager(
-    model: nn.Module, enable_activation_offloading: bool
+    model: nn.Module,
+    enable_activation_offloading: bool,
+    use_streams: bool = True,
 ) -> Union[OffloadActivations, contextlib.nullcontext]:
     """Returns the activation offloading context manager for the model, which will be
     a null context if enable_activation_offloading is False.
@@ -398,48 +400,49 @@ def get_act_offloading_ctx_manager(
         NotImplementedError: If the model is a multimodal model and activation offloading is enabled.
     """
     if enable_activation_offloading:
-        activations_handling_ctx = OffloadActivations()
-
+        activations_handling_ctx = OffloadActivations(use_streams=use_streams)
         # Below is our hack to disable offloading the last output Linear in every
         # step, as the cost for offloading the activation and then soon after bringing
         # it back is expensive. Moreover, due to heuristics in our streaming API,
         # we actually use more memory if we offload it as it interferes with chunkedCE.
         output_head_detected = False
         noop_ctx = NoOpManager()
-        if hasattr(model, "output"):
-            if isinstance(model.output, nn.Module):
-                model.output.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.output.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
-                output_head_detected = True
-            elif isinstance(model.output, TiedLinear):
-                model.output.linear.register_forward_pre_hook(
-                    lambda *args: noop_ctx.__enter__()
-                )
-                model.output.linear.register_forward_hook(
-                    lambda *args: noop_ctx.__exit__(), always_call=True
-                )
-                output_head_detected = True
+        # Comment this out because https://github.com/pytorch/torchtune/pull/2667
+        # means that we will shortcut the decoder version otherwise
+        # if hasattr(model, "output"):
+        #     if isinstance(model.output, nn.Module):
+        #         model.output.register_forward_pre_hook(
+        #             lambda *args: noop_ctx.__enter__()
+        #         )
+        #         model.output.register_forward_hook(
+        #             lambda *args: noop_ctx.__exit__(), always_call=True
+        #         )
+        #         output_head_detected = True
+        #     elif isinstance(model.output, TiedLinear):
+        #         model.output.linear.register_forward_pre_hook(
+        #             lambda *args: noop_ctx.__enter__()
+        #         )
+        #         model.output.linear.register_forward_hook(
+        #             lambda *args: noop_ctx.__exit__(), always_call=True
+        #         )
+        #         output_head_detected = True
 
-        elif hasattr(model, "decoder"):
+        if hasattr(model, "decoder"):
             # TODO: it errors out. Needs debugging.
             # assert_size_stride(rsqrt_2, (4, 32, 1601, 1), (52224, 1632, 1, 1))
             # AssertionError: expected size 4==4, stride 51232==52224 at dim=0;
             # # expected size 32==32, stride 1601==1632 at dim=1
-            raise NotImplementedError(
-                "Multimodal model does not support activation offloading yet. Please set enable_activation_offloading=False"
-            )
-            # if isinstance(model.decoder, nn.Module):
-            #     model.decoder.output.register_forward_pre_hook(
-            #         lambda *args: noop_ctx.__enter__()
-            #     )
-            #     model.decoder.output.register_forward_hook(
-            #         lambda *args: noop_ctx.__exit__(), always_call=True
-            #     )
-            #     output_head_detected = True
+            # raise NotImplementedError(
+            #     "Multimodal model does not support activation offloading yet. Please set enable_activation_offloading=False"
+            # )
+            if isinstance(model.decoder, nn.Module):
+                model.decoder.output.register_forward_pre_hook(
+                    lambda *args: noop_ctx.__enter__()
+                )
+                model.decoder.output.register_forward_hook(
+                    lambda *args: noop_ctx.__exit__(), always_call=True
+                )
+                output_head_detected = True
 
         if not output_head_detected:
             log.warning(

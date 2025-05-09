@@ -166,6 +166,10 @@ _ALL_RECIPES = [
                 name="llama4/maverick_17B_128E_full",
                 file_path="llama4/maverick_17B_128E_full.yaml",
             ),
+            Config(
+                name="llama4/tiny_llama4_debug_full",
+                file_path="llama4/tiny_llama4_debug_full.yaml",
+            ),
         ],
         supports_distributed=True,
     ),
@@ -400,6 +404,10 @@ _ALL_RECIPES = [
         name="lora_finetune_distributed",
         file_path="lora_finetune_distributed.py",
         configs=[
+            Config(
+                name="llama4/tiny_llama4_debug_lora",
+                file_path="llama4/tiny_llama4_debug_lora.yaml",
+            ),
             Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
             Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
             Config(name="llama2/70B_lora", file_path="llama2/70B_lora.yaml"),

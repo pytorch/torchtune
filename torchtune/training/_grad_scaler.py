@@ -9,6 +9,7 @@ from typing import Optional
 
 import torch
 from torch import nn, Tensor
+from torch.distributed.tensor import DTensor
 from torch.nn.utils.clip_grad import _no_grad, _tensor_or_tensors
 from torch.utils._foreach_utils import _device_has_foreach_support, _has_foreach_support
 from torchtune.utils._logging import deprecated
@@ -91,15 +92,19 @@ def _scale_grad_(
     grouped_grads = _group_tensors_by_device(grads)
 
     for device, device_grads in grouped_grads.items():
-        if (foreach is None and _has_foreach_support(device_grads, device)) or (
-            foreach and _device_has_foreach_support(device)
-        ):
-            torch._foreach_mul_(device_grads, scaler.to(device))
-        elif foreach:
-            raise RuntimeError(
-                f"foreach=True was passed, but can't use the foreach API on {device.type} tensors"
-            )
-        else:
-            scaler_device = scaler.to(device)
-            for g in device_grads:
+        # This is just to bypass an unrelated error
+        # if (foreach is None and _has_foreach_support(device_grads, device)) or (
+        #     foreach and _device_has_foreach_support(device)
+        # ):
+        #     torch._foreach_mul_(device_grads, scaler.to(device))
+        # elif foreach:
+        #     raise RuntimeError(
+        #         f"foreach=True was passed, but can't use the foreach API on {device.type} tensors"
+        #     )
+        # else:
+        scaler_device = scaler.to(device)
+        for g in device_grads:
+            if isinstance(g, DTensor):
+                g[:] = g * scaler_device
+            else:
                 g.mul_(scaler_device)
