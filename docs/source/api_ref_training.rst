@@ -130,3 +130,6 @@ Miscellaneous
     get_unmasked_sequence_lengths
     disable_dropout
     set_seed
+    batch_to_device
+    get_device
+    get_world_size_and_rank
