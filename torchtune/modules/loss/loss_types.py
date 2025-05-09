@@ -11,7 +11,7 @@ import torch
 from torch import nn
 
 
-class SFTLoss(ABC):
+class SFTLoss(ABC, nn.Module):
     """Interface for loss functions in torchtune used in sft recipes."""
 
     def apply_compile_strategy(self, *args, **kwargs):
