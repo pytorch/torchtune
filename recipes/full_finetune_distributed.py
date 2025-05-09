@@ -227,6 +227,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._enable_activation_offloading = cfg.get(
             "enable_activation_offloading", False
         )
+        self._activation_offloading_use_streams = cfg.get(
+            "activation_offloading_use_streams", True
+        )
+        if self._activation_offloading_use_streams and self.parallel_dims.tp_enabled:
+            warn(
+                message=(
+                    "Using activation offloading with streams is not advised in tensor parallel, and may "
+                    "cause unstable training. It is advised to set activation_offloading_use_streams: False"
+                )
+            )
         if self._enable_activation_offloading:
             if device_type != "cuda":
                 raise RuntimeError(
@@ -339,6 +349,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
+            activation_offloading_use_streams=self._activation_offloading_use_streams,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -541,6 +552,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
+        activation_offloading_use_streams: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
         model_state_dict: Dict[str, Any],
@@ -659,7 +671,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
-            model, enable_activation_offloading
+            model, enable_activation_offloading, activation_offloading_use_streams
         )
 
         # Ensure no params and buffers are on meta device
