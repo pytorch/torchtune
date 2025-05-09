@@ -333,7 +333,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         lr_scheduler_cfg = cfg.get("lr_scheduler", None)
         if lr_scheduler_cfg is not None:
             self._lr_scheduler = self._setup_lr_scheduler(
-                cfg_lr_scheduler=cfg.get("lr_scheduler", None),
+                cfg_lr_scheduler=lr_scheduler_cfg,
                 num_training_steps=self.total_epochs * self._steps_per_epoch,
                 last_epoch=self.global_step - 1,
             )
@@ -532,9 +532,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
         )
-
-        if dataloader_state_dict:
-            dataloader.load_state_dict(dataloader_state_dict)
 
         return dataloader
 
