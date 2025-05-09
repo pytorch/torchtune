@@ -1,13 +1,21 @@
 name: GPU tests
 
 on:
-  schedule:
-    # Runs at midnight every day
-    - cron:  '0 0 * * *'
   push:
-    branches: [ main ]
+    paths:
+      - 'torchtune/recipes/dev/**grpo**'
+      - 'torchtune/recipes/configs/dev/**grpo**'
+      - 'torchtune/dev/rl/**'
+      - 'torchtune/dev/grpo/**'
   pull_request:
-  workflow_dispatch:
+    paths:
+      - 'torchtune/recipes/dev/**grpo**'
+      - 'torchtune/recipes/configs/dev/**grpo**'
+      - 'torchtune/dev/rl/**'
+      - 'torchtune/dev/grpo/**'
+  schedule:
+    # Runs at midnight evvery day
+    - cron: '0 0 * * *'
 
 concurrency:
   group: gpu-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
@@ -54,7 +62,10 @@ jobs:
         run: python -m pip install lm-eval>=0.4.5
       - name: Install the torchtune library with dev options
         run: python -m pip install -e ".[dev]"
+      - name: Install the torchtune libary with async_rl options
+        if: ${{ matrix.python-version != '3.9' }}
+        run:  python -m pip install -e ".[async_rl]"
       - name: Run recipe and unit tests with coverage
-        run: pytest tests --ignore tests/torchtune/modules/_export --with-integration --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest tests/torchtune/dev/rl tests/recipes/dev --run-rl-tests --with-integration --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
