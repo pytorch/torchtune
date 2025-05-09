@@ -14,6 +14,7 @@ from .common_utils import (
     disable_kv_cache,
     local_kv_cache,
     reparametrize_as_dtype_state_dict_post_hook,
+    resize_token_embeddings,
 )
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
@@ -61,4 +62,5 @@ __all__ = [
     "prepare_layer_dropout",
     "classifier_model",
     "rms_norm",
+    "resize_token_embeddings",
 ]

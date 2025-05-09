@@ -27,6 +27,7 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.common_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import (
@@ -358,6 +359,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ac_option=cfg.get("ac_option", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
+        resize_token_embeddings(self._model, self._tokenizer.vocab_size)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
