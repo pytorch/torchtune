@@ -27,6 +27,7 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import (
     DummyProfiler,
@@ -389,7 +390,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-        if isinstance(self._loss_fn, modules.loss.SFTLoss):
+        if isinstance(self._loss_fn, SFTLoss):
             self._loss_fn.set_model_output(self._model)
 
         if self._compile_loss:
@@ -507,41 +508,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
@@ -826,7 +792,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             outputs = self._model(**batch)
 
         # post process for third party loss functions
-        if not isinstance(self._loss_fn, modules.loss.SFTLoss):
+        if not isinstance(self._loss_fn, SFTLoss):
             labels = labels.reshape(-1)
             outputs = outputs.reshape(-1, outputs.size(-1))
             if isinstance(outputs, DTensor):

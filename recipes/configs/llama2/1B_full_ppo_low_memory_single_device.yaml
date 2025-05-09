@@ -1,0 +1,201 @@
+# Config for single device RLHF full finetuning using PPO in ppo_full_finetune_single_device.py
+# using a TinyLlama_v1.1 model.
+#
+# This config has been tested on an Intel PVC 48GB.
+# This config uses hyperparameters based on small set of experiments and information
+# available from existing implementations.
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download smohammadi/tinyllama_rm_sentiment_1b --output-dir /tmp/tinyllama_rm_sentiment_1b/
+#   tune download TinyLlama/TinyLlama_v1.1 --output-dir /tmp/TinyLlama_v1.1/
+#
+#
+# To launch on a single device, run the following command from root:
+#   tune run ppo_full_finetune_single_device --config llama2/1B_full_ppo_low_memory_single_device
+
+output_dir: /tmp/torchtune/llama2_1B_full_ppo_low_memory # /tmp may be deleted by your system. Change it to your preference.
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path:  /tmp/TinyLlama_v1.1/tokenizer.model
+  max_seq_len: 512
+
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.text_completion_dataset
+  source: trl-internal-testing/sentiment-trl-style
+  split: train
+  column: prompt
+  add_eos: False
+
+
+policy_model:
+  _component_: torchtune.models.llama2.llama2
+  vocab_size: 32000
+  num_layers: 22
+  num_heads: 32
+  num_kv_heads: 4
+  embed_dim: 2048
+  max_seq_len: 2048
+  intermediate_dim: 5632
+  attn_dropout: 0.0
+  norm_eps: 1e-5
+
+reward_and_value_model:
+  _component_: torchtune.models.llama2.llama2_classifier
+  num_classes: 1
+  vocab_size: 32000
+  num_layers: 22
+  num_heads: 32
+  num_kv_heads: 4
+  embed_dim: 2048
+  max_seq_len: 2048
+  intermediate_dim: 5632
+  attn_dropout: 0.0
+  norm_eps: 1e-5
+
+# checkpointer for the policy model - update this if resuming from checkpoint
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/TinyLlama_v1.1/
+  checkpoint_files: [
+      "pytorch_model.bin",
+  ]
+  # this is the only place where you should update `recipe_checkpoint` if resuming training
+  recipe_checkpoint: null
+  output_dir: ${output_dir}/policy
+  model_type: LLAMA2
+
+# this should be setup identically to the policy model checkpointer at the start of training
+# ensure `checkpoint_files` always points to the original policy weights, even if resuming training
+ref_policy_checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/TinyLlama_v1.1/
+  checkpoint_files: [
+      "pytorch_model.bin",
+  ]
+  # this is the only place where you should update `recipe_checkpoint` if resuming training
+  recipe_checkpoint: null
+  output_dir: ${output_dir}/policy
+  model_type: LLAMA2
+
+# checkpointer for the value model - update `checkpoint_files` if resuming from checkpoint
+# since this model will be identical to the reward model it's helpful to initialise this
+# from the trained reward model weights
+value_checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir:  /tmp/tinyllama_rm_sentiment_1b/
+  # only `checkpoint_files` need to be updated if resuming training
+  checkpoint_files: [
+      "model.safetensors"
+  ]
+  output_dir: ${output_dir}/value
+  model_type: REWARD
+
+# checkpointer for the reward model, ensure `checkpoint_files`
+# always points to the original reward model weights, even if resuming training
+reward_checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir:  /tmp/tinyllama_rm_sentiment_1b/
+  # only `checkpoint_files` need to be updated if resuming training
+  checkpoint_files: [
+      "model.safetensors"
+  ]
+  output_dir: ${output_dir}/value
+  model_type: REWARD
+
+resume_from_checkpoint: False
+seed: null
+shuffle: True
+
+# Training env
+device: cuda
+
+# Training arguments
+batch_size: 16
+num_steps: 1000
+ppo_epochs: 1
+ppo_batch_size: 16
+gradient_accumulation_steps: 1  # Use to increase effective batch size
+
+# Memory management and performance
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 3e-6
+optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
+log_peak_memory_stats: True
+
+enable_activation_checkpointing: True # True reduces memory
+enable_kv_cache: True
+
+# Reduced precision
+dtype: bf16
+
+# batch size for forward pass during generation
+forward_batch_size: 16
+max_generated_tokens: 58
+temperature: 0.7
+top_k: null
+
+# parameter for penalising generations shorter than `min_response_length`
+min_response_length: 18
+# parameter for penalising generations without a stop token
+penalise_no_eos: True
+# scalar penalty to apply when penalising
+reward_penalty: -3
+
+# tokens to consider as "end of sequence" tokens
+stop_token_ids: [
+  2,
+  29889
+]
+whiten_rewards: False
+
+# GAE hyperparameters
+gamma: 1
+lmbda: 0.95
+
+# PPO hyperparameters
+loss:
+  _component_: torchtune.rlhf.loss.PPOLoss
+  epsilon: 0.2
+  value_coeff: 0.1
+  value_clip_range: 0.2
+kl_coeff: 0.01
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}/logs
+
+log_every_n_steps: 1
+log_level: INFO  # DEBUG, WARN, etc.
+
+
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: True
+  with_stack: False
+  record_shapes: False
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 3
+  num_cycles: 1

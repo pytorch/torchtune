@@ -335,41 +335,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled

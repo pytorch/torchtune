@@ -286,15 +286,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
