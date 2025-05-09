@@ -34,8 +34,6 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
-
 
 class KDRecipeSingleDevice(FTRecipeInterface):
     """
@@ -119,9 +117,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type == "cpu":
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -257,7 +256,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+        self._logger.info("Tokenizer is initialized from file.")
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -282,8 +281,12 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             assert (
                 self._loss_fn.num_output_chunks == self._kd_loss_fn.num_output_chunks
             ), "Number of output chunks for loss_fn and kd_loss_fn must be the same."
+        elif getattr(self._loss_fn, "linear_projection", False):
+            raise ValueError(
+                "Linear losses are not supported yet for KD. Please use the deprecated CEWithChunkedOutputLoss."
+            )
 
-        log.info("Loss is initialized.")
+        self._logger.info("Loss is initialized.")
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -332,41 +335,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled
@@ -384,7 +352,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
 
         self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
         if profiler_cfg["enabled"]:
@@ -454,10 +422,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             self.adapter_params.items(), dtype=self._dtype
         )
 
-        log.info(f"Student model is initialized with precision {self._dtype}.")
+        self._logger.info(f"Student model is initialized with precision {self._dtype}.")
 
         if self._device.type != "cpu":
-            log.info("Memory stats initializing student model:")
+            self._logger.info("Memory stats initializing student model:")
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(
                 memory_stats, message="Memory stats after student model init:"
@@ -483,7 +451,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         training.validate_expected_param_dtype(
             model.named_parameters(), dtype=self._dtype
         )
-        log.info(f"Teacher model is initialized with precision {self._dtype}.")
+        self._logger.info(f"Teacher model is initialized with precision {self._dtype}.")
 
         if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
@@ -500,7 +468,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
 
-        log.info("Optimizer and loss are initialized.")
+        self._logger.info("Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -516,7 +484,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        log.info("Learning rate scheduler is initialized.")
+        self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -670,7 +638,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
 
         if self._compile:
-            log.info(
+            self._logger.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
 

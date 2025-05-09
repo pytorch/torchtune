@@ -21,14 +21,12 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
-
-
-log = utils.get_logger("DEBUG")
 
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -130,9 +128,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type == "cpu":
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -177,7 +176,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -275,7 +274,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             model_state_dict=ckpt_dict[training.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+        self._logger.info("Tokenizer is initialized from file.")
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
@@ -289,15 +288,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, SFTLoss):
+            self._loss_fn.set_model_output(self._model)
 
         if self._compile:
             training.compile_loss(self._loss_fn)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
-
-        log.info("Loss is initialized.")
+        self._logger.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -347,41 +344,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled
@@ -399,7 +361,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
 
         self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
         if profiler_cfg["enabled"]:
@@ -443,7 +405,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             model, enable_activation_offloading
         )
 
-        log.info(f"Model is initialized with precision {self._dtype}.")
+        self._logger.info(f"Model is initialized with precision {self._dtype}.")
 
         if self._device.type != "cpu":
             memory_stats = training.get_memory_stats(device=self._device)
@@ -485,14 +447,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         "Failed loading in-backward optimizer checkpoints."
                         "Please make sure run being restored from was using in-backward optimizer."
                     ) from e
-            log.info("In-backward optimizers are set up.")
+            self._logger.info("In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
             if opt_state_dict:
                 optimizer.load_state_dict(opt_state_dict)
-            log.info("Optimizer is initialized.")
+            self._logger.info("Optimizer is initialized.")
             return optimizer
 
     def _setup_lr_scheduler(
@@ -515,7 +477,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
         """
         if cfg_lr_scheduler is None:
-            log.info(
+            self._logger.info(
                 "No learning rate scheduler configured. Using constant learning rate."
             )
             return None
@@ -539,7 +501,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Modify the scheduler for optimizer_in_bwd case
             self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
-        log.info("Learning rate scheduler is initialized.")
+        self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -629,16 +591,18 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
-            logits = self._model(**batch)
+            outputs = self._model(**batch)
 
-        if not isinstance(logits, list):
+        # post process for third party loss functions
+        if not isinstance(self._loss_fn, SFTLoss):
             labels = labels.reshape(-1)
-            logits = logits.reshape(-1, logits.size(-1))
+            outputs = outputs.reshape(-1, outputs.size(-1))
 
         # Compute loss
-        loss = self._loss_fn(logits, labels)
-        # free logits otherwise it peaks backward memory
-        del logits
+        loss = self._loss_fn(outputs, labels)
+
+        # free outputs otherwise it peaks backward memory
+        del outputs
 
         return loss
 
@@ -648,7 +612,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ``max_steps_per_epoch``.
         """
         if self._compile:
-            log.info(
+            self._logger.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
         # zero out the gradients before starting training

@@ -11,6 +11,7 @@ from torch import nn
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params
+from torchtune.utils import deprecated
 
 
 class DeepFusionModel(nn.Module):
@@ -93,6 +94,7 @@ class DeepFusionModel(nn.Module):
             trainable_params -= set(get_fusion_params(self))
         set_trainable_params(self, trainable_params)
 
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -148,6 +150,23 @@ class DeepFusionModel(nn.Module):
         without deleting or reallocating cache tensors.
         """
         self.decoder.reset_caches()
+
+    @property
+    def output(self) -> torch.Tensor:
+        """Returns the output layer. Useful when a finer control of the output projection is needed,
+        for example when using a custom loss function or when interested in applying it to only some tokens.
+        """
+        return self.decoder.output
+
+    @property
+    def skip_output_layer(self) -> bool:
+        """Returns whether to skip output layer projection and return hidden states instead."""
+        return self.decoder.skip_output_layer
+
+    @skip_output_layer.setter
+    def skip_output_layer(self, skip: bool) -> None:
+        """Set whether to skip output layer projection and return hidden states instead."""
+        self.decoder.skip_output_layer = skip
 
     def forward(
         self,

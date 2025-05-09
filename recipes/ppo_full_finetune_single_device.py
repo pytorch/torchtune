@@ -29,7 +29,6 @@ from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
 # enabling compile results in slightly more recompiles than the default cache limit (8)
 # so we set a higher limit here
 torch._dynamo.config.cache_size_limit = 16
@@ -126,9 +125,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -206,7 +206,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # setup tokenizer
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+        self._logger.info("Tokenizer is initialized from file.")
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
@@ -221,7 +221,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        log.info("Loss is initialized.")
+        self._logger.info("Loss is initialized.")
 
         # sampler and dataloader depends on the tokenizer and should be set
         # setup after it is initialized
@@ -280,41 +280,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled
@@ -332,7 +297,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
 
         self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
         if profiler_cfg["enabled"]:
@@ -362,7 +327,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
         """
         if cfg_lr_scheduler is None:
-            log.info(
+            self._logger.info(
                 "No learning rate scheduler configured. Using constant learning rate."
             )
             return None
@@ -386,7 +351,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Modify the scheduler for optimizer_in_bwd case
             self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
 
-        log.info("Learning rate scheduler is initialized.")
+        self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_training_hyperparameters(self, cfg) -> None:
@@ -499,7 +464,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 f"the number of batches in the dataset ({batches_per_epoch}). "
                 f"Intermediate checkpoints will only be saved every {batches_per_epoch} steps."
             )
-        log.info(
+        self._logger.info(
             f"Total steps to run: {self._total_steps}, Total epochs to run: {self._total_epochs}"
         )
 
@@ -627,7 +592,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ref_policy_model.named_parameters(), dtype=self._dtype
         )
 
-        log.info(f"Models are initialized with precision {self._dtype}.")
+        self._logger.info(f"Models are initialized with precision {self._dtype}.")
 
         # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
         # between ref policy and current policy
@@ -690,7 +655,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         "Failed loading in-backward optimizer checkpoints."
                         "Please make sure run being restored from was using in-backward optimizer."
                     ) from e
-            log.info("In-backward optimizers are set up.")
+            self._logger.info("In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(
@@ -700,7 +665,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             if opt_state_dict:
                 optimizer.load_state_dict(opt_state_dict)
 
-            log.info("Optimizer is initialized.")
+            self._logger.info("Optimizer is initialized.")
             return optimizer
 
     def _setup_data(
@@ -967,7 +932,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop."""
 
         if self.compile:
-            log.info(
+            self._logger.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward."
                 "Expect a relatively slow first iteration."
             )

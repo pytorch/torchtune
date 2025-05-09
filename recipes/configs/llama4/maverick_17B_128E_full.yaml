@@ -58,7 +58,7 @@ optimizer:
   fused: False
 optimizer_in_bwd: False
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 clip_grad_norm: null
 
 # cuda, cpu, rocm, xpu...
@@ -79,6 +79,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Useful for understanding how to optimize memory and performance
 profiler:

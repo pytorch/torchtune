@@ -11,6 +11,8 @@ from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
 
+from torchtune.utils import deprecated
+
 
 class TransformerSelfAttentionLayer(nn.Module):
     """
@@ -396,11 +398,13 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.num_output_chunks = 0
+        self.skip_output_layer = False
 
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
         self.decoder_max_cache_seq_len = None
 
+    @deprecated("Please use LinearCrossEntropyLoss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -485,7 +489,7 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.reset_cache()
 
-    @torch.compiler.disable
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
     def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
         """
         Apply output projection in chunks. This should be applied in conjunction with
@@ -609,9 +613,9 @@ class TransformerDecoder(nn.Module):
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
-            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer
-                output tensors defined by ``output_hidden_states`` with the
-                final output tensor appended to the list.
+            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_layer=False`
+            and ``[b x s x d]`` otherwise, or a list of layer output tensors defined by ``output_hidden_states`` with the
+            final output tensor appended to the list.
 
         Note:
             At the very first step of inference, when the model is provided with a prompt,
@@ -674,8 +678,9 @@ class TransformerDecoder(nn.Module):
     def unembed(self, h):
         # shape: [b, s, d]
         h = self.norm(h)
-
-        if self.num_output_chunks > 0:
+        if self.skip_output_layer:
+            output = h
+        elif self.num_output_chunks > 0:
             output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]

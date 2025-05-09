@@ -57,7 +57,7 @@ optimizer:
   lr: 2e-5
   fused: True
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
@@ -82,6 +82,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: null
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 
 # Profiler (disabled)

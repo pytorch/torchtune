@@ -34,9 +34,11 @@ Losses
     :toctree: generated/
     :nosignatures:
 
-    loss.CEWithChunkedOutputLoss
+    loss.LinearCrossEntropyLoss
     loss.ForwardKLLoss
     loss.ForwardKLWithChunkedOutputLoss
+    loss.ReverseKLWithChunkedOutputLoss
+    loss.SymmetricKLWithChunkedOutputLoss
 
 Base Tokenizers
 ---------------

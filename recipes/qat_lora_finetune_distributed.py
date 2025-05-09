@@ -16,6 +16,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed.tensor import DTensor
 
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -24,23 +25,26 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.loss import SFTLoss
 from torchtune.modules.peft import (
+    AdapterModule,
     DoRALinear,
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
     get_merged_lora_ckpt,
-    LoRALinear,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import (
+    DummyProfiler,
+    PROFILER_KEY,
+    VALID_BACKENDS_FOR_MEMORY_STATS,
+)
 from torchtune.training.quantization import swap_lora_linear_with_qat
 
 from tqdm import tqdm
-
-log = utils.get_logger("DEBUG")
 
 
 class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
@@ -156,6 +160,16 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "Compile is not yet supported for QAT. Please set compile=False."
             )
 
+        # Set up the backend for distributed training (NCCL, GLOO, etc.)
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
+        self.distributed_backend = training.get_distributed_backend(
+            cfg.device,
+            offload_ops_to_cpu=self.fsdp_cpu_offload
+            or self._enable_async_checkpointing,
+        )
+        init_process_group(self.distributed_backend)
+
         self.world_size, self.rank = utils.get_world_size_and_rank()
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
@@ -166,10 +180,15 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
-        if self._log_peak_memory_stats and self._device.type != "cuda":
-            log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
+        if (
+            self._log_peak_memory_stats
+            and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS
+        ):
+            self._logger.info(
+                f"log_peak_memory_stats was set to True; however, training device is not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
+                "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
@@ -209,7 +228,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             and cfg.checkpointer.model_type != "LLAMA3_VISION"
         ):
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -320,15 +339,14 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, SFTLoss):
+            self._loss_fn.set_model_output(self._model)
 
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
 
-        if self._loss_fn.__class__.__name__ == "CEWithChunkedOutputLoss":
-            # set num_output_chunks for model
-            self._model.set_num_output_chunks(self._loss_fn.num_output_chunks)
         if self._is_rank_zero:
-            log.info("Loss is initialized.")
+            self._logger.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -374,41 +392,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
@@ -426,7 +409,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
         if self._is_rank_zero:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
+            self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
 
             self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
             if profiler_cfg["enabled"]:
@@ -482,7 +465,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         if self._is_rank_zero:
-            log.info(
+            self._logger.info(
                 "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
             )
             init_start = time.perf_counter()
@@ -532,9 +515,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if fsdp_cpu_offload else self._device
             for m in model.modules():
-                if (
-                    isinstance(m, LoRALinear) or isinstance(m, DoRALinear)
-                ) and not lora_weights_state_dict:
+                if (isinstance(m, AdapterModule)) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
                     m.to_empty(device=lora_device)
@@ -569,7 +550,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # log
         if self._is_rank_zero:
-            log.info(
+            self._logger.info(
                 f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
             )
             memory_stats = training.get_memory_stats(device=self._device)
@@ -593,7 +574,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         if self._is_rank_zero:
-            log.info("Optimizer is initialized.")
+            self._logger.info("Optimizer is initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -609,7 +590,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             last_epoch=last_epoch,
         )
         if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+            self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -663,7 +644,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+            self._logger.info("Dataset and Sampler are initialized.")
 
         return dataloader
 
@@ -689,7 +670,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
 
         if self._is_rank_zero:
-            log.info(
+            self._logger.info(
                 "Saving checkpoint. This may take some time. Retrieving full model state dict..."
             )
             start = time.perf_counter()
@@ -703,13 +684,13 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
             adapter_weights_only=self._save_adapter_weights_only,
         )
         if self._is_rank_zero:
-            log.info(
+            self._logger.info(
                 f"Getting full model state dict took {time.perf_counter() - start:.2f} secs"
             )
 
         if intermediate_checkpoint:
             if self._is_rank_zero:
-                log.info("Retrieving optimizer state dict...")
+                self._logger.info("Retrieving optimizer state dict...")
             opt_state_dict = training.get_full_optimizer_state_dict(
                 self._model,
                 self._optimizer,
@@ -717,7 +698,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 device=self._device,
             )
             if self._is_rank_zero:
-                log.info(
+                self._logger.info(
                     f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs"
                 )
         else:
@@ -775,7 +756,9 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=self._save_adapter_weights_only,
             )
-            log.info(f"Saving checkpoint took {time.perf_counter() - start:.2f} secs")
+            self._logger.info(
+                f"Saving checkpoint took {time.perf_counter() - start:.2f} secs"
+            )
 
         torch.distributed.barrier()
 
@@ -833,19 +816,24 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 labels = batch.pop("labels")
 
                 with self.activations_handling_ctx:
-                    logits = self._model(**batch)
+                    outputs = self._model(**batch)
 
-                if not isinstance(logits, list):
+                # post process for third party loss functions
+                if not isinstance(self._loss_fn, SFTLoss):
                     labels = labels.reshape(-1)
-                    logits = logits.reshape(-1, logits.size(-1))
+                    outputs = outputs.reshape(-1, outputs.size(-1))
+                    if isinstance(outputs, DTensor):
+                        outputs = outputs.full_tensor()
 
                 # Compute loss
+                current_loss = self._loss_fn(outputs, labels)
+
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_fn(logits, labels) * current_num_tokens
+                current_loss = current_loss * current_num_tokens
 
-                # free logits otherwise it peaks backward memory
-                del logits
+                # free outputs otherwise it peaks backward memory
+                del outputs
 
                 running_loss += current_loss
                 current_loss.backward()
@@ -953,7 +941,6 @@ def recipe_main(cfg: DictConfig) -> None:
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     config.log_config(recipe_name="QATLoRAFinetuneRecipeDistributed", cfg=cfg)
 
