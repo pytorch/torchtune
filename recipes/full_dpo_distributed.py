@@ -25,6 +25,7 @@ from torchtune.rlhf import ChosenRejectedOutputs
 from torchtune.training import (
     disable_dropout,
     DummyProfiler,
+    get_world_size_and_rank,
     PROFILER_KEY,
     VALID_BACKENDS_FOR_MEMORY_STATS,
 )
@@ -33,7 +34,6 @@ from torchtune.training.checkpointing._checkpoint_client import (
     TrainingProgress,
 )
 from torchtune.training.lr_schedulers import get_lr
-from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
 
@@ -123,7 +123,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
+        self._device = training.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:

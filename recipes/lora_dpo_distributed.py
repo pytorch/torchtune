@@ -124,7 +124,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
+        self._device = training.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
         if self._dtype == torch.float16:
@@ -140,7 +140,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         )
         init_process_group(self.distributed_backend)
 
-        self.world_size, self.rank = utils.get_world_size_and_rank()
+        self.world_size, self.rank = training.get_world_size_and_rank()
 
         self._is_rank_zero = self.rank == 0
 

@@ -89,12 +89,12 @@ class InferenceRecipe:
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
+        self._device = training.get_device(device=cfg.device)
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._logger = utils.get_logger(cfg.log_level)
         # Set up distributed env
         dist.init_process_group(backend="nccl")
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = training.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
         training.set_seed(
             seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
@@ -172,7 +172,7 @@ class InferenceRecipe:
             f"Bandwidth achieved: {model_size * tokens_per_second / (1024**3):.02f} GiB/s"
         )
         if self._device.type != "cpu":
-            torch_device = utils.get_torch_device_namespace()
+            torch_device = training.get_torch_device_namespace()
             self._logger.info(
                 f"Max memory allocated: {torch_device.max_memory_allocated() / (1024**3):.02f} GiB"
             )
@@ -247,7 +247,7 @@ class InferenceRecipe:
             batch["mask"] = causal_mask[None, :seq_len]
 
         batch["input_pos"] = input_pos[None, :seq_len]
-        utils.batch_to_device(batch, self._device)
+        training.batch_to_device(batch, self._device)
 
         # 6. Prefill step
         generated_tokens = []

@@ -15,7 +15,8 @@ import torch
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
 
-from torchtune.utils import get_logger, get_world_size_and_rank
+from torchtune.training import get_world_size_and_rank
+from torchtune.utils import get_logger
 from typing_extensions import Protocol
 
 Scalar = Union[torch.Tensor, ndarray, int, float]

@@ -17,7 +17,7 @@ from torch.utils.data import default_collate, DistributedSampler
 from torchtune.data._torchdata import DatasetType, Loader, requires_torchdata
 from torchtune.modules.transforms import Transform
 
-from torchtune.utils import get_world_size_and_rank
+from torchtune.training import get_world_size_and_rank
 
 T = TypeVar("T", bound=type)
 

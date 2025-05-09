@@ -9,6 +9,14 @@ from torchtune.training._activation_offloading import (
     OffloadActivations,
 )
 from torchtune.training._compile import compile_loss, compile_model
+from torchtune.training._device import (
+    batch_to_device,
+    DeviceSupport,
+    get_device,
+    get_device_support,
+    get_torch_device_namespace,
+    get_world_size_and_rank,
+)
 from torchtune.training._distributed import (
     gather_cpu_state_dict,
     get_distributed_backend,
@@ -79,6 +87,12 @@ from torchtune.training.quantization import get_quantizer_mode
 from torchtune.training.seed import set_seed
 
 __all__ = [
+    "batch_to_device",
+    "get_device",
+    "get_device_support",
+    "get_torch_device_namespace",
+    "DeviceSupport",
+    "get_world_size_and_rank",
     "get_act_offloading_ctx_manager",
     "prepare_mha_for_tp",
     "apply_selective_activation_checkpointing",

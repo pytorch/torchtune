@@ -32,7 +32,7 @@ class PostProcessingWorker:
         self.rollout_queue = kwargs.pop("rollout_queue")
         self.replay_buffer = kwargs.pop("replay_buffer")
         device_type = "cuda"
-        self._device = utils.get_device(device=device_type)
+        self._device = training.get_device(device=device_type)
         self._tokenizer = config.instantiate(self.cfg.tokenizer)
         self._dtype = training.get_dtype("bf16", device=self._device)
         ref_checkpoint_dict = self.load_ref_checkpoint(

@@ -59,7 +59,7 @@ class TrainingWorker:
 
         # Device and dtype setup
         device_type = "cuda"  # Harcoded for now
-        self._device = utils.get_device(device=device_type)
+        self._device = training.get_device(device=device_type)
         self._dtype = training.get_dtype("bf16", device=self._device)
 
         # Logging attributes

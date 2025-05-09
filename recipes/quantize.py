@@ -46,7 +46,7 @@ class QuantizationRecipe:
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
+        self._device = training.get_device(device=cfg.device)
         self._dtype = training.get_dtype(dtype=cfg.dtype, device=self._device)
         self._quantizer = config.instantiate(cfg.quantizer)
         self._quantization_mode = training.get_quantizer_mode(self._quantizer)
@@ -95,7 +95,7 @@ class QuantizationRecipe:
         t = time.perf_counter() - t0
         logger.info(f"Time for quantization: {t:.02f} sec")
         if self._device.type != "cpu":
-            torch_device = utils.get_torch_device_namespace()
+            torch_device = training.get_torch_device_namespace()
             logger.info(
                 f"Memory used: {torch_device.max_memory_allocated() / 1e9:.02f} GB"
             )
