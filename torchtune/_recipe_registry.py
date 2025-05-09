@@ -389,6 +389,10 @@ _ALL_RECIPES = [
                 name="mistral/7B_full_ppo_low_memory",
                 file_path="mistral/7B_full_ppo_low_memory.yaml",
             ),
+            Config(
+                name="llama2/1B_full_ppo_low_memory_single_device",
+                file_path="llama2/1B_full_ppo_low_memory_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
