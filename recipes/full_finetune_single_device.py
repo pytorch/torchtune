@@ -604,14 +604,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         return loss
 
     def train(self) -> None:
-        """
-        The core training loop. Supports training on subsets of the dataset using the
-        ``max_steps_per_epoch``.
-        """
-        if self._compile:
-            self._logger.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
@@ -626,12 +618,25 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             inner_step_count = self.global_step % self._steps_per_epoch
             pbar = tqdm(initial=inner_step_count, total=self._steps_per_epoch)
-            for idx, batch in enumerate(self._dataloader):
+
+            # Get iterator for the dataloader
+            dataloader_iter = iter(self._dataloader)
+            batch_count = 0
+
+            # Continue looping until we reach max steps or exhaust the dataset
+            while inner_step_count < self.max_steps_per_epoch:
+                # Try to get the next batch, break if we've reached the end of the dataset
+                try:
+                    batch = next(dataloader_iter)
+                except StopIteration:
+                    break
+
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
-                    and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    and batch_count
+                    == self.profiler_wait_steps + self.profiler_warmup_steps
                     and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
@@ -651,7 +656,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 current_loss.backward()
 
                 # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if (batch_count + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         training.scale_grads(self._model, 1 / num_tokens)
                         if self._clip_grad_norm is not None:
@@ -717,7 +722,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
-                    and idx
+                    and batch_count
                     == self.profiler_wait_steps
                     + self.profiler_warmup_steps
                     + self.profiler_active_steps
@@ -725,16 +730,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history(enabled=None)
 
-                # Step the profiler
                 # Note we are stepping each batch, which might not include optimizer step in the trace
                 # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
 
-                # Check if we should stop training for this epoch
-                if (
-                    inner_step_count // self._gradient_accumulation_steps
-                ) == self.max_steps_per_epoch:
-                    break
+                batch_count += 1
 
             self.epochs_run += 1
 
