@@ -329,9 +329,8 @@ class Qwen2Tokenizer(ModelTokenizer):
         """
         Tokenize header start, message role, and header end as list of ids
         """
-        return (
-            [self.im_start_id]
-            + self.encode(f"{message.role}\n", add_bos=False, add_eos=False)
+        return [self.im_start_id] + self.encode(
+            f"{message.role}\n", add_bos=False, add_eos=False
         )
 
     def _tokenize_body(self, message: Message) -> List[int]:
@@ -342,21 +341,16 @@ class Qwen2Tokenizer(ModelTokenizer):
         for item in message.content:
             if item["type"] == "text":
                 tokenized_body += self.encode(
-                        item["content"],
-                        add_bos=False,
-                        add_eos=False,
-                    )
-            else:
-                raise RuntimeError(
-                    f"Unsupported message content type: {item['type']}"
+                    item["content"],
+                    add_bos=False,
+                    add_eos=False,
                 )
+            else:
+                raise RuntimeError(f"Unsupported message content type: {item['type']}")
         return tokenized_body
 
     def _tokenize_end(self, message: Message) -> List[int]:
-        return (
-            [self.im_end_id]
-            + self.encode("\n", add_bos=False, add_eos=False)
-        )
+        return [self.im_end_id] + self.encode("\n", add_bos=False, add_eos=False)
 
     def tokenize_message(
         self,
@@ -378,9 +372,18 @@ class Qwen2Tokenizer(ModelTokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        tokenized_header = self._tokenize_header(message) if message.role != "ipython" and add_start_tokens else []
+        tokenized_header = (
+            self._tokenize_header(message)
+            if message.role != "ipython" and add_start_tokens
+            else []
+        )
         tokenized_body = self._tokenize_body(message)
-        tokenized_end = self._tokenize_end(message) if message.role != "ipython" and (message.role != "assistant" or index != num_messages - 1) else []
+        tokenized_end = (
+            self._tokenize_end(message)
+            if message.role != "ipython"
+            and (message.role != "assistant" or index != num_messages - 1)
+            else []
+        )
 
         tokenized_message = tokenized_header + tokenized_body + tokenized_end
         return tokenized_message
@@ -397,14 +400,11 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Args:
             messages (List[Message]): The message list to tokenize.
-            add_eos (bool): Wether to add the tokenizer's eos_id at the end of the
-                sequence of messages. Default is True.
+            add_end_tokens (bool): Whether to append end tokens ids (end-of-seq, end-of-turn, end-of-message) at the end of the
+                last assistant message. This value should be set to False for generation. Default is True.
 
         Returns:
             Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
-
-        Raises:
-            RuntimeError: If a message contains non-text content
         """
         assert not isinstance(self.prompt_template, ChatMLTemplate), (
             "Using ChatMLTemplate with tokenize_messages will result in multiple <|im_*|> tokens wrapping each message."
@@ -421,7 +421,9 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         num_messages = len(templated_messages)
         for i, message in enumerate(templated_messages):
-            tokenized_message = self.tokenize_message(message, index=i, num_messages=num_messages)
+            tokenized_message = self.tokenize_message(
+                message, index=i, num_messages=num_messages
+            )
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
 
