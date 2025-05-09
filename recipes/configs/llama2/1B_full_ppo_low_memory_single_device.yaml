@@ -123,7 +123,7 @@ ppo_batch_size: 16
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 
 # Memory management and performance
-compile: True  # torch.compile the model + loss, True increases speed + decreases memory
+compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 optimizer:
   _component_: torch.optim.AdamW
   lr: 3e-6
@@ -151,6 +151,7 @@ reward_penalty: -3
 
 # tokens to consider as "end of sequence" tokens
 stop_token_ids: [
+  2,
   29889
 ]
 whiten_rewards: False
