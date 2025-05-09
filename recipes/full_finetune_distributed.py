@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
+import torch.distributed
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -1056,7 +1057,9 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
+    if torch.distributed.get_rank() == 0:
+        #ensures the log is only done by the rank 0 process (master node)
+        config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
     recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
@@ -1065,3 +1068,4 @@ def recipe_main(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     sys.exit(recipe_main())
+
