@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List
+from typing import List
 
 import torch
 from tensordict import TensorClass
+from torchtune.dev.rl.rewards import RewardOutput
 
 
 class Trajectory(TensorClass["nocast"]):
@@ -19,8 +20,6 @@ class Trajectory(TensorClass["nocast"]):
     seq_lens: torch.Tensor
     answers: torch.Tensor
     policy_version: int
-    rewards: torch.Tensor
     advantages: torch.Tensor
-    successes: torch.Tensor
-    reward_metadata: Dict[str, List[str]]
+    reward_outputs: List[RewardOutput]
     sequence_ids: List[str]

@@ -572,15 +572,8 @@ class TrainingWorker:
             per_sample_dict["answers"] = grpo_trajectory.answers[idx]
             per_sample_dict["policy_version"] = metadata["policy_version"][idx]
 
-            # Add rewards dynamically based on func_names
-            rewards = metadata["rewards"][idx].tolist()
-            for func_name, reward in zip(func_names, rewards):
-                per_sample_dict[f"reward_{func_name}"] = reward
-
-            # Add successes dynamically based on func_names
-            successes = metadata["successes"][idx].tolist()
-            for func_name, success in zip(func_names, successes):
-                per_sample_dict[f"success_{func_name}"] = success
+            for reward_output in metadata["reward_outputs"][idx]:
+                per_sample_dict.update(reward_output.log(prefix="rewards"))
 
             # Add GRPO statistics, handling per-sample vs. scalar cases
             # TODO: currently has one scalar per batch. We should enable a scalar per sentence.
@@ -921,9 +914,7 @@ class TrainingWorker:
             "avg_policy_age": avg_policy_age,
             "sequence_ids": raw_trajectory.sequence_ids,
             "policy_version": raw_trajectory.policy_version,
-            "rewards": raw_trajectory.rewards,
-            "successes": raw_trajectory.successes,
-            "reward_metadata": raw_trajectory.reward_metadata,
+            "reward_outputs": raw_trajectory.reward_outputs,
             "query_response_padding_masks": raw_trajectory.query_response_padding_masks,
         }
 
