@@ -10,7 +10,6 @@
 #   tune download smohammadi/tinyllama_rm_sentiment_1b --output-dir /tmp/tinyllama_rm_sentiment_1b/
 #   tune download TinyLlama/TinyLlama_v1.1 --output-dir /tmp/TinyLlama_v1.1/
 #
-# You'll also need to ensure that {output_dir} exists beforehand, as checkpoints for policy and value models are saved in sub-folders.
 #
 # To launch on a single device, run the following command from root:
 #   tune run ppo_full_finetune_single_device --config llama2/1B_full_ppo_low_memory_single_device
