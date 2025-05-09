@@ -17,12 +17,15 @@ def get_cosine_schedule_with_warmup(
     num_warmup_steps: int,
     num_training_steps: int,
     num_cycles: float = 0.5,
+    min_lr_ratio_warmup: float = 0.0,
+    min_lr_ratio_decay: float = 0.0,
     last_epoch: int = -1,
 ) -> LambdaLR:
     """
     Create a learning rate schedule that linearly increases the learning rate from
-    0.0 to lr over ``num_warmup_steps``, then decreases to 0.0 on a cosine schedule over
-    the remaining ``num_training_steps-num_warmup_steps`` (assuming ``num_cycles`` = 0.5).
+    ``min_lr_ratio_warmup * lr`` to ``lr`` over ``num_warmup_steps``, then decreases to
+    ``min_lr_ratio_decay * lr`` on a cosine schedule over the remaining
+    ``num_training_steps - num_warmup_steps`` (assuming ``num_cycles`` = 0.5).
 
     This is based on the Hugging Face implementation
     https://github.com/huggingface/transformers/blob/v4.23.1/src/transformers/optimization.py#L104.
@@ -34,6 +37,8 @@ def get_cosine_schedule_with_warmup(
         num_training_steps (int): The total number of training steps.
         num_cycles (float): The number of waves in the cosine schedule. Defaults to 0.5
             (decrease from the max value to 0 following a half-cosine).
+        min_lr_ratio_warmup (float): Minimum learning rate ratio during warmup phase (0.0 to 1.0).
+        min_lr_ratio_decay (float): Minimum learning rate ratio during decay phase (0.0 to 1.0).
         last_epoch (int): The index of the last epoch when resuming training. Defaults to -1
 
     Returns:
@@ -43,7 +48,8 @@ def get_cosine_schedule_with_warmup(
     def lr_lambda(current_step: int) -> float:
         # linear warmup phase
         if current_step < num_warmup_steps:
-            return current_step / max(1, num_warmup_steps)
+            warmup_ratio = current_step / max(1, num_warmup_steps)
+            return min_lr_ratio_warmup + (1 - min_lr_ratio_warmup) * warmup_ratio
 
         # cosine
         progress = (current_step - num_warmup_steps) / max(
@@ -53,7 +59,8 @@ def get_cosine_schedule_with_warmup(
         cosine_lr_multiple = 0.5 * (
             1.0 + math.cos(math.pi * num_cycles * 2.0 * progress)
         )
-        return max(0.0, cosine_lr_multiple)
+        decay_ratio = (1 - min_lr_ratio_decay) * cosine_lr_multiple + min_lr_ratio_decay
+        return max(0.0, decay_ratio)
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 
