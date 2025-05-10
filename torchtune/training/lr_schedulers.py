@@ -36,9 +36,9 @@ def get_cosine_schedule_with_warmup(
         num_warmup_steps (int): The number of steps for the warmup phase.
         num_training_steps (int): The total number of training steps.
         num_cycles (float): The number of waves in the cosine schedule. Defaults to 0.5
-            (decrease from the max value to 0 following a half-cosine).
-        min_lr_ratio_warmup (float): Minimum learning rate ratio during warmup phase (0.0 to 1.0).
-        min_lr_ratio_decay (float): Minimum learning rate ratio during decay phase (0.0 to 1.0).
+            (decrease from the max value to min_lr_ratio_decay following a half-cosine).
+        min_lr_ratio_warmup (float): Minimum learning rate ratio during warmup phase (0.0 to 1.0). Defaults to 0.0
+        min_lr_ratio_decay (float): Minimum learning rate ratio during decay phase (0.0 to 1.0). Defaults to 0.0
         last_epoch (int): The index of the last epoch when resuming training. Defaults to -1
 
     Returns:
