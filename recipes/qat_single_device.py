@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
+import sys
 import time
 
 from typing import Any, Dict  # List, Optional, Union
@@ -12,9 +12,11 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig  # ListConfig
 
-from torchtune import training, utils  # config, modules,
+from torchtune import config, training, utils  # modules
 from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
+
+from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
@@ -268,11 +270,69 @@ class QATRecipeSingleDevice(FTRecipeInterface):
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),
                                 max_norm=float(self._clip_grad_norm),
-                            ).full_tensor()
+                            )
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
-        return
+                    # Update the number of steps when the weights are updated
+                    self.global_step += 1
+
+                    loss_to_log = running_loss.detach().item() / num_tokens
+                    pbar.update(1)
+                    pbar.set_description(
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                    )
+
+                    if self.global_step % self._log_every_n_steps == 0:
+                        time_per_step = time.perf_counter() - t0
+                        log_dict = {
+                            "loss": loss_to_log,
+                            "lr": get_lr(
+                                (
+                                    self._optimizer
+                                    if not self._optimizer_in_bwd
+                                    else self._optim_ckpt_wrapper
+                                ),
+                            ),
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                        }
+                        if self._device.type != "cpu" and self._log_peak_memory_stats:
+                            log_dict.update(
+                                training.get_memory_stats(device=self._device)
+                            )
+                        if self._clip_grad_norm is not None:
+                            log_dict.update({"grad_norm": grad_norm})
+                        self._metric_logger.log_dict(
+                            log_dict,
+                            step=self.global_step,
+                        )
+
+                    # Reset running stats for the next step
+                    running_loss = 0
+                    num_tokens = 0
+                    t0 = time.perf_counter()
+
+                    # Stop tracking CUDA memory now that active steps are complete
+                    if (
+                        curr_epoch == 0
+                        and self.profiler_profile_memory
+                        and idx
+                        == self.profiler_wait_steps
+                        + self.profiler_warmup_steps
+                        + self.profiler_active_steps
+                        and self._device.type == "cuda"
+                    ):
+                        torch.cuda.memory._record_memory_history(enabled=None)
+
+                    # Step profiler
+                    # Note that this is called within gradient accumulation block, hence
+                    # will include multiple forward / backward passes if gradient accumulation > 1
+                    self._profiler.step()
+
+            self.epochs_run += 1
+            self.save_checkpoint(epoch=curr_epoch)
+
+        self._profiler.stop()
 
     def save_checkpoint(self, **kwargs) -> None:
         """
@@ -287,3 +347,23 @@ class QATRecipeSingleDevice(FTRecipeInterface):
         Any cleaning up needed for the recipe.
         """
         return
+
+
+@config.parse
+def recipe_main(cfg: DictConfig) -> None:
+    """
+    Entry point for the recipe.
+
+    Configurable parameters are read in the following order:
+        - Parameters specified in config (see available configs through ``tune ls``)
+        - Overwritten by arguments from the command-line
+    """
+    config.log_config(recipe_name="QATRecipeSingleDevice", cfg=cfg)
+    recipe = QATRecipeSingleDevice(cfg=cfg)
+    recipe.setup(cfg=cfg)
+    recipe.train()
+    recipe.cleanup()
+
+
+if __name__ == "__main__":
+    sys.exit(recipe_main())
