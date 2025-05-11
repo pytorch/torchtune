@@ -26,7 +26,6 @@ class DeepSeekV3Attention(nn.Module):
                  kv_norm: nn.Module,
                  pos_embeddings: Optional[nn.Module] = None,
                  q_norm: Optional[nn.Module] = None,
-                #  kv_cache: Optional[KVCache] = None,
                  max_seq_len: int = 4096,
                  is_causal: bool = True,
                  attn_dropout: float = 0.0,):

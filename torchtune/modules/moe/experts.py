@@ -65,6 +65,9 @@ class GroupedExperts(nn.Module):
         )
         out_experts_splits = []
         for expert_idx, x_expert in enumerate(x):
+            if x_expert.numel() == 0:
+                out_experts_splits.append(torch.zeros_like(x_expert))
+                continue
             w1, w2, w3 = (
                 self.gate_proj[expert_idx],
                 self.down_proj[expert_idx],

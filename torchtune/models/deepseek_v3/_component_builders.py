@@ -9,6 +9,8 @@ from typing import Optional
 import torch
 from torch import nn
 from torchtune.models.deepseek_v3._linear import DeepSeekV3LatentLinear
+from torchtune.models.deepseek_v3._attention import DeepSeekV3Attention
+from torchtune.models.deepseek_v3._moe import DeepSeekV3TokenChoiceTopKRouter
 from torchtune.models.deepseek_v3._position_embeddings import DeepSeekV3RoPE
 from torchtune.modules import (
     FeedForward,
@@ -16,24 +18,14 @@ from torchtune.modules import (
     RMSNorm,
     TransformerDecoder,
     TransformerDecoderLayer,
-    Tokenizer
+    Tokenizer,
+    TransformerSelfAttentionLayer,
 )
 from torchtune.modules.moe.experts import GroupedExperts
+from torchtune.modules.moe.moe import MoE
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 
-def deepseek_v3_mlp(
-    dim: int,
-    hidden_dim: int,
-    ffn_dropout: float = 0.0
-) -> FeedForward:
-    """
-    Builds the FeedForward layer for DeepSeek V3.
-    """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False)
-    return FeedForward(gate_proj=gate_proj, up_proj=up_proj, down_proj=down_proj, dropout=ffn_dropout, activation_fn=nn.SiLU)
-    
+
 def deepseek_v3(
     *,
     vocab_size: int,
@@ -47,52 +39,67 @@ def deepseek_v3(
     q_lora_rank: Optional[int] = None,
     rope_head_dim: Optional[int] = None,
     v_head_dim: Optional[int] = None,
+    moe_every_n_layers: Optional[int] = None,
+    first_moe_layer: Optional[int] = None,
+    num_experts: Optional[int] = None,
+    num_groups: Optional[int] = None,
+    topk_groups: Optional[int] = None,
+    norm_topk_prob: Optional[float] = None,
+    routed_scaling_factor: Optional[float] = None,
+    experts_per_token: Optional[float] = None,
+    mlp_hidden_dim: Optional[int] = None,
+    norm_eps: float = 1e-5,
 ):
+    head_dim = embed_dim // num_heads
     rope = RotaryPositionalEmbeddings(
         dim=head_dim, max_seq_len=max_seq_len, base=rope_base
     )
     layers = []
     for i in range(num_layers):
-        if q_lora_rank is None:
-            q_proj = nn.Linear(embed_dim, num_heads * q_head_dim, bias=False)
+        if q_lora_rank is not None:
+            q_proj = nn.Linear(embed_dim, num_heads * head_dim, bias=False)
         else:
-            q_proj = DeepSeekV3LatentLinear(
-                in_dim=embed_dim,
-                out_dim=num_heads * q_head_dim,
-                rank=q_lora_rank,
-            )
-        kv_proj = DeepSeekV3LatentLinear(
-            in_dim=embed_dim,
-            out_dim=num_kv_heads * (q_head_dim - rope_head_dim + v_head_dim),
-            rank=q_lora_rank,
-        )
-        self_attn = MultiheadAttention(
+            q_proj = DeepSeekV3LatentLinear(embed_dim, num_heads * head_dim, q_lora_rank)
+
+        self_attn = DeepSeekV3Attention(
             embed_dim=embed_dim,
             num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            head_dim=head_dim,
-            pos_embeddings=rope,
+            qk_rope_head_dim=head_dim,
+            v_head_dim=v_head_dim,
+            qk_nope_head_dim=head_dim,
+            q_head_dim=head_dim,
             q_proj=q_proj,
-            kv_proj=kv_proj,    
-            o_proj=nn.Linear(num_heads * v_head_dim, embed_dim, bias=False),
+            kv_proj=DeepSeekV3LatentLinear(embed_dim, num_kv_heads * head_dim * 2, kv_lora_rank),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            kv_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+            pos_embeddings=rope,
+            q_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+            max_seq_len=max_seq_len,
+            is_causal=True,
+            attn_dropout=0.0,
         )
-        if i >= first_moe_layer and i % moe_every_n_layers == 0:
+        is_moe = (moe_every_n_layers is None or (i + 1) % moe_every_n_layers == 0) and i >= first_moe_layer
+        if is_moe:
             mlp_layer = MoE(
                 experts=GroupedExperts(
-                    dim=embed_dim, hidden_dim=hidden_dim, num_experts=num_experts
+
+                    num_experts=num_experts,
                 ),
-                router=TokenChoiceTopKRouter(
+                router=DeepSeekV3TokenChoiceTopKRouter(
                     gate=nn.Linear(embed_dim, num_experts, bias=False),
                     dim=embed_dim,
                     num_experts=num_experts,
                     experts_per_token=experts_per_token,
+                    num_groups=num_groups,
+                    topk_groups=topk_groups,
+                    norm_topk_prob=norm_topk_prob,
+                    routed_scaling_factor=routed_scaling_factor,
                 ),
-                shared_expert=(
-                    deepseek_v3_mlp(dim=embed_dim, hidden_dim=hidden_dim) if use_shared_expert else None
-                )
+                shared_expert=deepseek_v3_mlp(embed_dim, mlp_hidden_dim),
             )
         else:
-            mlp_layer = deepseek_v3_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+            mlp_layer = deepseek_v3_mlp(embed_dim, mlp_hidden_dim)
+
 
         layer = TransformerSelfAttentionLayer(
             attn=self_attn,
@@ -101,6 +108,7 @@ def deepseek_v3(
             mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         )
         layers.append(layer)
+
     layers = nn.ModuleList(layers)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
@@ -109,4 +117,23 @@ def deepseek_v3(
         tok_embeddings=tok_embeddings,
         layers=layers,
         max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=head_dim,
+        norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        output=output_proj,
     )
+    
+    
+def deepseek_v3_mlp(
+    dim: int,
+    hidden_dim: int
+) -> FeedForward:
+    """
+    Builds the FeedForward layer for DeepSeek V3.
+    """
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False)
+    return FeedForward(gate_proj=gate_proj, up_proj=up_proj, down_proj=down_proj)
+
+

@@ -140,6 +140,7 @@ class MoE(nn.Module):
             out = self.shared_expert(x).reshape(bs * slen, dim)
         else:
             out = torch.zeros_like(x.reshape(bs * slen, dim))
-        out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
+        if routed_output.numel() > 0:   
+            out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(bs, slen, dim)
         return out
