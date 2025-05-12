@@ -14,7 +14,6 @@ from .common_utils import (
     disable_kv_cache,
     local_kv_cache,
     reparametrize_as_dtype_state_dict_post_hook,
-    resize_token_embeddings,
 )
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
@@ -35,6 +34,7 @@ from .transformer import (  # noqa
 )
 from .vision_transformer import VisionTransformer
 from .vq_embeddings import VectorQuantizedEmbeddings
+from .embedding_utils import resize_token_embeddings  # usort: skip
 
 __all__ = [
     "MultiHeadAttention",
