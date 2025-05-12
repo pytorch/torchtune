@@ -66,6 +66,7 @@ lr_scheduler:
   _component_: torchtune.training.lr_schedulers.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 
+optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 loss:
   _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 

@@ -168,6 +168,11 @@ def lora_qwen2(
     norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
     tie_word_embeddings: bool = False,
+    q_proj_bias: bool = True,
+    k_proj_bias: bool = True,
+    v_proj_bias: bool = True,
+    q_norm: bool = False,
+    k_norm: bool = False,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -205,6 +210,11 @@ def lora_qwen2(
         norm_eps (float): epsilon in RMS norms.
         rope_base (float): the base period of the RoPE embeddings.
         tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
+        q_proj_bias (bool): whether to use bias in the query projection.
+        k_proj_bias (bool): whether to use bias in the key projection.
+        v_proj_bias (bool): whether to use bias in the value projection.
+        q_norm (bool): whether to use normalization in the query projection.
+        k_norm (bool): whether to use normalization in the key projection.
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -230,6 +240,12 @@ def lora_qwen2(
             max_seq_len=max_seq_len,
             head_dim=head_dim,
             attn_dropout=attn_dropout,
+            norm_eps=norm_eps,
+            q_proj_bias=q_proj_bias,
+            k_proj_bias=k_proj_bias,
+            v_proj_bias=v_proj_bias,
+            q_norm=q_norm,
+            k_norm=k_norm,
             rope_base=rope_base,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
@@ -312,7 +328,13 @@ def lora_qwen2_self_attention(
     max_seq_len: int,
     head_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
+    norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
+    q_proj_bias: bool = True,
+    k_proj_bias: bool = True,
+    v_proj_bias: bool = True,
+    q_norm: bool = False,
+    k_norm: bool = False,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -338,7 +360,13 @@ def lora_qwen2_self_attention(
             by :func:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
+        norm_eps (float): epsilon in RMS norms. Default: 1e-5
         rope_base (float): the base period of the RoPE embeddings. Default: 1_000_000.0
+        q_proj_bias (bool): whether to use bias in the query projection.
+        k_proj_bias (bool): whether to use bias in the key projection.
+        v_proj_bias (bool): whether to use bias in the value projection.
+        q_norm (bool): whether to use normalization in the query projection.
+        k_norm (bool): whether to use normalization in the key projection.
         head_dim (Optional[int]): the dimension of each head. If not specified, is computed 
             as `embed_dim` // `num_heads`
         lora_rank (int): rank of each low-rank approximation
@@ -367,11 +395,11 @@ def lora_qwen2_self_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
-            use_bias=True,
+            use_bias=q_proj_bias,
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
-        else nn.Linear(embed_dim, num_heads * head_dim, bias=True)
+        else nn.Linear(embed_dim, num_heads * head_dim, bias=q_proj_bias)
     )
     k_proj = (
         adapter_cls(
@@ -380,11 +408,11 @@ def lora_qwen2_self_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
-            use_bias=True,
+            use_bias=k_proj_bias,
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
+        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=k_proj_bias)
     )
     v_proj = (
         adapter_cls(
@@ -393,15 +421,15 @@ def lora_qwen2_self_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
-            use_bias=True,
+            use_bias=v_proj_bias,
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True)
+        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=v_proj_bias)
     )
     output_proj = (
         adapter_cls(
-            embed_dim,
+            num_heads * head_dim,
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
@@ -420,6 +448,8 @@ def lora_qwen2_self_attention(
         q_proj=q_proj,
         k_proj=k_proj,
         v_proj=v_proj,
+        q_norm=RMSNorm(dim=head_dim, eps=norm_eps) if q_norm else None,
+        k_norm=RMSNorm(dim=head_dim, eps=norm_eps) if k_norm else None,
         output_proj=output_proj,
         pos_embeddings=rope,
         kv_cache=None,
