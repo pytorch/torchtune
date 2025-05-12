@@ -369,6 +369,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
         if self._compile_optimizer_step:
+            if self._optimizer_in_bwd:
+                raise ValueError(
+                    "optimizer_in_bwd not supported with compiling the optimizer step"
+                )
             self._optimizer.step = torch.compile(
                 self._optimizer.step,
                 backend=self._compile_backend,
