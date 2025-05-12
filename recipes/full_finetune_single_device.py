@@ -14,7 +14,6 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
-from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
@@ -26,10 +25,6 @@ from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
-from torchtune.training.memory import (
-    FusedOptimizerInBackward,
-    OptimizerInBackwardWrapper,
-)
 
 from tqdm import tqdm
 
@@ -444,19 +439,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         It handles both standard optimization and optimizer-in-backward cases, and supports
         schedulers from both torchtune.modules and torch.optim.
         """
-        if isinstance(self.optimizer, FusedOptimizerInBackward):
-            # Use the first optimizer from the wrapper to represent the learning rate
-            optimizer = self.optimizer.first_optimizer
-        else:
-            optimizer = self.optimizer
-
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
-            optimizer,
+            self.optimizer,
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-
         self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
