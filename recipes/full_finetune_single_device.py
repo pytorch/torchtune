@@ -7,7 +7,7 @@
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, TypeVar, Union
 from warnings import warn
 
 import torch
@@ -26,9 +26,14 @@ from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
-from torchtune.training.memory import OptimizerInBackwardWrapper
+from torchtune.training.memory import (
+    FusedOptimizerInBackward,
+    OptimizerInBackwardWrapper,
+)
 
 from tqdm import tqdm
+
+OptimizerType = TypeVar("OptimizerType")
 
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -141,21 +146,20 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._optimizer_in_bwd = cfg.optimizer_in_bwd
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
-        # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
-        if self._optimizer_in_bwd:
-            if self._clip_grad_norm is not None:
-                raise RuntimeError(
-                    "Gradient clipping is not supported with optimizer in bwd."
-                    "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
-                )
-            if self._gradient_accumulation_steps > 1:
-                raise RuntimeError(
-                    "Gradient accumulation is not supported with optimizer in bwd."
-                    "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
-                )
+        # # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
+        # if self._optimizer_in_bwd:
+        #     if self._clip_grad_norm is not None:
+        #         raise RuntimeError(
+        #             "Gradient clipping is not supported with optimizer in bwd."
+        #             "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
+        #         )
+        #     if self._gradient_accumulation_steps > 1:
+        #         raise RuntimeError(
+        #             "Gradient accumulation is not supported with optimizer in bwd."
+        #             "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+        #         )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -280,9 +284,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
-        self._optimizer = self._setup_optimizer(
+        self.optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd=cfg.optimizer_in_bwd,
             opt_state_dict=(
                 ckpt_dict[training.OPT_KEY] if self._resume_from_checkpoint else None
             ),
@@ -332,13 +335,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Setup lr scheduler if a component is included in the config
         lr_scheduler_cfg = cfg.get("lr_scheduler", None)
         if lr_scheduler_cfg is not None:
-            self._lr_scheduler = self._setup_lr_scheduler(
+            self.lr_scheduler = self._setup_lr_scheduler(
                 cfg_lr_scheduler=lr_scheduler_cfg,
                 num_training_steps=self.total_epochs * self._steps_per_epoch,
                 last_epoch=self.global_step - 1,
             )
         else:
-            self._lr_scheduler = None
+            self.lr_scheduler = None
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
@@ -421,32 +424,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _setup_optimizer(
         self,
         cfg_optimizer: DictConfig,
-        optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> Union[Optimizer, OptimizerInBackwardWrapper]:
-        """
-        Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
-        """
-        if optimizer_in_bwd:
-            # Maintain a dict of optims for every parameter.
-            optim_dict = {
-                p: config.instantiate(cfg_optimizer, [p])
-                for p in self._model.parameters()
-            }
-            # Register optimizer step hooks on the model to run optimizer in backward.
-            training.register_optim_in_bwd_hooks(
-                model=self._model, optim_dict=optim_dict
-            )
-            # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            optimizer = training.create_optim_in_bwd_wrapper(
-                model=self._model, optim_dict=optim_dict
-            )
-        else:
-            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-
+    ) -> OptimizerType:
+        optimizer = config.instantiate(cfg_optimizer, params=self._model.parameters())
+        print("optimizer", optimizer)
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
-
         self._logger.info("Optimizer is initialized.")
         return optimizer
 
@@ -461,11 +444,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         It handles both standard optimization and optimizer-in-backward cases, and supports
         schedulers from both torchtune.modules and torch.optim.
         """
-        if isinstance(self._optimizer, OptimizerInBackwardWrapper):
+        if isinstance(self.optimizer, FusedOptimizerInBackward):
             # Use the first optimizer from the wrapper to represent the learning rate
-            optimizer = next(iter(self._optimizer.optim_map.values()))
+            optimizer = self.optimizer.first_optimizer
         else:
-            optimizer = self._optimizer
+            optimizer = self.optimizer
 
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
@@ -473,9 +456,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-
-        if isinstance(self._optimizer, OptimizerInBackwardWrapper):
-            self._optimizer.set_lr_scheduler(lr_scheduler)
 
         self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
@@ -550,7 +530,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     training.DATALOADER_KEY: self._dataloader.state_dict(),
-                    training.OPT_KEY: self._optimizer.state_dict(),
+                    training.OPT_KEY: self.optimizer.state_dict(),
                 }
             )
         self._checkpointer.save_checkpoint(
@@ -584,8 +564,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-        if not isinstance(self._optimizer, OptimizerInBackwardWrapper):
-            self._optimizer.zero_grad()
+        self.optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
@@ -622,20 +601,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 current_loss.backward()
 
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    # If we're not using optimizer in backwards, we step the optimizer like normal
-                    if not isinstance(self._optimizer, OptimizerInBackwardWrapper):
-                        training.scale_grads(self._model, 1 / num_tokens)
-                        if self._clip_grad_norm is not None:
-                            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                self._model.parameters(),
-                                max_norm=float(self._clip_grad_norm),
-                            )
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
-
-                    # Need to fix `lr_scheduler.step()` before `optimizer.step()` warning
-                    if self._lr_scheduler is not None:
-                        self._lr_scheduler.step()
+                    training.scale_grads(self._model, 1 / num_tokens)
+                    if self._clip_grad_norm is not None:
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=float(self._clip_grad_norm),
+                        )
+                    self.optimizer.step()
+                    self.optimizer.zero_grad(set_to_none=True)
+                    if self.lr_scheduler is not None:
+                        self.lr_scheduler.step()
                     self.global_step += 1
 
                     loss_to_log = running_loss.detach().item() / num_tokens
@@ -650,7 +625,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             "loss": loss_to_log,
                             # For optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
-                            "lr": get_lr(self._optimizer),
+                            "lr": get_lr(self.optimizer),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._device.type != "cpu" and self._log_peak_memory_stats:
