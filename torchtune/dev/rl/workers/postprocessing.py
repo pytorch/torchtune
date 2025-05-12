@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict
+from typing import Any
 
 import ray
 import torch
@@ -64,7 +64,7 @@ class PostProcessingWorker:
         if self._is_actor_zero:
             self._metric_logger = logger
 
-    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> dict[str, Any]:
         """Extract the reference checkpoint state from file and validate."""
         self._ref_checkpointer = config.instantiate(
             cfg_ref_checkpointer, resume_from_checkpoint=False

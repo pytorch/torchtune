@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import re
-from typing import List, Tuple
 from xml.etree import ElementTree as ET
 
 import math_verify
@@ -15,7 +14,7 @@ import torch
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
-def extract_tags(text: str) -> Tuple[str, str]:
+def extract_tags(text: str) -> tuple[str, str]:
     """
     Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
     The values are lists of strings, with each string being the content of a tag.
@@ -31,7 +30,7 @@ def extract_tags(text: str) -> Tuple[str, str]:
 
 def at_least_one_space_between_think_tags(
     cot: str, answer: str, potential_answer: str
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Did the model at least try to think?"""
     if len(cot) > 0:
         return 1.0, 1.0  # (reward, success)
@@ -41,7 +40,7 @@ def at_least_one_space_between_think_tags(
 
 def math_response_correct(
     cot: str, answer: str, potential_answer: str
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Did it get the right answer?"""
     if potential_answer is None:
         return 0.0, 0.0  # (reward, success)
@@ -60,9 +59,9 @@ def math_response_correct(
 def batched_rewards(
     tokenizer: ModelTokenizer,
     completions: torch.Tensor,
-    answers: List[str],
+    answers: list[str],
     device: torch.device,
-) -> Tuple[torch.Tensor, torch.Tensor, dict]:
+) -> tuple[torch.Tensor, torch.Tensor, dict]:
 
     reward_funcs = [
         at_least_one_space_between_think_tags,
@@ -134,7 +133,7 @@ def shaped_correctness_reward(answer: str, completion: str) -> tuple[float, floa
 
 def batch_shaped_correctness_reward(
     tokenizer: ModelTokenizer, completions: torch.Tensor, answers: list[str]
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Utility function to apply the shaped reward function to a GRPO-style batch of completions."""
 
     batch_size, grpo_size, *_ = completions.shape

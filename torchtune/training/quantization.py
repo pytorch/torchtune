@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 from torch import nn
 from torch.distributed.tensor.parallel.style import ParallelStyle
@@ -260,7 +260,7 @@ def convert_to_float8_training(
 
 # TODO: validate this in full_finetune_distributed recipe once FP8 + TP is enabled
 def _validate_float8_tp_plan(
-    tp_plan: Optional[Dict[str, ParallelStyle]],
+    tp_plan: Optional[dict[str, ParallelStyle]],
     fp8_recipe_name: Optional[str] = None,
 ) -> None:
     """

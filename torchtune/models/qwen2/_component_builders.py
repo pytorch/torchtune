@@ -135,7 +135,7 @@ def qwen2_mlp(dim: int, hidden_dim: int) -> FeedForward:
 
 
 def lora_qwen2(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -164,7 +164,7 @@ def lora_qwen2(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -285,7 +285,7 @@ def lora_qwen2(
 
 
 def lora_qwen2_self_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
     embed_dim: int,
@@ -306,7 +306,7 @@ def lora_qwen2_self_attention(
     applied to a subset of its linear layers
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
         embed_dim (int): embedding dimension for self-attention

@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from torch import nn
-from typing import List
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules import (
@@ -132,7 +131,7 @@ def gemma_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedFor
 
 
 def lora_gemma(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     *,
     # gemma args
@@ -159,7 +158,7 @@ def lora_gemma(
     Note: output projection lora is not supported because it is tied to token embeddings
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -252,7 +251,7 @@ def lora_gemma(
 
 
 def lora_gemma_self_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
     embed_dim: int,
