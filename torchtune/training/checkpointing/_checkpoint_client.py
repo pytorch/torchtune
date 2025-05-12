@@ -79,7 +79,8 @@ class CheckpointClient:
             "enable_async_checkpointing", False
         )
         self._optimizer_in_bwd = self._cfg.get("optimizer_in_bwd", False)
-        self._device = utils.get_device(device=self._cfg.device)
+        device = self._cfg.get("device", None)
+        self._device = utils.get_device(device=device)
 
         _, self._rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self._rank == 0
