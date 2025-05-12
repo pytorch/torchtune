@@ -233,6 +233,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         )
 
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_training_state_on_resume_with_async_checkpointing(
         self, tmpdir, monkeypatch
     ):
