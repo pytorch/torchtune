@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Transform &mdash; torchtune main documentation</title>
+  <title>resize_token_embeddings &mdash; torchtune main documentation</title>
   
 
   
@@ -40,8 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="VisionCrossAttentionMask" href="torchtune.modules.transforms.VisionCrossAttentionMask.html" />
-    <link rel="prev" title="resize_token_embeddings" href="torchtune.modules.embedding_utils.resize_token_embeddings.html" />
+    <link rel="next" title="Transform" href="torchtune.modules.transforms.Transform.html" />
+    <link rel="prev" title="delete_kv_caches" href="torchtune.modules.common_utils.delete_kv_caches.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -417,13 +417,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>Transform</li>
+      <li>resize_token_embeddings</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.transforms.Transform.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.embedding_utils.resize_token_embeddings.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -453,15 +453,44 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="transform">
-<h1>Transform<a class="headerlink" href="#transform" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.transforms.Transform">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.</span></span><span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transforms/_transforms.html#Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.Transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loose interface for all data and model transforms. Transforms operate at the
-sample level and perform operations on a sample dict, returning the updated dict.
-For an example implementation of this protocol, see
-<a class="reference internal" href="torchtune.modules.transforms.VisionCrossAttentionMask.html#torchtune.modules.transforms.VisionCrossAttentionMask" title="torchtune.modules.transforms.VisionCrossAttentionMask"><code class="xref py py-class docutils literal notranslate"><span class="pre">VisionCrossAttentionMask</span></code></a>.</p>
+  <section id="resize-token-embeddings">
+<h1>resize_token_embeddings<a class="headerlink" href="#resize-token-embeddings" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.modules.embedding_utils.resize_token_embeddings">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.embedding_utils.</span></span><span class="sig-name descname"><span class="pre">resize_token_embeddings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.7)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/embedding_utils.html#resize_token_embeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.embedding_utils.resize_token_embeddings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resizes the token embeddings and the final output projection layer of a <code class="docutils literal notranslate"><span class="pre">TransformerDecoder</span></code> model.
+The default init strategy is taking the mean of all the embeddings, new embeddings will be
+instantiated to this value.</p>
+<p>This function modifies the model in-place.</p>
+<p>The primary purpose is to adjust the vocabulary size of a pre-trained model.
+This is useful when fine-tuning a model on a dataset with a different
+vocabulary or when adding special tokens.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">setup_model</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">setup_tokenizer</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resize_token_embedding</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">num_embeddings</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – The transformer model to modify. The model is
+expected to have <code class="docutils literal notranslate"><span class="pre">tok_embeddings</span></code> (an <code class="docutils literal notranslate"><span class="pre">nn.Embedding</span></code> layer) and
+<code class="docutils literal notranslate"><span class="pre">output</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">nn.Linear</span></code> or <code class="docutils literal notranslate"><span class="pre">TiedLinear</span></code>) attributes.</p></li>
+<li><p><strong>num_embeddings</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The desired number of embeddings in the resized
+embedding layer and output projection layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The function modifies the <cite>model</cite> in-place.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.13)"><strong>AssertionError</strong></a> – When trying to resize a model with <code class="docutils literal notranslate"><span class="pre">FusionEmbedding</span></code>.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -474,10 +503,10 @@ For an example implementation of this protocol, see
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.VisionCrossAttentionMask.html" class="btn btn-neutral float-right" title="VisionCrossAttentionMask" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.transforms.Transform.html" class="btn btn-neutral float-right" title="Transform" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.embedding_utils.resize_token_embeddings.html" class="btn btn-neutral" title="resize_token_embeddings" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.common_utils.delete_kv_caches.html" class="btn btn-neutral" title="delete_kv_caches" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -509,7 +538,7 @@ For an example implementation of this protocol, see
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Transform</a></li>
+<li><a class="reference internal" href="#">resize_token_embeddings</a></li>
 </ul>
 
             </div>

@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.modules.embedding_utils
+
+
+resize_token_embeddings
+=======================
+
+.. autofunction:: resize_token_embeddings
