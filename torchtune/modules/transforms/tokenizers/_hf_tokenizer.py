@@ -5,10 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+from jinja2 import Template
 
 from tokenizers import Tokenizer
-from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
+from torchtune.data import Message, truncate
+from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer, ModelTokenizer
 
 
 class HuggingFaceBaseTokenizer(BaseTokenizer):
@@ -146,3 +149,108 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
             str: The decoded string.
         """
         return self.tokenizer.decode(token_ids)
+
+
+def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
+    special_tokens = set()
+
+    standard_keys = [
+        "bos_token",
+        "eos_token",
+        "pad_token",
+        "unk_token",
+        "sep_token",
+        "cls_token",
+        "mask_token",
+    ]
+
+    for key in standard_keys:
+        if token := config.get(key):
+            if isinstance(token, str):
+                content = token
+            else:
+                content = token.get("content")
+
+            if content:
+                special_tokens.add(content)
+
+    for token in config.get("additional_special_tokens", []):
+        if isinstance(token, str):
+            content = token
+        else:
+            content = token.get("content")
+
+        if content:
+            special_tokens.add(content)
+
+    for token_info in config.get("added_tokens_decoder", {}).values():
+        if token_info.get("special", False):
+            if content := token_info.get("content"):
+                special_tokens.add(content)
+
+    # We sort lexicographically in order to get real tokens after all <|dummy_x|>
+    return sorted(list(special_tokens))
+
+
+class HuggingFaceModelTokenizer(ModelTokenizer):
+    def __init__(
+        self,
+        tokenizer_json_path: str,
+        *,
+        tokenizer_config_json_path: Optional[str] = None,
+        generation_config_path: Optional[str] = None,
+    ):
+        self.base_tokenizer = HuggingFaceBaseTokenizer(
+            tokenizer_json_path=tokenizer_json_path,
+            tokenizer_config_json_path=tokenizer_config_json_path,
+            generation_config_path=generation_config_path,
+        )
+
+        # Contents of the tokenizer_config.json
+        config = self.base_tokenizer.config
+
+        self.special_tokens = _infer_special_tokens_from_hf_config(config)
+        self.template = Template(self._get_token_from_config(config, "chat_template"))
+
+    def _get_token_from_config(self, config: Dict[str, Any], key: str) -> str:
+        """
+        HF BOS/EOS tokens are either stored as e.g. {'bos_token': 5}
+        or {'bos_token': {'content': 5, ...}}. This utility handles both.
+        """
+        token = config.get(key)
+        if isinstance(token, Dict):
+            if "content" not in token:
+                raise ValueError(f"Could not parse {key} from config")
+            token = token["content"]
+        else:
+            if not isinstance(token, str):
+                raise ValueError(f"Could not parse {key} from config")
+        return token
+
+    def tokenize_messages(
+        self,
+        messages: List[Message],
+        add_eos: bool = True,
+    ) -> Tuple[List[int], List[bool]]:
+        # This part is extremely hacky, but we need to handle case where we have variable access with jinja
+        special_tokens_mapping = {}
+        for token in self.special_tokens:
+            special_tokens_mapping[token] = self.base_tokenizer.encode(token)
+        rendered_template = self.template.render(
+            messages=[
+                {"role": m.role, "content": m.content[0]["content"]} for m in messages
+            ],
+            add_generation_prompt=add_eos,
+            **special_tokens_mapping,  # We assume that the naming is consitent
+        )
+
+        tokenized_messages = self.base_tokenizer.encode(rendered_template)
+
+        tokenized_messages = truncate(
+            tokens=tokenized_messages,
+            max_seq_len=self.max_seq_len,
+            eos_id=self.eos_id if add_eos else None,
+            truncation_type=self.truncation_type,
+        )
+
+        return tokenized_messages
