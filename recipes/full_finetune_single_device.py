@@ -289,11 +289,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 try:
                     ckpt_dict = self._checkpoint_client.load_distributed_checkpoint(
                         self._model,
-                        (
-                            self._optim_ckpt_wrapper
-                            if self._optimizer_in_bwd
-                            else self._optimizer
-                        ),
+                        self._optimizer,
                     )
                 except Exception as e:
                     log.warning(
@@ -552,11 +548,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._checkpoint_client.save_checkpoint(
             model=self._model,
-            optimizer=(
-                self._optimizer
-                if not self._optimizer_in_bwd
-                else self._optim_ckpt_wrapper
-            ),
+            optimizer=self._optimizer,
             training_progress=TrainingProgress(
                 seed=self.seed,
                 epochs_run=self.epochs_run,
