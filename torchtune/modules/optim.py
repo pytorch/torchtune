@@ -1,28 +1,54 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+from typing import Any, Iterable, Type
+
+import torch
 from torch.optim import Optimizer
 
-__all__ = ["FusedOptimizerInBackward"]
+__all__ = ["OptimizerInBackward"]
 
 
-class FusedOptimizerInBackward(Optimizer):
-    """Fuses optimizer step into the backward pass for reducing memory usage.
+class OptimizerInBackward(Optimizer):
+    """Wraps a standard PyTorch optimizer class to perform parameter updates inside the backward pass.
+
+    For each parameter, a separate optimizer instance is created, allowing in-place updates
+    during gradient computation. This reduces peak memory usage by freeing gradients immediately
+    after they are applied.
+
+    Compatible with learning rate schedulers through delegation to a proxy optimizer instance.
 
     Args:
-        base_optimizer_cls (Union[str, Optimizer]): The optimizer class to use for each parameter.
-            Can be anything that fits the signature for :class:``torch.optim.Optimizer``.
-        params (Iterable[torch.nn.Parameter]): Iterable of parameters to optimize.
-        **kwargs: Additional arguments to pass to the base optimizer.
+        params (Iterable[torch.nn.Parameter]): Model parameters to optimize.
+        optimizer (Type[Optimizer]): The base optimizer class (e.g., AdamW).
+        **optimizer_kwargs: Additional arguments passed to the optimizer constructor.
 
-    Examples:
-        >>> from torchtune.modules.optim import FusedOptimizerInBackward
-        >>> from torch.optim import Adam
-        >>> optimizer = FusedOptimizerInBackward(Adam, model.parameters(), lr=0.01)
-        >>> optimizer.step()
+    Example:
+        >>> model = MyModel()
+        >>> optimizer = OptimizerInBackward(model.parameters(), torch.optim.AdamW, lr=1e-3)
+        >>> for input, target in data_loader:
+        >>>     optimizer.zero_grad()
+        >>>     output = model(input)
+        >>>     loss = loss_fn(output, target)
+        >>>     loss.backward()  # optimizer updates happen inside backward
+        >>>     optimizer.step()  # no-op, but required for LR scheduler compatibility
     """
 
-    def __init__(self, base_optimizer_cls, params, **kwargs):
+    def __init__(
+        self,
+        params: Iterable[torch.nn.Parameter],
+        optimizer: Type[Optimizer],
+        **optimizer_kwargs,
+    ):
+        # Initialize parent class with empty parameter groups
+        super().__init__([], {})
+
         # Super hack to get this to work from a config :/
-        if isinstance(base_optimizer_cls, str):
-            base_optimizer_cls = eval(base_optimizer_cls)
+        if isinstance(optimizer, str):
+            optimizer = eval(optimizer)
 
         self.per_param_optimizers = {}
         self.param_to_opt = {}
@@ -32,20 +58,16 @@ class FusedOptimizerInBackward(Optimizer):
         for param in params:
             if not param.requires_grad:
                 continue
-            opt = base_optimizer_cls([param], **kwargs)
+            opt = optimizer([param], **optimizer_kwargs)
             self.per_param_optimizers[param] = opt
             self.param_to_opt[param] = opt
             self._param_groups.append(opt.param_groups[0])
             if self._proxy_optimizer is None:
                 self._proxy_optimizer = opt
-
             # Hook to call .step() on this param's optimizer
-            if hasattr(param, "register_post_accumulate_grad_hook"):
-                param.register_post_accumulate_grad_hook(
-                    lambda p=param: self._step_and_clear(p)
-                )
-            else:
-                param.register_hook(lambda grad, p=param: self._step_and_clear(p))
+            param.register_post_accumulate_grad_hook(
+                lambda p=param: self._step_and_clear(p)
+            )
 
     def _step_and_clear(self, param):
         opt = self.param_to_opt.get(param, None)
@@ -54,11 +76,11 @@ class FusedOptimizerInBackward(Optimizer):
         opt.step()
         param.grad = None
 
-    def step(self, closure=None):
+    def step(self, closure=None) -> None:
         # This is a no-op, we step on each param's optimizer in the hook
         if closure is not None:
-            raise NotImplementedError(
-                "FusedOptimizerInBackward does not support stepping via a closure."
+            raise RuntimeError(
+                "OptimizerInBackward does not support stepping via a closure."
             )
 
     def zero_grad(self, set_to_none=True):
@@ -89,7 +111,7 @@ class FusedOptimizerInBackward(Optimizer):
             self._proxy_optimizer.load_state_dict(state_dict["proxy"])
 
     @property
-    def param_groups(self):
+    def param_groups(self) -> list[dict[str, Any]]:
         return (
             self._proxy_optimizer.param_groups
             if self._proxy_optimizer
