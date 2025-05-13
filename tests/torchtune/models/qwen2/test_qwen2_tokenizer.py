@@ -16,7 +16,6 @@ from torchtune.models.qwen2 import qwen2_tokenizer
 
 class TestQwenTokenizer:
     def tokenizer(self, max_seq_len: Optional[int] = None):
-        print(ASSETS)
         return qwen2_tokenizer(
             path=str(ASSETS / "tiny_bpe_vocab.json"),
             merges_file=str(ASSETS / "tiny_bpe_merges.txt"),
