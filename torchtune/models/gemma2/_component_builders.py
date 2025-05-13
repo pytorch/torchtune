@@ -9,7 +9,7 @@ from typing import Optional
 import torch
 from torch import nn
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.modules import (
     FrozenNF4Linear,
