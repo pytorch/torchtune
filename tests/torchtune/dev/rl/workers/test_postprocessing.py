@@ -27,7 +27,7 @@ else:
 
 import torch
 from omegaconf import OmegaConf
-from tests.test_utils import gen_log_file_name, gpu_test, skip_if_lt_python_310
+from tests.test_utils import gen_log_file_name, gpu_test, rl_test, skip_if_lt_python_310
 
 grpo_samples = 4
 max_generated_tokens = 32
@@ -100,6 +100,7 @@ class TestPostProcessingWorker:
     @gpu_test(gpu_count=1)
     @pytest.mark.skipif(not _has_ray, reason="requires ray")
     @skip_if_lt_python_310()
+    @rl_test()
     def test_run(self, cfg, log_file):
         ray.init(num_cpus=19, num_gpus=1)
 

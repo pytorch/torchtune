@@ -379,3 +379,10 @@ def mps_ignored_test() -> bool:
         reason="Test skipped due to torch being compiled with MPS"
         "see https://github.com/pytorch/torchtune/issues/1707 for more information",
     )
+
+
+def rl_test() -> bool:
+    return pytest.mark.skipif(
+        "not config.getoption('--run-rl-tests')",
+        reason="Only run when --run-rl-tests is given",
+    )

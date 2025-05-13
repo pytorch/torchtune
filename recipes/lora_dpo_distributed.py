@@ -34,6 +34,7 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import ChosenRejectedOutputs
+from torchtune.training import VALID_BACKENDS_FOR_MEMORY_STATS
 from tqdm import tqdm
 
 
@@ -149,9 +150,12 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self._logger = utils.get_logger(cfg.log_level)
 
-        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
+        if (
+            self._log_peak_memory_stats
+            and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS
+        ):
             self._logger.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                f"log_peak_memory_stats was set to True; however, training device is not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
                 "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False

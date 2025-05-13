@@ -378,7 +378,7 @@ class NoOpManager(saved_tensors_hooks):
 
 
 def get_act_offloading_ctx_manager(
-    model: nn.Module, enable_activation_offloading: bool
+    model: nn.Module, enable_activation_offloading: bool, use_streams: bool = True
 ) -> Union[OffloadActivations, contextlib.nullcontext]:
     """Returns the activation offloading context manager for the model, which will be
     a null context if enable_activation_offloading is False.
@@ -390,6 +390,7 @@ def get_act_offloading_ctx_manager(
         model (nn.Module): the model to wrap with the activation offloading context manager.
         enable_activation_offloading (bool): whether or not to enable activation offloading
             for the model.
+        use_streams (bool): whether or not to enable streams for overlapping communication.
 
     Returns:
         contextlib.ContextDecorator: the activation offloading context manager for the model.
@@ -398,7 +399,7 @@ def get_act_offloading_ctx_manager(
         NotImplementedError: If the model is a multimodal model and activation offloading is enabled.
     """
     if enable_activation_offloading:
-        activations_handling_ctx = OffloadActivations()
+        activations_handling_ctx = OffloadActivations(use_streams=use_streams)
 
         # Below is our hack to disable offloading the last output Linear in every
         # step, as the cost for offloading the activation and then soon after bringing

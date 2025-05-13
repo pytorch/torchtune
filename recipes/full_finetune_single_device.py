@@ -15,15 +15,19 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LambdaLR
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.embedding_utils import resize_token_embeddings
+from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
+from torchtune.training.memory import OptimizerInBackwardWrapper
 
 from tqdm import tqdm
 
@@ -275,6 +279,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._tokenizer = config.instantiate(cfg.tokenizer)
         self._logger.info("Tokenizer is initialized from file.")
 
+        if cfg.get("resize_token_embeddings", False):
+            resize_token_embeddings(self._model, self._tokenizer.vocab_size)
+
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
@@ -285,15 +292,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, SFTLoss):
+            self._loss_fn.set_model_output(self._model)
 
         if self._compile:
             training.compile_loss(self._loss_fn)
-
-        # The loss may handle the output projection. If true, the model should skip it.
-        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
-        self._model.skip_linear_projection = self.linear_loss
 
         self._logger.info("Loss is initialized.")
 
@@ -329,12 +333,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.global_step = self.epochs_run * self._steps_per_epoch
 
-        # Setup lr scheduler
-        self._lr_scheduler = self._setup_lr_scheduler(
-            cfg_lr_scheduler=cfg.get("lr_scheduler", None),
-            num_training_steps=self.total_epochs * self._steps_per_epoch,
-            last_epoch=self.global_step - 1,
-        )
+        # Setup lr scheduler if a component is included in the config
+        lr_scheduler_cfg = cfg.get("lr_scheduler", None)
+        if lr_scheduler_cfg is not None:
+            self._lr_scheduler = self._setup_lr_scheduler(
+                cfg_lr_scheduler=lr_scheduler_cfg,
+                num_training_steps=self.total_epochs * self._steps_per_epoch,
+                last_epoch=self.global_step - 1,
+            )
+        else:
+            self._lr_scheduler = None
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
@@ -345,41 +353,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled
@@ -454,7 +427,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Optimizer]:
+    ) -> Union[Optimizer, OptimizerInBackwardWrapper]:
         """
         Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
         """
@@ -469,63 +442,35 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model=self._model, optim_dict=optim_dict
             )
             # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = training.create_optim_in_bwd_wrapper(
+            optimizer = training.create_optim_in_bwd_wrapper(
                 model=self._model, optim_dict=optim_dict
             )
-            # Load optimizer states. If optimizer states are being restored in an optimizer in backward
-            # run, these need to have been saved with the same setting. Cannot restore from runs that did not
-            # use optimizer in backward.
-            if opt_state_dict is not None:
-                try:
-                    self._optim_ckpt_wrapper.load_state_dict(opt_state_dict)
-                except BaseException as e:
-                    raise RuntimeError(
-                        "Failed loading in-backward optimizer checkpoints."
-                        "Please make sure run being restored from was using in-backward optimizer."
-                    ) from e
-            self._logger.info("In-backward optimizers are set up.")
-            return None
         else:
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
-            if opt_state_dict:
-                optimizer.load_state_dict(opt_state_dict)
-            self._logger.info("Optimizer is initialized.")
-            return optimizer
+        if opt_state_dict:
+            optimizer.load_state_dict(opt_state_dict)
+
+        self._logger.info("Optimizer is initialized.")
+        return optimizer
 
     def _setup_lr_scheduler(
         self,
-        cfg_lr_scheduler: Optional[DictConfig],
+        cfg_lr_scheduler: DictConfig,
         num_training_steps: int,
         last_epoch: int,
-    ) -> Optional[Optimizer]:
+    ) -> LambdaLR:
         """
         Set up the learning rate scheduler based on the provided configuration.
         It handles both standard optimization and optimizer-in-backward cases, and supports
         schedulers from both torchtune.modules and torch.optim.
-
-        Args:
-            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
-            num_training_steps (int): The total number of training steps.
-            last_epoch (int): The index of the last epoch.
-
-        Returns:
-            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
         """
-        if cfg_lr_scheduler is None:
-            self._logger.info(
-                "No learning rate scheduler configured. Using constant learning rate."
-            )
-            return None
-
-        if self._optimizer_in_bwd:
+        if isinstance(self._optimizer, OptimizerInBackwardWrapper):
             # Use the first optimizer from the wrapper to represent the learning rate
-            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
+            optimizer = next(iter(self._optimizer.optim_map.values()))
         else:
-            # Standard case: use the single optimizer
             optimizer = self._optimizer
 
-        # Instantiate the learning rate scheduler
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
             optimizer,
@@ -533,9 +478,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        if self._optimizer_in_bwd:
-            # Modify the scheduler for optimizer_in_bwd case
-            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
+        if isinstance(self._optimizer, OptimizerInBackwardWrapper):
+            self._optimizer.set_lr_scheduler(lr_scheduler)
 
         self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
@@ -600,8 +544,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        ckpt_dict = {training.MODEL_KEY: self._model.state_dict()}
-        # if training is in-progress, checkpoint the optimizer state as well
+        ckpt_dict: dict[str, Any] = {training.MODEL_KEY: self._model.state_dict()}
+        # If training is in-progress, checkpoint recipe state information as well
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
@@ -610,12 +554,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,
                     training.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     training.DATALOADER_KEY: self._dataloader.state_dict(),
+                    training.OPT_KEY: self._optimizer.state_dict(),
                 }
             )
-            if not self._optimizer_in_bwd:
-                ckpt_dict[training.OPT_KEY] = self._optimizer.state_dict()
-            else:
-                ckpt_dict[training.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
@@ -629,13 +570,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         with self.activations_handling_ctx:
             outputs = self._model(**batch)
 
-        if self.linear_loss:
-            weight = self._model.linear_projection_weight
-            loss = self._loss_fn(weight, outputs, labels)
-        else:
+        # post process for third party loss functions
+        if not isinstance(self._loss_fn, SFTLoss):
             labels = labels.reshape(-1)
             outputs = outputs.reshape(-1, outputs.size(-1))
-            loss = self._loss_fn(outputs, labels)
+
+        # Compute loss
+        loss = self._loss_fn(outputs, labels)
 
         # free outputs otherwise it peaks backward memory
         del outputs
@@ -647,12 +588,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-        if self._compile:
-            self._logger.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
-        # zero out the gradients before starting training
-        if not self._optimizer_in_bwd:
+        if not isinstance(self._optimizer, OptimizerInBackwardWrapper):
             self._optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
@@ -689,9 +625,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 running_loss += current_loss
                 current_loss.backward()
 
-                # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    if not self._optimizer_in_bwd:
+                    # If we're not using optimizer in backwards, we step the optimizer like normal
+                    if not isinstance(self._optimizer, OptimizerInBackwardWrapper):
                         training.scale_grads(self._model, 1 / num_tokens)
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -712,20 +648,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
-                    # Log per-step metrics
                     if self.global_step % self._log_every_n_steps == 0:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
-                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
+                            # For optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
-                            "lr": get_lr(
-                                (
-                                    self._optimizer
-                                    if not self._optimizer_in_bwd
-                                    else self._optim_ckpt_wrapper
-                                ),
-                            ),
+                            "lr": get_lr(self._optimizer),
                             "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._device.type != "cpu" and self._log_peak_memory_stats:

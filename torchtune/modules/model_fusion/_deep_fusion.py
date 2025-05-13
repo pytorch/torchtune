@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 from typing import Dict, List, Optional, Union
 
 import torch
@@ -12,9 +11,7 @@ from torch import nn
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params
-from torchtune.utils import get_logger, log_once
-
-logger = get_logger("DEBUG")
+from torchtune.utils import deprecated
 
 
 class DeepFusionModel(nn.Module):
@@ -97,15 +94,10 @@ class DeepFusionModel(nn.Module):
             trainable_params -= set(get_fusion_params(self))
         set_trainable_params(self, trainable_params)
 
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
-        msg = (
-            "'set_num_output_chunks' is deprecated and will be removed in future versions. "
-            "Please use self.skip_linear_projection=True and do the chunking in your loss instead, "
-            "e.g. loss(weight, input, label)."
-        )
-        log_once(logger=logger, msg=msg, level=logging.WARNING)
         self.decoder.set_num_output_chunks(num_output_chunks)
 
     def setup_caches(
@@ -160,21 +152,21 @@ class DeepFusionModel(nn.Module):
         self.decoder.reset_caches()
 
     @property
-    def linear_projection_weight(self) -> torch.Tensor:
-        """Returns the output weight matrix. Useful when a finer control of the output projection is needed,
+    def output(self) -> torch.Tensor:
+        """Returns the output layer. Useful when a finer control of the output projection is needed,
         for example when using a custom loss function or when interested in applying it to only some tokens.
         """
-        return self.decoder.linear_projection_weight
+        return self.decoder.output
 
     @property
-    def skip_linear_projection(self) -> bool:
+    def skip_output_layer(self) -> bool:
         """Returns whether to skip output layer projection and return hidden states instead."""
-        return self.decoder.skip_linear_projection
+        return self.decoder.skip_output_layer
 
-    @skip_linear_projection.setter
-    def skip_linear_projection(self, skip: bool) -> None:
+    @skip_output_layer.setter
+    def skip_output_layer(self, skip: bool) -> None:
         """Set whether to skip output layer projection and return hidden states instead."""
-        self.decoder.skip_linear_projection = skip
+        self.decoder.skip_output_layer = skip
 
     def forward(
         self,
