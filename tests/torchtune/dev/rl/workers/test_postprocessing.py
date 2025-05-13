@@ -8,6 +8,9 @@ import importlib
 import time
 
 import pytest
+import torch
+from omegaconf import OmegaConf
+from tests.test_utils import gen_log_file_name, gpu_test, skip_if_lt_python_310
 
 _has_ray = importlib.util.find_spec("ray") is not None
 
@@ -24,10 +27,6 @@ else:
     def remote(*args, **kwargs):
         return lambda cls: cls
 
-
-import torch
-from omegaconf import OmegaConf
-from tests.test_utils import gen_log_file_name, gpu_test, skip_if_lt_python_310
 
 grpo_samples = 4
 max_generated_tokens = 32
@@ -129,6 +128,7 @@ class TestPostProcessingWorker:
                         ).to(dtype=torch.bool),
                         seq_lens=torch.randint(0, 100, (grpo_samples,)),
                         answers=NonTensorData(["42"] * grpo_samples),
+                        sequence_ids=None,
                         policy_version=None,
                         advantages=None,
                         reward_outputs=None,
