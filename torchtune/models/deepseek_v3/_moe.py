@@ -1,4 +1,3 @@
-
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -20,6 +19,7 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
                  norm_topk_prob: bool,
                  routed_scaling_factor: float
                  ):
+        super().__init__()
         self.gate = gate
         self.dim = dim
         self.num_experts = num_experts

@@ -9,7 +9,6 @@ import torch.nn as nn
 from typing import Optional
 from torchtune.modules.attention_utils import _MaskType
 from torchtune.modules import RMSNorm
-from torchtune.models.deepseek_v3 import DeepSeekV3LatentLinear
 
 
 class DeepSeekV3Attention(nn.Module):
@@ -21,15 +20,13 @@ class DeepSeekV3Attention(nn.Module):
                  qk_nope_head_dim: int,
                  q_head_dim: int,
                  q_proj: nn.Module,
-                 kv_proj: DeepSeekV3LatentLinear,
+                 kv_proj: nn.Module,
                  output_proj: nn.Module,
-                 kv_norm: nn.Module,
                  pos_embeddings: Optional[nn.Module] = None,
-                 q_norm: Optional[nn.Module] = None,
                  max_seq_len: int = 4096,
                  is_causal: bool = True,
                  attn_dropout: float = 0.0,):
-
+        super().__init__()
         self.num_heads = num_heads
         self.embed_dim = embed_dim
         self.attn_dropout = attn_dropout
@@ -45,11 +42,11 @@ class DeepSeekV3Attention(nn.Module):
         self.q_proj = q_proj
         self.kv_proj = kv_proj
         self.output_proj = output_proj
-        self.q_norm = q_norm
-        self.kv_norm = kv_norm
         self.pos_embeddings = pos_embeddings
         self.softmax_scale = self.q_head_dim ** (-0.5)
-
+        self.cache_enabled = False
+        
+    
     def forward(
         self,
         x: torch.Tensor,

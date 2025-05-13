@@ -141,6 +141,6 @@ class MoE(nn.Module):
         else:
             out = torch.zeros_like(x.reshape(bs * slen, dim))
         if routed_output.numel() > 0:   
-            out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
+            out.scatter_add_(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(bs, slen, dim)
         return out
