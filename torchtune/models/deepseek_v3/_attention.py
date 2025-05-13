@@ -9,6 +9,7 @@ import torch.nn as nn
 from typing import Optional
 from torchtune.modules.attention_utils import _MaskType
 from torchtune.modules import RMSNorm
+from torchtune.modules.attention import _sdpa_or_flex_attention
 
 
 class DeepSeekV3Attention(nn.Module):
@@ -22,7 +23,7 @@ class DeepSeekV3Attention(nn.Module):
                  q_proj: nn.Module,
                  kv_proj: nn.Module,
                  output_proj: nn.Module,
-                 pos_embeddings: Optional[nn.Module] = None,
+                 pos_embeddings: nn.Module,
                  max_seq_len: int = 4096,
                  is_causal: bool = True,
                  attn_dropout: float = 0.0,):
@@ -45,8 +46,9 @@ class DeepSeekV3Attention(nn.Module):
         self.pos_embeddings = pos_embeddings
         self.softmax_scale = self.q_head_dim ** (-0.5)
         self.cache_enabled = False
+
+        self._attention_call = _sdpa_or_flex_attention()
         
-    
     def forward(
         self,
         x: torch.Tensor,
@@ -55,6 +57,8 @@ class DeepSeekV3Attention(nn.Module):
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        
+        # import ipdb; ipdb.set_trace()
 
         # q is sometimes decomposed into A/B
         # kv is *always* decomposed
@@ -76,7 +80,7 @@ class DeepSeekV3Attention(nn.Module):
         )
 
         kv, k_pe = self.kv_proj(x)
-        kv = kv.view(b, s_x, self.num_kv_heads, self.qk_nope_head_dim + self.v_head_dim)
+        kv = kv.view(b, s_x, self.num_heads, self.qk_nope_head_dim + self.v_head_dim)
         kv = kv.transpose(1, 2)
 
         k_nope, value_states = torch.split(kv, [self.qk_nope_head_dim, self.v_head_dim], dim=-1)
@@ -98,7 +102,7 @@ class DeepSeekV3Attention(nn.Module):
             value_states,
             mask=mask,
             dropout_p=self.attn_dropout if self.training else 0.0,
-            is_causal=self.kv_cache is None and mask is None and self.is_causal,
+            is_causal=mask is None,
         )
 
         # reshape the output to be the same shape as the input

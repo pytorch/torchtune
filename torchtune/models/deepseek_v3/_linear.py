@@ -21,6 +21,7 @@ class DeepSeekV3LatentLinear(nn.Module):
         rope_head_dim: Optional[int] = None,
     ):
         super().__init__()
+        self.rank = rank
         self.rope_head_dim = rope_head_dim or 0 
         self.a = nn.Linear(
             in_features=in_dim, out_features=rank + self.rope_head_dim, bias=False

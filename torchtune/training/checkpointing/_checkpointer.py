@@ -663,6 +663,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             converted_state_dict[training.MODEL_KEY] = llama4_hf_to_tune(
                 merged_state_dict,
             )
+        elif self._model_type == ModelType.DEEPSEEK_V3:
+            from torchtune.models.deepseek_v3._convert_weights import deepseek_v3_hf_to_tune
+
+            converted_state_dict[training.MODEL_KEY] = deepseek_v3_hf_to_tune(
+                merged_state_dict,
+            )
         else:
             converted_state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -772,6 +778,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 from torchtune.models.llama4._convert_weights import llama4_tune_to_hf
 
                 state_dict[training.MODEL_KEY] = llama4_tune_to_hf(
+                    state_dict[training.MODEL_KEY],
+                )
+            elif self._model_type == ModelType.DEEPSEEK_V3:
+                from torchtune.models.deepseek_v3._convert_weights import deepseek_v3_tune_to_hf
+
+                state_dict[training.MODEL_KEY] = deepseek_v3_tune_to_hf(
                     state_dict[training.MODEL_KEY],
                 )
             else:

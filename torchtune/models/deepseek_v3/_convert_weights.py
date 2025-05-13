@@ -136,7 +136,7 @@ _FROM_HF = {
     "model.embed_tokens.weight": "tok_embeddings.weight",
     "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
     "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
-    "model.norm.weight": "norm.scale", 
+    "model.norm.weight": "norm.scale",
     # attenion weights
     "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
     "model.layers.{}.self_attn.q_a_proj.weight": "layers.{}.attn.q_proj.a.weight",
@@ -147,11 +147,11 @@ _FROM_HF = {
     "model.layers.{}.self_attn.kv_b_proj.weight": "layers.{}.attn.kv_proj.b.weight",
     "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attn.output_proj.weight",
 
-    # mlp (non-expert weights)
+    # mlp non-expert weights
     "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
     "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
     "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
-    
+
     # mlp MoE shared expert weights
     "model.layers.{}.mlp.shared_experts.gate_proj.weight": "layers.{}.mlp.shared_expert.w1.weight",
     "model.layers.{}.mlp.shared_experts.up_proj.weight": "layers.{}.mlp.shared_expert.w3.weight",
@@ -165,24 +165,28 @@ _FROM_HF = {
     "model.layers.{}.self_attn.rotary_emb.inv_freq": None,
 }
 
+
 def deepseek_v3_hf_to_tune(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     converted_state_dict = {}
+
     # first merge expert weights
     expert_weights_grouped = defaultdict(lambda: defaultdict(list))
     expert_keys_processed = set()
     for key, value in state_dict.items():
-        expert_match = re.match(r"model\.layers\.(\d+)\.mlp\.experts\.(\d+)\.(gate_proj|up_proj|down_proj)\.weight", key)
+        expert_match = re.match(
+            r"model\.layers\.(\d+)\.mlp\.experts\.(\d+)\.(gate_proj|up_proj|down_proj)\.weight", key)
         if expert_match:
             layer_idx = expert_match.group(1)
             expert_idx = int(expert_match.group(2))
             proj_name_part = expert_match.group(3)
+
             expert_weights_grouped[layer_idx][proj_name_part].append((expert_idx, value))
             expert_keys_processed.add(key)
 
     for layer_idx, projections in expert_weights_grouped.items():
         for proj_type, weights_list in projections.items():
             weights_list.sort(key=lambda x: x[0])
-            stacked_weights = torch.stack([w[1] for w in weights_list], dim=0)
+            stacked_weights = torch.stack([w[1].transpose(0, 1) for w in weights_list], dim=0)
             new_key = f"layers.{layer_idx}.mlp.experts.{proj_type}"
             converted_state_dict[new_key] = stacked_weights
 

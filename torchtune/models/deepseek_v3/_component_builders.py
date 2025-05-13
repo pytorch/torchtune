@@ -38,6 +38,7 @@ def deepseek_v3(
     moe_every_n_layers: Optional[int] = None,
     first_moe_layer: Optional[int] = None,
     num_experts: Optional[int] = None,
+    num_shared_experts: Optional[int] = None,
     num_groups: Optional[int] = None,
     topk_groups: Optional[int] = None,
     norm_topk_prob: Optional[float] = None,
@@ -47,8 +48,8 @@ def deepseek_v3(
     moe_hidden_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
 ):
-    head_dim = embed_dim // num_heads
-    rope = nn.Identity()
+    def rope(x, input_pos=None):
+        return x
     layers = []
     for i in range(num_layers):
 
@@ -74,10 +75,10 @@ def deepseek_v3(
         self_attn = DeepSeekV3Attention(
             embed_dim=embed_dim,
             num_heads=num_heads,
-            qk_rope_head_dim=head_dim,
+            qk_rope_head_dim=qk_rope_head_dim,
             v_head_dim=v_head_dim,
-            qk_nope_head_dim=head_dim,
-            q_head_dim=head_dim,
+            qk_nope_head_dim=qk_nope_head_dim,
+            q_head_dim=q_head_dim,
             q_proj=q_proj,
             kv_proj=DeepSeekV3LatentLinear(in_dim=embed_dim,
                                            out_dim=num_heads * (q_head_dim - qk_rope_head_dim + v_head_dim),
@@ -108,7 +109,7 @@ def deepseek_v3(
                     norm_topk_prob=norm_topk_prob,
                     routed_scaling_factor=routed_scaling_factor,
                 ),
-                shared_expert=deepseek_v3_mlp(embed_dim, moe_hidden_dim),
+                shared_expert=deepseek_v3_mlp(embed_dim, moe_hidden_dim * num_shared_experts),
             )
         else:
             mlp_layer = deepseek_v3_mlp(embed_dim, mlp_hidden_dim)
@@ -130,7 +131,7 @@ def deepseek_v3(
         layers=layers,
         max_seq_len=max_seq_len,
         num_heads=num_heads,
-        head_dim=head_dim,
+        head_dim=embed_dim // num_heads,
         norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         output=output_proj,
     )

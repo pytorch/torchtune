@@ -109,6 +109,7 @@ class ModelType(Enum):
         >>>         state_dict = my_custom_state_dict_mapping(state_dict)
     """
 
+    DEEPSEEK_V3: str = "deepseek_v3"
     GEMMA: str = "gemma"
     GEMMA2: str = "gemma2"
     LLAMA2: str = "llama2"

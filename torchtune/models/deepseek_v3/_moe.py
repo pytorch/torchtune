@@ -35,6 +35,7 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         logits = self.gate(x)
 
         # calculate scores for every expert in every group
+        # import ipdb; ipdb.set_trace()
         scores = torch.sigmoid(logits.to(torch.float32)).to(x.dtype)
         scores += self.e_score_correction_bias.unsqueeze(0)
 
@@ -60,7 +61,7 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         score_mask = (
             group_mask.unsqueeze(-1)
             .expand(
-                n, self.n_groups, experts_per_group
+                n, self.num_groups, experts_per_group
             )
             .reshape(n, -1)
         )
@@ -96,4 +97,5 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         token_idxs_experts_sorted = (
             token_idxs_experts_sorted // self.experts_per_token
         )
+        print(scores_per_expert.isnan().any(), token_idxs_experts_sorted.isnan().any(), num_tokens_per_expert.isnan().any())
         return scores_per_expert, token_idxs_experts_sorted, num_tokens_per_expert
