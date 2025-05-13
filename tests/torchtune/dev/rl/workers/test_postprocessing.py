@@ -130,11 +130,8 @@ class TestPostProcessingWorker:
                         seq_lens=torch.randint(0, 100, (grpo_samples,)),
                         answers=NonTensorData(["42"] * grpo_samples),
                         policy_version=None,
-                        rewards=None,
                         advantages=None,
-                        successes=None,
-                        reward_metadata=None,
-                        sequence_ids=None,
+                        reward_outputs=None,
                     )
                 )
             replay_buffer = []
