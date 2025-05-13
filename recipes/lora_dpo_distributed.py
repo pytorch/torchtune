@@ -268,7 +268,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
-
+            config.log_config(recipe_name="LoRADPORecipeDistributed", cfg=cfg)##
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
@@ -865,7 +865,7 @@ def recipe_main(cfg: DictConfig) -> None:
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
 
-    config.log_config(recipe_name="LoRADPORecipeDistributed", cfg=cfg)
+
 
     recipe = LoRADPORecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
