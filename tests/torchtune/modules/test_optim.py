@@ -1,5 +1,12 @@
-# test_fused_optimizer_in_backward.py
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+# test_optim.py
 import pytest
+import torch
 
 import torch.nn as nn
 from torch.optim import AdamW
@@ -8,7 +15,7 @@ from torchtune.modules.optim import OptimizerInBackward
 
 
 class TestOptimizerInBackward:
-
+    @pytest.fixture
     def dummy_model(self):
         return nn.Sequential(
             nn.Linear(10, 10),
@@ -17,73 +24,132 @@ class TestOptimizerInBackward:
             nn.ReLU(),
         )
 
-    def test_adamw(self, dummy_model):
-        model = dummy_model()
-        optimizer = OptimizerInBackward(
-            model.parameters(),
-            AdamW,
-            lr=0.1,
-        )
-        optimizer.step()
+    @pytest.fixture
+    def dummy_input_and_target(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return torch.randn(10, 10), torch.randn(10, 10)
 
-    def test_adamw_with_scheduler(self, dummy_model):
-        model = dummy_model()
+    def test_adamw(self, dummy_model, dummy_input_and_target):
+        """Basic test with AdamW optimizer just to confirm it runs"""
         optimizer = OptimizerInBackward(
-            model.parameters(),
+            dummy_model.parameters(),
             AdamW,
             lr=0.1,
         )
+        initial_optimizer_sd = optimizer.state_dict()
+        optimizer.zero_grad()
+        output = dummy_model(dummy_input_and_target[0])
+        loss = nn.functional.mse_loss(output, dummy_input_and_target[1])
+        loss.backward()
+        post_loss_optimizer_sd = optimizer.state_dict()
+
+        # Check that the optimizer state has been updated
+        assert initial_optimizer_sd != post_loss_optimizer_sd
+
+        # Check that optimizer.step() doesn't update anything
+        optimizer.step()
+        assert optimizer.state_dict() == post_loss_optimizer_sd
+
+    def test_adamw_with_scheduler(self, dummy_model, dummy_input_and_target):
+        """Test that it works when paired with a learning rate scheduler."""
+        initial_lr = 0.1
+        optimizer = OptimizerInBackward(
+            dummy_model.parameters(),
+            AdamW,
+            lr=initial_lr,
+        )
+        # Assert that initial_lr has NOT been set pre-LR scheduler init
+        for param_group in optimizer.param_groups:
+            assert "initial_lr" not in param_group
+
         scheduler = StepLR(optimizer, step_size=1, gamma=0.1)
-        optimizer.step()
-        scheduler.step()
+        # Assert that initial_lr has ben assigned to optimizer param groups
+        for param_group in optimizer.param_groups:
+            assert param_group["initial_lr"] == initial_lr
 
-    def test_saves_memory(self, dummy_model):
-        model = dummy_model()
-        optimizer = OptimizerInBackward(
-            model.parameters(),
-            AdamW,
-            lr=0.1,
-        )
-        optimizer.step()
-        # Check that the optimizer does not hold on to the model parameters
-        assert len(optimizer.state) == 0
+        optimizer.zero_grad()
+        output = dummy_model(dummy_input_and_target[0])
+        loss = nn.functional.mse_loss(output, dummy_input_and_target[1])
+        loss.backward()
+
+        optimizer.step()  # Do this so lr scheduler doesn't complain
+        scheduler.step()
+        post_step_lr = scheduler.get_last_lr()[0]
+        assert post_step_lr == initial_lr * 0.1  # lr should be multiplied by gamma
 
     def test_throws_error_when_step_called_with_closure(self, dummy_model):
-        model = dummy_model()
+        """We don't implement with closure yet."""
         optimizer = OptimizerInBackward(
-            model.parameters(),
+            dummy_model.parameters(),
             AdamW,
             lr=0.1,
         )
         with pytest.raises(RuntimeError):
             optimizer.step(lambda: None)
 
-    def test_state_dict_save_load(self, dummy_model):
-        model = dummy_model()
+    def test_state_dict_save_load(self, dummy_model, dummy_input_and_target):
         optimizer = OptimizerInBackward(
-            model.parameters(),
+            dummy_model.parameters(),
             AdamW,
             lr=0.1,
         )
-        optimizer.step()
+        output = dummy_model(dummy_input_and_target[0])
+        loss = nn.functional.mse_loss(output, dummy_input_and_target[1])
+        loss.backward()
         state_dict = optimizer.state_dict()
-        optimizer.load_state_dict(state_dict)
+        # Initialize a new OptimizerInBackward but with the same parameters
+        new_optimizer = OptimizerInBackward(
+            dummy_model.parameters(),
+            AdamW,
+            lr=0.1,
+        )
+        # It shouldn't match the old optimizer state dict to start
+        assert new_optimizer.state_dict() != state_dict
+        new_optimizer.load_state_dict(state_dict)
+        # But after loading, it should match
+        assert new_optimizer.state_dict() == state_dict
 
-    def test_state_dict_save_load_with_scheduler(self, dummy_model):
-        model = dummy_model()
+    def test_state_dict_save_load_with_scheduler(
+        self, dummy_model, dummy_input_and_target
+    ):
         optimizer = OptimizerInBackward(
-            model.parameters(),
+            dummy_model.parameters(),
             AdamW,
             lr=0.1,
         )
         scheduler = StepLR(optimizer, step_size=1, gamma=0.1)
-        optimizer.step()
+        output = dummy_model(dummy_input_and_target[0])
+        loss = nn.functional.mse_loss(output, dummy_input_and_target[1])
+        loss.backward()
+        optimizer.step()  # Do this so lr scheduler doesn't complain
         scheduler.step()
 
-        # Save and load optimizer state dict
-        optimizer_state_dict = optimizer.state_dict()
-        optimizer.load_state_dict(optimizer_state_dict)
+        for param_group in optimizer.param_groups:
+            assert param_group["initial_lr"] == 0.1
 
-        # Save and load scheduler state dict separately
-        scheduler_state_dict = scheduler.state_dict()
-        scheduler.load_state_dict(scheduler_state_dict)
+        opt_state_dict = optimizer.state_dict()
+
+        # Initialize a new OptimizerInBackward but with the same parameters
+        new_optimizer = OptimizerInBackward(
+            dummy_model.parameters(),
+            AdamW,
+            lr=0.1,
+        )
+        new_optimizer.load_state_dict(opt_state_dict)
+        # Create a new LR scheduler with the new optimizer
+        new_scheduler = StepLR(new_optimizer, step_size=1, gamma=0.1, last_epoch=0)
+
+        # Now check that the last learning rates match
+        scheduler.step()  # step again to mimic another round of training
+        assert scheduler.get_last_lr() == new_scheduler.get_last_lr()
+
+    def test_call_with_str_optimizer(self, dummy_model):
+        """Test initialization with string optimizer name, which is needed
+        for the config based initialization we might want."""
+        optimizer = OptimizerInBackward(
+            dummy_model.parameters(),
+            "torch.optim.AdamW",
+            lr=0.1,
+        )
+        # Grab the first optimizer
+        opt = next(iter(optimizer._per_param_optimizers.values()))
+        assert isinstance(opt, AdamW)
