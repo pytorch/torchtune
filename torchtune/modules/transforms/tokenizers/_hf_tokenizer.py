@@ -190,7 +190,7 @@ def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
                 special_tokens.add(content)
 
     # We sort lexicographically in order to get real tokens after all <|dummy_x|>
-    return sorted(list(special_tokens))
+    return list(special_tokens)
 
 
 class HuggingFaceModelTokenizer(ModelTokenizer):
