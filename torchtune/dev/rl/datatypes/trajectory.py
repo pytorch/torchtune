@@ -6,6 +6,7 @@
 
 import torch
 from tensordict import TensorClass
+from torchtune.dev.rl.rewards import RewardOutput
 
 
 class Trajectory(TensorClass["nocast"]):
@@ -17,8 +18,6 @@ class Trajectory(TensorClass["nocast"]):
     seq_lens: torch.Tensor
     answers: torch.Tensor
     policy_version: int
-    rewards: torch.Tensor
     advantages: torch.Tensor
-    successes: torch.Tensor
-    reward_metadata: dict[str, list[str]]
+    reward_outputs: list[RewardOutput]
     sequence_ids: list[str]

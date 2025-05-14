@@ -584,6 +584,25 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="qat_single_device",
+        file_path="qat_single_device.py",
+        configs=[
+            Config(
+                name="qwen2_5/3B_qat_single_device",
+                file_path="qwen2_5/3B_qat_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/1.5B_qat_single_device",
+                file_path="qwen2_5/1.5B_qat_single_device.yaml",
+            ),
+            Config(
+                name="llama2/1B_qat_single_device",
+                file_path="llama2/1B_qat_single_device.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
         name="qat_distributed",
         file_path="qat_distributed.py",
         configs=[

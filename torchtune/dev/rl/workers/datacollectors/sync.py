@@ -174,10 +174,8 @@ class SyncLLMCollector(SyncDataCollector):
             seq_lens=seq_lens,
             answers=answers,
             policy_version=policy_version,
-            rewards=None,
+            reward_outputs=None,
             advantages=None,
-            successes=None,
-            reward_metadata=None,
             sequence_ids=sequence_ids,
         )
 
