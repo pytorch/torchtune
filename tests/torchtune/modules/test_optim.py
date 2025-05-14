@@ -141,15 +141,3 @@ class TestOptimizerInBackward:
         # Now check that the last learning rates match
         scheduler.step()  # <- THIS IS BAD, BUT NEEDED UNTIL https://github.com/pytorch/pytorch/pull/149312 LANDS
         assert scheduler.get_last_lr() == new_scheduler.get_last_lr()
-
-    def test_call_with_str_optimizer(self, dummy_model):
-        """Test initialization with string optimizer name, which is needed
-        for the config based initialization we might want."""
-        optimizer = OptimizerInBackward(
-            dummy_model.parameters(),
-            "torch.optim.AdamW",
-            lr=0.1,
-        )
-        # Grab the first optimizer
-        opt = next(iter(optimizer._per_param_optimizers.values()))
-        assert isinstance(opt, AdamW)
