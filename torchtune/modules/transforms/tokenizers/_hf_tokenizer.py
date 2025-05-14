@@ -214,14 +214,14 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         self.special_tokens = _infer_special_tokens_from_hf_config(config)
         self.top_level_variables = self.extract_top_level_variables(config)
 
-        _env = jinja2.Environment(
-            undefined=StrictUndefined
-        )
+        _env = jinja2.Environment(undefined=StrictUndefined)
 
         # It is used sometimes in HF chat_templates
-        _env.globals['raise_exception'] = self._raise_helper
+        _env.globals["raise_exception"] = self._raise_helper
 
-        self.template = _env.from_string(self._get_token_from_config(config, "chat_template"))
+        self.template = _env.from_string(
+            self._get_token_from_config(config, "chat_template")
+        )
         self.truncation_type = truncation_type
 
     def _raise_helper(self, msg):
@@ -265,8 +265,8 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
                 {"role": m.role, "content": m.content[0]["content"]} for m in messages
             ],
             add_generation_prompt=add_eos,
-            **special_tokens_mapping, # We assume that the naming is consistent
-            **self.top_level_variables
+            **special_tokens_mapping,  # We assume that the naming is consistent
+            **self.top_level_variables,
         )
         print(rendered_template)
         tokenized_messages = self.base_tokenizer.encode(rendered_template)
