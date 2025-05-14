@@ -287,10 +287,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 try:
                     ckpt_dict = self._checkpoint_client.load_distributed_checkpoint(
                         self._model,
-                        self._optimizer,
+                        self.optimizer,
                     )
                 except Exception as e:
-                    log.warning(
+                    self._logger.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
                     )
 
