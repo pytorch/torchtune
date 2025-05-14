@@ -81,7 +81,7 @@ class TestQwenTokenizer:
         assert len(tokens) == 10
         assert len(mask) == 10
 
-    def test_tokenize_message_drop_eos(self, messages):
+    def test_tokenize_message_drop_eot_and_eos(self, messages):
         tokenizer = self.tokenizer()
 
         # fmt: off
@@ -99,6 +99,6 @@ class TestQwenTokenizer:
         # fmt: on
 
         expected_mask = [True] * 67 + [False] * 120
-        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
+        tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=False)
         assert tokens == expected_tokens
         assert mask == expected_mask
