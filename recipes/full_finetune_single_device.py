@@ -580,9 +580,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 num_tokens += current_num_tokens
 
                 # Mean loss for in-bwd optimizers, else multiply by token count
-                current_loss = self._loss_step(batch)
-                if not self.optimizer_in_bwd:
-                    current_loss = current_loss * current_num_tokens
+                loss_factor = current_num_tokens if not self.optimizer_in_bwd else 1.0
+                current_loss = self._loss_step(batch) * loss_factor
 
                 running_loss += current_loss.detach()
                 current_loss.backward()
@@ -591,9 +590,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     grad_norm = None
                     if not self.optimizer_in_bwd:
-                        if num_tokens > 0:
-                            training.scale_grads(self._model, 1.0 / num_tokens)
-                        if self._clip_grad_norm and num_tokens > 0:
+                        training.scale_grads(self._model, 1.0 / num_tokens)
+                        if self._clip_grad_norm:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(), float(self._clip_grad_norm)
                             )
@@ -605,8 +603,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     self.global_step += 1
                     loss_value = (
-                        (running_loss / num_tokens).item() if num_tokens else 0.0
-                    )
+                        running_loss
+                        / (num_tokens if not self.optimizer_in_bwd else 0.0)
+                    ).item()
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_value:.4f}"
@@ -617,9 +616,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_value,
                             "lr": get_lr(self.optimizer),
-                            "tokens_per_second_per_gpu": (
-                                (num_tokens / time_per_step) if num_tokens else 0.0
-                            ),
+                            "tokens_per_second_per_gpu": (num_tokens / time_per_step),
                         }
                         if self._device.type != "cpu" and self._log_peak_memory_stats:
                             log_dict.update(training.get_memory_stats(self._device))
