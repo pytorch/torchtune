@@ -7,13 +7,14 @@
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Any, Dict, Optional, Union
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
@@ -22,13 +23,12 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.loss import SFTLoss
+from torchtune.modules.optim import OptimizerInBackward
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
-
-OptimizerType = TypeVar("OptimizerType")
 
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
@@ -142,19 +142,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-
-        # # Optimizer in backward is not compatible with gradient accumulation or gradient clipping
-        # if self._optimizer_in_bwd:
-        #     if self._clip_grad_norm is not None:
-        #         raise RuntimeError(
-        #             "Gradient clipping is not supported with optimizer in bwd."
-        #             "Please set clip_grad_norm=None, or optimizer_in_bwd=False."
-        #         )
-        #     if self._gradient_accumulation_steps > 1:
-        #         raise RuntimeError(
-        #             "Gradient accumulation is not supported with optimizer in bwd."
-        #             "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
-        #         )
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -285,6 +272,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ckpt_dict[training.OPT_KEY] if self._resume_from_checkpoint else None
             ),
         )
+        if isinstance(self.optimizer, OptimizerInBackward):
+            if self._clip_grad_norm is not None:
+                raise RuntimeError(
+                    "Gradient clipping is not supported with OptimizerInBackward"
+                )
+            if self._gradient_accumulation_steps > 1:
+                raise RuntimeError(
+                    "Gradient accumulation is not supported with OptimizerInBackward"
+                )
 
         self._loss_fn = config.instantiate(cfg.loss)
         if isinstance(self._loss_fn, SFTLoss):
@@ -420,9 +416,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> OptimizerType:
+    ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, params=self._model.parameters())
-        print("optimizer", optimizer)
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
         self._logger.info("Optimizer is initialized.")
@@ -434,11 +429,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> LambdaLR:
-        """
-        Set up the learning rate scheduler based on the provided configuration.
-        It handles both standard optimization and optimizer-in-backward cases, and supports
-        schedulers from both torchtune.modules and torch.optim.
-        """
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
             self.optimizer,
