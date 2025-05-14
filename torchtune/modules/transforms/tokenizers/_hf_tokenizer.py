@@ -195,12 +195,12 @@ def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
 
 class HuggingFaceModelTokenizer(ModelTokenizer):
     def __init__(
-        self,
-        tokenizer_json_path: str,
-        *,
-        tokenizer_config_json_path: Optional[str] = None,
-        generation_config_path: Optional[str] = None,
-        truncation_type: str = "right",
+            self,
+            tokenizer_json_path: str,
+            *,
+            tokenizer_config_json_path: Optional[str] = None,
+            generation_config_path: Optional[str] = None,
+            truncation_type: str = "right",
     ):
         self.base_tokenizer = HuggingFaceBaseTokenizer(
             tokenizer_json_path=tokenizer_json_path,
@@ -260,20 +260,49 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         for token in self.special_tokens:
             special_tokens_mapping[token] = self.base_tokenizer.encode(token)
 
-        rendered_template = self.template.render(
-            messages=[
-                {"role": m.role, "content": m.content[0]["content"]} for m in messages
-            ],
-            add_generation_prompt=add_eos,
-            **special_tokens_mapping,  # We assume that the naming is consistent
-            **self.top_level_variables,
-        )
-        tokenized_messages = self.base_tokenizer.encode(rendered_template)
+        tokenized_messages = []
+        mask = []
+        previous_tokens = []
+
+        for i, message in enumerate(messages):
+            current_messages = [{"role": m.role, "content": m.content[0]["content"]} for m in messages[:i + 1]]
+
+            rendered = self.template.render(
+                messages=current_messages,
+                add_generation_prompt=add_eos if i == len(messages) - 1 else False,
+                **special_tokens_mapping, # We assume that the naming is consistent
+                **self.top_level_variables,
+            )
+
+            current_tokens = self.base_tokenizer.encode(rendered, add_eos=False)
+
+            delta = current_tokens[len(previous_tokens):]
+            previous_tokens = current_tokens
+
+            if message.masked:
+                tokenized_messages.extend([True] * len(delta))
+            else:
+                tokenized_messages.extend(delta)
+
+            mask.extend([message.masked] * len(delta))
+
+        if add_eos and self.base_tokenizer.eos_id is not None:
+            tokenized_messages.append(self.base_tokenizer.eos_id)
+            mask.append(False)
+
+        # Finally, truncate if necessary
         tokenized_messages = truncate(
             tokens=tokenized_messages,
             max_seq_len=max_seq_len,
-            eos_id=self.base_tokenizer.eos_id if add_eos else None,
+            eos_id=None,
             truncation_type=self.truncation_type,
         )
 
-        return tokenized_messages
+        mask = truncate(
+            tokens=mask,
+            max_seq_len=max_seq_len,
+            eos_id=True if add_eos else None,
+            truncation_type=self.truncation_type,
+        )
+
+        return tokenized_messages, mask
