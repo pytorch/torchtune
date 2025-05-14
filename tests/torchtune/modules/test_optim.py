@@ -139,7 +139,7 @@ class TestOptimizerInBackward:
         new_scheduler = StepLR(new_optimizer, step_size=1, gamma=0.1, last_epoch=0)
 
         # Now check that the last learning rates match
-        scheduler.step()  # step again to mimic another round of training
+        scheduler.step()  # <- THIS IS BAD, BUT NEEDED UNTIL https://github.com/pytorch/pytorch/pull/149312 LANDS
         assert scheduler.get_last_lr() == new_scheduler.get_last_lr()
 
     def test_call_with_str_optimizer(self, dummy_model):
