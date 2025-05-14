@@ -147,6 +147,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
+        self.optimizer_in_bwd = cfg.optimizer_in_bwd
+
+        if self.optimizer_in_bwd and self._clip_grad_norm is not None:
+            raise RuntimeError(
+                "Gradient clipping is not supported with optimizer_in_bwd: True"
+            )
+        if self.optimizer_in_bwd and self._gradient_accumulation_steps > 1:
+            raise RuntimeError(
+                "Gradient accumulation is not supported with optimizer_in_bwd: True"
+            )
 
         self._checkpoint_client = CheckpointClient(cfg)
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
@@ -268,15 +278,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ckpt_dict[training.OPT_KEY] if training.OPT_KEY in ckpt_dict else None
             ),
         )
-        if isinstance(self.optimizer, OptimizerInBackward):
-            if self._clip_grad_norm is not None:
-                raise RuntimeError(
-                    "Gradient clipping is not supported with OptimizerInBackward"
-                )
-            if self._gradient_accumulation_steps > 1:
-                raise RuntimeError(
-                    "Gradient accumulation is not supported with OptimizerInBackward"
-                )
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
@@ -428,7 +429,17 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_optimizer: DictConfig,
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
-        optimizer = config.instantiate(cfg_optimizer, params=self._model.parameters())
+        if self.optimizer_in_bwd:
+            base_optimizer = _get_component_from_path(cfg_optimizer.pop("_component_"))
+            optimizer = OptimizerInBackward(
+                params=self._model.parameters(),
+                optimizer=base_optimizer,
+                **cfg_optimizer,
+            )
+        else:
+            optimizer = config.instantiate(
+                cfg_optimizer, params=self._model.parameters()
+            )
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
         self._logger.info("Optimizer is initialized.")

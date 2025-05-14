@@ -232,9 +232,9 @@ as a drop-in replacement for your normal Optimizer:
 .. code-block:: yaml
 
   optimizer:
-    _component_: torchtune.modules.optim.OptimizerInBackward
-    optimizer: torch.optim.AdamW
+    _component_: torch.optim.AdamW
     lr: 0.01
+  optimizer_in_bwd: True
 
 This feature works best when using a stateful optimizer with a model with a lot of parameters, and when you don't need to use :ref:`gradient accumulation <glossary_grad_accm>`.
 You won't see meaningful impact when finetuning LoRA recipes, since in this case the number of parameters being updated are small.

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Iterable, Union
+from typing import Iterable
 
 import torch
 from torch.optim import Optimizer
@@ -19,34 +19,27 @@ class OptimizerInBackward(Optimizer):
     during gradient computation. This reduces peak memory usage by freeing gradients immediately
     after they are applied.
 
-    Compatible with learning rate schedulers through delegation to a proxy optimizer instance.
-
     Args:
         params (Iterable[torch.nn.Parameter]): Model parameters to optimize.
-        optimizer (Union[str, type[Optimizer]]): The base optimizer class (e.g., AdamW).
+        optimizer (type[Optimizer]): The base optimizer class (e.g., AdamW).
         **optimizer_kwargs: Additional arguments passed to the optimizer constructor.
 
     Example:
         >>> model = MyModel()
         >>> optimizer = OptimizerInBackward(model.parameters(), torch.optim.AdamW, lr=1e-3)
-        >>> for input, target in data_loader:
+        >>> for input, target in dataloader:
         >>>     optimizer.zero_grad()
         >>>     output = model(input)
         >>>     loss = loss_fn(output, target)
         >>>     loss.backward()  # optimizer updates happen inside backward
-        >>>     optimizer.step()  # no-op, but required for LR scheduler compatibility
     """
 
     def __init__(
         self,
         params: Iterable[torch.nn.Parameter],
-        optimizer: Union[str, type[Optimizer]],
+        optimizer: type[Optimizer],
         **optimizer_kwargs,
     ):
-        # Super hack to get this to work from a config :/
-        if isinstance(optimizer, str):
-            optimizer: type[Optimizer] = eval(optimizer)
-
         self._per_param_optimizers = {}
         self._param_groups = []
 
