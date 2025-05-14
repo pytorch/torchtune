@@ -195,12 +195,12 @@ def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
 
 class HuggingFaceModelTokenizer(ModelTokenizer):
     def __init__(
-            self,
-            tokenizer_json_path: str,
-            *,
-            tokenizer_config_json_path: Optional[str] = None,
-            generation_config_path: Optional[str] = None,
-            truncation_type: str = "right",
+        self,
+        tokenizer_json_path: str,
+        *,
+        tokenizer_config_json_path: Optional[str] = None,
+        generation_config_path: Optional[str] = None,
+        truncation_type: str = "right",
     ):
         self.base_tokenizer = HuggingFaceBaseTokenizer(
             tokenizer_json_path=tokenizer_json_path,
@@ -265,18 +265,21 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         previous_tokens = []
 
         for i, message in enumerate(messages):
-            current_messages = [{"role": m.role, "content": m.content[0]["content"]} for m in messages[:i + 1]]
+            current_messages = [
+                {"role": m.role, "content": m.content[0]["content"]}
+                for m in messages[: i + 1]
+            ]
 
             rendered = self.template.render(
                 messages=current_messages,
                 add_generation_prompt=add_eos if i == len(messages) - 1 else False,
-                **special_tokens_mapping, # We assume that the naming is consistent
+                **special_tokens_mapping,  # We assume that the naming is consistent
                 **self.top_level_variables,
             )
 
             current_tokens = self.base_tokenizer.encode(rendered, add_eos=False)
 
-            delta = current_tokens[len(previous_tokens):]
+            delta = current_tokens[len(previous_tokens) :]
             previous_tokens = current_tokens
 
             if message.masked:
