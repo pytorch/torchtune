@@ -158,6 +158,7 @@ class TestDistributedCheckpointer:
         """
         Test ``load_checkpoint`` method of an adapter checkpoint within the DistributedCheckpointer.
         """
+
         distributed_checkpointer.save_checkpoint(
             state_dict=state_dict, epoch=1, save_async=False, adapter_only=True
         )
