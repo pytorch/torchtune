@@ -7,7 +7,8 @@
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
-from jinja2 import Template
+import jinja2
+from jinja2 import StrictUndefined
 
 from tokenizers import Tokenizer
 from torchtune.data import Message, truncate
@@ -199,6 +200,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         *,
         tokenizer_config_json_path: Optional[str] = None,
         generation_config_path: Optional[str] = None,
+        truncation_type: str = "right",
     ):
         self.base_tokenizer = HuggingFaceBaseTokenizer(
             tokenizer_json_path=tokenizer_json_path,
@@ -210,7 +212,20 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         config = self.base_tokenizer.config
 
         self.special_tokens = _infer_special_tokens_from_hf_config(config)
-        self.template = Template(self._get_token_from_config(config, "chat_template"))
+        self.top_level_variables = self.extract_top_level_variables(config)
+
+        _env = jinja2.Environment(
+            undefined=StrictUndefined
+        )
+
+        # It is used sometimes in HF chat_templates
+        _env.globals['raise_exception'] = self._raise_helper
+
+        self.template = _env.from_string(self._get_token_from_config(config, "chat_template"))
+        self.truncation_type = truncation_type
+
+    def _raise_helper(self, msg):
+        raise Exception(msg)
 
     def _get_token_from_config(self, config: Dict[str, Any], key: str) -> str:
         """
@@ -227,29 +242,38 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
                 raise ValueError(f"Could not parse {key} from config")
         return token
 
+    def extract_top_level_variables(self, config):
+        top_level = {}
+        for key, value in config.items():
+            if not isinstance(value, (dict, list)):
+                top_level[key] = value
+        return top_level
+
     def tokenize_messages(
         self,
         messages: List[Message],
         add_eos: bool = True,
+        max_seq_len: int | None = None,
     ) -> Tuple[List[int], List[bool]]:
         # This part is extremely hacky, but we need to handle case where we have variable access with jinja
         special_tokens_mapping = {}
         for token in self.special_tokens:
             special_tokens_mapping[token] = self.base_tokenizer.encode(token)
+
         rendered_template = self.template.render(
             messages=[
                 {"role": m.role, "content": m.content[0]["content"]} for m in messages
             ],
             add_generation_prompt=add_eos,
-            **special_tokens_mapping,  # We assume that the naming is consitent
+            **special_tokens_mapping, # We assume that the naming is consistent
+            **self.top_level_variables
         )
-
+        print(rendered_template)
         tokenized_messages = self.base_tokenizer.encode(rendered_template)
-
         tokenized_messages = truncate(
             tokens=tokenized_messages,
-            max_seq_len=self.max_seq_len,
-            eos_id=self.eos_id if add_eos else None,
+            max_seq_len=max_seq_len,
+            eos_id=self.base_tokenizer.eos_id if add_eos else None,
             truncation_type=self.truncation_type,
         )
 
