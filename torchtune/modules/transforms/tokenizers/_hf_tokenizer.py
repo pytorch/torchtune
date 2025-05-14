@@ -189,7 +189,6 @@ def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
             if content := token_info.get("content"):
                 special_tokens.add(content)
 
-    # We sort lexicographically in order to get real tokens after all <|dummy_x|>
     return list(special_tokens)
 
 
