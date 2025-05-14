@@ -10,7 +10,7 @@ import time
 import pytest
 import torch
 from omegaconf import OmegaConf
-from tests.test_utils import gen_log_file_name, gpu_test, skip_if_lt_python_310
+from tests.test_utils import gen_log_file_name, gpu_test, rl_test, skip_if_lt_python_310
 
 _has_ray = importlib.util.find_spec("ray") is not None
 
