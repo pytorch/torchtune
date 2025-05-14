@@ -624,6 +624,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 current_loss = self._loss_step(batch) * current_num_tokens
                 running_loss += current_loss
+                # If using opt in backwards, we need to unnormalize before stepping
+                if isinstance(self._optimizer, OptimizerInBackwardWrapper):
+                    current_loss = current_loss * (1 / current_num_tokens)
                 current_loss.backward()
 
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
