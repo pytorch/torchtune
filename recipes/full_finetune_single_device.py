@@ -554,24 +554,17 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         return loss
 
     def train(self) -> None:
-        """
-        The core training loop. Supports training on subsets of the dataset using the
-        ``max_steps_per_epoch``.
-        """
         self.optimizer.zero_grad()
-
-        # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
-        running_loss = 0
-        num_tokens = 0
-
+        running_loss, num_tokens = 0.0, 0
         self._profiler.start()
-        # self.epochs_run should be non-zero when we're resuming from a checkpoint
+
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             pbar = tqdm(total=self._steps_per_epoch)
             self._dataloader.sampler.set_epoch(curr_epoch)
+
             for idx, batch in enumerate(self._dataloader):
-                # Start tracking CUDA memory for active steps for just the first epoch
+                # Optionally start memory profiling
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
@@ -579,66 +572,65 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
-                utils.batch_to_device(batch, self._device)
 
-                # Calculate the number of unmasked tokens in the current batch
-                # and increment the total number of tokens seen in the step
+                utils.batch_to_device(batch, self._device)
                 current_num_tokens = (
                     batch["labels"] != self._loss_fn.ignore_index
                 ).sum()
                 num_tokens += current_num_tokens
 
-                # Loss is normalized by default so we multiply by the number of tokens
-                # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_step(batch) * current_num_tokens
-                running_loss += current_loss
+                # Mean loss for in-bwd optimizers, else multiply by token count
+                current_loss = self._loss_step(batch)
+                if not self.optimizer_in_bwd:
+                    current_loss = current_loss * current_num_tokens
+
+                running_loss += current_loss.detach()
                 current_loss.backward()
 
+                # Take a normal optimizer step
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    training.scale_grads(self._model, 1 / num_tokens)
-                    if self._clip_grad_norm is not None:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(
-                            self._model.parameters(),
-                            max_norm=float(self._clip_grad_norm),
-                        )
-                    self.optimizer.step()
-                    self.optimizer.zero_grad(set_to_none=True)
+                    grad_norm = None
+                    if not self.optimizer_in_bwd:
+                        if num_tokens > 0:
+                            training.scale_grads(self._model, 1.0 / num_tokens)
+                        if self._clip_grad_norm and num_tokens > 0:
+                            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                self._model.parameters(), float(self._clip_grad_norm)
+                            )
+                        self.optimizer.step()
+                        self.optimizer.zero_grad(set_to_none=True)
+
                     if self.lr_scheduler is not None:
                         self.lr_scheduler.step()
-                    self.global_step += 1
 
-                    loss_to_log = running_loss.detach().item() / num_tokens
+                    self.global_step += 1
+                    loss_value = (
+                        (running_loss / num_tokens).item() if num_tokens else 0.0
+                    )
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                        f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_value:.4f}"
                     )
 
                     if self.global_step % self._log_every_n_steps == 0:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {
-                            "loss": loss_to_log,
-                            # For optim in backward, this assumes all optimizers have the same LR. This is currently
-                            # true since we don't expose the ability to configure this yet.
+                            "loss": loss_value,
                             "lr": get_lr(self.optimizer),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": (
+                                (num_tokens / time_per_step) if num_tokens else 0.0
+                            ),
                         }
                         if self._device.type != "cpu" and self._log_peak_memory_stats:
-                            log_dict.update(
-                                training.get_memory_stats(device=self._device)
-                            )
-                        if self._clip_grad_norm is not None:
-                            log_dict.update({"grad_norm": grad_norm})
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
-                        )
+                            log_dict.update(training.get_memory_stats(self._device))
+                        if grad_norm is not None:
+                            log_dict["grad_norm"] = grad_norm
+                        self._metric_logger.log_dict(log_dict, step=self.global_step)
 
-                    # Reset running stats for the next step
-                    running_loss = 0
-                    num_tokens = 0
+                    running_loss, num_tokens = 0.0, 0
                     t0 = time.perf_counter()
 
-                # Stop tracking CUDA memory now that active steps are complete
+                # Optionally stop memory profiling
                 if (
                     curr_epoch == 0
                     and self.profiler_profile_memory
@@ -650,12 +642,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     torch.cuda.memory._record_memory_history(enabled=None)
 
-                # Step the profiler
-                # Note we are stepping each batch, which might not include optimizer step in the trace
-                # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
 
-                # Check if we should stop training for this epoch
                 if (
                     (idx + 1) // self._gradient_accumulation_steps
                 ) == self.max_steps_per_epoch:
