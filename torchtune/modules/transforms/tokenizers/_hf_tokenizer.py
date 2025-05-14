@@ -268,7 +268,6 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
             **special_tokens_mapping,  # We assume that the naming is consistent
             **self.top_level_variables,
         )
-        print(rendered_template)
         tokenized_messages = self.base_tokenizer.encode(rendered_template)
         tokenized_messages = truncate(
             tokens=tokenized_messages,
