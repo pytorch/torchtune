@@ -99,6 +99,7 @@ class TestPostProcessingWorker:
     @gpu_test(gpu_count=1)
     @pytest.mark.skipif(not _has_ray, reason="requires ray")
     @skip_if_lt_python_310()
+    @rl_test()
     def test_run(self, cfg, log_file):
         ray.init(num_cpus=19, num_gpus=1)
 

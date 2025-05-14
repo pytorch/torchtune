@@ -9,6 +9,7 @@ from typing import Optional
 
 import torch
 from torch import nn, Tensor
+from torch.distributed.tensor import DTensor
 from torch.nn.utils.clip_grad import _no_grad, _tensor_or_tensors
 from torch.utils._foreach_utils import _device_has_foreach_support, _has_foreach_support
 from torchtune.utils._logging import deprecated
@@ -102,4 +103,7 @@ def _scale_grad_(
         else:
             scaler_device = scaler.to(device)
             for g in device_grads:
-                g.mul_(scaler_device)
+                if isinstance(g, DTensor):
+                    g[:] = g * scaler_device
+                else:
+                    g.mul_(scaler_device)
