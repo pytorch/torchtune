@@ -767,7 +767,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -813,7 +813,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         return dataloader
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
@@ -835,7 +835,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
         return loss
 
-    def validate(self) -> Dict[str, float]:
+    def validate(self) -> dict[str, float]:
         """
         Run validation loop and return average validation loss.
         """

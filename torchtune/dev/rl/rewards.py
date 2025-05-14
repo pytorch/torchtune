@@ -72,7 +72,7 @@ class Reward(ABC):
     """
     This is an abstract base class for rewards which are used in GRPO.
     """
-    
+
     @abstractmethod
     def __call__(
         self,
@@ -175,8 +175,8 @@ class ThinkingAnswerFormattingReward(Reward):
     def __call__(
         self,
         completion_ids: torch.Tensor,
-        completions: List[str],
-        answers: List[str],
+        completions: list[str],
+        answers: list[str],
     ) -> RewardOutput:
         # soft format reward pattern
         think_pattern = rf"<{self.think_tag}>.*?</{self.think_tag}>"
