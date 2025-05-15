@@ -221,7 +221,9 @@ class CheckpointClient:
         """
         intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
         checkpointer = self._get_checkpointer()
-        no_dist = not isinstance(checkpointer, DistributedCheckpointer)
+        is_not_distributed_checkpointer = not isinstance(
+            checkpointer, DistributedCheckpointer
+        )
 
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
@@ -235,7 +237,7 @@ class CheckpointClient:
         model_state_dict = {}
         optim_state_dict = {}
 
-        if no_dist and not single_device:
+        if is_not_distributed_checkpointer and not single_device:
             # To prevent GPU memory from spiking during checkpoint save,
             # we consolidate the full model and optim state dicts on CPU for rank 0
             model_state_dict = training.gather_cpu_state_dict(
@@ -248,7 +250,7 @@ class CheckpointClient:
                 log.info(
                     f"Getting full model state dict took {time.perf_counter() - cp_start:.2f} secs"
                 )
-        elif no_dist:
+        elif is_not_distributed_checkpointer:
             model_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
         else:
             model_state_dict = model.state_dict()
@@ -258,21 +260,22 @@ class CheckpointClient:
                 log.info("Getting optimizer state dict...")
                 optim_start = time.perf_counter()
 
-            if no_dist:
-                if not self._optimizer_in_bwd:
-                    optim_state_dict = training.get_full_optimizer_state_dict(
-                        model,
-                        optimizer,
-                        self._is_rank_zero,
-                        device=self._device,
-                    )
-                else:
+            if is_not_distributed_checkpointer:
+                # This check can be removed once we fully migrate over to ``OptimizerInBackward``
+                if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
                         optim_state_dict[
                             param
                         ] = training.get_full_optimizer_state_dict(
                             model, opt, self._is_rank_zero, device=self._device
                         )
+                else:
+                    optim_state_dict = training.get_full_optimizer_state_dict(
+                        model,
+                        optimizer,
+                        self._is_rank_zero,
+                        device=self._device,
+                    )
             else:
                 optim_state_dict = optimizer.state_dict()
 
@@ -322,7 +325,7 @@ class CheckpointClient:
 
         # Now that we have the model and optim state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
-        if no_dist and not single_device:
+        if is_not_distributed_checkpointer and not single_device:
             if self._is_rank_zero:
                 _save_checkpoint_helper()
 
