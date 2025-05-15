@@ -21,7 +21,7 @@ class OptimizerInBackward(Optimizer):
 
     Args:
         params (Iterable[torch.nn.Parameter]): Model parameters to optimize.
-        optimizer (type[Optimizer]): The base optimizer class (e.g., AdamW).
+        optimizer_cls (type[Optimizer]): The optimizer class to use in backward pass (e.g., AdamW).
         **optimizer_kwargs: Additional arguments passed to the optimizer constructor.
 
     Example:
@@ -37,51 +37,48 @@ class OptimizerInBackward(Optimizer):
     def __init__(
         self,
         params: Iterable[torch.nn.Parameter],
-        optimizer: type[Optimizer],
+        optimizer_cls: type[Optimizer],
         **optimizer_kwargs,
     ):
-        self._per_param_optimizers = {}
-        self._param_groups = []
+        params = list(params)  # Make a copy of params
+        self._optimizers = {}
+        self._param_to_index = {}
 
-        for param in params:
-            if not param.requires_grad:
-                continue
-            opt = optimizer([param], **optimizer_kwargs)
-            self._per_param_optimizers[param] = opt
-            self._param_groups.append(opt.param_groups[0])
-            # Hook to call .step() on this param's optimizer
-            param.register_post_accumulate_grad_hook(
-                lambda p=param: self._step_and_clear(p)
-            )
+        for idx, p in enumerate(params):
+            self._param_to_index[p] = idx
+            if p.requires_grad:
+                self._optimizers[idx] = optimizer_cls([p], **optimizer_kwargs)
+                p.register_post_accumulate_grad_hook(
+                    lambda param=p: self._step_and_clear(param)
+                )
 
-        # Necessary to call this for setting up hooks, etc.
-        super().__init__(self._param_groups, optimizer_kwargs)
+        super().__init__(params, optimizer_kwargs)
 
     def _step_and_clear(self, param):
-        opt = self._per_param_optimizers[param]
-        opt.step()
-        opt.zero_grad()
+        idx = self._param_to_index[param]
+        self._optimizers[idx].step()
+        self._optimizers[idx].zero_grad()
 
     def step(self, closure=None):
-        # This is a no-op, we step on each param's optimizer in the hook
         if closure is not None:
-            raise RuntimeError(
-                "OptimizerInBackward does not support stepping via a closure."
-            )
+            raise RuntimeError("OptimizerInBackward does not support closures.")
 
     def zero_grad(self, set_to_none=True):
-        for opt in self._per_param_optimizers.values():
+        for opt in self._optimizers.values():
             opt.zero_grad(set_to_none=set_to_none)
 
     def state_dict(self):
-        # Call the super() method in order to grab proper state and param groups
-        state_dict = super().state_dict()
-        state_dict["per_param_optimizers"] = {
-            p: opt.state_dict() for p, opt in self._per_param_optimizers.items()
+        return {
+            "param_groups": super().state_dict()["param_groups"],
+            "optimizers": {
+                str(idx): opt.state_dict() for idx, opt in self._optimizers.items()
+            },
+            "state": {},  # State is handled by individual optimizers
         }
-        return state_dict
 
     def load_state_dict(self, state_dict):
-        super().load_state_dict(state_dict)
-        for p, opt in self._per_param_optimizers.items():
-            opt.load_state_dict(state_dict["per_param_optimizers"][p])
+        super().load_state_dict(
+            {"param_groups": state_dict["param_groups"], "state": {}}
+        )
+        for idx, opt in self._optimizers.items():
+            opt.load_state_dict(state_dict["optimizers"][str(idx)])

@@ -430,10 +430,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
         if self.optimizer_in_bwd:
-            base_optimizer = _get_component_from_path(cfg_optimizer.pop("_component_"))
+            optimizer_cls = _get_component_from_path(cfg_optimizer.pop("_component_"))
             optimizer = OptimizerInBackward(
                 params=self._model.parameters(),
-                optimizer=base_optimizer,
+                optimizer_cls=optimizer_cls,
                 **cfg_optimizer,
             )
         else:

@@ -19,6 +19,7 @@ from torch.distributed.checkpoint.state_dict import (
     StateDictOptions,
 )
 from torchtune import config, training, utils
+from torchtune.modules.optim import OptimizerInBackward
 from torchtune.modules.peft import (
     get_adapter_state_dict,
     get_merged_lora_ckpt,
@@ -269,12 +270,11 @@ class CheckpointClient:
                         ] = training.get_full_optimizer_state_dict(
                             model, opt, self._is_rank_zero, device=self._device
                         )
+                elif isinstance(optimizer, OptimizerInBackward):
+                    optim_state_dict = optimizer.state_dict()
                 else:
                     optim_state_dict = training.get_full_optimizer_state_dict(
-                        model,
-                        optimizer,
-                        self._is_rank_zero,
-                        device=self._device,
+                        model, optimizer, self._is_rank_zero, device=self._device
                     )
             else:
                 optim_state_dict = optimizer.state_dict()
