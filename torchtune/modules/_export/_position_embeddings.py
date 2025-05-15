@@ -17,9 +17,6 @@ import torch.nn.functional as F
 from torch import nn
 from torch.distributed._tensor import distribute_tensor, DTensor
 
-FORMAT = "[%(levelname)s %(asctime)s %(filename)s:%(lineno)s] %(message)s"
-logging.basicConfig(level=logging.INFO, format=FORMAT)
-
 
 class TilePositionalEmbedding(nn.Module):
     """
