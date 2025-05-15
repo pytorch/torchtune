@@ -604,7 +604,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self.global_step += 1
                     loss_value = (
                         running_loss
-                        / (num_tokens if not self.optimizer_in_bwd else 0.0)
+                        / (num_tokens if not self.optimizer_in_bwd else 1.0)
                     ).item()
                     pbar.update(1)
                     pbar.set_description(
