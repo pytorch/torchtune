@@ -389,6 +389,10 @@ _ALL_RECIPES = [
                 name="mistral/7B_full_ppo_low_memory",
                 file_path="mistral/7B_full_ppo_low_memory.yaml",
             ),
+            Config(
+                name="llama2/1B_full_ppo_low_memory_single_device",
+                file_path="llama2/1B_full_ppo_low_memory_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -577,6 +581,25 @@ _ALL_RECIPES = [
         file_path="quantize.py",
         configs=[
             Config(name="quantization", file_path="quantization.yaml"),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
+        name="qat_single_device",
+        file_path="qat_single_device.py",
+        configs=[
+            Config(
+                name="qwen2_5/3B_qat_single_device",
+                file_path="qwen2_5/3B_qat_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/1.5B_qat_single_device",
+                file_path="qwen2_5/1.5B_qat_single_device.yaml",
+            ),
+            Config(
+                name="llama2/1B_qat_single_device",
+                file_path="llama2/1B_qat_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),

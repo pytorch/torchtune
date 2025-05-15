@@ -134,7 +134,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         self,
         messages: List[Message],
         *,
-        add_eos: bool = False,
+        add_end_tokens: bool = False,
         ignore_system_prompt: bool = False,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
@@ -160,7 +160,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         Args:
             messages (List[Message]): A list of messages, each containing role, content,
                 and masked attributes.
-            add_eos (bool): Whether to append EOS after assistant message, default to False
+            add_end_tokens (bool): Whether to append EOS after assistant message, default to False
             ignore_system_prompt (bool): Whether to ignore system prompt, defaults to False.
 
         Raises:
@@ -235,7 +235,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             mask.extend([message.masked] * len(tokens))
 
             # If assistant message, append EOS at end
-            if end_of_turn and add_eos:
+            if end_of_turn and add_end_tokens:
                 tokenized_messages.append(self.eos_id)
                 mask.append(message.masked)
                 end_of_turn = False
@@ -252,13 +252,13 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             tokenized_messages = truncate(
                 tokens=tokenized_messages,
                 max_seq_len=self.max_seq_len,
-                eos_id=self.eos_id if add_eos else None,
+                eos_id=self.eos_id if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
             mask = truncate(
                 tokens=mask,
                 max_seq_len=self.max_seq_len,
-                eos_id=True if add_eos else None,
+                eos_id=True if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
 
@@ -281,7 +281,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             inference (bool): Whether the template is being used for inference or not.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample
