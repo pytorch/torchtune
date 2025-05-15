@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
-import torch.distributed
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
@@ -321,7 +320,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
             # log config with parameter override
-            config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg) ###
+            config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
             self._metric_logger.log_config(cfg)
 
         # Load the base model
@@ -1088,4 +1087,3 @@ def recipe_main(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     sys.exit(recipe_main())
-

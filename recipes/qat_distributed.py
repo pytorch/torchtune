@@ -332,7 +332,6 @@ class QATRecipeDistributed(FTRecipeInterface):
             config.log_config(recipe_name="QATRecipeDistributed", cfg=cfg)
             # log config with parameter override
             self._metric_logger.log_config(cfg)
-           
 
         # Load the base model
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
