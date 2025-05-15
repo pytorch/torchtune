@@ -595,8 +595,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(), float(self._clip_grad_norm)
                             )
-                        self.optimizer.step()
-                        self.optimizer.zero_grad(set_to_none=True)
+
+                    # This will be a no-op for optim in bwd, but prevents a warning w/ LR Scheduler
+                    self.optimizer.step()
+                    self.optimizer.zero_grad(set_to_none=True)
 
                     if self.lr_scheduler is not None:
                         self.lr_scheduler.step()
