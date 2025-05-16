@@ -7,7 +7,7 @@
 import inspect
 from argparse import Namespace
 from importlib import import_module
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -30,12 +30,12 @@ def log_config(recipe_name: str, cfg: DictConfig) -> None:
     )
 
 
-def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
+def _has_component(node: Union[dict[str, Any], DictConfig]) -> bool:
     return (OmegaConf.is_dict(node) or isinstance(node, dict)) and "_component_" in node
 
 
 def _get_component_from_path(
-    path: str, caller_globals: Optional[Dict[str, Any]] = None
+    path: str, caller_globals: Optional[dict[str, Any]] = None
 ) -> Any:
     """
     Resolve a Python object from a dotted path or simple name.
@@ -46,7 +46,7 @@ def _get_component_from_path(
 
     Args:
         path (str): Dotted path (e.g., "os.path.join") or simple name (e.g., "os").
-        caller_globals (Optional[Dict[str, Any]]): The caller's global namespace. Defaults to __main__ if None.
+        caller_globals (Optional[dict[str, Any]]): The caller's global namespace. Defaults to __main__ if None.
 
     Returns:
         Any: The resolved object (module, class, function, etc.).
@@ -118,7 +118,7 @@ def _get_component_from_path(
         ) from e
 
 
-def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictConfig:
+def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: list[str]) -> DictConfig:
     """
     Takes the direct output of argparse's parse_known_args which returns known
     args as a Namespace and unknown args as a dotlist (in our case, yaml args and
@@ -145,7 +145,7 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     Args:
         yaml_args (Namespace): Namespace containing args from yaml file, components
             should have _component_ fields
-        cli_args (List[str]): List of key=value strings
+        cli_args (list[str]): list of key=value strings
 
     Returns:
         DictConfig: OmegaConf DictConfig containing merged args
@@ -202,25 +202,25 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     return OmegaConf.merge(yaml_conf, cli_conf)
 
 
-def _remove_key_by_dotpath(nested_dict: Dict[str, Any], dotpath: str) -> None:
+def _remove_key_by_dotpath(nested_dict: dict[str, Any], dotpath: str) -> None:
     """
     Removes a key specified by dotpath from a nested dict. Errors should handled by
     the calling function.
 
     Args:
-        nested_dict (Dict[str, Any]): Dict to remove key from
+        nested_dict (dict[str, Any]): dict to remove key from
         dotpath (str): dotpath of key to remove, e.g., "a.b.c"
     """
     path = dotpath.split(".")
 
-    def delete_non_component(d: Dict[str, Any], key: str) -> None:
+    def delete_non_component(d: dict[str, Any], key: str) -> None:
         if _has_component(d[key]):
             raise ValueError(
                 f"Removing components from CLI is not supported: ~{dotpath}"
             )
         del d[key]
 
-    def recurse_and_delete(d: Dict[str, Any], path: List[str]) -> None:
+    def recurse_and_delete(d: dict[str, Any], path: list[str]) -> None:
         if len(path) == 1:
             delete_non_component(d, path[0])
         else:

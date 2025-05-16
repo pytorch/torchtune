@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict
-
 import torch
 
 from torchtune.models.convert_weights import get_mapped_key
@@ -27,12 +25,12 @@ _REWARD = {
 
 
 def reward_hf_to_tune(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
     head_dim: int = None,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from HF's format to torchtune's format, which contains the weights
     of a reward model (i.e. a classifier with a single class).
@@ -44,7 +42,7 @@ def reward_hf_to_tune(
     repo in HF.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
+        state_dict (dict[str, torch.Tensor]): State dict in HF's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
@@ -52,7 +50,7 @@ def reward_hf_to_tune(
             as dim // num_heads.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in torchtune's format.
+        dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     if head_dim is None:
@@ -82,11 +80,11 @@ def reward_hf_to_tune(
 
 
 def reward_tune_to_hf(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from torchtune's format to Hugging Face's format for a reward model.
 
@@ -95,13 +93,13 @@ def reward_tune_to_hf(
     The logic is identical to :func:`~torchtune.models.convert_weights.tune_to_hf`, but with a different mapping.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
+        state_dict (dict[str, torch.Tensor]): State dict in torchtune's format.
         num_heads (int, optional): Number of heads in the model. Defaults to 32.
         num_kv_heads (int, optional): Number of heads in the key/value projection layers. Defaults to 32.
         dim (int, optional): Dimension of the model. Defaults to 4096.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in Hugging Face's format.
+        dict[str, torch.Tensor]: State dict in Hugging Face's format.
 
     """
     converted_state_dict = {}

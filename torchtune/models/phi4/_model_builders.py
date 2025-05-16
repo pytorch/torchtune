@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
@@ -85,7 +85,7 @@ def phi4_tokenizer(
 
 
 def lora_phi4_14b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
@@ -100,7 +100,7 @@ def lora_phi4_14b(
     The Phi4 defaults are the same as in :func:`~torchtune.models.phi4.phi4`.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.

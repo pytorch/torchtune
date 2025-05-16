@@ -7,7 +7,7 @@
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Optional
 
 import torch
 
@@ -21,7 +21,7 @@ class RewardOutput:
         reward_base_name (str): the base name of the reward function, e.g. "math_correctness" or "formatting"
         total_reward (torch.Tensor): the total reward for the given reward function, shape ``[b]``
         successes (torch.Tensor): the number of successes for the given reward function, shape ``[b]``
-        rewards (Optional[Dict[str, torch.Tensor]]): an optional dictionary of sub-rewards for the given reward function,
+        rewards (Optional[dict[str, torch.Tensor]]): an optional dictionary of sub-rewards for the given reward function,
            which are only used for logging purposes. e.g:
            ``{"soft_format_reward": torch.Tensor, "strict_format_reward": torch.Tensor}``
     """
@@ -29,9 +29,9 @@ class RewardOutput:
     reward_base_name: str
     total_reward: torch.Tensor
     successes: torch.Tensor
-    rewards: Optional[Dict[str, torch.Tensor]] = field(default_factory=dict)
+    rewards: Optional[dict[str, torch.Tensor]] = field(default_factory=dict)
 
-    def log(self, prefix: str = "") -> Dict[str, float]:
+    def log(self, prefix: str = "") -> dict[str, float]:
         """
         Logs the reward and other statistics for the given reward function.
 
@@ -77,16 +77,16 @@ class Reward(ABC):
     def __call__(
         self,
         completion_ids: torch.Tensor,
-        completions: List[str],
-        answers: List[str],
+        completions: list[str],
+        answers: list[str],
     ) -> RewardOutput:
         """
         This method is called to compute the reward for a given completion and answer.
 
         Args:
             completion_ids (torch.Tensor): the token ids of the completion, shape ``[b, seq_len]``
-            completions (List[str]): the completions, shape ``[b, seq_len]``
-            answers (List[str]): the answers, shape ``[b, seq_len]``
+            completions (list[str]): the completions, shape ``[b, seq_len]``
+            answers (list[str]): the answers, shape ``[b, seq_len]``
 
         Returns:
             A ``RewardOutput`` object containing the total reward to be used in advantage estimation,
@@ -116,8 +116,8 @@ class FormattedMathCorrectnessReward(Reward):
     def __call__(
         self,
         completion_ids: torch.Tensor,
-        completions: List[str],
-        answers: List[str],
+        completions: list[str],
+        answers: list[str],
     ) -> RewardOutput:
         rewards = []
         import math_verify
@@ -175,8 +175,8 @@ class ThinkingAnswerFormattingReward(Reward):
     def __call__(
         self,
         completion_ids: torch.Tensor,
-        completions: List[str],
-        answers: List[str],
+        completions: list[str],
+        answers: list[str],
     ) -> RewardOutput:
         # soft format reward pattern
         think_pattern = rf"<{self.think_tag}>.*?</{self.think_tag}>"

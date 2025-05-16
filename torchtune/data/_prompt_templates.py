@@ -4,13 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from functools import partial
-from typing import Dict, List, Protocol, Tuple, Union
+from typing import Protocol, Union
 
 from torchtune.config._utils import _get_component_from_path
 
 from torchtune.data._messages import Message, Role
 
-_TemplateType = Union[str, Dict[Role, Tuple[str, str]]]
+_TemplateType = Union[str, dict[Role, tuple[str, str]]]
 
 
 class PromptTemplateInterface(Protocol):
@@ -22,18 +22,18 @@ class PromptTemplateInterface(Protocol):
 
     # Template should map role to a tuple containing the tag to prepend to the text
     # and tag to append to the text. Leave as empty strings to not prepend or append
-    template: Dict[Role, Tuple[str, str]]
+    template: dict[Role, tuple[str, str]]
 
     def __call__(
         self,
-        messages: List[Message],
+        messages: list[Message],
         inference: bool = False,
-    ) -> List[Message]:
+    ) -> list[Message]:
         """
         Format each role's message(s) according to the prompt template
 
         Args:
-            messages (List[Message]): a single conversation, structured as a list
+            messages (list[Message]): a single conversation, structured as a list
                 of :class:`~torchtune.data.Message` objects
             inference (bool): Whether the template is being used for inference or not.
 
@@ -81,29 +81,29 @@ class PromptTemplate(PromptTemplateInterface):
         :class:`~torchtune.data.PromptTemplate` interface.
 
     Args:
-        template (Dict[Role, Tuple[str, str]]): a dictionary mapping role to the
+        template (dict[Role, tuple[str, str]]): a dictionary mapping role to the
             prepend and append tags
     """
 
     def __init__(
         self,
-        template: Dict[Role, Tuple[str, str]],
+        template: dict[Role, tuple[str, str]],
     ):
         self.template = template
 
     def __call__(
-        self, messages: List[Message], inference: bool = False
-    ) -> List[Message]:
+        self, messages: list[Message], inference: bool = False
+    ) -> list[Message]:
         """
         Format each role's message(s) according to the prompt template by prepending
         and appending the defined tags.
 
         Args:
-            messages (List[Message]): list of messages to apply the template to
+            messages (list[Message]): list of messages to apply the template to
             inference (bool): Whether the template is being used for inference or not.
 
         Returns:
-            List[Message]: The formatted list of messages
+            list[Message]: The formatted list of messages
         """
         formatted_dialogue = []
         for message in messages:
@@ -158,14 +158,14 @@ class ChatMLTemplate(PromptTemplateInterface):
 
     def __call__(
         self,
-        messages: List[Message],
+        messages: list[Message],
         inference: bool = False,
-    ) -> List[Message]:
+    ) -> list[Message]:
         """
         Format user, assistant, and system messages with appropriate tags.
 
         Args:
-            messages (List[Message]): a single conversation, structured as a list
+            messages (list[Message]): a single conversation, structured as a list
                 of `Message` objects
             inference (bool): Whether the template is being used for inference or not.
 

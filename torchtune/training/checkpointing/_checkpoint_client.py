@@ -7,7 +7,7 @@
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from omegaconf import DictConfig
@@ -40,9 +40,9 @@ class TrainingProgress:
     epochs_run: int
     total_epochs: int
     max_steps_per_epoch: int
-    dataloader_state_dict: Optional[Dict[str, Any]] = None
+    dataloader_state_dict: Optional[dict[str, Any]] = None
 
-    def state_dict(self) -> Dict[str, object]:
+    def state_dict(self) -> dict[str, object]:
         return {
             training.SEED_KEY: self.seed,
             training.EPOCHS_KEY: self.epochs_run,
@@ -373,7 +373,7 @@ class CheckpointClient:
                 single_device,
             )
 
-    def load_base_checkpoint(self) -> Dict[str, Any]:
+    def load_base_checkpoint(self) -> dict[str, Any]:
         """
         This method is used to load the base model from the checkpoint
         configured by the user.
@@ -385,7 +385,7 @@ class CheckpointClient:
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         adapter_config: Optional[dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
         Due to being distributed, this method is called on every rank.
@@ -397,7 +397,7 @@ class CheckpointClient:
             _init_optim_state(optimizer)
 
         # Build the state dict to be loaded from the distributed checkpoint
-        checkpoint_dict: Dict[str, Any] = {}
+        checkpoint_dict: dict[str, Any] = {}
         model_state_dict = model.state_dict()
         optim_state_dict = optimizer.state_dict()
 
