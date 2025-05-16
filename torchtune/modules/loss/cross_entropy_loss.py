@@ -9,9 +9,9 @@ import torch.nn.functional as F
 from torch import nn
 from torch.distributed.tensor import DTensor
 
+import liger_kernel.ops.fused_linear_cross_entropy
 from torchtune.modules.loss.loss_types import SFTLoss
 from torchtune.utils import get_logger
-
 log = get_logger()
 
 
@@ -143,3 +143,95 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
             return total_loss
         else:
             return total_loss / total_elements
+
+class LigerFusedCrossEntropyLoss(nn.Module, SFTLoss):
+    """Memory efficient Cross-entropy loss that uses fused CUDA kernels to compute the loss.
+    Combines the linear projection with the cross-entropy calculation for better performance
+    and memory efficiency.
+
+    Linear cross entropy is computed in a single fused operation. You need to skip the final 
+    projection layer in your model and pass it to the loss instead. You can setup the loss 
+    with the model as shown below.
+
+    >>> model = Transformer(...)
+    >>> loss = LigerFusedCrossEntropyLoss(...)
+    >>> loss.set_model_output(model)
+    """
+
+    def __init__(
+        self,
+        ignore_index: int = -100
+    ):
+        """Initialize the LigerFusedCrossEntropyLoss.
+
+        Args:
+            ignore_index (int): Index to ignore in the target tensor. Default is -100.
+        """
+        super().__init__()
+        self.linear_projection = None
+        self.ignore_index = ignore_index
+
+    def set_model_output(self, model: nn.Module) -> None:
+        """Modify model output to match the expected input for the loss function.
+        
+        Args:
+            model (nn.Module): The model whose output layer will be used for the loss computation.
+        """
+        model.skip_output_layer = True
+        self.linear_projection = model.output
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        targets: torch.Tensor,
+    ) -> torch.Tensor:
+        """Compute the fused linear cross entropy loss.
+
+        Args:
+            hidden_states (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
+            targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
+
+        Returns:
+            torch.Tensor: The computed loss value
+
+        Raises:
+            RuntimeError: If set_model_output() was not called before forward
+        """
+        if self.linear_projection is None:
+            raise RuntimeError("Must call set_model_output() before forward()")
+        if isinstance(hidden_states, DTensor):
+            hidden_states = hidden_states.full_tensor()
+        
+        orig_w = self.linear_projection.weight
+        if isinstance(orig_w, DTensor):
+            mesh, placements = orig_w.device_mesh, orig_w.placements
+            w = orig_w.full_tensor().detach().clone().requires_grad_(True)
+            def _scatter_w(grad):
+                orig_w.grad = DTensor.from_local(grad, mesh, placements)
+            w.register_hook(_scatter_w)
+        else:
+            w = orig_w
+        orig_b = self.linear_projection.bias
+        if isinstance(orig_b, DTensor):
+            mesh, placements = orig_b.device_mesh, orig_b.placements
+            b = orig_b.full_tensor().detach().clone().requires_grad_(True)
+            def _scatter_b(grad):
+                orig_b.grad = DTensor.from_local(grad, mesh, placements)
+            b.register_hook(_scatter_b)
+        else:
+            b = orig_b
+
+        loss, _ = liger_kernel.ops.fused_linear_cross_entropy.LigerFusedLinearCrossEntropyFunction.apply(
+                hidden_states, 
+                w,
+                targets,
+                b,
+                None,                # ce_weight
+                self.ignore_index,   # ignore_index
+                0.0,                 # lse_square_scale
+                0.0,                 # label_smoothing
+                "sum",               # reduction
+                None,                # softcap
+                False                # return_z_loss
+            )
+        return loss
