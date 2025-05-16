@@ -40,6 +40,15 @@ Losses
     loss.ReverseKLWithChunkedOutputLoss
     loss.SymmetricKLWithChunkedOutputLoss
 
+Optimizers
+----------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    optim.OptimizerInBackward
+
 Base Tokenizers
 ---------------
 Base tokenizers are tokenizer models that perform the direct encoding of text

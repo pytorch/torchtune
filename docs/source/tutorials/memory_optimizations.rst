@@ -218,10 +218,28 @@ To understand how this works, we encourage you to read through the relevant PyTo
 
 *Sounds great! How do I use it?*
 
-.. todo ref full finetune recipe doc
+In torchtune, you can enable this feature using :class:`OptimizerInBackward`, which wraps around a normal PyTorch optimizer like so and can be used
+as a drop-in replacement for your normal Optimizer:
 
-In torchtune, you can enable this feature using the ``optimizer_in_bwd`` flag. This feature works best when using a stateful optimizer
-with a model with a lot of parameters, and when you don't need to use :ref:`gradient accumulation <glossary_grad_accm>`.
+.. code-block:: python
+
+  OptimizerInBackward(
+    model.parameters(),
+    torch.optim.AdamW,
+    lr=0.01,
+  )
+
+In order to use this OOTB with a torchtune recipe and config, simply specify your chosen optimizer and then add the key ``optimizer_in_bwd: True``, which will
+construct a :class:`OptimizerInBackward` from the base optimizer class.
+
+.. code-block:: yaml
+
+  optimizer:
+    _component_: torch.optim.AdamW
+    lr: 0.01
+  optimizer_in_bwd: True
+
+This feature works best when using a stateful optimizer with a model with a lot of parameters, and when you don't need to use :ref:`gradient accumulation <glossary_grad_accm>`.
 You won't see meaningful impact when finetuning LoRA recipes, since in this case the number of parameters being updated are small.
 
 .. _glossary_cpu_offload:
