@@ -35,6 +35,7 @@ Losses
     :nosignatures:
 
     loss.LinearCrossEntropyLoss
+    loss.LigerFusedCrossEntropyLoss
     loss.ForwardKLLoss
     loss.ForwardKLWithChunkedOutputLoss
     loss.ReverseKLWithChunkedOutputLoss
