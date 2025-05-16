@@ -144,11 +144,15 @@ class TestPostProcessingWorker:
                 replay_buffer=replay_buffer,
             )
             actor_handles = [postprocessing_worker.run.remote()]
+            ray.get(actor_handles)
 
             # dummy trainer to wait for queue to empty
             dummy_trainer = DummyTrainer.remote(rollout_queue=rollout_queue)
             dummy_trainer_handles = [dummy_trainer.train.remote()]
             ray.get(dummy_trainer_handles)
+
+        except Exception as e:
+            raise RuntimeError("Test failed") from e
 
         finally:
             ray.shutdown()

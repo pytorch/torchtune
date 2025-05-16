@@ -1,4 +1,4 @@
-name: GPU tests
+name: RL tests
 
 on:
   push:
