@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
@@ -117,7 +117,7 @@ def llama3_2_vision_11b(
 
 
 def lora_llama3_2_vision_11b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     decoder_trainable: str = "frozen",
     encoder_trainable: str = "lora",
     fusion_trainable: str = "lora",
@@ -135,7 +135,7 @@ def lora_llama3_2_vision_11b(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         decoder_trainable (str): Option to set decoder params as fully trainble (full), lora trainable (lora),
@@ -280,7 +280,7 @@ def llama3_2_vision_90b(
 
 
 def lora_llama3_2_vision_90b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     decoder_trainable: str = "frozen",
     encoder_trainable: str = "lora",
     fusion_trainable: str = "lora",
@@ -298,7 +298,7 @@ def lora_llama3_2_vision_90b(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         decoder_trainable (str): Option to set decoder params as fully trainble (full), lora trainable (lora),

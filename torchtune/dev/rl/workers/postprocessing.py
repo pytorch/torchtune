@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List
+from typing import Any
 
 import ray
 import torch
@@ -60,7 +60,7 @@ class PostProcessingWorker:
             self._tokenizer.stop_tokens, device=self._device
         )
 
-        self.reward_functions: List[Reward] = [
+        self.reward_functions: list[Reward] = [
             config.instantiate(reward_fn) for reward_fn in self.cfg.reward_functions
         ]
 
@@ -68,7 +68,7 @@ class PostProcessingWorker:
         if self._is_actor_zero:
             self._metric_logger = logger
 
-    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> dict[str, Any]:
         """Extract the reference checkpoint state from file and validate."""
         self._ref_checkpointer = config.instantiate(
             cfg_ref_checkpointer, resume_from_checkpoint=False
@@ -253,7 +253,7 @@ class PostProcessingWorker:
                 self._tokenizer.decode(response_ids[i].tolist())
                 for i in range(batch_size * group_size)
             ]
-            reward_outputs: List[RewardOutput] = []
+            reward_outputs: list[RewardOutput] = []
             for reward_fn in self.reward_functions:
                 reward_outputs.append(reward_fn(response_ids, responses_str, answers))
 

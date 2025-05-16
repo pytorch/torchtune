@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List
 
 import torch
 
@@ -29,7 +28,7 @@ def compare_lora_attention(
     num_heads: int,
     num_kv_heads: int,
     max_seq_len: int,
-    lora_modules: List[str],
+    lora_modules: list[str],
     lora_rank: int,
     lora_alpha: float,
 ) -> None:

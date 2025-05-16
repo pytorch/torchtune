@@ -6,7 +6,7 @@
 
 import os
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 
@@ -21,12 +21,12 @@ else:
     BlockMask = torch.Tensor
 
 
-def get_world_size_and_rank() -> Tuple[int, int]:
+def get_world_size_and_rank() -> tuple[int, int]:
     """Function that gets the current world size (aka total number
     of ranks) and rank number of the current process in the default process group.
 
     Returns:
-        Tuple[int, int]: world size, rank
+        tuple[int, int]: world size, rank
     """
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         return torch.distributed.get_world_size(), torch.distributed.get_rank()
