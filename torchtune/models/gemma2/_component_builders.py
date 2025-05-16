@@ -4,10 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Optional
+
 import torch
 from torch import nn
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.modules import (
     FrozenNF4Linear,
@@ -48,6 +50,7 @@ class TanhSoftCapping(nn.Module):
         attn_weights = attn_weights * self.capping_value
         return attn_weights
 
+
 class Gemma2FinalNorm(nn.Module):
     """
     Combines RMSNorm and SoftCapping
@@ -81,10 +84,10 @@ def gemma2(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
-    hidden_capping_value: float = 50.,
-    final_capping_value: float = 30.,
+    hidden_capping_value: float = 50.0,
+    final_capping_value: float = 30.0,
     sliding_window_size: int = 4096,
-    query_pre_attn_scalar:  Optional[int] = None,
+    query_pre_attn_scalar: Optional[int] = None,
 ) -> TransformerDecoder:
     """
     Build the decoder associated with the gemma2 model. This includes:
@@ -164,7 +167,7 @@ def gemma2(
 
 
 def lora_gemma2(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     *,
     # gemma args
@@ -182,7 +185,7 @@ def lora_gemma2(
     hidden_capping_value: float = 50.,
     final_capping_value: float = 30.,
     sliding_window_size: int = 4096,
-    query_pre_attn_scalar:  Optional[int] = None,
+    query_pre_attn_scalar: Optional[int] = None,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -195,7 +198,7 @@ def lora_gemma2(
     Note: output projection lora is not supported because it is tied to token embeddings
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -260,8 +263,8 @@ def lora_gemma2(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
-            use_dora = use_dora,
-            quantize_base = quantize_base,
+            use_dora=use_dora,
+            quantize_base=quantize_base,
         )
         
         layer = TransformerSelfAttentionLayer(
@@ -295,7 +298,7 @@ def lora_gemma2(
 
 
 def lora_gemma2_self_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
     embed_dim: int,
@@ -306,7 +309,7 @@ def lora_gemma2_self_attention(
     attn_dropout: float = 0.0,
     rope_base: int = 10_000,
     sliding_window_size: Optional[int] = None,
-    softcapping: Optional[float] = 50.,
+    softcapping: Optional[float] = 50.0,
     query_pre_attn_scalar: Optional[int],
     # LoRA args
     lora_rank: int,

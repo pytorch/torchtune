@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict
-
 import torch
 
 from torchtune.models.convert_weights import get_mapped_key
@@ -38,12 +36,12 @@ _GEMMA2_FROM_HF = {
 
 
 def gemma2_hf_to_tune(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
     head_dim: int = None,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from HF's format to torchtune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
@@ -53,7 +51,7 @@ def gemma2_hf_to_tune(
     repo in HF (https://huggingface.co/meta-llama/Llama-2-7b-hf).
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
+        state_dict (dict[str, torch.Tensor]): State dict in HF's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
@@ -61,7 +59,7 @@ def gemma2_hf_to_tune(
             as dim // num_heads.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in torchtune's format.
+        dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     if head_dim is None:
@@ -87,7 +85,7 @@ def gemma2_hf_to_tune(
 
 
 def gemma2_tune_to_hf(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
@@ -99,14 +97,14 @@ def gemma2_tune_to_hf(
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
+        state_dict (dict[str, torch.Tensor]): State dict in torchtune's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
         head_dim (int): Dimension of model attention heads. Default None.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in HF's format.
+        dict[str, torch.Tensor]: State dict in HF's format.
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _GEMMA2_FROM_HF.items()}

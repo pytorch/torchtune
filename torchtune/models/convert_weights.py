@@ -6,7 +6,7 @@
 
 import re
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import torch
 
@@ -53,7 +53,7 @@ _FROM_HF = {
 }
 
 
-def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
+def get_mapped_key(key: str, mapping_dict: dict[str, str]) -> str:
     try:
         # Checks if there is a layer # in the key
         if any(k.isdigit() for k in key.split(".")):
@@ -73,7 +73,7 @@ def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
     return new_key
 
 
-def is_in_meta_format(state_dict: Dict[str, torch.Tensor]) -> bool:
+def is_in_meta_format(state_dict: dict[str, torch.Tensor]) -> bool:
     """
     Check whether the state dict is in Meta's format by checking the presence
     of unique keys only available in META format.
@@ -89,7 +89,7 @@ def is_in_meta_format(state_dict: Dict[str, torch.Tensor]) -> bool:
     return False
 
 
-def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def meta_to_tune(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from Meta's format to torchtune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
@@ -99,10 +99,10 @@ def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
     repo in HF (https://huggingface.co/meta-llama/Llama-2-7b).
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+        state_dict (dict[str, torch.Tensor]): State dict in Meta's format.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in torchtune's format.
+        dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     for key, value in state_dict.items():
@@ -113,17 +113,17 @@ def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
     return converted_state_dict
 
 
-def tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def tune_to_meta(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from torchtune's format to Meta's format. This function
     doesn't handle any sharding or splitting of state dicts. It follows the
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
+        state_dict (dict[str, torch.Tensor]): State dict in torchtune's format.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in Meta's format.
+        dict[str, torch.Tensor]: State dict in Meta's format.
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
@@ -136,12 +136,12 @@ def tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
 
 
 def hf_to_tune(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
     head_dim: int = None,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from HF's format to torchtune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
@@ -151,7 +151,7 @@ def hf_to_tune(
     repo in HF (https://huggingface.co/meta-llama/Llama-2-7b-hf).
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
+        state_dict (dict[str, torch.Tensor]): State dict in HF's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
@@ -159,7 +159,7 @@ def hf_to_tune(
             as dim // num_heads.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in torchtune's format.
+        dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     if head_dim is None:
@@ -185,7 +185,7 @@ def hf_to_tune(
 
 
 def tune_to_hf(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
@@ -197,14 +197,14 @@ def tune_to_hf(
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
+        state_dict (dict[str, torch.Tensor]): State dict in torchtune's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
         head_dim (int): Dimension of model attention heads. Default None.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in HF's format.
+        dict[str, torch.Tensor]: State dict in HF's format.
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
@@ -254,7 +254,7 @@ _PEFT_CONFIG_EXPECTED_KEYS = ["target_modules", "r", "lora_alpha"]
 
 
 def tune_to_peft_adapter_config(
-    adapter_config: Dict[str, Any],
+    adapter_config: dict[str, Any],
     base_model_name_or_path: Optional[str] = None,
 ):
     if not all([x in adapter_config.keys() for x in _PEFT_CONFIG_EXPECTED_KEYS]):
@@ -277,7 +277,7 @@ def tune_to_peft_adapter_config(
 
 
 def tune_to_peft_adapter_weights(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,

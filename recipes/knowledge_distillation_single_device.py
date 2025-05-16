@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -145,7 +145,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._checkpoint_client = CheckpointClient(cfg)
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
 
-    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the teacher checkpoint state from file.
         """
@@ -159,7 +159,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         checkpoint_dict = teacher_checkpoint_client.load_base_checkpoint()
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -370,8 +370,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         compile_model: bool,
-        base_model_state_dict: Dict[str, Any],
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -449,7 +449,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
     def _setup_teacher_model(
         self,
         model_cfg: DictConfig,
-        model_state_dict: Dict[str, Any],
+        model_state_dict: dict[str, Any],
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
@@ -476,7 +476,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -567,7 +567,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         )
 
     def _loss_step(
-        self, batch: Dict[str, torch.Tensor]
+        self, batch: dict[str, torch.Tensor]
     ) -> (torch.Tensor, torch.Tensor):
 
         # Both are shape [b, s]

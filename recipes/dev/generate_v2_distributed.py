@@ -7,7 +7,7 @@ import itertools
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, List
+from typing import Any
 
 import torch
 import torch.distributed as dist
@@ -45,7 +45,7 @@ class SingleTurnYAMLToMessages(Transform):
             text: Describe the image in detail.
     """
 
-    def __call__(self, prompt: Dict[str, Any]) -> List[Message]:
+    def __call__(self, prompt: dict[str, Any]) -> list[Message]:
         messages = []
 
         # Iterate through roles and add content

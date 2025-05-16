@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 import torch
 from torch.nn import functional as F
@@ -95,7 +95,7 @@ class PackedDataset(Dataset):
         self.max_packs = max_packs
         self.split_across_pack = split_across_pack
         # Where final samples will be held
-        self.packs: List[PACK_TYPE] = []
+        self.packs: list[PACK_TYPE] = []
         self.previous_sample_boundary: int = 0
         self._pack()
 
@@ -270,5 +270,5 @@ class PackedDataset(Dataset):
     def __len__(self) -> int:
         return len(self.packs)
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         return self.packs[idx]
