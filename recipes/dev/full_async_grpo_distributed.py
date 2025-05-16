@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import ray
+import asyncio
 import functools
 from OmegaConf import DictConfig
 
@@ -26,10 +27,30 @@ class GRPOGeneratorDistributed():
     # policy
     # reward workers?
 
-    def prefetch(self, state_dict):
-    # check version of all keys, if len(version) == 1 and version != self.version then fetch
-    # new_weights = {k: self.store(k) for k,v in state_dict} # this owned by generator, can't be invalidated
-    # self.model.sync_weights
+    def __init__(self, cfg):
+        ...
+
+        self.prefetch_task = asyncio.create_task(self.prefetch())
+
+    async def prefetch(self):
+        while True:
+            version = {self.kvstore.get_version(k) for k in state_dict}
+            if len(version) == 1 and version.pop() != self.version:
+                try:
+                    self.state_dict = update_state_dict_from_store(
+                        self.kvstore,
+                        self.model.state_dict(),
+                        version,
+                    )
+                    self.version = version
+                except Excpetion:
+                    pass
+            else:
+                sleep.sleep(.01)
+
+    def cleanup(self):
+        self.prefetch.cancel()
+
 
 
 
@@ -48,7 +69,14 @@ class GRPOTrainerDistributed:
         # find setup data
         # add logging method
 
-    def sync_weights(self, model, step):
+# 1. async offload weights
+# 2. transform weights
+# 3. async write weights
+
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # TODO use async calls for offload and then subprocess for transform weights?
+    # then return handles from update call
+    async def sync_weights(self, model, step):
         state_dict = {}
         for k,v in model.state_dict():
             # async offload to cpu
@@ -56,13 +84,14 @@ class GRPOTrainerDistributed:
             with torch.no_grad():
                 async_copy = v.to('cpu', non_blocking=True, stream=cpu_weights)
                 state_dict[k] = async_copy
+        self.checkpointer.convert_state_dict()
         # figure out how to have update_store_from_state_dict work with the streams
         return update_store_from_state_dict(self.kvstore, state_dict, step)
 
 
     def opt_step(self, step):
-        # lost of half broken code here
-        if self.offload_handle is not None:
+        # lots of half broken code here
+        if self.sync_handles is not None:
             await self.sync_handles
         self.opt.step()
         self.sync_handles = async sync_weights(self.model, step)
@@ -77,15 +106,6 @@ class GRPOTrainerDistributed:
 
 
             self.opt.step(step)
-
-# TODO
-# show train offload -> save to store
-#   - only save to store if vllm updated
-#   - don't call opt_step while still offloading
-#   - start offload -> move to store -> store marks new version (per offset) (does store propagate copies to past copies or invalidate?) -> block update unitl offloaded and no new offload until vllm pulls
-#       - do you want two copies to be able to exist if vllm and trainer are on the same machine (i.e. read always creates a copy (write location and read location, reads get invalidated with new write))
-#
-# actors get other actors from ray.state
 
 
 def launch_replay_buffer(cfg):
@@ -103,7 +123,7 @@ def launch_metric_logger(cfg):
     ray_logger = ray.remote(**cfg.metric_logger.orchestration)(logger_cls)
     return ray_logger.options(name="MetricLogger").remote(**cfg.metric_logger)
 
-
+# TODO: convert calls for asyncio https://docs.ray.io/en/latest/ray-core/actors/async_api.html
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
     """
