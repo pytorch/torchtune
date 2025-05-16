@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from torchtune.datasets._text_completion import TextCompletionDataset
 
@@ -17,7 +17,7 @@ def cnn_dailymail_articles_dataset(
     max_seq_len: Optional[int] = None,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> TextCompletionDataset:
     """
     Support for family of datasets similar to `CNN / DailyMail <https://huggingface.co/datasets/ccdv/cnn_dailymail>`_,
@@ -36,7 +36,7 @@ def cnn_dailymail_articles_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
         TextCompletionDataset: the configured TextCompletionDataset

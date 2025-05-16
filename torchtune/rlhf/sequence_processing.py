@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
-
 import torch
 import torch.nn.functional as F
 from torchtune import rlhf
@@ -14,7 +12,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 def truncate_sequence_at_first_stop_token(
     sequences: torch.Tensor, stop_tokens: torch.Tensor, fill_value: int = 0
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Truncates sequence(s) after the first stop token and pads with ``fill_value``.
 
@@ -24,7 +22,7 @@ def truncate_sequence_at_first_stop_token(
         fill_value (int): value to pad the sequence with after the first stop token, usually ``pad_id``.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: A tuple of two tensors with the same shape as ``sequences``:
+        tuple[torch.Tensor, torch.Tensor]: A tuple of two tensors with the same shape as ``sequences``:
             - padding_mask (torch.Tensor): a bool tensor where True indicates the token has been truncated.
             - sequences (torch.Tensor) a tensor of truncated and padded sequences.
 

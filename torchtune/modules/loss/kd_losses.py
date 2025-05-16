@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
-
 import torch
 import torch.nn.functional as F
 
@@ -201,16 +199,16 @@ class ForwardKLWithChunkedOutputLoss(torch.nn.Module):
 
     def forward(
         self,
-        student_logits: List[torch.Tensor],
-        teacher_logits: List[torch.Tensor],
+        student_logits: list[torch.Tensor],
+        teacher_logits: list[torch.Tensor],
         labels: torch.Tensor,
     ) -> torch.Tensor:
         """
         Args:
-            student_logits (List[torch.Tensor]): List of chunked logits from student model of length
+            student_logits (list[torch.Tensor]): list of chunked logits from student model of length
                 ``self.num_output_chunks``, where each chunk has shape
                 (batch_size, num_tokens / num_output_chunks, vocab_size).
-            teacher_logits (List[torch.Tensor]): List of chunked logits from teacher model of length
+            teacher_logits (list[torch.Tensor]): list of chunked logits from teacher model of length
                 ``self.num_output_chunks``, where each chunk has shape
                 (batch_size, num_tokens / num_output_chunks, vocab_size).
             labels (torch.Tensor): Ground truth labels of shape (batch_size, num_tokens).
@@ -291,16 +289,16 @@ class ReverseKLWithChunkedOutputLoss(torch.nn.Module):
 
     def forward(
         self,
-        student_logits: List[torch.Tensor],
-        teacher_logits: List[torch.Tensor],
+        student_logits: list[torch.Tensor],
+        teacher_logits: list[torch.Tensor],
         labels: torch.Tensor,
     ) -> torch.Tensor:
         """
         Args:
-            student_logits (List[torch.Tensor]): List of chunked logits from student model of length
+            student_logits (list[torch.Tensor]): list of chunked logits from student model of length
                 ``self.num_output_chunks``, where each chunk has shape
                 (batch_size, num_tokens / num_output_chunks, vocab_size).
-            teacher_logits (List[torch.Tensor]): List of chunked logits from teacher model of length
+            teacher_logits (list[torch.Tensor]): list of chunked logits from teacher model of length
                 ``self.num_output_chunks``, where each chunk has shape
                 (batch_size, num_tokens / num_output_chunks, vocab_size).
             labels (torch.Tensor): Ground truth labels of shape (batch_size, num_tokens).
@@ -388,16 +386,16 @@ class SymmetricKLWithChunkedOutputLoss(torch.nn.Module):
 
     def forward(
         self,
-        student_logits: List[torch.Tensor],
-        teacher_logits: List[torch.Tensor],
+        student_logits: list[torch.Tensor],
+        teacher_logits: list[torch.Tensor],
         labels: torch.Tensor,
     ) -> torch.Tensor:
         """
         Args:
-            student_logits (List[torch.Tensor]): List of chunked logits from student model of length
+            student_logits (list[torch.Tensor]): list of chunked logits from student model of length
                 ``self.num_output_chunks``, where each chunk has shape
                 (batch_size, num_tokens / num_output_chunks, vocab_size).
-            teacher_logits (List[torch.Tensor]): List of chunked logits from teacher model of length
+            teacher_logits (list[torch.Tensor]): list of chunked logits from teacher model of length
                 ``self.num_output_chunks``, where each chunk has shape
                 (batch_size, num_tokens / num_output_chunks, vocab_size).
             labels (torch.Tensor): Ground truth labels of shape (batch_size, num_tokens).
