@@ -557,8 +557,7 @@
 
         <span class="k">if</span> <span class="n">embed_dim</span> <span class="o">%</span> <span class="n">num_heads</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;embed_dim (</span><span class="si">{</span><span class="n">embed_dim</span><span class="si">}</span><span class="s2">) must be divisible by &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;num_heads (</span><span class="si">{</span><span class="n">num_heads</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;embed_dim (</span><span class="si">{</span><span class="n">embed_dim</span><span class="si">}</span><span class="s2">) must be divisible by num_heads (</span><span class="si">{</span><span class="n">num_heads</span><span class="si">}</span><span class="s2">)&quot;</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">attn_dropout</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">attn_dropout</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>

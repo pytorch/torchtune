@@ -781,7 +781,6 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">get_largest_iter_folder</span><span class="p">(</span>
     <span class="nb">dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-
     <span class="n">largest_iter_folder</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">iter_folders</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
@@ -834,7 +833,6 @@
     <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">url_to_fs</span><span class="p">(</span><span class="n">input_dir</span><span class="p">)</span>
     <span class="n">max_file_size</span> <span class="o">=</span> <span class="n">max_file_size_mb</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
     <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
-
         <span class="c1"># Filter out directories that start with &#39;.&#39;. E.g. &quot;.cache/&quot;</span>
         <span class="n">dirs</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)]</span>
 

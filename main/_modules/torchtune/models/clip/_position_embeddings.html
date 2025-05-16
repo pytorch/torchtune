@@ -590,7 +590,6 @@
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">inpt_local_pos_embed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-
             <span class="c1"># We can only apply F.interpolate to vanilla tensors, not DTensors</span>
             <span class="c1"># If pos embeds are a DTensor, we gather the full tensor, apply</span>
             <span class="c1"># interpolate, and then reshard after</span>
@@ -648,7 +647,6 @@
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">inpt_global_pos_embed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-
             <span class="c1"># We can only apply F.interpolate to vanilla tensors, not DTensors</span>
             <span class="c1"># If pos embeds are a DTensor, we gather the full tensor, apply</span>
             <span class="c1"># interpolate, and then reshard after</span>
@@ -989,7 +987,6 @@
         <span class="n">embedding</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;embedding&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-
             <span class="c1"># We can only apply F.interpolate to vanilla tensors, not DTensors</span>
             <span class="c1"># If pos embeds are a DTensor, we gather the full tensor, apply</span>
             <span class="c1"># interpolate, and then reshard after</span>

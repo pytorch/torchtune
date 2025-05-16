@@ -873,7 +873,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">append_cls_token</span> <span class="o">=</span> <span class="n">append_cls_token</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-
         <span class="c1"># add 1 CLS token to every tile</span>
         <span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="n">n_tokens</span><span class="p">,</span> <span class="n">embed_dim</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">cls_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">bsz_and_n_imgs</span><span class="p">,</span> <span class="n">n_tiles</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>

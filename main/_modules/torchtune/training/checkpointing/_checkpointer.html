@@ -608,7 +608,6 @@
         <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-
         <span class="c1"># Fail fast if ``checkpoint_files`` is invalid</span>
         <span class="c1"># TODO: support loading more than one file</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
@@ -1340,7 +1339,6 @@
                     <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">index_data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">training</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
-
             <span class="c1"># TODO: saving it &quot;as is&quot; is a requirement because, if we only save with</span>
             <span class="c1"># convert_weights.tune_to_peft_adapter_weights, we do NOT have a fn</span>
             <span class="c1"># convert_weights.peft_to_tune. The .pt format is not needed, but</span>
@@ -1520,7 +1518,6 @@
         <span class="n">resume_from_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-
         <span class="c1"># Fail fast if ``checkpoint_files`` is invalid</span>
         <span class="c1"># TODO: support loading more than one file</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
