@@ -50,10 +50,8 @@ repos:
     - id: pydoclint
       args: [--config=pyproject.toml]
 
-repos:
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.11.10
   hooks:
     - id: ruff-check
       args: [ --fix ]
-    - id: ruff-format

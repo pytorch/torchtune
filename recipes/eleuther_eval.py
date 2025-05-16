@@ -408,7 +408,6 @@ class _LLMEvalWrapper(HFLM):
             dtype=self._dtype,
             decoder_max_seq_len=self.max_length,
         ):
-
             toks, _ = generate(
                 self.model,
                 maybe_padded_context,

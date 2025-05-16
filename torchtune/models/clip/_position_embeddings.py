@@ -141,7 +141,6 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
 
         if inpt_local_pos_embed is not None:
-
             # We can only apply F.interpolate to vanilla tensors, not DTensors
             # If pos embeds are a DTensor, we gather the full tensor, apply
             # interpolate, and then reshard after
@@ -199,7 +198,6 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
 
         if inpt_global_pos_embed is not None:
-
             # We can only apply F.interpolate to vanilla tensors, not DTensors
             # If pos embeds are a DTensor, we gather the full tensor, apply
             # interpolate, and then reshard after
@@ -540,7 +538,6 @@ class TilePositionalEmbedding(nn.Module):
         embedding = state_dict.get(prefix + "embedding")
 
         if embedding is not None:
-
             # We can only apply F.interpolate to vanilla tensors, not DTensors
             # If pos embeds are a DTensor, we gather the full tensor, apply
             # interpolate, and then reshard after
