@@ -229,6 +229,9 @@ as a drop-in replacement for your normal Optimizer:
     lr=0.01,
   )
 
+In order to use this OOTB with a torchtune recipe and config, simply specify your chosen optimizer and then add the key ``optimizer_in_bwd: True``, which will
+construct a :class:`OptimizerInBackward` from the base optimizer class.
+
 .. code-block:: yaml
 
   optimizer:
