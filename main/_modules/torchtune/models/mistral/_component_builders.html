@@ -453,8 +453,6 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
-
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -592,7 +590,7 @@
 
 
 <div class="viewcode-block" id="lora_mistral"><a class="viewcode-back" href="../../../../generated/torchtune.models.mistral.lora_mistral.html#torchtune.models.mistral.lora_mistral">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_mistral</span><span class="p">(</span>
-    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -619,7 +617,7 @@
 <span class="sd">    with LoRA applied based on the passed in configuration.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
@@ -724,7 +722,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">lora_mistral_self_attention</span><span class="p">(</span>
-    <span class="n">lora_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">lora_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="c1"># MultiHeadAttention args</span>
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -745,7 +743,7 @@
 <span class="sd">    applied to a subset of its linear layers</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to. Options are ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;,</span>
 <span class="sd">            &quot;output_proj&quot;}``.</span>
 <span class="sd">        embed_dim (int): embedding dimension for self-attention</span>
@@ -1003,7 +1001,7 @@
     <span class="s2">&quot;`apply_lora_to_output=False` instead.&quot;</span>
 <span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">lora_mistral_classifier</span><span class="p">(</span>
-    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -1032,7 +1030,7 @@
 <span class="sd">    with LoRA applied to some of the linear layers in its self-attention modules.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
@@ -1136,7 +1134,9 @@
         <span class="c1"># so as to not increase peak memory</span>
         <span class="c1"># TODO this is clowny, figure out a better way to get what precision the rest</span>
         <span class="c1"># of the model is in</span>
-        <span class="n">_register_reparametrize_state_dict_hooks</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">_register_reparametrize_state_dict_hooks</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
 </pre></div>

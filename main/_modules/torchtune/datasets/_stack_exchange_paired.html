@@ -453,7 +453,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets._preference</span><span class="w"> </span><span class="kn">import</span> <span class="n">PreferenceDataset</span>
@@ -486,14 +486,14 @@
 <span class="sd">    Args:</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Default is False.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;prompt&quot;,</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping to change the expected &quot;prompt&quot;,</span>
 <span class="sd">            &quot;chosen&quot;, and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
 <span class="sd">            Keys should be &quot;prompt&quot;, &quot;chosen&quot;, and &quot;rejected&quot; and values should be the actual column names.</span>
 <span class="sd">            Default is None, keeping the default column names.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
@@ -525,11 +525,11 @@
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lvwerra/stack-exchange-paired&quot;</span><span class="p">,</span>
-    <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreferenceDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Family of preference datasets similar to the `Stack Exchange Paired dataset</span>
@@ -545,7 +545,7 @@
 <span class="sd">            in the filepath in ``data_files``. See `Hugging Face&#39;s</span>
 <span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
 <span class="sd">            ``load_dataset`` for more details. Default is ``lvwerra/stack-exchange-paired``.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;prompt&quot;,</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping to change the expected &quot;prompt&quot;,</span>
 <span class="sd">            &quot;chosen&quot;, and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
 <span class="sd">            Keys should be &quot;prompt&quot;, &quot;chosen&quot;, and &quot;rejected&quot; and values should be the actual column names.</span>
 <span class="sd">            Default is None, keeping the default column names.</span>
@@ -555,7 +555,7 @@
 <span class="sd">            details.</span>
 <span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
 <span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
+<span class="sd">        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        PreferenceDataset: The preference dataset built from source paired data.</span>

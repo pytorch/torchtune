@@ -454,7 +454,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShareGPTToMessages</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.datasets._sft</span><span class="w"> </span><span class="kn">import</span> <span class="n">SFTDataset</span>
@@ -466,13 +466,13 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;liuhaotian/LLaVA-Instruct-150K&quot;</span><span class="p">,</span>
     <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;coco/train2017/&quot;</span><span class="p">,</span>
-    <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">filter_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="n">data_files</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;llava_instruct_150k.json&quot;</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SFTDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Support for family of image + text datasets similar to</span>
@@ -536,7 +536,7 @@
 <span class="sd">            &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path&gt;`_</span>
 <span class="sd">        image_dir (str): path to the directory containing the images as you are expected to download the COCO dataset</span>
 <span class="sd">            before using. Default is &quot;coco/&quot;.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
 <span class="sd">            to the new column names in the dataset. If None, assume these are identical.</span>
 <span class="sd">            Default is None.</span>
 <span class="sd">        new_system_prompt (Optional[str]): if specified, prepend a system message. This can</span>
@@ -551,7 +551,7 @@
 <span class="sd">        data_files (str): path to the json file to load as dataset. See the `dataset repo</span>
 <span class="sd">            &lt;https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/tree/main&gt;`_ for options.</span>
 <span class="sd">            Default is &quot;llava_instruct_150k.json&quot;.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging</span>
+<span class="sd">        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging</span>
 <span class="sd">            Face&#39;s `API ref &lt;https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset&gt;`_</span>
 <span class="sd">            for more details.</span>
 

@@ -458,7 +458,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -472,7 +472,7 @@
 
 <div class="viewcode-block" id="reparametrize_as_dtype_state_dict_post_hook"><a class="viewcode-back" href="../../../generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
     <span class="n">offload_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -495,7 +495,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        model (nn.Module): the model to take ``state_dict()`` on</span>
-<span class="sd">        state_dict (Dict[str, Any]): the state dict to modify</span>
+<span class="sd">        state_dict (dict[str, Any]): the state dict to modify</span>
 <span class="sd">        *args (Any): Unused args passed when running this as a state_dict hook.</span>
 <span class="sd">        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.</span>
 <span class="sd">        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.</span>
@@ -584,7 +584,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_low_ram_reparametrize_as_dtype_state_dict_post_hook</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
     <span class="n">offload_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -610,7 +610,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        model (nn.Module): the model to take ``state_dict()`` on</span>
-<span class="sd">        state_dict (Dict[str, Any]): the state dict to modify</span>
+<span class="sd">        state_dict (dict[str, Any]): the state dict to modify</span>
 <span class="sd">        *args (Any): Unused args passed when running this as a state_dict hook.</span>
 <span class="sd">        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.</span>
 <span class="sd">        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.</span>

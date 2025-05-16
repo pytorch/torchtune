@@ -460,7 +460,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
@@ -560,10 +560,10 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="o">...</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="o">...</span>
 
 
@@ -577,7 +577,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
-<span class="sd">        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care</span>
+<span class="sd">        checkpoint_files (list[str]): list of checkpoint files to load. Since the checkpointer takes care</span>
 <span class="sd">            of sorting by file ID, the order in this list does not matter</span>
 <span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
@@ -600,7 +600,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -668,7 +668,7 @@
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load torchtune checkpoint from file. Currently only loading from a single file is supported.</span>
 
@@ -689,9 +689,9 @@
 <span class="sd">                cannot be loaded with weights_only=True</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Any]: state_dict from the input checkpoint</span>
+<span class="sd">            dict[str, Any]: state_dict from the input checkpoint</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="n">weights_only</span>
         <span class="p">)</span>
@@ -707,7 +707,7 @@
 
 <div class="viewcode-block" id="FullModelTorchTuneCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelTorchTuneCheckpointer.html#torchtune.training.FullModelTorchTuneCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -731,7 +731,7 @@
 <span class="sd">        &gt;&gt;&gt; }</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            state_dict (Dict[str, Any]): State dict with model and (optionally) recipe state</span>
+<span class="sd">            state_dict (dict[str, Any]): State dict with model and (optionally) recipe state</span>
 <span class="sd">            epoch (int): Current epoch number. This is added to the checkpoint file name to ensure</span>
 <span class="sd">                we&#39;re not overwriting intermediate checkpoint files</span>
 <span class="sd">            intermediate_checkpoint (bool): If True, save an additional checkpoint file with the</span>
@@ -832,7 +832,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
-<span class="sd">        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load or a dictionary</span>
+<span class="sd">        checkpoint_files (Union[list[str], dict[str, str]]): list of checkpoint files to load or a dictionary</span>
 <span class="sd">            containing the keys keys [&quot;filename_format&quot;, &quot;max_filename&quot;]. Since the checkpointer takes care</span>
 <span class="sd">            of sorting by file ID, the order in this list does not matter.</span>
 <span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.</span>
@@ -860,7 +860,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
         <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -899,7 +899,7 @@
         <span class="c1"># weight_map contains the state_dict key -&gt; checkpoint file mapping so we can correctly</span>
         <span class="c1"># parition the state dict into output checkpoint files. This is updated during checkpoint</span>
         <span class="c1"># load</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># the config.json file contains model params needed for state dict conversion</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="kc">None</span>
@@ -951,7 +951,7 @@
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="FullModelHFCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="FullModelHFCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load HF checkpoint from file.</span>
 
@@ -963,7 +963,7 @@
 <span class="sd">        the appropriate convert_weights function (depending on ``self._model_type``).</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            state_dict (Dict[str, Any]): torchtune checkpoint state dict</span>
+<span class="sd">            state_dict (dict[str, Any]): torchtune checkpoint state dict</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the values in the input state_dict are not Tensors</span>
@@ -972,12 +972,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="c1"># merged state_dict contains keys and weights from all the checkpoint files</span>
-        <span class="n">merged_state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">merged_state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="c1"># converted_state_dict is the final state_dict passed to the recipe after the</span>
         <span class="c1"># keys are converted into the torchtune format. This optionally also contains</span>
         <span class="c1"># the recipe state and adapter weights</span>
-        <span class="n">converted_state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">converted_state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enable_dcp</span><span class="p">:</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1134,7 +1134,7 @@
 
 <div class="viewcode-block" id="FullModelHFCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelHFCheckpointer.html#torchtune.training.FullModelHFCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1150,7 +1150,7 @@
 <span class="sd">        ``_weight_map`` into separate checkpoint files.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file</span>
+<span class="sd">            state_dict (dict[str, Any]): Checkpoint state dict to be written out to file</span>
 <span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
@@ -1268,7 +1268,7 @@
                 <span class="c1">#       &quot;0001&quot;: {&quot;key1&quot;: tensor1, &quot;key2&quot;: tensor2},</span>
                 <span class="c1">#       &quot;0002&quot;: {&quot;key3&quot;: tensor3}</span>
                 <span class="c1">#       }</span>
-                <span class="n">split_state_dicts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">split_state_dicts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
                 <span class="n">total_size</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">training</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="n">cpt_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -1489,7 +1489,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
-<span class="sd">        checkpoint_files (List[str]): List of checkpoint files to load. Currently this checkpointer only</span>
+<span class="sd">        checkpoint_files (list[str]): list of checkpoint files to load. Currently this checkpointer only</span>
 <span class="sd">            supports loading a single checkpoint file.</span>
 <span class="sd">        model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.</span>
 <span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
@@ -1512,7 +1512,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">adapter_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1578,11 +1578,11 @@
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">adapter_checkpoint: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="FullModelMetaCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="FullModelMetaCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load Meta checkpoint from file. Currently only loading from a single file is supported.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">LLAMA3_VISION</span><span class="p">:</span>
             <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.models.llama3_2_vision._convert_weights</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1621,7 +1621,7 @@
 
 <div class="viewcode-block" id="FullModelMetaCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.training.FullModelMetaCheckpointer.html#torchtune.training.FullModelMetaCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1632,7 +1632,7 @@
 <span class="sd">        which contains the recipe state.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file</span>
+<span class="sd">            state_dict (dict[str, Any]): Checkpoint state dict to be written out to file</span>
 <span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
@@ -1815,10 +1815,10 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load a Distributed checkpoint saved at the &lt;checkpoint_path&gt;</span>
 <span class="sd">        If no path is provided, latest intermediate checkpoint is loaded.</span>
@@ -1857,7 +1857,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">save_async</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1869,7 +1869,7 @@
 <span class="sd">        one as the finetuning job can not terminate until the checkpoint gets persisted.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file</span>
+<span class="sd">            state_dict (dict[str, Any]): Checkpoint state dict to be written out to file</span>
 <span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
 <span class="sd">            save_async (bool): If True, save the checkpoint asynchronously</span>
 <span class="sd">            adapter_only (bool): If True, only adapter weights are being saved, which affects which path to save to.</span>

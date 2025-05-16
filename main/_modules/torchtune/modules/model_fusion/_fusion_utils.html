@@ -454,7 +454,6 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
@@ -479,7 +478,7 @@
 <span class="sd">        module (nn.Module): module to add the fusion_params method to</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fusion_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return parameters of fusion layer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -488,7 +487,7 @@
     <span class="n">module</span><span class="o">.</span><span class="n">fusion_params</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">fusion_params</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.get_fusion_params.html#torchtune.modules.model_fusion.get_fusion_params">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_fusion_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]:</span>
+<div class="viewcode-block" id="get_fusion_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.model_fusion.get_fusion_params.html#torchtune.modules.model_fusion.get_fusion_params">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">get_fusion_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the subset of parameters from a model that correspond to fused</span>
 <span class="sd">    modules. Assumes that any fusion class has defined the</span>
@@ -499,7 +498,7 @@
 <span class="sd">            fusion params.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, nn.Parameter]: the subset of model&#39;s state dict containing</span>
+<span class="sd">        dict[str, nn.Parameter]: the subset of model&#39;s state dict containing</span>
 <span class="sd">            only adapter parameters.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>

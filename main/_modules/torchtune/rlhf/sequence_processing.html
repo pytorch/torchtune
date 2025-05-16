@@ -453,8 +453,6 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
-
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune</span><span class="w"> </span><span class="kn">import</span> <span class="n">rlhf</span>
@@ -463,7 +461,7 @@
 
 <div class="viewcode-block" id="truncate_sequence_at_first_stop_token"><a class="viewcode-back" href="../../../generated/torchtune.rlhf.truncate_sequence_at_first_stop_token.html#torchtune.rlhf.truncate_sequence_at_first_stop_token">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">truncate_sequence_at_first_stop_token</span><span class="p">(</span>
     <span class="n">sequences</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">stop_tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Truncates sequence(s) after the first stop token and pads with ``fill_value``.</span>
 
@@ -473,7 +471,7 @@
 <span class="sd">        fill_value (int): value to pad the sequence with after the first stop token, usually ``pad_id``.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple of two tensors with the same shape as ``sequences``:</span>
+<span class="sd">        tuple[torch.Tensor, torch.Tensor]: A tuple of two tensors with the same shape as ``sequences``:</span>
 <span class="sd">            - padding_mask (torch.Tensor): a bool tensor where True indicates the token has been truncated.</span>
 <span class="sd">            - sequences (torch.Tensor) a tensor of truncated and padded sequences.</span>
 

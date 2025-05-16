@@ -454,7 +454,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">urllib</span><span class="w"> </span><span class="kn">import</span> <span class="n">request</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -472,17 +472,17 @@
 
 
 <div class="viewcode-block" id="truncate"><a class="viewcode-back" href="../../../generated/torchtune.data.truncate.html#torchtune.data.truncate">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">truncate</span><span class="p">(</span>
-    <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">tokens</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">eos_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">truncation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Truncate a list of tokens to a maximum length. If eos_id is provided, the last</span>
 <span class="sd">    token will be replaced with eos_id.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokens (List[Any]): list of tokens to truncate</span>
+<span class="sd">        tokens (list[Any]): list of tokens to truncate</span>
 <span class="sd">        max_seq_len (int): maximum length of the list</span>
 <span class="sd">        eos_id (Optional[Any]): token to replace the last token with. If None, the</span>
 <span class="sd">            last token will not be replaced. Default is None.</span>
@@ -490,7 +490,7 @@
 <span class="sd">            Default is &quot;right&quot;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Any]: truncated list of tokens</span>
+<span class="sd">        list[Any]: truncated list of tokens</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: if truncation_type is not &quot;left&quot; or &quot;right&quot;</span>
@@ -560,8 +560,8 @@
 
 
 <div class="viewcode-block" id="format_content_with_images"><a class="viewcode-back" href="../../../generated/torchtune.data.format_content_with_images.html#torchtune.data.format_content_with_images">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">format_content_with_images</span><span class="p">(</span>
-    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">image_tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">image_tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Given a raw text string, split by the specified ``image_tag``</span>
 <span class="sd">    and form into list of dictionaries to be used in the :class:`~torchtune.data.Message` content</span>
@@ -582,7 +582,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        content (str): raw message text</span>
 <span class="sd">        image_tag (str): string to split the text by</span>
-<span class="sd">        images (List[&quot;PIL.Image.Image&quot;]): list of images to be used in the content</span>
+<span class="sd">        images (list[&quot;PIL.Image.Image&quot;]): list of images to be used in the content</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the number of images does not match the number of image tags in the content</span>
@@ -602,7 +602,7 @@
 <span class="sd">        ]</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Dict[str, Any]]: list of dictionaries to be used in the :class:`~torchtune.data.Message` content field</span>
+<span class="sd">        list[dict[str, Any]]: list of dictionaries to be used in the :class:`~torchtune.data.Message` content field</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">num_image_tags_in_content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">image_tag</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">!=</span> <span class="n">num_image_tags_in_content</span><span class="p">:</span>
@@ -622,12 +622,12 @@
     <span class="k">return</span> <span class="n">final_content_list</span></div>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">chain</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">chain</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Chain a list of functions together into a single function.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        *funcs (List[Callable]): list of functions to chain together</span>
+<span class="sd">        *funcs (list[Callable]): list of functions to chain together</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Callable: chained function</span>
@@ -651,7 +651,7 @@
     <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">parallel_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;thread&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;thread&quot;</span><span class="p">,</span>
     <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DatasetType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load a HuggingFace dataset (Map or Streaming) and apply a Transform to it.</span>
@@ -668,7 +668,7 @@
 <span class="sd">        parallel_method (Literal[&quot;process&quot;, &quot;thread&quot;]): Method to use for parallelism. Default is &quot;thread&quot;. No effect if</span>
 <span class="sd">            num_workers is 0.</span>
 <span class="sd">        streaming (bool): whether to load a streaming vs map-style dataset. Default False.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): Additional Keyword arguments to pass to HuggingFace dataset. See Hugging Face&#39;s</span>
+<span class="sd">        **load_dataset_kwargs (dict[str, Any]): Additional Keyword arguments to pass to HuggingFace dataset. See Hugging Face&#39;s</span>
 <span class="sd">            documentation.</span>
 
 <span class="sd">    Returns:</span>
@@ -714,8 +714,8 @@
 
 <span class="nd">@requires_torchdata</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_multi_dataset</span><span class="p">(</span>
-    <span class="n">datasets</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">],</span>
-    <span class="n">weights</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+    <span class="n">datasets</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">],</span>
+    <span class="n">weights</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
     <span class="n">stop_criteria</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CYCLE_UNTIL_ALL_DATASETS_EXHASTED&quot;</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DatasetType</span><span class="p">:</span>
@@ -724,8 +724,8 @@
 <span class="sd">    samples from the given datasets according to the specified weights.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        datasets (Dict[str, DatasetType]): dictionary of datasets</span>
-<span class="sd">        weights (Dict[str, float]): dictionary of weights for each dataset. If not</span>
+<span class="sd">        datasets (dict[str, DatasetType]): dictionary of datasets</span>
+<span class="sd">        weights (dict[str, float]): dictionary of weights for each dataset. If not</span>
 <span class="sd">        stop_criteria (str): stop criteria for the sampler. Default &quot;CYCLE_UNTIL_ALL_DATASETS_EXHASTED&quot;.</span>
 <span class="sd">            See also: torchdata.nodes.StopCriteria</span>
 <span class="sd">        seed (int): seed for the random number generator. Default 0.</span>

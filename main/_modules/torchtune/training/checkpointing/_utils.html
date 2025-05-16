@@ -459,7 +459,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">string</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -625,7 +625,7 @@
 <span class="sd">        Builds a list of checkpoint filenames from the filename format and max filename.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[str]: List of checkpoint filenames.</span>
+<span class="sd">            list[str]: list of checkpoint filenames.</span>
 
 <span class="sd">        Example:</span>
 <span class="sd">            &gt;&gt;&gt; # Example usage</span>
@@ -674,7 +674,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">safe_torch_load</span><span class="p">(</span>
     <span class="n">checkpoint_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Utility to load a checkpoint file onto CPU in a safe manner. Provides separate handling for</span>
 <span class="sd">    safetensors files.</span>
@@ -686,7 +686,7 @@
 <span class="sd">        mmap (bool): Whether to mmap from disk into CPU memory. Default: True</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, Any]: State dict from the checkpoint file.</span>
+<span class="sd">        dict[str, Any]: State dict from the checkpoint file.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the checkpoint file is not found or cannot be loaded.</span>
@@ -727,8 +727,8 @@
 
 
 <div class="viewcode-block" id="update_state_dict_for_classifier"><a class="viewcode-back" href="../../../../generated/torchtune.training.update_state_dict_for_classifier.html#torchtune.training.update_state_dict_for_classifier">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">update_state_dict_for_classifier</span><span class="p">(</span>
-    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
-    <span class="n">model_named_parameters</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span>
+    <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">model_named_parameters</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]],</span>
     <span class="n">force_override</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -745,8 +745,8 @@
 <span class="sd">    ``[num_classes, embed_dim]`` weight in the model. This is done in-place.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        state_dict (Dict[str, torch.Tensor]): state dict to be loaded into the classifier model.</span>
-<span class="sd">        model_named_parameters (Iterable[Tuple[str, torch.nn.Parameter]]): model named parameters</span>
+<span class="sd">        state_dict (dict[str, torch.Tensor]): state dict to be loaded into the classifier model.</span>
+<span class="sd">        model_named_parameters (Iterable[tuple[str, torch.nn.Parameter]]): model named parameters</span>
 <span class="sd">            from ``model.named_parameters()``.</span>
 <span class="sd">        force_override (bool): Whether to replace ``output.weight`` in ``state_dict`` with the model&#39;s</span>
 <span class="sd">            ``output.weight``, even if the shapes match.</span>
@@ -808,7 +808,7 @@
     <span class="n">input_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">ignore_suffixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ignore_suffixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">max_file_size_mb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -820,7 +820,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        input_dir (Union[str, Path]): The path to the input directory containing files to be copied.</span>
 <span class="sd">        output_dir (Union[str, Path]): The path to the output directory where files should be copied.</span>
-<span class="sd">        ignore_suffixes (Optional[List[str]]): A list of file suffixes to exclude from copying.</span>
+<span class="sd">        ignore_suffixes (Optional[list[str]]): A list of file suffixes to exclude from copying.</span>
 <span class="sd">          Defaults to [&#39;.pt&#39;, &#39;.bin&#39;, &#39;.safetensors&#39;] if not provided.</span>
 <span class="sd">        max_file_size_mb (int): The maximum file size in megabytes to copy. Defaults to 100 MB.</span>
 <span class="sd">    Returns:</span>
@@ -972,7 +972,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_model_checkpoint_path</span><span class="p">(</span>
-    <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="n">checkpoint_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">should_load_recipe_state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -988,7 +988,7 @@
 <span class="sd">    If checkpoint_fiels is a dictionary, it is converted to a list of formatted checkpoint filenames.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        checkpoint_files (Union[List[str], Dict[str, str]]): List or dictionary of checkpoint file names.</span>
+<span class="sd">        checkpoint_files (Union[list[str], dict[str, str]]): list or dictionary of checkpoint file names.</span>
 <span class="sd">            If a dictionary with keys [&quot;filename_format&quot;, &quot;max_filename&quot;] is provided,</span>
 <span class="sd">            it is converted to a list of formatted checkpoint filenames.</span>
 <span class="sd">        checkpoint_dir (Union[str, Path]): Directory containing the checkpoint files.</span>
@@ -1016,15 +1016,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_checkpoint_files</span><span class="p">(</span>
-        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">checkpoint_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
         <span class="n">input_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span>
         <span class="n">missing_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Validates that the checkpoint files exist and sorts based on ID.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">checkpoint_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">checkpoint_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">checkpoint_files</span><span class="p">:</span>
             <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">get_path</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">missing_ok</span><span class="p">)</span>
             <span class="n">checkpoint_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span>
@@ -1038,7 +1038,7 @@
     <span class="c1">#   filename_format: model-{}-of-{}.safetensors</span>
     <span class="c1">#   max_filename: &quot;00191&quot;</span>
     <span class="c1"># becomes checkpoint_files = [model-00001-of-00191.safetensors, model-00002-of-00191,..]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="c1"># TODO: this can be a function instead of a class</span>
         <span class="n">formatted_checkpoint_files</span> <span class="o">=</span> <span class="n">FormattedCheckpointFiles</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
             <span class="n">checkpoint_files</span>
@@ -1098,7 +1098,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_all_checkpoints_in_dir</span><span class="p">(</span>
     <span class="nb">dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^epoch_(\d+)&quot;</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns a list of all checkpoints in the given directory.</span>
 <span class="sd">    The pattern argument is a regular expression that matches the epoch number in the checkpoint filename.</span>
@@ -1116,7 +1116,7 @@
 <span class="sd">        [PosixPath(&#39;/path/to/checkpoints/epoch_1&#39;), PosixPath(&#39;/path/to/checkpoints/epoch_2&#39;), ...]</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Path]: A list of Path objects representing the checkpoints..</span>
+<span class="sd">        list[Path]: A list of Path objects representing the checkpoints..</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">checkpoints</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">regex_to_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
@@ -1133,14 +1133,14 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">prune_surplus_checkpoints</span><span class="p">(</span>
-    <span class="n">checkpoints</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span> <span class="n">keep_last_n_checkpoints</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">checkpoints</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span> <span class="n">keep_last_n_checkpoints</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Prunes the surplus checkpoints in the given list of checkpoints.</span>
 <span class="sd">    The function will keep the latest checkpoints based on the param `keep_last_n_checkpoints` and delete the rest.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        checkpoints (List[Path]): A list of Path objects representing the checkpoints.</span>
+<span class="sd">        checkpoints (list[Path]): A list of Path objects representing the checkpoints.</span>
 <span class="sd">        keep_last_n_checkpoints (int): The number of checkpoints to keep. Defaults to 1.</span>
 
 <span class="sd">    Note:</span>

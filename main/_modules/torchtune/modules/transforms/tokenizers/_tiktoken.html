@@ -453,7 +453,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tiktoken</span><span class="w"> </span><span class="kn">import</span> <span class="n">Encoding</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tiktoken.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_tiktoken_bpe</span>
@@ -477,7 +477,7 @@
 <span class="sd">            to byte-pair encoding.</span>
 <span class="sd">        bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.</span>
 <span class="sd">        eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.</span>
-<span class="sd">        special_tokens (Dict[str, int]): Mapping of special tokens to their ids.</span>
+<span class="sd">        special_tokens (dict[str, int]): Mapping of special tokens to their ids.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; tokenizer = TikTokenBaseTokenizer(&quot;/path/to/tt_model&quot;)</span>
@@ -493,7 +493,7 @@
         <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">bos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">eos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">special_tokens</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="p">):</span>
         <span class="n">mergeable_ranks</span> <span class="o">=</span> <span class="n">load_tiktoken_bpe</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span> <span class="o">=</span> <span class="n">Encoding</span><span class="p">(</span>
@@ -539,7 +539,7 @@
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Encode a string into a list of token ids. Assumes that the string</span>
 <span class="sd">        contains no special tokens.</span>
@@ -552,9 +552,9 @@
 <span class="sd">                Default True.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[int]: The list of token ids.</span>
+<span class="sd">            list[int]: The list of token ids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">substrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">substrs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[]</span>
@@ -585,14 +585,14 @@
 
 <div class="viewcode-block" id="TikTokenBaseTokenizer.decode"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.html#torchtune.modules.transforms.tokenizers.TikTokenBaseTokenizer.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">token_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">truncate_at_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Decode a list of token ids into a string.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            token_ids (List[int]): The list of token ids.</span>
+<span class="sd">            token_ids (list[int]): The list of token ids.</span>
 <span class="sd">            truncate_at_eos (bool): Whether to truncate the string at the end of</span>
 <span class="sd">                sequence token. Default is True.</span>
 

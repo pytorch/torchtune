@@ -453,7 +453,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Protocol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Protocol</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
@@ -518,16 +518,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">patches_per_tile</span> <span class="o">=</span> <span class="n">patch_grid_size</span><span class="o">**</span><span class="mi">2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">image_token_id</span> <span class="o">=</span> <span class="n">image_token_id</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_image_attention_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_image_attention_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns a list of lists of the form [start, end) where start is the index</span>
 <span class="sd">        of the current image token and end is the index of the next image token, exclusive.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            tokens (List[int]): List of token IDs in the text sequence</span>
+<span class="sd">            tokens (list[int]): list of token IDs in the text sequence</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[List[int]]: List of lists of the form [start, end) indicating</span>
+<span class="sd">            list[list[int]]: list of lists of the form [start, end) indicating</span>
 <span class="sd">                range of positions in text sequence that should attend to the image</span>
 
 <span class="sd">        Example:</span>
@@ -579,9 +579,9 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            sample (Mapping[str, Any]): Sample dict containing the following keys:</span>
-<span class="sd">                - tokens (List[int]): List of token IDs in the text sequence. Number of</span>
+<span class="sd">                - tokens (list[int]): list of token IDs in the text sequence. Number of</span>
 <span class="sd">                    image token IDs in the sequence must match the number of images.</span>
-<span class="sd">                - images (List[torch.Tensor]): List of image Tensors post-tiling of shape</span>
+<span class="sd">                - images (list[torch.Tensor]): list of image Tensors post-tiling of shape</span>
 <span class="sd">                    (n_tiles, c, h, w) each.</span>
 <span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 

@@ -457,7 +457,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
@@ -497,11 +497,11 @@
         <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving config.</span><span class="se">\n</span><span class="s2">Error: </span><span class="se">\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">flatten_dict</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">parent_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">flatten_dict</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">parent_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Recursively flattens a nested dictionary into one level of key-value pairs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        d (Dict[str, Any]): Any dictionary to flatten.</span>
+<span class="sd">        d (dict[str, Any]): Any dictionary to flatten.</span>
 <span class="sd">        sep (str, optional): Desired separator for flattening nested keys. Defaults to &quot;.&quot;.</span>
 <span class="sd">        parent_key (str, optional): Key prefix for children (nested keys), containing parent key names. Defaults to &quot;&quot;.</span>
 
@@ -510,7 +510,7 @@
 <span class="sd">        {&quot;foo--bar&quot;: &quot;baz&quot;, &quot;qux&quot;: &quot;quux&quot;}</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, Any]: Flattened dictionary.</span>
+<span class="sd">        dict[str, Any]: Flattened dictionary.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        Does not unnest dictionaries within list values (i.e., {&quot;foo&quot;: [{&quot;bar&quot;: &quot;baz&quot;}]}).</span>
@@ -851,9 +851,9 @@
 <span class="sd">        online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally</span>
 <span class="sd">            in an offline experiment. Default is ``True``.</span>
 <span class="sd">        experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.</span>
-<span class="sd">        tags (Optional[List[str]]): Tags to associate with the experiment.</span>
+<span class="sd">        tags (Optional[list[str]]): Tags to associate with the experiment.</span>
 <span class="sd">        log_code (bool): Whether to log the source code. Defaults to True.</span>
-<span class="sd">        **kwargs (Dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See</span>
+<span class="sd">        **kwargs (dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See</span>
 <span class="sd">            https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig</span>
 
 <span class="sd">    Example:</span>
@@ -883,9 +883,9 @@
         <span class="n">mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">online</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">experiment_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">log_code</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span><span class="w"> </span><span class="nn">comet_ml</span>

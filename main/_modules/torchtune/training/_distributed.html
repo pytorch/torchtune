@@ -459,7 +459,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
@@ -665,11 +665,11 @@
 <div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.training.init_distributed.html#torchtune.training.init_distributed">[docs]</a><span class="nd">@deprecated</span><span class="p">(</span>
     <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. &quot;</span>
 <span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize process group required for ``torch.distributed``.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        **kwargs (Dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.</span>
+<span class="sd">        **kwargs (dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        bool: True if torch.distributed is initialized.</span>
@@ -706,12 +706,12 @@
     <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. &quot;</span>
     <span class="s2">&quot;Please use `torchtune.utils.get_world_size_and_rank` instead.&quot;</span>
 <span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that gets the current world size (aka total number</span>
 <span class="sd">    of ranks) and rank number of the current process in the default process group.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple[int, int]: world size, rank</span>
+<span class="sd">        tuple[int, int]: world size, rank</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
@@ -738,7 +738,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">load_from_full_model_state_dict</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
-    <span class="n">full_sd</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">full_sd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">cpu_offload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -750,7 +750,7 @@
 <span class="sd">    and loading it into FSDP model</span>
 <span class="sd">    Args:</span>
 <span class="sd">        model (FSDPModule): Model to generate fully qualified names for cpu_state_dict</span>
-<span class="sd">        full_sd (Dict[str, Any]): a full state dict to load into the model</span>
+<span class="sd">        full_sd (dict[str, Any]): a full state dict to load into the model</span>
 <span class="sd">        device (torch.device): device used to move full state dict tensors</span>
 <span class="sd">        strict (bool): flag to check if to load the model in strict mode</span>
 <span class="sd">        cpu_offload (bool): flag to check if offload to CPU is enabled</span>
@@ -891,7 +891,7 @@
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">adapter_weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting sharded state dict into a full state dict on CPU</span>
 <span class="sd">    Returning non-empty result only on rank0 to avoid peaking CPU memory</span>
@@ -906,7 +906,7 @@
 <span class="sd">        adapter_weights_only (bool): flag to check if only trainable parameters should be returned. Default: False</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, Any]: State dict on CPU</span>
+<span class="sd">        dict[str, Any]: State dict on CPU</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.</span>
     <span class="n">cpu_state_dict</span> <span class="o">=</span> <span class="p">{}</span>
@@ -937,7 +937,7 @@
     <span class="n">opt</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">,</span>
     <span class="n">is_rank_zero</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converting optimizer state from sharded to full</span>
 <span class="sd">    For example, &quot;exp_avg&quot; in AdamW is `DTensor`,</span>
@@ -957,7 +957,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">load_from_full_optimizer_state_dict</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="s2">&quot;FSDPModule&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
     <span class="n">opt</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">,</span>
-    <span class="n">full_sd</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">full_sd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1015,7 +1015,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">get_shard_conditions</span><span class="p">(</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-    <span class="n">names_to_match</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">names_to_match</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="n">args</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1034,7 +1034,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        name (str): Name of the module.</span>
 <span class="sd">        module (nn.Module): Module to be sharded.</span>
-<span class="sd">        names_to_match (Optional[List[str]]): List of names to match, if any.</span>
+<span class="sd">        names_to_match (Optional[list[str]]): list of names to match, if any.</span>
 <span class="sd">        *args: Variable length argument list to be passed to the Embedding module.</span>
 <span class="sd">        **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.</span>
 
@@ -1063,7 +1063,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">shard_model</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
-    <span class="n">shard_conditions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]],</span>
+    <span class="n">shard_conditions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">cpu_offload</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">reshard_after_forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -1077,7 +1077,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        model (TransformerDecoder): Model to shard with FSDP.</span>
-<span class="sd">        shard_conditions (List[Callable[[str, nn.Module], bool]]): A list of functions to determine</span>
+<span class="sd">        shard_conditions (list[Callable[[str, nn.Module], bool]]): A list of functions to determine</span>
 <span class="sd">            which modules to shard with FSDP. Each function should take module name (relative to root)</span>
 <span class="sd">            and the module itself, returning True if FSDP should shard the module and False otherwise.</span>
 <span class="sd">            If any of shard_conditions return True for a given module, it will be sharded by FSDP.</span>

@@ -453,7 +453,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
@@ -527,7 +527,7 @@
     <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">top_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generates the next tokens given a prompt, and also returns the corresponding logits.</span>
 
@@ -545,7 +545,7 @@
 <span class="sd">        top_k (Optional[int]): Top-k value to use for sampling, default None.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:</span>
+<span class="sd">        tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:</span>
 <span class="sd">            - tokens (torch.Tensor): tensor with the generated tokens,</span>
 <span class="sd">                with shape [bsz x 1].</span>
 <span class="sd">            - logits (torch.Tensor): tensor with the logits associated with the generated tokens,</span>
@@ -653,10 +653,10 @@
     <span class="n">pad_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">top_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">stop_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">stop_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">custom_generate_next_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.</span>
 
@@ -669,7 +669,7 @@
 <span class="sd">        temperature (float): value to scale the predicted logits by, default 1.0.</span>
 <span class="sd">        top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,</span>
 <span class="sd">            default None.</span>
-<span class="sd">        stop_tokens (Optional[List[int]]): If specified, generation is stopped when any of these tokens are generated,</span>
+<span class="sd">        stop_tokens (Optional[list[int]]): If specified, generation is stopped when any of these tokens are generated,</span>
 <span class="sd">            default None.</span>
 <span class="sd">        rng (Optional[torch.Generator]): random number generator, default None.</span>
 <span class="sd">        custom_generate_next_token (Optional[Callable]): If specified, we&#39;ll use the</span>
@@ -691,7 +691,7 @@
 <span class="sd">        Hi my name is Jeremy and I&#39;m a friendly language model assistant!</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:</span>
+<span class="sd">        tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:</span>
 <span class="sd">            - tokens (torch.Tensor): tensor with the generated tokens,</span>
 <span class="sd">                with shape ``[bsz x seq_len + num_generated_tokens]`` where ``num_generated_tokens``</span>
 <span class="sd">                may be less than ``max_generated_tokens`` if ``stop_tokens`` are provided.</span>

@@ -454,7 +454,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tokenizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tokenizer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.transforms.tokenizers._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTokenizer</span>
@@ -504,13 +504,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_infer_bos_eos_tokens</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_infer_should_add_bos_eos</span><span class="p">()</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_token_from_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_token_from_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        HF BOS/EOS tokens are either stored as e.g. {&#39;bos_token&#39;: 5}</span>
 <span class="sd">        or {&#39;bos_token&#39;: {&#39;content&#39;: 5, ...}}. This utility handles both.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">token</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="k">if</span> <span class="s2">&quot;content&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">token</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not parse </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> from config&quot;</span><span class="p">)</span>
             <span class="n">token</span> <span class="o">=</span> <span class="n">token</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>
@@ -563,7 +563,7 @@
 
 <div class="viewcode-block" id="HuggingFaceBaseTokenizer.encode"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.encode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Encodes a string into a list of token ids.</span>
 
@@ -575,7 +575,7 @@
 <span class="sd">                Default True.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[int]: The list of token ids.</span>
+<span class="sd">            list[int]: The list of token ids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">token_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">ids</span>
         <span class="k">if</span> <span class="n">add_bos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hf_adds_bos</span><span class="p">:</span>
@@ -584,12 +584,12 @@
             <span class="n">token_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">token_ids</span></div>
 
-<div class="viewcode-block" id="HuggingFaceBaseTokenizer.decode"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="HuggingFaceBaseTokenizer.decode"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.html#torchtune.modules.transforms.tokenizers.HuggingFaceBaseTokenizer.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Decode a list of token ids into a string.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            token_ids (List[int]): The list of token ids.</span>
+<span class="sd">            token_ids (list[int]): The list of token ids.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            str: The decoded string.</span>

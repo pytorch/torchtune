@@ -453,13 +453,13 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.config._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_component_from_path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">Role</span>
 
-<span class="n">_TemplateType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
+<span class="n">_TemplateType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
 
 
 <div class="viewcode-block" id="PromptTemplateInterface"><a class="viewcode-back" href="../../../generated/torchtune.data.PromptTemplateInterface.html#torchtune.data.PromptTemplateInterface">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">PromptTemplateInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
@@ -471,18 +471,18 @@
 
     <span class="c1"># Template should map role to a tuple containing the tag to prepend to the text</span>
     <span class="c1"># and tag to append to the text. Leave as empty strings to not prepend or append</span>
-    <span class="n">template</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+    <span class="n">template</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Format each role&#39;s message(s) according to the prompt template</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            messages (List[Message]): a single conversation, structured as a list</span>
+<span class="sd">            messages (list[Message]): a single conversation, structured as a list</span>
 <span class="sd">                of :class:`~torchtune.data.Message` objects</span>
 <span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 
@@ -530,29 +530,29 @@
 <span class="sd">        :class:`~torchtune.data.PromptTemplate` interface.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        template (Dict[Role, Tuple[str, str]]): a dictionary mapping role to the</span>
+<span class="sd">        template (dict[Role, tuple[str, str]]): a dictionary mapping role to the</span>
 <span class="sd">            prepend and append tags</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">template</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+        <span class="n">template</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Role</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Format each role&#39;s message(s) according to the prompt template by prepending</span>
 <span class="sd">        and appending the defined tags.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            messages (List[Message]): list of messages to apply the template to</span>
+<span class="sd">            messages (list[Message]): list of messages to apply the template to</span>
 <span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[Message]: The formatted list of messages</span>
+<span class="sd">            list[Message]: The formatted list of messages</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">formatted_dialogue</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
@@ -607,14 +607,14 @@
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Format user, assistant, and system messages with appropriate tags.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            messages (List[Message]): a single conversation, structured as a list</span>
+<span class="sd">            messages (list[Message]): a single conversation, structured as a list</span>
 <span class="sd">                of `Message` objects</span>
 <span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 

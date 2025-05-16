@@ -455,7 +455,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_content_with_images</span><span class="p">,</span> <span class="n">load_image</span>
@@ -489,7 +489,7 @@
 <span class="sd">        role (Role): role of the message writer. Can be &quot;system&quot; for system prompts,</span>
 <span class="sd">            &quot;user&quot; for human prompts, &quot;assistant&quot; for model responses, or &quot;ipython&quot;</span>
 <span class="sd">            for tool call returns.</span>
-<span class="sd">        content (Union[str, List[Dict[str, Any]]]): content of the message. If it is text only content,</span>
+<span class="sd">        content (Union[str, list[dict[str, Any]]]): content of the message. If it is text only content,</span>
 <span class="sd">            you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted</span>
 <span class="sd">            as follows::</span>
 
@@ -517,7 +517,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">role</span><span class="p">:</span> <span class="n">Role</span><span class="p">,</span>
-        <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+        <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
         <span class="n">masked</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ipython</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">eot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -530,7 +530,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_message</span><span class="p">()</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_list_of_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_list_of_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;User is currently allowed to pass in a string for text-only content.</span>
 <span class="sd">        This ensures that the content is formatted as a list of dictionaries.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -538,7 +538,7 @@
 
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
             <span class="n">content</span><span class="p">,</span> <span class="nb">list</span>
-        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;content must be of type List[Dict[str, Any]], got </span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;content must be of type list[dict[str, Any]], got </span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s2">&quot;</span>
 
         <span class="k">return</span> <span class="n">content</span>
 
@@ -561,7 +561,7 @@
             <span class="n">eot</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eot&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Message.get_media"><a class="viewcode-back" href="../../../generated/torchtune.data.Message.html#torchtune.data.Message.get_media">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_media</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">]:</span>
+<div class="viewcode-block" id="Message.get_media"><a class="viewcode-back" href="../../../generated/torchtune.data.Message.html#torchtune.data.Message.get_media">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_media</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="s2">&quot;PIL.Image.Image&quot;</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns media content of the message.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -615,7 +615,7 @@
 <span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Deprecated parameter and will be removed in a future release.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;input&quot;</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping to change the expected &quot;input&quot;</span>
 <span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Keys should</span>
 <span class="sd">            be &quot;input&quot; and &quot;output&quot; and values should be the actual column names. Default is None,</span>
 <span class="sd">            keeping the default &quot;input&quot; and &quot;output&quot; column names.</span>
@@ -646,7 +646,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span><span class="p">,</span>
@@ -773,7 +773,7 @@
 <span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Deprecated parameter and will be removed in a future release.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping to change the expected</span>
 <span class="sd">            &quot;chosen&quot; and &quot;rejected&quot; column names to the actual column names in the dataset.</span>
 <span class="sd">            Keys should be &quot;chosen&quot; and &quot;rejected&quot; and values should be the actual column names.</span>
 <span class="sd">            Default is None, keeping the default column names.</span>
@@ -796,7 +796,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span><span class="p">,</span>
     <span class="p">):</span>
@@ -892,7 +892,7 @@
 <span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Deprecated parameter and will be removed in a future release.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping from the expected columns (&quot;conversations&quot;)</span>
 <span class="sd">            to the new column names in the dataset. Key should be &quot;conversations&quot; and value should</span>
 <span class="sd">            be the new column name. If None, keep the default &quot;conversations&quot;.</span>
 <span class="sd">            Default is None.</span>
@@ -924,7 +924,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">image_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;image&gt;&quot;</span><span class="p">,</span>
@@ -966,7 +966,7 @@
 <span class="sd">                to a list of dict messages.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
+<span class="sd">            list[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">role_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;human&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;gpt&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">}</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1066,7 +1066,7 @@
 <span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Deprecated parameter and will be removed in a future release.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected columns (&quot;messages&quot;)</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping from the expected columns (&quot;messages&quot;)</span>
 <span class="sd">            to the new column names in the dataset. Key should be &quot;messages&quot; and value should be</span>
 <span class="sd">            the new column name. If None, keep the default &quot;messages&quot;.</span>
 <span class="sd">            Default is None.</span>
@@ -1090,7 +1090,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">new_system_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_assistant&quot;</span><span class="p">,</span>
     <span class="p">):</span>
@@ -1120,8 +1120,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="s2">&quot;messages&quot;</span><span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_convert_from_openai_content</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a list of content dicts from the OpenAI format to the torchtune format.&quot;&quot;&quot;</span>
         <span class="n">converted_content</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">content_dict</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
@@ -1147,7 +1147,7 @@
 <span class="sd">                to a list of dict messages.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
+<span class="sd">            list[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">updated_messages</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1201,7 +1201,7 @@
 <span class="sd">        train_on_input (Optional[bool]): whether the model is trained on the user prompt or not.</span>
 <span class="sd">            Deprecated parameter and will be removed in a future release.</span>
 <span class="sd">            Default is None.</span>
-<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping to change the expected &quot;instruction&quot;, &quot;input&quot;,</span>
+<span class="sd">        column_map (Optional[dict[str, str]]): a mapping to change the expected &quot;instruction&quot;, &quot;input&quot;,</span>
 <span class="sd">            and &quot;output&quot; column names to the actual column names in the dataset. Default is None,</span>
 <span class="sd">            keeping the default column names.</span>
 <span class="sd">        masking_strategy (Optional[str]): masking strategy to use for model training.</span>
@@ -1221,7 +1221,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;train_on_all&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">train_on_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1298,7 +1298,7 @@
 
 
 <div class="viewcode-block" id="validate_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.validate_messages.html#torchtune.data.validate_messages">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">validate_messages</span><span class="p">(</span>
-    <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Given a list of messages, ensure that messages form a valid</span>
@@ -1312,7 +1312,7 @@
 
 
 <span class="sd">    Args:</span>
-<span class="sd">        messages (List[Message]): the messages to validate.</span>
+<span class="sd">        messages (list[Message]): the messages to validate.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the messages are invalid.</span>
@@ -1347,12 +1347,12 @@
         <span class="n">last_message</span> <span class="o">=</span> <span class="n">message</span></div>
 
 
-<div class="viewcode-block" id="mask_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.mask_messages.html#torchtune.data.mask_messages">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">mask_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">MaskingStrategy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="mask_messages"><a class="viewcode-back" href="../../../generated/torchtune.data.mask_messages.html#torchtune.data.mask_messages">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">mask_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">masking_strategy</span><span class="p">:</span> <span class="n">MaskingStrategy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Set the masked attribute for each message in the list based on the specified masking strategy.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        messages (List[Message]): a list of messages to mask.</span>
+<span class="sd">        messages (list[Message]): a list of messages to mask.</span>
 <span class="sd">        masking_strategy (MaskingStrategy): masking strategy to use.</span>
 <span class="sd">            Must be one of `train_on_all`, `train_on_assistant`, `train_on_last`.</span>
 

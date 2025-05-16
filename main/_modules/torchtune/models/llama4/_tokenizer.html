@@ -454,7 +454,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
@@ -557,7 +557,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Path to pretrained tiktoken tokenizer file.</span>
-<span class="sd">        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and</span>
+<span class="sd">        special_tokens (Optional[dict[str, int]]): mapping containing special text tokens and</span>
 <span class="sd">            their registered token IDs. If left as None, this will be set to the canonical</span>
 <span class="sd">            Llama4 special tokens.</span>
 <span class="sd">        max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,</span>
@@ -582,7 +582,7 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">prompt_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PromptTemplateInterface</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
@@ -670,12 +670,12 @@
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="n">add_bos</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="n">add_eos</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Llama4Tokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4Tokenizer.html#torchtune.models.llama4.Llama4Tokenizer.decode">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">token_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">token_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">truncate_at_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">skip_special_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -683,7 +683,7 @@
 <span class="sd">        Decode a list of token ids into a string.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            token_ids (List[int]): The list of token ids.</span>
+<span class="sd">            token_ids (list[int]): The list of token ids.</span>
 <span class="sd">            truncate_at_eos (bool): Whether to truncate the string at the end of</span>
 <span class="sd">                sequence token. Default is True.</span>
 <span class="sd">            skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.</span>
@@ -708,7 +708,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_tile_grid_tokens</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">patch_tokens_per_tile</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">aspect_ratio</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Given the number of patches per tile, the number of tiles, and the aspect ratio of the image,</span>
 <span class="sd">        construct the tokenized tile grid with patch and tile separator tokens.</span>
@@ -746,7 +746,7 @@
             <span class="n">tokens</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">single_tile_tokens</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">tokens</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tokenize header start, message role, and header end as list of ids</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -757,13 +757,13 @@
             <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add eot or eom id at the end of the message.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eot_id</span><span class="p">]</span> <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">eot</span> <span class="k">else</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eom_id</span><span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tokenize message content as list of ids</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -788,7 +788,7 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">add_start_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">add_end_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tokenize a message into a list of token ids.</span>
 
@@ -798,7 +798,7 @@
 <span class="sd">            add_end_tokens (bool): Whether to append eot or eom id at the end of the message. Default is True.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[int]: The list of token ids.</span>
+<span class="sd">            list[int]: The list of token ids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">tokenized_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize_header</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">if</span> <span class="n">add_start_tokens</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="n">tokenized_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize_body</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
@@ -809,15 +809,15 @@
 
 <div class="viewcode-block" id="Llama4Tokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama4.Llama4Tokenizer.html#torchtune.models.llama4.Llama4Tokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">add_end_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tokenize a list of messages into a list of token ids and masks.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            messages (List[Message]): The list of messages to tokenize.</span>
+<span class="sd">            messages (list[Message]): The list of messages to tokenize.</span>
 <span class="sd">            add_end_tokens (bool): Whether to append end tokens ids (end-of-seq, end-of-turn, end-of-message) at the end of the</span>
 <span class="sd">                last assistant message. This value should be set to False for generation. Default is True.</span>
 
@@ -836,7 +836,7 @@
 <span class="sd">            ([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.</span>
+<span class="sd">            tuple[list[int], list[bool]]: The list of token ids and the list of masks.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">templated_messages</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prompt_template</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
@@ -883,7 +883,7 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            sample (Mapping[str, Any]): A sample with a &quot;messages&quot; field containing</span>
-<span class="sd">                a List[Message] to tokenize</span>
+<span class="sd">                a list[Message] to tokenize</span>
 <span class="sd">            inference (bool): Whether the template is being used for inference or not.</span>
 
 <span class="sd">        Returns:</span>

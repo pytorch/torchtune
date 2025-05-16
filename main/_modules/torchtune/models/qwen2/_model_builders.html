@@ -452,7 +452,7 @@
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.data._prompt_templates</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_prompt_template</span><span class="p">,</span> <span class="n">_TemplateType</span>
 
@@ -595,7 +595,7 @@
 
 
 <div class="viewcode-block" id="lora_qwen2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.lora_qwen2_7b.html#torchtune.models.qwen2.lora_qwen2_7b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_7b</span><span class="p">(</span>
-    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
@@ -612,7 +612,7 @@
 <span class="sd">    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
@@ -650,7 +650,7 @@
 
 
 <div class="viewcode-block" id="lora_qwen2_0_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.lora_qwen2_0_5b.html#torchtune.models.qwen2.lora_qwen2_0_5b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_0_5b</span><span class="p">(</span>
-    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
@@ -666,7 +666,7 @@
 <span class="sd">    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
@@ -707,7 +707,7 @@
 
 
 <div class="viewcode-block" id="lora_qwen2_1_5b"><a class="viewcode-back" href="../../../../generated/torchtune.models.qwen2.lora_qwen2_1_5b.html#torchtune.models.qwen2.lora_qwen2_1_5b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_qwen2_1_5b</span><span class="p">(</span>
-    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
@@ -723,7 +723,7 @@
 <span class="sd">    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
 <span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
 <span class="sd">        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.</span>
