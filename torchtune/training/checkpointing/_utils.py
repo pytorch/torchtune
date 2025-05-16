@@ -332,7 +332,6 @@ def update_state_dict_for_classifier(
 def get_largest_iter_folder(
     dir: Union[str, Path], pattern: str = r"^epoch_(\d+)"
 ) -> Union[None, str]:
-
     largest_iter_folder = None
     iter_folders = []
     regex = re.compile(pattern)
@@ -385,7 +384,6 @@ def copy_files(
     fs, _ = url_to_fs(input_dir)
     max_file_size = max_file_size_mb * 1024 * 1024
     for root, dirs, files in fs.walk(input_dir):
-
         # Filter out directories that start with '.'. E.g. ".cache/"
         dirs[:] = [d for d in dirs if not d.startswith(".")]
 

@@ -265,7 +265,6 @@ class InferenceRecipe:
 
         # 7. Continue generating
         for i in range(cfg.max_new_tokens):
-
             # Update position and mask for incremental decoding
             batch["input_pos"] = input_pos[None, seq_len]
             if use_flex:
