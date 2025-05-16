@@ -92,6 +92,15 @@ class TestPostProcessingWorker:
                 "temperature": 1.0,
             },
             "num_steps": 3,
+            "reward_functions": [
+                {
+                    "_component_": "torchtune.dev.rl.rewards.ThinkingAnswerFormattingReward",
+                    "think_tag": "think",
+                    "answer_tag": "answer",
+                    "positive_reward": 1.0,
+                    "negative_reward": 0.0,
+                }
+            ],
         }
         return OmegaConf.create(cfg)
 
