@@ -206,7 +206,6 @@ class CLIPImageTransform:
         resize_to_max_canvas: bool = False,
         antialias: bool = True,
     ) -> None:
-
         # get_canvas_best_fit
         assert (
             possible_resolutions is not None or max_num_tiles is not None
@@ -255,7 +254,6 @@ class CLIPImageTransform:
     def __call__(
         self, *, image: Union[Image.Image, torch.Tensor], **kwargs
     ) -> Mapping[str, Any]:
-
         assert isinstance(
             image, (Image.Image, torch.Tensor)
         ), "Input image must be a PIL image or torch.Tensor."

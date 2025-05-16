@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Type
-
 from torch import nn
 
 from torch.distributed.tensor import Replicate, Shard
@@ -25,9 +23,9 @@ from torchao.float8.float8_tensor_parallel import (
 
 
 def _get_base_llama_tp_training_plan(
-    layerwise_colwise_parallel_cls: Type[ParallelStyle] = ColwiseParallel,
-    layerwise_rowwise_parallel_cls: Type[ParallelStyle] = RowwiseParallel,
-    layerwise_prepare_module_input_cls: Type[ParallelStyle] = PrepareModuleInput,
+    layerwise_colwise_parallel_cls: type[ParallelStyle] = ColwiseParallel,
+    layerwise_rowwise_parallel_cls: type[ParallelStyle] = RowwiseParallel,
+    layerwise_prepare_module_input_cls: type[ParallelStyle] = PrepareModuleInput,
 ) -> dict[str, ParallelStyle]:
     """
     Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models.

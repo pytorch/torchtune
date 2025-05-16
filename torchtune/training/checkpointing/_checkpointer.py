@@ -159,7 +159,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
     ) -> None:
-
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
@@ -891,7 +890,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     json.dump(index_data, f, indent=2)
 
         if training.ADAPTER_KEY in state_dict:
-
             # TODO: saving it "as is" is a requirement because, if we only save with
             # convert_weights.tune_to_peft_adapter_weights, we do NOT have a fn
             # convert_weights.peft_to_tune. The .pt format is not needed, but
@@ -1071,7 +1069,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
     ) -> None:
-
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:

@@ -696,7 +696,6 @@ class KDRecipeDistributed(FTRecipeInterface):
         # Now that we have the model and opt state dict, create the actual checkpoint
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
-
             # Filter out the adapter keys and weights from the model state dict. These will
             # be saved separately
             adapter_state_dict = get_adapter_state_dict(cpu_state_dict)

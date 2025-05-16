@@ -110,7 +110,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
@@ -621,7 +620,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optimizer:
-
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
             optim_dict = {
