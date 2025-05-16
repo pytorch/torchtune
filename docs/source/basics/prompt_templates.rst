@@ -193,14 +193,14 @@ and implements the ``__call__`` method.
     class PromptTemplateInterface(Protocol):
         def __call__(
             self,
-            messages: List[Message],
+            messages: list[Message],
             inference: bool = False,
-        ) -> List[Message]:
+        ) -> list[Message]:
             """
             Format each role's message(s) according to the prompt template
 
             Args:
-                messages (List[Message]): a single conversation, structured as a list
+                messages (list[Message]): a single conversation, structured as a list
                     of :class:`~torchtune.data.Message` objects
                 inference (bool): Whether the template is being used for inference or not.
 
@@ -213,9 +213,9 @@ and implements the ``__call__`` method.
     class EurekaTemplate(PromptTemplateInterface):
         def __call__(
             self,
-            messages: List[Message],
+            messages: list[Message],
             inference: bool = False,
-        ) -> List[Message]:
+        ) -> list[Message]:
             formatted_dialogue = []
             for message in messages:
                 if message.role == "assistant":

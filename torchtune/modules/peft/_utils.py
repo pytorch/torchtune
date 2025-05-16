@@ -5,18 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import (
-    Any,
-    Dict,
-    Generator,
-    List,
-    Literal,
-    Optional,
-    Protocol,
-    runtime_checkable,
-    Set,
-    Union,
-)
+from typing import Any, Generator, Literal, Optional, Protocol, runtime_checkable, Union
 
 import torch
 from torch import nn
@@ -34,7 +23,7 @@ class AdapterModule(Protocol):
     but it must define the ``adapter_params(self)`` method.
     """
 
-    def adapter_params(self) -> List[str]:
+    def adapter_params(self) -> list[str]:
         """
         Return a list of strings corresponding to the names of the ``nn.Parameter`` s in
         the model coming from the adapter.
@@ -46,7 +35,7 @@ class AdapterModule(Protocol):
         pass
 
 
-def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
+def get_adapter_params(model: nn.Module) -> dict[str, nn.Parameter]:
     """
     Return the subset of parameters from a model that correspond to an adapter.
     Assumes that any adapter class has defined the
@@ -56,7 +45,7 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
         model (nn.Module): Instance of model class containing some adapter params.
 
     Returns:
-        Dict[str, nn.Parameter]: the subset of model's state dict containing
+        dict[str, nn.Parameter]: the subset of model's state dict containing
         only adapter parameters.
 
     """
@@ -76,14 +65,14 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
 
 
 def set_trainable_params(
-    model: nn.Module, adapter_params: Union[Dict[str, Any], Set]
+    model: nn.Module, adapter_params: Union[dict[str, Any], set]
 ) -> None:
     """
     Set trainable parameters for an nn.Module based on a state dict of adapter parameters.
 
     Args:
         model (nn.Module): Instance of model class containing some adapter params.
-        adapter_params (Union[Dict[str, Any], Set]): State dict mapping adapter key names to their
+        adapter_params (Union[dict[str, Any], set]): State dict mapping adapter key names to their
             respective nn.Parameters (i.e. outputs of :func:`~torchtune.modules.peft.get_adapter_params`.)
 
     Returns:
@@ -94,10 +83,10 @@ def set_trainable_params(
 
 
 def get_lora_module_names(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool,
     apply_lora_to_output: bool,
-) -> List[str]:
+) -> list[str]:
     """
     Return a list of the names of modules in the model that have LoRA applied. Note that
     the names here are local to their modules and not the fully qualified names from the
@@ -105,14 +94,14 @@ def get_lora_module_names(
 
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
         apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
 
     Returns:
-        List[str]: list of module names in the model that have LoRA applied.
+        list[str]: list of module names in the model that have LoRA applied.
     """
     lora_module_keys = lora_attn_modules
     if apply_lora_to_mlp:
@@ -123,19 +112,19 @@ def get_lora_module_names(
 
 
 def get_adapter_state_dict(
-    state_dict: Dict[str, Any], device: Optional[str] = "cpu"
-) -> Dict[str, Any]:
+    state_dict: dict[str, Any], device: Optional[str] = "cpu"
+) -> dict[str, Any]:
     """
     Return the subset of the full state_dict from a model that correspond to an adapter.
     Assumes that "lora" and "magnitude" are unique names for adapter parameters, and
     that the state_dict is not sharded. All returned parameters are moved to CPU.
 
     Args:
-        state_dict (Dict[str, Any]): Full model state dict.
+        state_dict (dict[str, Any]): Full model state dict.
         device (Optional[str]): device to move adapter parameters to. Default: 'cpu'
 
     Returns:
-        Dict[str, Any]: the subset of model's state dict containing
+        dict[str, Any]: the subset of model's state dict containing
         only adapter parameters.
 
     """
@@ -143,7 +132,7 @@ def get_adapter_state_dict(
     return {k: v.to(device) for k, v in state_dict.items() if adapter_key_filter(k)}
 
 
-def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
+def _get_lora_modules(state_dict: dict[str, Any]) -> set[str]:
     """
     Get the keys from a state dict that correspond to LoRALinear modules.
 
@@ -152,10 +141,10 @@ def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     "model.x.y.z.lora_a.weight" or "model.x.y.z.lora_b.weight".
 
     Args:
-        state_dict (Dict[str, Any]): State dict from a model.
+        state_dict (dict[str, Any]): State dict from a model.
 
     Returns:
-        Set[str]: Set of keys in the state dict that correspond to LoRA modules.
+        set[str]: Set of keys in the state dict that correspond to LoRA modules.
     """
     lora_keys = [
         k
@@ -172,7 +161,7 @@ def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     )
 
 
-def _get_lora_moe_modules(state_dict: Dict[str, Any]) -> Set[str]:
+def _get_lora_moe_modules(state_dict: dict[str, Any]) -> set[str]:
     """
     Get the keys from a state dict that correspond to LoRAGroupedExperts modules.
 
@@ -181,10 +170,10 @@ def _get_lora_moe_modules(state_dict: Dict[str, Any]) -> Set[str]:
     "model.x.y.z.lora_a.weight" or "model.x.y.z.lora_b.weight".
 
     Args:
-        state_dict (Dict[str, Any]): State dict from a model.
+        state_dict (dict[str, Any]): State dict from a model.
 
     Returns:
-        Set[str]: Set of keys in the state dict that correspond to LoRA MoE modules.
+        set[str]: Set of keys in the state dict that correspond to LoRA MoE modules.
     """
     lora_keys = [k for k in state_dict.keys() if "lora" in k and "experts" in k]
     return set(
@@ -202,10 +191,10 @@ def _get_lora_moe_modules(state_dict: Dict[str, Any]) -> Set[str]:
 
 @torch.no_grad
 def get_merged_lora_ckpt(
-    state_dict: Dict[str, Any],
+    state_dict: dict[str, Any],
     rank: int,
     alpha: float,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Merge LoRA weights into the base model format for efficient inference.
     NOTE: This function modifies state_dict inplace. If you do not want to do that,
@@ -215,12 +204,12 @@ def get_merged_lora_ckpt(
     base weight then delete the LoRA-specific parameters.
 
     Args:
-        state_dict (Dict[str, Any]): State dict from a model.
+        state_dict (dict[str, Any]): State dict from a model.
         rank (int): The rank of LoRA matrices.
         alpha (float): The alpha value used for scaling LoRA decompositions.
 
     Returns:
-        Dict[str, Any]: The merged state dict.
+        dict[str, Any]: The merged state dict.
     """
     lora_modules = _get_lora_modules(state_dict)
     lora_moe_modules = _get_lora_moe_modules(state_dict)
@@ -318,14 +307,14 @@ def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
     param_name="apply_lora_to_output", msg="Please use state_dict_keys instead."
 )
 def validate_missing_and_unexpected_for_lora(
-    lora_attn_modules: Optional[List[LORA_ATTN_MODULES]] = None,
+    lora_attn_modules: Optional[list[LORA_ATTN_MODULES]] = None,
     apply_lora_to_mlp: Optional[bool] = None,
     apply_lora_to_output: Optional[bool] = None,
-    state_dict_keys: Optional[List[str]] = None,
-    base_missing: Optional[List[str]] = None,
-    base_unexpected: Optional[List[str]] = None,
-    lora_missing: Optional[List[str]] = None,
-    lora_unexpected: Optional[List[str]] = None,
+    state_dict_keys: Optional[list[str]] = None,
+    base_missing: Optional[list[str]] = None,
+    base_unexpected: Optional[list[str]] = None,
+    lora_missing: Optional[list[str]] = None,
+    lora_unexpected: Optional[list[str]] = None,
 ) -> None:
     """
     This function checks that LoRA and/or base model weights are loaded into the full model correctly.
@@ -333,7 +322,7 @@ def validate_missing_and_unexpected_for_lora(
     unexpected as returned by the load_state_dict API with strict=False.
 
     Args:
-        lora_attn_modules (Optional[List[LORA_ATTN_MODULES]]): list of which linear layers
+        lora_attn_modules (Optional[list[LORA_ATTN_MODULES]]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
             DEPRECATED: use state_dict_keys instead.
@@ -341,14 +330,14 @@ def validate_missing_and_unexpected_for_lora(
             DEPRECATED: use state_dict_keys instead.
         apply_lora_to_output (Optional[bool]): whether LoRA is applied to the final output projection.
             DEPRECATED: use state_dict_keys instead.
-        state_dict_keys (Optional[List[str]]): ground truth model state dict we are validating against
-        base_missing (Optional[List[str]]): List of missing keys when loading base model weights.
+        state_dict_keys (Optional[list[str]]): ground truth model state dict we are validating against
+        base_missing (Optional[list[str]]): list of missing keys when loading base model weights.
             Default: None
-        base_unexpected (Optional[List[str]]): List of unexpected keys when loading base model weights.
+        base_unexpected (Optional[list[str]]): list of unexpected keys when loading base model weights.
             Default: None
-        lora_missing (Optional[List[str]]): List of missing keys when loading LoRA weights.
+        lora_missing (Optional[list[str]]): list of missing keys when loading LoRA weights.
             Default: None
-        lora_unexpected (Optional[List[str]]): List of unexpected keys when loading LoRA weights.
+        lora_unexpected (Optional[list[str]]): list of unexpected keys when loading LoRA weights.
             Default: None
     Returns:
         None

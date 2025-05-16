@@ -7,7 +7,6 @@
 import hashlib
 import os
 from pathlib import Path
-from typing import List
 from urllib.parse import quote, urlencode
 
 import requests
@@ -59,7 +58,7 @@ def _get_relpath(target, base):
 
 
 class BaseShield(Image, SphinxDirective):
-    def run(self, params, alt, section) -> List[nodes.Node]:
+    def run(self, params, alt, section) -> list[nodes.Node]:
         url = f"https://img.shields.io/static/v1?{urlencode(params, quote_via=quote)}"
         path = _fetch_image(url)
         self.arguments = [path]

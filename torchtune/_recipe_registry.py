@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -18,7 +17,7 @@ class Config:
 class Recipe:
     name: str
     file_path: str
-    configs: List[Config]
+    configs: list[Config]
     supports_distributed: bool
 
 

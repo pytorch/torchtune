@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -152,7 +152,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._kd_ratio = cfg.get("kd_ratio", 0.5)
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
         base model weights. If resume_from_checkpoint is True, this also includes
@@ -174,7 +174,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the teacher checkpoint state from file.
         """
@@ -184,7 +184,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = teacher_checkpointer.load_checkpoint()
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -378,9 +378,9 @@ class KDRecipeDistributed(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        base_model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -495,10 +495,10 @@ class KDRecipeDistributed(FTRecipeInterface):
     def _setup_teacher_model(
         self,
         model_cfg: DictConfig,
-        custom_sharded_layers: Optional[List[str]],
+        custom_sharded_layers: Optional[list[str]],
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
+        model_state_dict: dict[str, Any],
     ) -> nn.Module:
         """
         Model initialization for teacher model has some important considerations:
@@ -577,7 +577,7 @@ class KDRecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -743,7 +743,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             )
 
     def _loss_step(
-        self, batch: Dict[str, torch.Tensor]
+        self, batch: dict[str, torch.Tensor]
     ) -> (torch.Tensor, torch.Tensor):
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
