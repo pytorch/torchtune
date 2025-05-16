@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from torchtune.data._messages import ShareGPTToMessages
 from torchtune.datasets._sft import SFTDataset
@@ -17,13 +17,13 @@ def llava_instruct_dataset(
     *,
     source: str = "liuhaotian/LLaVA-Instruct-150K",
     image_dir: str = "coco/train2017/",
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
     data_files: str = "llava_instruct_150k.json",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> SFTDataset:
     """
     Support for family of image + text datasets similar to
@@ -87,7 +87,7 @@ def llava_instruct_dataset(
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
         image_dir (str): path to the directory containing the images as you are expected to download the COCO dataset
             before using. Default is "coco/".
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations")
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns ("conversations")
             to the new column names in the dataset. If None, assume these are identical.
             Default is None.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
@@ -102,7 +102,7 @@ def llava_instruct_dataset(
         data_files (str): path to the json file to load as dataset. See the `dataset repo
             <https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/tree/main>`_ for options.
             Default is "llava_instruct_150k.json".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
 

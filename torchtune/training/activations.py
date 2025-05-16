@@ -17,7 +17,6 @@ from torch.utils.checkpoint import checkpoint
 # Uses PTD FSDP AC wrapper
 # currently selective per layer checkpointing are supported
 def checkpoint_wrapper(module, ac_mode, ac_style):
-
     if ac_mode == "full":
         return ptd_checkpoint_wrapper(
             module,
@@ -81,7 +80,6 @@ def apply_selective_activation_checkpointing(
 
     for layer_id, transformer_block in enumerate(model.layers):
         if ac_mode in ("full", "selective"):
-
             transformer_block = checkpoint_wrapper(
                 transformer_block,
                 ac_mode,

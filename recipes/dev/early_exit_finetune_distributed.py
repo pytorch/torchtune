@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -274,7 +274,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             self._early_exit_loss_scale = None
             self._early_exit_loss_scale_type = None
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
@@ -289,7 +289,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -470,8 +470,8 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
     ) -> nn.Module:
@@ -568,7 +568,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
@@ -623,7 +623,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
@@ -675,7 +675,7 @@ class EarlyExitFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_early_exit_loss(
         self,
         cfg_early_exit_loss: DictConfig,
-    ) -> Tuple[List[bool], EarlyExitCurriculum]:
+    ) -> tuple[list[bool], EarlyExitCurriculum]:
         """
         All early exit loss related setup happens here.
         """

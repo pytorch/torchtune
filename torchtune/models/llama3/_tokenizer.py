@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.transforms import Transform
@@ -51,7 +51,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
 
     Args:
         path (str): Path to pretrained tiktoken tokenizer file.
-        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
+        special_tokens (Optional[dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Llama3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
@@ -78,7 +78,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
     def __init__(
         self,
         path: str,
-        special_tokens: Optional[Dict[str, int]] = None,
+        special_tokens: Optional[dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
         truncation_type: str = "right",
@@ -169,12 +169,12 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         text: str,
         add_bos: bool = True,
         add_eos: bool = True,
-    ) -> List[int]:
+    ) -> list[int]:
         return self.tt_model.encode(text=text, add_bos=add_bos, add_eos=add_eos)
 
     def decode(
         self,
-        token_ids: List[int],
+        token_ids: list[int],
         truncate_at_eos: bool = True,
         skip_special_tokens: bool = True,
     ) -> str:
@@ -182,7 +182,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         Decode a list of token ids into a string.
 
         Args:
-            token_ids (List[int]): The list of token ids.
+            token_ids (list[int]): The list of token ids.
             truncate_at_eos (bool): Whether to truncate the string at the end of
                 sequence token. Default is True.
             skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
@@ -205,7 +205,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             else decoded_string
         )
 
-    def _tokenize_header(self, message: Message) -> List[int]:
+    def _tokenize_header(self, message: Message) -> list[int]:
         """
         Tokenize header start, message role, and header end as list of ids
         """
@@ -216,13 +216,13 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             + self.encode("\n\n", add_bos=False, add_eos=False)
         )
 
-    def _tokenize_end(self, message: Message) -> List[int]:
+    def _tokenize_end(self, message: Message) -> list[int]:
         """
         Add eot or eom id at the end of the message.
         """
         return [self.eot_id] if message.eot else [self.eom_id]
 
-    def _tokenize_body(self, message: Message) -> List[int]:
+    def _tokenize_body(self, message: Message) -> list[int]:
         """
         Tokenize message content as list of ids
         """
@@ -248,7 +248,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
         *,
         add_start_tokens: bool = True,
         add_end_tokens: bool = True,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Tokenize a message into a list of token ids.
 
@@ -258,7 +258,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             add_end_tokens (bool): Whether to append eot or eom id at the end of the message. Default is True.
 
         Returns:
-            List[int]: The list of token ids.
+            list[int]: The list of token ids.
         """
         tokenized_header = self._tokenize_header(message) if add_start_tokens else []
         tokenized_body = self._tokenize_body(message)
@@ -269,15 +269,15 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
         add_end_tokens: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> tuple[list[int], list[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
 
         Args:
-            messages (List[Message]): The list of messages to tokenize.
+            messages (list[Message]): The list of messages to tokenize.
             add_end_tokens (bool): Whether to append end tokens ids (end-of-seq, end-of-turn, end-of-message) at the end of the
                 last assistant message. This value should be set to False for generation. Default is True.
 
@@ -296,7 +296,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
             ([1, 31587, 29644, 102, 1, 31587, 29644], [True, True, True, True, True, False, False])
 
         Returns:
-            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+            tuple[list[int], list[bool]]: The list of token ids and the list of masks.
         """
         templated_messages = (
             self.prompt_template(messages)
@@ -351,7 +351,7 @@ class Llama3Tokenizer(ModelTokenizer, Transform):
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
-                a List[Message] to tokenize
+                a list[Message] to tokenize
             inference (bool): Whether the template is being used for inference or not.
 
         Returns:

@@ -7,7 +7,7 @@
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -73,7 +73,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         self._epochs_run = 0
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
@@ -85,7 +85,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = self._checkpointer.load_checkpoint()
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -321,8 +321,8 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         fsdp_cpu_offload: bool,
-        model_sd: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_sd: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
         eval_mode: bool = False,
         reshard_after_forward: bool = True,
     ) -> tuple[nn.Module, nn.Module]:
@@ -406,7 +406,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_optimizer(
         self,
         cfg_optimizer: DictConfig,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -425,7 +425,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. Currently this recipe only supports the
@@ -557,7 +557,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
     def generate_trajectory(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: list[str]
     ) -> GRPOTrajectory:
         """
         Generates a trajectory given the current policy model, the reference policy model, the reward function,
@@ -573,7 +573,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-            answers (List[str]): list of answers corresponding to the input_ids
+            answers (list[str]): list of answers corresponding to the input_ids
 
         Returns:
             Trajectory: An instance of :class:`~torchtune.rlhf.GRPOTrajectory` comprising
@@ -676,7 +676,7 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
     def generate_trajectory_batched(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: list[str]
     ) -> GRPOTrajectory:
         """
         Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
@@ -684,13 +684,13 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-            answers: (List[str]): list of answers corresponding to the input_ids
+            answers: (list[str]): list of answers corresponding to the input_ids
 
         Returns:
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
-        trajectories: List[GRPOTrajectory] = []
+        trajectories: list[GRPOTrajectory] = []
         with torch.no_grad():
             for batch_start in range(0, self.batch_size, self._forward_batch_size):
                 batch_input_ids = input_ids[
@@ -794,7 +794,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -816,7 +815,6 @@ class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
-
                     step_stats = self.grpo_step(trajectory, context_length)
 
                     grpo_stats.append(step_stats)

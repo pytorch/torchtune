@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
 from functools import partial
 
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
@@ -36,7 +35,7 @@ def code_llama2_7b() -> TransformerDecoder:
 
 
 def lora_code_llama2_7b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
@@ -53,7 +52,7 @@ def lora_code_llama2_7b(
     https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -120,7 +119,7 @@ def code_llama2_13b() -> TransformerDecoder:
 
 
 def lora_code_llama2_13b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
@@ -137,7 +136,7 @@ def lora_code_llama2_13b(
     https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -207,7 +206,7 @@ def code_llama2_70b() -> TransformerDecoder:
 
 
 def lora_code_llama2_70b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
@@ -224,7 +223,7 @@ def lora_code_llama2_70b(
     https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.

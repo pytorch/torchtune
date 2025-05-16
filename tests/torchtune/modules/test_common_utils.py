@@ -117,7 +117,6 @@ class TestLocalKVCache:
 
     @pytest.mark.parametrize("model", ["llama_decoder_model", "llama_vision_model"])
     def test_local_kv_cache_raises_error_caches_setup(self, device, model, request):
-
         model = request.getfixturevalue(model)
         model.setup_caches(batch_size=4, dtype=torch.float32)
         with pytest.raises(ValueError, match="Model caches must be not setup"):
@@ -153,7 +152,6 @@ class TestDeleteKVCaches:
 class TestDisableKVCaches:
     @pytest.mark.parametrize("model", ["llama_decoder_model", "llama_vision_model"])
     def test_disable_kv_cache(self, inputs, causal_mask, input_pos, model, request):
-
         # firstly, setup kv-caches and update the cache state
         model = request.getfixturevalue(model)
         model.setup_caches(batch_size=4, dtype=torch.float32)

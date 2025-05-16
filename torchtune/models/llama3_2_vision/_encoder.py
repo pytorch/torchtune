@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional
+from typing import Optional
 
 import torch
 
@@ -38,12 +38,12 @@ class Llama3VisionProjectionHead(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        hidden_states: Optional[List[torch.Tensor]] = None,
+        hidden_states: Optional[list[torch.Tensor]] = None,
     ) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): input tensor with shape [b x i x t x e x d]
-            hidden_states (Optional[List[torch.Tensor]]): list of hidden states
+            hidden_states (Optional[list[torch.Tensor]]): list of hidden states
                 from the encoder. Each hidden state has the same shape as x.
 
         Returns:

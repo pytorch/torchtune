@@ -70,7 +70,6 @@ class OffloadActivations(saved_tensors_hooks):
         max_fwd_stash_size: int = 5,
         min_offload_size: int = 1024,
     ) -> None:
-
         self.use_streams: bool = use_streams
 
         self.min_tensor_size_bytes = (

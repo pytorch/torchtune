@@ -50,7 +50,6 @@ class DummyModel(nn.Module):
         input_pos=None,
         input_embeds=None,
     ):
-
         x = self.tok_embeddings(tokens) if input_embeds is None else input_embeds
         if encoder_input is not None:
             q = self.q(x)

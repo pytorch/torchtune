@@ -30,7 +30,6 @@ EVAL_CONFIG_PATH = Path.joinpath(
 class TestLoRA7BDistributedFinetuneEval:
     @pytest.mark.slow_integration_test
     def test_finetune_and_eval(self, tmpdir, capsys, monkeypatch):
-
         ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])
         ckpt_dir = ckpt_path.parent
 

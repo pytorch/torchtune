@@ -6,7 +6,6 @@
 
 import math
 import re
-from typing import Dict
 
 import torch
 
@@ -119,7 +118,7 @@ _IGNORE = {
 }
 
 
-def llama4_meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def llama4_meta_to_tune(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """
     Convertor from Meta state dict to torchtune state dict. This handles:
     - skip loading weights from the _IGNORE list
@@ -152,7 +151,7 @@ def llama4_meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.
     return converted_state_dict
 
 
-def llama4_tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def llama4_tune_to_meta(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """
     Convertor from torchtune state dict to Meta state dict. This handles:
     - transpose the weight for router
@@ -192,8 +191,8 @@ def llama4_tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.
 
 
 def llama4_hf_to_tune(
-    state_dict: Dict[str, torch.Tensor],
-) -> Dict[str, torch.Tensor]:
+    state_dict: dict[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
     converted_state_dict = {}
 
     for key, value in state_dict.items():
@@ -218,8 +217,8 @@ def llama4_hf_to_tune(
 
 
 def llama4_tune_to_hf(
-    state_dict: Dict[str, torch.Tensor],
-) -> Dict[str, torch.Tensor]:
+    state_dict: dict[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 

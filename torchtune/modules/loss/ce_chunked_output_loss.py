@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -62,10 +60,10 @@ class CEWithChunkedOutputLoss(torch.nn.Module, SFTLoss):
         """Modify model output to match the expected input for the loss function."""
         model.set_num_output_chunks(self.num_output_chunks)
 
-    def forward(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
+    def forward(self, logits: list[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            logits (List[torch.Tensor]): List of chunked logits of length
+            logits (list[torch.Tensor]): list of chunked logits of length
                 ``self.num_output_chunks``, where each chunk has shape
                 ``(batch_size, num_tokens / num_output_chunks, vocab_size)``.
             labels (torch.Tensor): Ground truth labels of shape ``(batch_size, num_tokens)``.

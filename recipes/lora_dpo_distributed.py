@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from warnings import warn
 
 import torch
@@ -196,7 +196,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
         base model weights. If resume_from_checkpoint is True, this also includes
@@ -221,7 +221,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -345,9 +345,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        base_model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -465,7 +465,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -626,14 +626,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             )
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+        self, model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
     ) -> ChosenRejectedOutputs:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
         Args:
             model (nn.Module): The model to be used for the forward pass.
-            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+            batch (tuple[torch.Tensor, torch.Tensor]): tuple of input_ids and labels.
 
         Returns:
             Dataclass of chosen log probs, rejected log probs, chosen logits, rejected logits.
@@ -688,7 +688,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))

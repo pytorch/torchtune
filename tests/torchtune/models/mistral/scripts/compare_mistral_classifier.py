@@ -114,7 +114,6 @@ def compare_mistral_classifier(
     intermediate_dim: int,
     max_seq_len: int,
 ):
-
     # setting up the right seed for generating outputs
     torch.manual_seed(16)
 

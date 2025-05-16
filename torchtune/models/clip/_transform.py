@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 import torch
 import torchvision
@@ -49,11 +49,11 @@ class CLIPImageTransform:
     Image is tiled 2x5, for a final output shape of (10, 3, 224, 224)
 
     Args:
-        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+        image_mean (Optional[list[float]]): Mean values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
-        image_std (Optional[List[float]]): Standard deviation values of each channel, used for normalization.
+        image_std (Optional[list[float]]): Standard deviation values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
-        possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
+        possible_resolutions (Optional[list[tuple[int, int]]]): list of possible resolutions as tuples (height, width).
             where each tuple represents a possible canvas to fit the image into when calling ``get_canvas_best_fit``.
             If None, this will be calculated using max_num_tiles and tile_size. Default None.
         tile_size (int): Size of the tiles to divide the image into. Default 224.
@@ -94,16 +94,15 @@ class CLIPImageTransform:
     def __init__(
         self,
         *,
-        image_mean: Optional[List[float]] = None,
-        image_std: Optional[List[float]] = None,
-        possible_resolutions: Optional[List[Tuple[int, int]]] = None,
+        image_mean: Optional[list[float]] = None,
+        image_std: Optional[list[float]] = None,
+        possible_resolutions: Optional[list[tuple[int, int]]] = None,
         tile_size: int = 224,
         max_num_tiles: Optional[int] = 4,
         dtype: torch.dtype = torch.bfloat16,
         resample: str = "bilinear",
         resize_to_max_canvas: bool = False,
     ) -> None:
-
         # get_canvas_best_fit
         assert (
             possible_resolutions is not None or max_num_tiles is not None
@@ -148,7 +147,7 @@ class CLIPImageTransform:
 
         Args:
             sample (Mapping[str, Any]): A sample with an "image" field containing
-                a List[Message] to tokenize
+                a list[Message] to tokenize
             inference (bool): Whether the template is being used for inference or not.
 
         Returns:
