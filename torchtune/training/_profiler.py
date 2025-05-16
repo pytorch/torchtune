@@ -10,7 +10,7 @@ import os
 import time
 from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.distributed
@@ -192,7 +192,7 @@ def setup_torch_profiler(
     active_steps: Optional[int] = None,
     num_cycles: Optional[int] = None,
     output_dir: Optional[str] = None,
-) -> Tuple[torch.profiler.profile, DictConfig]:
+) -> tuple[torch.profiler.profile, DictConfig]:
     """
     Sets up :class:`~torch.profiler.profile` and returns the profiler config with post-setup updates.
 
@@ -260,7 +260,7 @@ def setup_torch_profiler(
         output_dir (Optional[str]): Tracing file output path.
 
     Returns:
-        Tuple[torch.profiler.profile, DictConfig]
+        tuple[torch.profiler.profile, DictConfig]
     """
 
     if not enabled:

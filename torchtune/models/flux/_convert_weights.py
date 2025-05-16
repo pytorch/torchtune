@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import re
-from typing import List
 
 REGEX_CONVERSIONS = [
     (r"^(encoder|decoder)\.norm_out\.(weight|bias)$", r"\1.end.0.\2"),
@@ -125,13 +124,13 @@ def _convert_key(key: str) -> str:
     return ".".join(new_parts)
 
 
-def _convert_attn_layer(new_parts: List[str], parts: List[str], i: int):
+def _convert_attn_layer(new_parts: list[str], parts: list[str], i: int):
     new_parts.append(ATTN_LAYER_CONVERSION[parts[i]])
     i += 1
     new_parts.append(parts[i])
 
 
-def _convert_resnet_layer(new_parts: List[str], parts: List[str], i: int):
+def _convert_resnet_layer(new_parts: list[str], parts: list[str], i: int):
     new_parts.append(RESNET_LAYER_CONVERSION[parts[i]])
     i += 1
     new_parts.append(parts[i])

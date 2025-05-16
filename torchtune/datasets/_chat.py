@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from torchtune.data._messages import OpenAIToMessages, ShareGPTToMessages
 from torchtune.datasets._packed import PackedDataset
@@ -23,7 +23,7 @@ def chat_dataset(
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
     Configure a custom dataset with conversations between user and model assistant.
@@ -88,7 +88,7 @@ def chat_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
 
     Examples:

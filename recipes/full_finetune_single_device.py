@@ -7,7 +7,7 @@
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -197,7 +197,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -388,7 +388,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        model_state_dict: Dict[str, Any],
+        model_state_dict: dict[str, Any],
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
@@ -427,7 +427,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _setup_optimizer(
         self,
         cfg_optimizer: DictConfig,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optimizer:
         if self.optimizer_in_bwd:
             optimizer_cls = _get_component_from_path(cfg_optimizer.pop("_component_"))
@@ -533,7 +533,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             single_device=True,
         )
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 

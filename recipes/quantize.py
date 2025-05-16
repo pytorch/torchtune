@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import torch
 from omegaconf import DictConfig
@@ -54,7 +54,7 @@ class QuantizationRecipe:
             seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
         )
 
-    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> dict[str, Any]:
         self._checkpointer = config.instantiate(checkpointer_cfg)
         checkpoint_dict = self._checkpointer.load_checkpoint()
         return checkpoint_dict
@@ -69,7 +69,7 @@ class QuantizationRecipe:
     def _setup_model(
         self,
         model_cfg: DictConfig,
-        model_state_dict: Dict[str, Any],
+        model_state_dict: dict[str, Any],
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)

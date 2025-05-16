@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional
+from typing import Optional
 
 import torch
 
@@ -25,11 +25,11 @@ _PHI3_MINI = {
 
 
 def phi3_hf_to_tune(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: Optional[int],
     num_kv_heads: Optional[int],
     dim: Optional[int],
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """
     Convertor from HF state dict to torchtune state dict. This handles:
     - Splitting the fused q,k and v matrix
@@ -70,7 +70,7 @@ def phi3_hf_to_tune(
     return converted_state_dict
 
 
-def phi3_tune_to_hf(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def phi3_tune_to_hf(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """
     Convertor from torchtune state dict to HF state dict. This handles:
     - Fusing q,k and v matrix

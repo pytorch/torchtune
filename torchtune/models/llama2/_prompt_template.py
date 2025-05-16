@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
 
 from torchtune.data import Message, PromptTemplateInterface
 
@@ -34,13 +33,13 @@ class Llama2ChatTemplate(PromptTemplateInterface):
 
     def __call__(
         self,
-        messages: List[Message],
-    ) -> List[Message]:
+        messages: list[Message],
+    ) -> list[Message]:
         """
         Format user and system messages with appropriate tags.
 
         Args:
-            messages (List[Message]): a single conversation, structured as a list
+            messages (list[Message]): a single conversation, structured as a list
                 of `Message` objects
 
         Returns:
