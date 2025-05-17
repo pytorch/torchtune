@@ -210,6 +210,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.id_batch = 0
 
     def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> dict[str, Any]:
         """
@@ -871,8 +872,10 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
                 loss.backward()
 
+                self.id_batch += 1
+
                 # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if self.id_batch % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
                     torch.distributed.all_reduce(
                         running_loss, op=torch.distributed.ReduceOp.AVG
