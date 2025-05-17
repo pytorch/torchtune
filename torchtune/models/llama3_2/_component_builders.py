@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Optional
+from typing import Optional
 
 from torch import nn
 
@@ -39,6 +39,7 @@ the building blocks simple.
 
 
 # ------------------ Vanilla Llama3.2 ------------------
+
 
 def llama3_2(
     vocab_size: int,
@@ -144,7 +145,7 @@ def llama3_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedFo
 
 
 def lora_llama3_2(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -174,7 +175,7 @@ def lora_llama3_2(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -288,7 +289,7 @@ def lora_llama3_2(
 
 
 def lora_llama3_2_self_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     pos_embeddings: nn.Module,
     *,
     # MultiHeadAttention args
@@ -310,7 +311,7 @@ def lora_llama3_2_self_attention(
     applied to a subset of its linear layers
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
         pos_embeddings (nn.Module): positional embeddings module to be passed to

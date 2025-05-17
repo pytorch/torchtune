@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Tuple
-
 from torch.utils.data import Dataset
 
 from torchtune import utils
@@ -34,7 +32,7 @@ class ConcatDataset(Dataset):
         be loaded into memory. For large-scale scenarios, consider other strategies that might stream data on demand.
 
     Args:
-        datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
+        datasets (list[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
             derived from :class:`~torch.utils.data.Dataset`.
 
     Raises:
@@ -64,8 +62,8 @@ class ConcatDataset(Dataset):
     enhancing the flexibility in handling diverse data sources for training machine learning models.
     """
 
-    def __init__(self, datasets: List[Dataset]):
-        self._datasets: List[Dataset] = datasets
+    def __init__(self, datasets: list[Dataset]):
+        self._datasets: list[Dataset] = datasets
 
         is_packed = [isinstance(dataset, PackedDataset) for dataset in datasets]
         if any(is_packed) and not all(is_packed):
@@ -74,7 +72,7 @@ class ConcatDataset(Dataset):
             )
         self.packed = all(is_packed)
         self._len: int = sum(len(dataset) for dataset in datasets)
-        self._indexes: List[Tuple[int, int, int]] = []
+        self._indexes: list[tuple[int, int, int]] = []
 
         # Calculate distribution of indexes in all datasets
         cumulative_index = 0
@@ -83,7 +81,7 @@ class ConcatDataset(Dataset):
             self._indexes.append((cumulative_index, next_cumulative_index, idx))
             cumulative_index = next_cumulative_index
 
-    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+    def __getitem__(self, index: int) -> tuple[list[int], list[int]]:
         for start, stop, dataset_index in self._indexes:
             if start <= index < stop:
                 dataset = self._datasets[dataset_index]

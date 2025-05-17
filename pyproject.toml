@@ -114,3 +114,6 @@ addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--
 # --import-mode=prepend will add the root (the parent dir of torchtune/, tests/, recipes/)
 # to `sys.path` when invoking pytest, allowing us to treat `tests` as a package within the tests.
 # --without-integration and --without-slow-integration: default to running unit tests only
+
+[tool.ruff.lint]
+select = ["UP006"]

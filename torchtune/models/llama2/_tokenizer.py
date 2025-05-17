@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 from torchtune.data import Message, PromptTemplate
 from torchtune.models.llama2._prompt_template import Llama2ChatTemplate
@@ -96,7 +96,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
         add_bos: bool = True,
         add_eos: bool = True,
         trim_leading_whitespace: bool = False,
-    ) -> List[int]:
+    ) -> list[int]:
         return self._spm_model.encode(
             text,
             add_bos=add_bos,
@@ -106,17 +106,17 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
 
     def decode(
         self,
-        token_ids: List[int],
+        token_ids: list[int],
     ) -> str:
         return self._spm_model.decode(token_ids)
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
         add_start_tokens: bool = True,
         add_end_tokens: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> tuple[list[int], list[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
@@ -144,14 +144,14 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
 
 
         Args:
-            messages (List[Message]): A list of messages, each containing role, content,
+            messages (list[Message]): A list of messages, each containing role, content,
                 and masked attributes.
             add_start_tokens (bool): Whether to add BOS token to the beginning of the first message.
                 Default True.
             add_end_tokens (bool): Whether to add EOS token to the end of the last message. Default True.
 
         Returns:
-            Tuple[List[int], List[bool]]: The tokenized messages
+            tuple[list[int], list[bool]]: The tokenized messages
         """
         templated_messages = (
             self.prompt_template(messages)
@@ -174,7 +174,7 @@ class Llama2Tokenizer(ModelTokenizer, Transform):
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
-                a List[Message] to tokenize
+                a list[Message] to tokenize
             inference (bool): Whether the template is being used for inference or not.
 
         Returns:

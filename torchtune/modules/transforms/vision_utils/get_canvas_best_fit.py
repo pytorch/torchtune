@@ -7,7 +7,6 @@
 import logging
 
 from collections import defaultdict
-from typing import List, Set, Tuple
 
 import torch
 
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def get_canvas_best_fit(
     image: torch.Tensor, possible_resolutions: torch.Tensor, resize_to_max_canvas: bool
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """
     Determines the best canvas possible from a list of possible resolutions to
     resize an image to, without distortion.
@@ -37,7 +36,7 @@ def get_canvas_best_fit(
             If False, pick the canvas that minimizes downscaling, including no downscaling at all.
 
     Returns:
-        Tuple[int, int]: The best resolution to fit the image into.
+        tuple[int, int]: The best resolution to fit the image into.
 
     Examples:
         >>> image = torch.rand(3, 200, 300)
@@ -114,7 +113,7 @@ def get_canvas_best_fit(
 
 def find_supported_resolutions(
     max_num_tiles: int, tile_size: int
-) -> List[Tuple[int, int]]:
+) -> list[tuple[int, int]]:
     """
     Computes all combinations of resolutions, multiple of tile_size,
     that contain up to max_num_tiles. Useful for when dividing an image into tiles.
@@ -127,7 +126,7 @@ def find_supported_resolutions(
         tile_size (int): Size of the side of the tile.
 
     Returns:
-        List[Tuple[int, int]]: List of possible resolutions as tuples (height, width).
+        list[tuple[int, int]]: list of possible resolutions as tuples (height, width).
 
     Examples:
 
@@ -156,7 +155,7 @@ def find_supported_resolutions(
     return possible_resolutions
 
 
-def _get_factors(n: int) -> Set[int]:
+def _get_factors(n: int) -> set[int]:
     """
     Calculate all factors of a given number, i.e. a divisor that leaves no remainder.
 

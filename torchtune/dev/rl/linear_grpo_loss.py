@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -61,7 +61,7 @@ class LinearGRPOLoss(nn.Module, RLLoss):
         targets_chunk: torch.Tensor,  # [B*G, chunk_size]
         ref_logprobs_chunk: torch.Tensor,  # [B*G, chunk_size]
         advantages: torch.Tensor,  # [B*G]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         pi_logits_chunk = self.linear_projection(hidden_chunk)
         if isinstance(pi_logits_chunk, DTensor):
             pi_logits_chunk = pi_logits_chunk.full_tensor()
@@ -106,7 +106,7 @@ class LinearGRPOLoss(nn.Module, RLLoss):
         ref_outputs: torch.Tensor,
         advantages: torch.Tensor,
         padding_masks: Optional[torch.Tensor] = None,  # [B*G, response_length]
-    ) -> Tuple[torch.Tensor, ...]:
+    ) -> tuple[torch.Tensor, ...]:
         """
         Args:
             pi_old_outputs (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
@@ -116,7 +116,7 @@ class LinearGRPOLoss(nn.Module, RLLoss):
             padding_masks (Optional[torch.Tensor]): Mask for padding tokens. Shape ``[bsz, seq_len]``
 
         Returns:
-            Tuple[torch.Tensor, ...]: loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs
+            tuple[torch.Tensor, ...]: loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs
         """
         # Chunk along sequence dimension
         hidden_chunks = pi_old_outputs.tensor_split(self.num_output_chunks, dim=1)

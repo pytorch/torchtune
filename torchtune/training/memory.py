@@ -7,7 +7,7 @@
 import gc
 import logging
 
-from typing import Any, Callable, Dict, Set, Type, Union
+from typing import Any, Callable, Union
 
 import torch
 from torch import nn
@@ -20,7 +20,7 @@ from torchtune.utils import get_device_support, get_logger, get_torch_device_nam
 
 _log: logging.Logger = get_logger()
 
-ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
+ACWrapPolicyType = Union[set[type], Callable[[nn.Module, bool, int], bool]]
 
 
 def set_activation_checkpointing(
@@ -62,7 +62,7 @@ class OptimizerInBackwardWrapper:
         Distributed use cases such as FSDP, which require specialized optimizer state checkpointing, are not supported.
 
     Args:
-        optim_map (Dict[str, torch.optim.Optimizer]): Mapping from parameter names to optimizers.
+        optim_map (dict[str, torch.optim.Optimizer]): Mapping from parameter names to optimizers.
 
     Example:
         >>> optim_dict = {
@@ -89,27 +89,27 @@ class OptimizerInBackwardWrapper:
 
     """
 
-    def __init__(self, optim_map: Dict[str, torch.optim.Optimizer]):
+    def __init__(self, optim_map: dict[str, torch.optim.Optimizer]):
         self.optim_map = optim_map
         self.lr_scheduler = None
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """
         Returns a state dict mapping parameter names to optimizer states. This
         state_dict is only loadable by this same class.
 
         Returns:
-            Dict[str, Any]: state dict mapping parameter names to optimizer states.
+            dict[str, Any]: state dict mapping parameter names to optimizer states.
         """
         return {p: opt.state_dict() for p, opt in self.optim_map.items()}
 
-    def load_state_dict(self, optim_ckpt_map: Dict[str, Any]):
+    def load_state_dict(self, optim_ckpt_map: dict[str, Any]):
         """
         Load optimizer states from a state dict produced by this class's
         state_dict method.
 
         Args:
-            optim_ckpt_map (Dict[str, Any]): state dict mapping parameter names to optimizer states.
+            optim_ckpt_map (dict[str, Any]): state dict mapping parameter names to optimizer states.
 
         Raises:
             RuntimeError: If the optimizer state dict does not contain all the expected parameters.
@@ -195,7 +195,7 @@ class OptimizerInBackwardWrapper:
 
 
 def create_optim_in_bwd_wrapper(
-    model: torch.nn.Module, optim_dict: Dict[torch.nn.Parameter, torch.optim.Optimizer]
+    model: torch.nn.Module, optim_dict: dict[torch.nn.Parameter, torch.optim.Optimizer]
 ) -> OptimizerInBackwardWrapper:
     """
     Create a wrapper for optimizer step running in backward.
@@ -205,7 +205,7 @@ def create_optim_in_bwd_wrapper(
             it is assumed that all parameters being optimized belong to a single top-level model.
             ``named_parameters`` attribute of ``model`` will be accessed to look up parameter names for
             parameters being optimized.
-        optim_dict (Dict[torch.nn.Parameter, torch.optim.Optimizer]): Mapping from
+        optim_dict (dict[torch.nn.Parameter, torch.optim.Optimizer]): Mapping from
             parameters to optimizers.
 
     Returns:
@@ -217,7 +217,7 @@ def create_optim_in_bwd_wrapper(
 
 
 def register_optim_in_bwd_hooks(
-    model: torch.nn.Module, optim_dict: Dict[torch.nn.Parameter, torch.optim.Optimizer]
+    model: torch.nn.Module, optim_dict: dict[torch.nn.Parameter, torch.optim.Optimizer]
 ) -> None:
     """
     Register hooks for optimizer step running in backward.
@@ -229,7 +229,7 @@ def register_optim_in_bwd_hooks(
     Args:
         model (torch.nn.Module): Model whose parameters will be optimized. Note that currently
             hooks for ALL parameters in the model will be registered.
-        optim_dict (Dict[torch.nn.Parameter, torch.optim.Optimizer]): Mapping from
+        optim_dict (dict[torch.nn.Parameter, torch.optim.Optimizer]): Mapping from
             parameters to optimizers.
     """
 
@@ -257,7 +257,7 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
         reset_stats (bool): Whether to reset CUDA's peak memory tracking.
 
     Returns:
-        Dict[str, float]: A dictionary containing the peak memory active, peak memory allocated,
+        dict[str, float]: A dictionary containing the peak memory active, peak memory allocated,
         and peak memory reserved. This dict is useful for logging memory stats.
 
     Raises:
@@ -295,7 +295,7 @@ DEFAULT_LOG_MESSAGE = "Memory stats after model init:"
 
 
 def log_memory_stats(
-    stats: Dict[str, float], message: str = DEFAULT_LOG_MESSAGE
+    stats: dict[str, float], message: str = DEFAULT_LOG_MESSAGE
 ) -> None:
     """
     Logs a dict containing memory stats to the logger. ``stats`` should contain the fields
@@ -303,7 +303,7 @@ def log_memory_stats(
     returned by :func:`torchtune.training.get_memory_stats`.
 
     Args:
-        stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory
+        stats (dict[str, float]): A dictionary containing the peak memory active, peak memory
             allocated, and peak memory reserved (optional) stats.
         message (str): An optional message to prepend to the log output.
             Defaults to "Memory stats after model init:"

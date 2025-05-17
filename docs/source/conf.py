@@ -270,7 +270,6 @@ def inject_minigalleries(app, what, name, obj, options, lines):
 
 
 def setup(app):
-
     app.connect("autodoc-process-docstring", inject_minigalleries)
 
 

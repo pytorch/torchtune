@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -142,7 +142,7 @@ class DoRALinear(nn.Module, AdapterModule):
         weight_norm = torch.linalg.norm(weight, dim=1).to(weight.dtype)
         return weight_norm
 
-    def adapter_params(self) -> List[str]:
+    def adapter_params(self) -> list[str]:
         """
         Return a list of strings corresponding to the names of the ``nn.Parameter`` s in
         the model coming from the adapter.

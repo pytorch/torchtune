@@ -1,0 +1,100 @@
+# Config for single device QAT finetuning in qat_single_device.py
+# using a Llama 1B/TinyLlama_v1.1 model.
+#
+# This config assumes that you've run the following command before launching:
+#   tune download TinyLlama/TinyLlama_v1.1 --output-dir /tmp/TinyLlama_v1.1/
+#
+# To launch on a single device, run (from root):
+#   tune run qat_single_device --config llama2/1B_full_qat_single_device
+
+output_dir: /tmp/torchtune/llama1b/qat_single_device # /tmp may be deleted by your system. Adjust if needed.
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /tmp/TinyLlama_v1.1/tokenizer.model
+  max_seq_len: 2048
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False
+
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama2.llama2
+  vocab_size: 32000
+  num_layers: 22
+  num_heads: 32
+  num_kv_heads: 4
+  embed_dim: 2048
+  max_seq_len: 2048
+  intermediate_dim: 5632
+  attn_dropout: 0.0
+  norm_eps: 1e-5
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/TinyLlama_v1.1/
+  checkpoint_files: [pytorch_model.bin]
+  recipe_checkpoint: null
+  output_dir: ${output_dir}
+  model_type: LLAMA2
+
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 1
+epochs: 1
+optimizer:
+  _component_: bitsandbytes.optim.PagedAdamW
+  lr: 5e-6
+optimizer_in_bwd: True            # True saves memory, requires gradient_accumulation_steps=1
+loss:
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1   # Use to increase effective batch size
+clip_grad_norm: null
+compile: False                   # torch.compile the model+loss, can increase speed+decrease memory
+
+# QAT arguments
+quantizer:
+  _component_: torchtune.training.quantization.Int8DynActInt4WeightQATQuantizer
+  groupsize: 256
+
+# Training environment
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True   # True reduces memory
+enable_activation_offloading: False     # True reduces memory
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}/logs
+log_every_n_steps: 1
+log_peak_memory_stats: False
+log_level: INFO
+
+# Profiler
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+  output_dir: ${output_dir}/profiling_outputs
+  cpu: True
+  cuda: True
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+  wait_steps: 5
+  warmup_steps: 3
+  active_steps: 2
+  num_cycles: 1

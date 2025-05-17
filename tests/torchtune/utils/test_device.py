@@ -27,7 +27,6 @@ from torchtune.utils._device import (
 
 
 class TestDevice:
-
     cuda_available: bool = torch.cuda.is_available()
 
     def _create_world(self, expected_world_size: int) -> None:

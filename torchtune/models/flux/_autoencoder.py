@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -19,14 +18,14 @@ class FluxAutoencoder(nn.Module):
     The image autoencoder for Flux diffusion models.
 
     Args:
-        img_shape (Tuple[int, int, int]): The shape of the input image (without the batch dimension).
+        img_shape (tuple[int, int, int]): The shape of the input image (without the batch dimension).
         encoder (nn.Module): The encoder module.
         decoder (nn.Module): The decoder module.
     """
 
     def __init__(
         self,
-        img_shape: Tuple[int, int, int],
+        img_shape: tuple[int, int, int],
         encoder: nn.Module,
         decoder: nn.Module,
     ):
@@ -78,7 +77,7 @@ class FluxEncoder(nn.Module):
     Args:
         ch_in (int): The number of channels of the input image.
         ch_z (int): The number of latent channels (dimension of the latent vector `z`).
-        channels (List[int]): The number of output channels for each downsample block.
+        channels (list[int]): The number of output channels for each downsample block.
         n_layers_per_down_block (int): Number of resnet layers per upsample block.
         scale_factor (float): Constant for scaling `z`.
         shift_factor (float): Constant for shifting `z`.
@@ -88,7 +87,7 @@ class FluxEncoder(nn.Module):
         self,
         ch_in: int,
         ch_z: int,
-        channels: List[int],
+        channels: list[int],
         n_layers_per_down_block: int,
         scale_factor: float,
         shift_factor: float,
@@ -139,7 +138,7 @@ class FluxDecoder(nn.Module):
     Args:
         ch_out (int): The number of channels of the output image.
         ch_z (int): The number of latent channels (dimension of the latent vector `z`).
-        channels (List[int]): The number of output channels for each upsample block.
+        channels (list[int]): The number of output channels for each upsample block.
         n_layers_per_up_block (int): Number of resnet layers per upsample block.
         scale_factor (float): Constant for scaling `z`.
         shift_factor (float): Constant for shifting `z`.
@@ -149,7 +148,7 @@ class FluxDecoder(nn.Module):
         self,
         ch_out: int,
         ch_z: int,
-        channels: List[int],
+        channels: list[int],
         n_layers_per_up_block: int,
         scale_factor: float,
         shift_factor: float,

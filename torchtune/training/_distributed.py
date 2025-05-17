@@ -10,7 +10,7 @@ import os
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple
+from typing import Any, Callable, cast, Optional
 
 import torch
 import torch.distributed as dist
@@ -216,11 +216,11 @@ def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) 
 @deprecated(
     msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
 )
-def init_distributed(**kwargs: Dict[str, Any]) -> bool:
+def init_distributed(**kwargs: dict[str, Any]) -> bool:
     """Initialize process group required for ``torch.distributed``.
 
     Args:
-        **kwargs (Dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.
+        **kwargs (dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.
 
     Returns:
         bool: True if torch.distributed is initialized.
@@ -257,12 +257,12 @@ def set_torch_num_threads() -> None:
     msg="`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. "
     "Please use `torchtune.utils.get_world_size_and_rank` instead."
 )
-def get_world_size_and_rank() -> Tuple[int, int]:
+def get_world_size_and_rank() -> tuple[int, int]:
     """Function that gets the current world size (aka total number
     of ranks) and rank number of the current process in the default process group.
 
     Returns:
-        Tuple[int, int]: world size, rank
+        tuple[int, int]: world size, rank
     """
     if dist.is_available() and dist.is_initialized():
         return torch.distributed.get_world_size(), torch.distributed.get_rank()
@@ -289,7 +289,7 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
 
 def load_from_full_model_state_dict(
     model: "FSDPModule",  # noqa
-    full_sd: Dict[str, Any],
+    full_sd: dict[str, Any],
     device: torch.device,
     strict: bool = False,
     cpu_offload: bool = False,
@@ -301,7 +301,7 @@ def load_from_full_model_state_dict(
     and loading it into FSDP model
     Args:
         model (FSDPModule): Model to generate fully qualified names for cpu_state_dict
-        full_sd (Dict[str, Any]): a full state dict to load into the model
+        full_sd (dict[str, Any]): a full state dict to load into the model
         device (torch.device): device used to move full state dict tensors
         strict (bool): flag to check if to load the model in strict mode
         cpu_offload (bool): flag to check if offload to CPU is enabled
@@ -442,7 +442,7 @@ def gather_cpu_state_dict(
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
     adapter_weights_only: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
     Returning non-empty result only on rank0 to avoid peaking CPU memory
@@ -457,7 +457,7 @@ def gather_cpu_state_dict(
         adapter_weights_only (bool): flag to check if only trainable parameters should be returned. Default: False
 
     Returns:
-        Dict[str, Any]: State dict on CPU
+        dict[str, Any]: State dict on CPU
     """
     # TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.
     cpu_state_dict = {}
@@ -488,7 +488,7 @@ def get_full_optimizer_state_dict(
     opt: Optimizer,
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Converting optimizer state from sharded to full
     For example, "exp_avg" in AdamW is `DTensor`,
@@ -508,7 +508,7 @@ def get_full_optimizer_state_dict(
 def load_from_full_optimizer_state_dict(
     model: "FSDPModule",  # noqa
     opt: Optimizer,
-    full_sd: Dict[str, Any],
+    full_sd: dict[str, Any],
     device: torch.device,
 ) -> None:
     """
@@ -566,7 +566,7 @@ def load_from_full_optimizer_state_dict(
 def get_shard_conditions(
     name: str,
     module: nn.Module,
-    names_to_match: Optional[List[str]] = None,
+    names_to_match: Optional[list[str]] = None,
     *args,
     **kwargs,
 ) -> bool:
@@ -585,7 +585,7 @@ def get_shard_conditions(
     Args:
         name (str): Name of the module.
         module (nn.Module): Module to be sharded.
-        names_to_match (Optional[List[str]]): List of names to match, if any.
+        names_to_match (Optional[list[str]]): list of names to match, if any.
         *args: Variable length argument list to be passed to the Embedding module.
         **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
 
@@ -614,7 +614,7 @@ def get_shard_conditions(
 
 def shard_model(
     model: TransformerDecoder,
-    shard_conditions: List[Callable[[str, nn.Module], bool]],
+    shard_conditions: list[Callable[[str, nn.Module], bool]],
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
@@ -628,7 +628,7 @@ def shard_model(
 
     Args:
         model (TransformerDecoder): Model to shard with FSDP.
-        shard_conditions (List[Callable[[str, nn.Module], bool]]): A list of functions to determine
+        shard_conditions (list[Callable[[str, nn.Module], bool]]): A list of functions to determine
             which modules to shard with FSDP. Each function should take module name (relative to root)
             and the module itself, returning True if FSDP should shard the module and False otherwise.
             If any of shard_conditions return True for a given module, it will be sharded by FSDP.

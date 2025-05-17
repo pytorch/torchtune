@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import pytest
 
@@ -33,20 +33,20 @@ class TestMultiHeadAttention:
     """
 
     @pytest.fixture
-    def input_params(self) -> Tuple[int, int, int]:
+    def input_params(self) -> tuple[int, int, int]:
         batch_size = 4
         seq_len = 2048
         embed_dim = 4096
         return batch_size, seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int]) -> torch.Tensor:
+    def input(self, input_params: tuple[int, int, int]) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         x = torch.randn(batch_size, seq_len, embed_dim)
         return x
 
     @pytest.fixture
-    def attn_params_gqa(self) -> Tuple[int, int, int, int]:
+    def attn_params_gqa(self) -> tuple[int, int, int, int]:
         num_heads = 32
         num_kv_heads = 8
         embed_dim = 4096
@@ -56,8 +56,8 @@ class TestMultiHeadAttention:
     @pytest.fixture
     def input_max_len_exceeded(
         self,
-        input_params: Tuple[int, int, int],
-        attn_params_gqa: Tuple[int, int, int, int],
+        input_params: tuple[int, int, int],
+        attn_params_gqa: tuple[int, int, int, int],
     ) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         _, _, _, max_seq_len = attn_params_gqa
@@ -67,8 +67,8 @@ class TestMultiHeadAttention:
     @pytest.fixture
     def input_max_bs_exceeded(
         self,
-        input_params: Tuple[int, int, int],
-        attn_params_gqa: Tuple[int, int, int, int],
+        input_params: tuple[int, int, int],
+        attn_params_gqa: tuple[int, int, int, int],
     ) -> torch.Tensor:
         batch_size, seq_len, embed_dim = input_params
         _, _, _, max_seq_len = attn_params_gqa
@@ -76,14 +76,14 @@ class TestMultiHeadAttention:
         return torch.randn(batch_size, seq_len, embed_dim)
 
     @pytest.fixture
-    def attn_params_mha(self) -> Tuple[int, Optional[int], int, int]:
+    def attn_params_mha(self) -> tuple[int, Optional[int], int, int]:
         num_heads = 32
         embed_dim = 4096
         max_seq_len = 4096
         return num_heads, None, embed_dim, max_seq_len
 
     @pytest.fixture
-    def attn_params_mqa(self) -> Tuple[int, int, int, int]:
+    def attn_params_mqa(self) -> tuple[int, int, int, int]:
         num_heads = 32
         num_kv_heads = 1
         embed_dim = 4096
@@ -91,7 +91,7 @@ class TestMultiHeadAttention:
         return num_heads, num_kv_heads, embed_dim, max_seq_len
 
     @pytest.fixture
-    def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> MultiHeadAttention:
+    def gqa(self, attn_params_gqa: tuple[int, int, int, int]) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -115,7 +115,7 @@ class TestMultiHeadAttention:
 
     @pytest.fixture
     def gqa_kv_cache(
-        self, attn_params_gqa: Tuple[int, int, int, int]
+        self, attn_params_gqa: tuple[int, int, int, int]
     ) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -147,7 +147,7 @@ class TestMultiHeadAttention:
         return attn
 
     @pytest.fixture
-    def mha(self, attn_params_mha: Tuple[int, int, int, int]) -> MultiHeadAttention:
+    def mha(self, attn_params_mha: tuple[int, int, int, int]) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -170,7 +170,7 @@ class TestMultiHeadAttention:
 
     @pytest.fixture
     def mha_kv_cache(
-        self, attn_params_mha: Tuple[int, int, int, int]
+        self, attn_params_mha: tuple[int, int, int, int]
     ) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
         head_dim = embed_dim // num_heads
@@ -202,7 +202,7 @@ class TestMultiHeadAttention:
         return attn
 
     @pytest.fixture
-    def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> MultiHeadAttention:
+    def mqa(self, attn_params_mqa: tuple[int, int, int, int]) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -225,7 +225,7 @@ class TestMultiHeadAttention:
 
     @pytest.fixture
     def mqa_kv_cache(
-        self, attn_params_mqa: Tuple[int, int, int, int]
+        self, attn_params_mqa: tuple[int, int, int, int]
     ) -> MultiHeadAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads

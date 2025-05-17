@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Optional
+from typing import Optional
 
 from torch import nn
 from torchtune.models.clip._component_builders import (
@@ -59,7 +59,7 @@ def llama4_vision_encoder(
     num_heads: int,
     clip_embed_dim: int,
     clip_num_layers: int,
-    clip_hidden_states: Optional[List[int]] = None,
+    clip_hidden_states: Optional[list[int]] = None,
     # projection parameters
     projection_embed_dim: int,
     decoder_embed_dim: int,
@@ -82,7 +82,7 @@ def llama4_vision_encoder(
         num_heads (int): The number of attention heads in each transformer layer.
         clip_embed_dim (int): The dimensionality of each patch embedding in CLIP.
         clip_num_layers (int): The number of transformer layers.
-        clip_hidden_states (Optional[List[int]]): The indices of CLIP hidden layers to return
+        clip_hidden_states (Optional[list[int]]): The indices of CLIP hidden layers to return
             to return to the encoder projection head. It will return the intermediate results
             of the vision transformer layers which will be concatenated with the CLIP output
             and input into the projection head. For example, ``clip_hidden_states=[0,3]`` will
@@ -392,7 +392,7 @@ def llama4_moe(
 def lora_llama4_vision_encoder(
     encoder_lora: bool,
     fusion_lora: bool,
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -401,7 +401,7 @@ def lora_llama4_vision_encoder(
     num_heads: int,
     clip_embed_dim: int,
     clip_num_layers: int,
-    clip_hidden_states: Optional[List[int]] = None,
+    clip_hidden_states: Optional[list[int]] = None,
     # projection parameters
     projection_embed_dim: int,
     decoder_embed_dim: int,
@@ -428,7 +428,7 @@ def lora_llama4_vision_encoder(
     Args:
         encoder_lora (bool): whether to apply LoRA to the CLIP encoder
         fusion_lora (bool): whether to apply LoRA to the projection head
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -441,7 +441,7 @@ def lora_llama4_vision_encoder(
         num_heads (int): The number of attention heads in each transformer layer.
         clip_embed_dim (int): The dimensionality of each patch embedding in CLIP.
         clip_num_layers (int): The number of transformer layers.
-        clip_hidden_states (Optional[List[int]]): The indices of CLIP hidden layers to return
+        clip_hidden_states (Optional[list[int]]): The indices of CLIP hidden layers to return
             to return to the encoder projection head. It will return the intermediate results
             of the vision transformer layers which will be concatenated with the CLIP output
             and input into the projection head. For example, ``clip_hidden_states=[0,3]`` will
@@ -527,7 +527,7 @@ def lora_llama4_vision_encoder(
 
 def lora_llama4_decoder(
     decoder_lora: bool,
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -571,7 +571,7 @@ def lora_llama4_decoder(
 
     Args:
         decoder_lora (bool): whether to apply LoRA to the language decoder
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to MLPs in each transformer layer. Note that
@@ -873,7 +873,7 @@ def lora_llama4_vision_projection_head(
 
 
 def lora_llama4_self_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     pos_embeddings: nn.Module,
     q_norm: Optional[nn.Module] = None,
     k_norm: Optional[nn.Module] = None,
@@ -897,7 +897,7 @@ def lora_llama4_self_attention(
     applied to a subset of its linear layers
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
         pos_embeddings (nn.Module): positional embeddings module to be passed to
