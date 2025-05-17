@@ -310,7 +310,6 @@ def generate(
 
     q = None
     if rng is not None:
-
         uniform_val = torch.rand(
             bsz,
             model.tok_embeddings.num_embeddings,

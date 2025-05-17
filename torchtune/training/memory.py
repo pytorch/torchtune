@@ -7,7 +7,7 @@
 import gc
 import logging
 
-from typing import Any, Callable, Type, Union
+from typing import Any, Callable, Union
 
 import torch
 from torch import nn
@@ -20,7 +20,7 @@ from torchtune.utils import get_device_support, get_logger, get_torch_device_nam
 
 _log: logging.Logger = get_logger()
 
-ACWrapPolicyType: Type = Union[set[Type], Callable[[nn.Module, bool, int], bool]]
+ACWrapPolicyType = Union[set[type], Callable[[nn.Module, bool, int], bool]]
 
 
 def set_activation_checkpointing(

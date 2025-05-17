@@ -47,7 +47,6 @@ def vllm_generate(
     pad_output: bool = True,
     padding_value: int = -1,
 ) -> TensorDict:
-
     args = ()
 
     if generate_kwargs is None:

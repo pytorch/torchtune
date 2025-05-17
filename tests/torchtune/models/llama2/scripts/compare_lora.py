@@ -12,6 +12,7 @@ from tests.test_utils import fixed_init_model
 from torch import nn
 from torchtune.modules.peft.lora import LoRALinear
 
+
 # Reference implementation from
 # https://github.com/microsoft/LoRA/blob/main/loralib/layers.py
 class LoRALayer:
@@ -120,7 +121,6 @@ def compare_lora(
     alpha: float,
     dropout: float,
 ) -> None:
-
     # make sure we have the right seed for generating outputs
     # this should match up the seed value set in the corresponding
     # unit test
