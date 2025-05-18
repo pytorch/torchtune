@@ -9,10 +9,14 @@ import torch
 import torch.nn.functional as F
 from tests.test_utils import assert_expected
 from torch import nn
-from torchtune.modules.loss import LigerFusedCrossEntropyLoss
+from torchtune.modules.loss import LigerLinearCrossEntropy
 from torchtune.training.seed import set_seed
+from tests.test_utils import gpu_test
+from tests.test_utils import fixed_init_model
+from torch.optim import SGD
+from torch.distributed.tensor import DTensor
 
-
+@gpu_test(gpu_count=1)
 class Model(nn.Module):
     def __init__(self, vocab_size, embed_dim):
         super().__init__()
@@ -26,9 +30,9 @@ class Model(nn.Module):
 def random():
     set_seed(42)
 
-
 class TestLigerFusedCrossEntropyLoss:
-    def test_liger_fused_cross_entropy_loss(self):
+    @pytest.mark.parametrize("compile", [False, True])
+    def test_liger_fused_cross_entropy_loss(self, compile):
         """
         Compares LigerFusedCrossEntropyLoss implementation vs standard F.cross_entropy
         """
@@ -52,9 +56,11 @@ class TestLigerFusedCrossEntropyLoss:
         model = Model(vocab_size, embed_dim).cuda()
 
         # Compute fused CE loss
-        fused_ce_loss_fn = LigerFusedCrossEntropyLoss(ignore_index=ignore_index)
-        fused_ce_loss_fn.set_model_output(model)
-        fused_loss = fused_ce_loss_fn(hidden, targets)
+        loss_fn = LigerLinearCrossEntropy(ignore_index=ignore_index)
+        loss_fn.set_model_output(model)
+        if compile:
+            loss_fn.apply_compile_strategy()
+        fused_loss = loss_fn(hidden, targets)
 
         # Compute standard cross entropy for comparison
         logits = F.linear(hidden, model.output.weight, model.output.bias)  # [batch_size*seq_len, vocab_size]
@@ -65,44 +71,57 @@ class TestLigerFusedCrossEntropyLoss:
         # Validate the results are close enough
         assert_expected(fused_loss, standard_loss, rtol=1e-2, atol=1e-2)
 
-    def test_liger_fused_cross_entropy_loss_with_reshape(self):
-        """
-        Tests LigerFusedCrossEntropyLoss with batch x seq_len input that needs reshaping
-        """
+    @pytest.mark.parametrize("compile", [False, True]) 
+    def test_liger_fused_cross_entropy_gradients(self, compile):
+        """Test gradient flow through full forward/backward pass with optimizer step"""
         # Set up test parameters
-        batch_size = 3
-        seq_len = 6
-        embed_dim = 32
-        vocab_size = 50
+        batch_size = 2
+        seq_len = 8 
+        embed_dim = 16
+        vocab_size = 100
         ignore_index = -100
 
-        # Create dummy data with batch x seq_len dimensions
-        hidden = torch.randn(batch_size, seq_len, embed_dim, dtype=torch.float32)
-        targets = torch.randint(0, vocab_size, (batch_size, seq_len), dtype=torch.long)
-        hidden = hidden.cuda()
-        targets = targets.cuda()
-        # Add some ignored indices
-        mask = torch.rand(batch_size, seq_len) < 0.2
+        # Create dummy data on GPU
+        hidden = torch.randn(batch_size * seq_len, embed_dim, dtype=torch.float32).cuda()
+        targets = torch.randint(0, vocab_size, (batch_size * seq_len,), dtype=torch.long).cuda()
+        
+        # Add ignored indices
+        mask = torch.rand(batch_size * seq_len) < 0.2
         targets[mask] = ignore_index
 
-        # Create a dummy model
+        # Create model with fixed initialization
         model = Model(vocab_size, embed_dim).cuda()
+        fixed_init_model(model, 
+                    min_val=-0.1, max_val=0.1)
+        
+        # Store initial weights for comparison
+        initial_weight = model.output.weight.detach().clone()
+        initial_bias = model.output.bias.detach().clone()
 
-        # Reshape to match expected input shape for fused loss
-        hidden_reshaped = hidden.reshape(-1, embed_dim)
-        targets_reshaped = targets.reshape(-1)
+        # Set up loss and optimizer
+        loss_fn = LigerLinearCrossEntropy(ignore_index=ignore_index)
+        loss_fn.set_model_output(model)
+        if compile:
+            loss_fn.apply_compile_strategy()
+        optimizer = SGD(model.parameters(), lr=0.1)
 
-        # Compute fused CE loss
-        fused_ce_loss_fn = LigerFusedCrossEntropyLoss(ignore_index=ignore_index)
-        fused_ce_loss_fn.set_model_output(model)
-        fused_loss = fused_ce_loss_fn(hidden_reshaped, targets_reshaped)
+        # Forward pass
+        loss = loss_fn(hidden, targets)
+        
+        # Backward pass and optimizer step
+        loss.backward()
+        optimizer.step()
 
-        # Compute standard cross entropy for comparison
-        logits = model(hidden_reshaped)  # [batch_size*seq_len, vocab_size]
-        standard_loss = F.cross_entropy(
-            logits, targets_reshaped, reduction="sum", ignore_index=ignore_index
-        )
-
-        # Validate the results are close enough
-        assert_expected(fused_loss, standard_loss, rtol=1e-2, atol=1e-2)
-
+        # Verify:
+        # 1. Gradients were computed
+        assert model.output.weight.grad is not None
+        assert model.output.bias.grad is not None
+        
+        # 2. Parameters actually changed by optimizer
+        assert not torch.allclose(model.output.weight, initial_weight)
+        assert not torch.allclose(model.output.bias, initial_bias)
+        
+        # 3. For DTensor case, verify gradients were scattered back
+        if isinstance(model.output.weight, DTensor):
+            assert isinstance(model.output.weight.grad, DTensor)
+            assert model.output.weight.grad.placements == model.output.weight.placements

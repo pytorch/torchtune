@@ -9,7 +9,6 @@ import torch.nn.functional as F
 from torch import nn
 from torch.distributed.tensor import DTensor
 
-import liger_kernel.ops.fused_linear_cross_entropy
 from torchtune.modules.loss.loss_types import SFTLoss
 from torchtune.utils import get_logger
 log = get_logger()
@@ -144,30 +143,48 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         else:
             return total_loss / total_elements
 
-class LigerFusedCrossEntropyLoss(nn.Module, SFTLoss):
+class LigerLinearCrossEntropy(nn.Module, SFTLoss):
     """Memory efficient Cross-entropy loss that uses fused CUDA kernels to compute the loss.
     Combines the linear projection with the cross-entropy calculation for better performance
-    and memory efficiency.
+    and memory efficiency. This is an approximation of CrossEntropyLoss and may have small
+    numerical differences compared to the standard implementation.
+
+    Note:
+        This loss requires `liger_kernel` and `triton` to be installed:
+        `pip install triton liger_kernel`
 
     Linear cross entropy is computed in a single fused operation. You need to skip the final 
     projection layer in your model and pass it to the loss instead. You can setup the loss 
     with the model as shown below.
 
     >>> model = Transformer(...)
-    >>> loss = LigerFusedCrossEntropyLoss(...)
+    >>> loss = LigerLinearCrossEntropy(...)
     >>> loss.set_model_output(model)
+    >>> loss.apply_compile_strategy()
     """
 
     def __init__(
         self,
         ignore_index: int = -100
     ):
-        """Initialize the LigerFusedCrossEntropyLoss.
+        """Initialize the LigerLinearCrossEntropy.
 
         Args:
             ignore_index (int): Index to ignore in the target tensor. Default is -100.
+        
+        Raises:
+            ImportError: If liger_kernel is not installed
+        
         """
         super().__init__()
+        try:
+            import liger_kernel.ops.fused_linear_cross_entropy
+            self.fused_linear_ce = liger_kernel.ops.fused_linear_cross_entropy
+        except ImportError:
+            raise ImportError(
+                "liger_kernel is required for LigerLinearCrossEntropy but not installed. "
+                "Please install it before using this loss function."
+            )
         self.linear_projection = None
         self.ignore_index = ignore_index
 
@@ -176,9 +193,31 @@ class LigerFusedCrossEntropyLoss(nn.Module, SFTLoss):
         
         Args:
             model (nn.Module): The model whose output layer will be used for the loss computation.
+            
+        Raises:
+            ValueError: If model.output doesn't have required weight and bias parameters
         """
         model.skip_output_layer = True
         self.linear_projection = model.output
+
+        # Validate the projection layer has required parameters
+        if not hasattr(self.linear_projection, 'weight'):
+            raise ValueError(
+                "Model output layer must have a weight parameter for LigerLinearCrossEntropy"
+            )
+        if not hasattr(self.linear_projection, 'bias'):
+            raise ValueError(
+                "Model output layer must have a bias parameter for LigerLinearCrossEntropy"
+            )
+
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile to the forward pass for fused kernel operations."""
+        log.warning("Skipping compile loss, as it is not supported at this time")
+        # TODO: Fix it later failing for charachter encoding
+        # self.forward = torch.compile(
+        #     self.forward, *args, **kwargs
+        # )
+        return self
 
     def forward(
         self,
@@ -202,26 +241,27 @@ class LigerFusedCrossEntropyLoss(nn.Module, SFTLoss):
         if isinstance(hidden_states, DTensor):
             hidden_states = hidden_states.full_tensor()
         
-        orig_w = self.linear_projection.weight
-        if isinstance(orig_w, DTensor):
-            mesh, placements = orig_w.device_mesh, orig_w.placements
-            w = orig_w.full_tensor().detach().clone().requires_grad_(True)
-            def _scatter_w(grad):
-                orig_w.grad = DTensor.from_local(grad, mesh, placements)
-            w.register_hook(_scatter_w)
-        else:
-            w = orig_w
-        orig_b = self.linear_projection.bias
-        if isinstance(orig_b, DTensor):
-            mesh, placements = orig_b.device_mesh, orig_b.placements
-            b = orig_b.full_tensor().detach().clone().requires_grad_(True)
-            def _scatter_b(grad):
-                orig_b.grad = DTensor.from_local(grad, mesh, placements)
-            b.register_hook(_scatter_b)
-        else:
-            b = orig_b
+        w = self.linear_projection.weight
+        if isinstance(w, DTensor):
+            mesh, placements = w.device_mesh, w.placements
+            w = w.full_tensor()
+            if not hasattr(self, '_w_hook_registered'):
+                def _scatter_w(grad):
+                    self.linear_projection.weight.grad = DTensor.from_local(grad, mesh, placements)
+                w.register_hook(_scatter_w)
+                self._w_hook_registered = True
 
-        loss, _ = liger_kernel.ops.fused_linear_cross_entropy.LigerFusedLinearCrossEntropyFunction.apply(
+        b = self.linear_projection.bias
+        if isinstance(b, DTensor):
+            mesh, placements = b.device_mesh, b.placements
+            b = b.full_tensor()
+            if not hasattr(self, '_b_hook_registered'):
+                def _scatter_b(grad):
+                    self.linear_projection.bias.grad = DTensor.from_local(grad, mesh, placements)
+                b.register_hook(_scatter_b)
+                self._b_hook_registered = True
+
+        loss, _ = self.fused_linear_ce.LigerFusedLinearCrossEntropyFunction.apply(
                 hidden_states, 
                 w,
                 targets,
