@@ -424,7 +424,6 @@ class CLSEmbedding(nn.Module):
         self.append_cls_token = append_cls_token
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
         # add 1 CLS token to every tile
         bsz_and_n_imgs, n_tiles, n_tokens, embed_dim = x.shape
         cls_emb = self.weight.broadcast_to(bsz_and_n_imgs, n_tiles, 1, embed_dim)

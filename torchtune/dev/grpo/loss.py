@@ -304,7 +304,6 @@ class GRPOWithChunkedOutputLoss(nn.Module):
         ref_logprobs_chunk: torch.Tensor,  # [B*G, chunk_size]
         advantages: torch.Tensor,  # [B*G]
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-
         # CE
         pi_logits_flat = pi_logits_chunk.reshape(-1, pi_logits_chunk.size(-1))
         targets_flat = targets_chunk.reshape(-1)
