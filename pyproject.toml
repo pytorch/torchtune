@@ -64,7 +64,7 @@ dev = [
     "expecttest",
     # Triton:
     "triton>=2.3.1 ; platform_system != 'Windows'",
-    
+
     # Liger Kernels
     "liger-kernel ; platform_system != 'Windows'"
 ]

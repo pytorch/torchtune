@@ -11,6 +11,7 @@ from torch.distributed.tensor import DTensor
 
 from torchtune.modules.loss.loss_types import SFTLoss
 from torchtune.utils import get_logger
+
 log = get_logger()
 
 
@@ -143,18 +144,25 @@ class LinearCrossEntropyLoss(nn.Module, SFTLoss):
         else:
             return total_loss / total_elements
 
+
 class LigerLinearCrossEntropy(nn.Module, SFTLoss):
     """Memory efficient Cross-entropy loss that uses fused CUDA kernels to compute the loss.
     Combines the linear projection with the cross-entropy calculation for better performance
     and memory efficiency. This is an approximation of CrossEntropyLoss and may have small
     numerical differences compared to the standard implementation.
 
+    Args:
+        ignore_index (int): Index to ignore in the target tensor. Default is -100.
+
+    Raises:
+        ImportError: If liger_kernel is not installed
+
     Note:
         This loss requires `liger_kernel` and `triton` to be installed:
         `pip install triton liger_kernel`
 
-    Linear cross entropy is computed in a single fused operation. You need to skip the final 
-    projection layer in your model and pass it to the loss instead. You can setup the loss 
+    Linear cross entropy is computed in a single fused operation. You need to skip the final
+    projection layer in your model and pass it to the loss instead. You can setup the loss
     with the model as shown below.
 
     >>> model = Transformer(...)
@@ -163,37 +171,26 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
     >>> loss.apply_compile_strategy()
     """
 
-    def __init__(
-        self,
-        ignore_index: int = -100
-    ):
-        """Initialize the LigerLinearCrossEntropy.
-
-        Args:
-            ignore_index (int): Index to ignore in the target tensor. Default is -100.
-        
-        Raises:
-            ImportError: If liger_kernel is not installed
-        
-        """
+    def __init__(self, ignore_index: int = -100):
         super().__init__()
         try:
             import liger_kernel.ops.fused_linear_cross_entropy
+
             self.fused_linear_ce = liger_kernel.ops.fused_linear_cross_entropy
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
                 "liger_kernel is required for LigerLinearCrossEntropy but not installed. "
                 "Please install it before using this loss function."
-            )
+            ) from err
         self.linear_projection = None
         self.ignore_index = ignore_index
 
     def set_model_output(self, model: nn.Module) -> None:
         """Modify model output to match the expected input for the loss function.
-        
+
         Args:
             model (nn.Module): The model whose output layer will be used for the loss computation.
-            
+
         Raises:
             ValueError: If model.output doesn't have required weight and bias parameters
         """
@@ -201,11 +198,11 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
         self.linear_projection = model.output
 
         # Validate the projection layer has required parameters
-        if not hasattr(self.linear_projection, 'weight'):
+        if not hasattr(self.linear_projection, "weight"):
             raise ValueError(
                 "Model output layer must have a weight parameter for LigerLinearCrossEntropy"
             )
-        if not hasattr(self.linear_projection, 'bias'):
+        if not hasattr(self.linear_projection, "bias"):
             raise ValueError(
                 "Model output layer must have a bias parameter for LigerLinearCrossEntropy"
             )
@@ -240,14 +237,18 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
             raise RuntimeError("Must call set_model_output() before forward()")
         if isinstance(hidden_states, DTensor):
             hidden_states = hidden_states.full_tensor()
-        
+
         w = self.linear_projection.weight
         if isinstance(w, DTensor):
             mesh, placements = w.device_mesh, w.placements
             w = w.full_tensor()
-            if not hasattr(self, '_w_hook_registered'):
+            if not hasattr(self, "_w_hook_registered"):
+
                 def _scatter_w(grad):
-                    self.linear_projection.weight.grad = DTensor.from_local(grad, mesh, placements)
+                    self.linear_projection.weight.grad = DTensor.from_local(
+                        grad, mesh, placements
+                    )
+
                 w.register_hook(_scatter_w)
                 self._w_hook_registered = True
 
@@ -255,23 +256,27 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
         if isinstance(b, DTensor):
             mesh, placements = b.device_mesh, b.placements
             b = b.full_tensor()
-            if not hasattr(self, '_b_hook_registered'):
+            if not hasattr(self, "_b_hook_registered"):
+
                 def _scatter_b(grad):
-                    self.linear_projection.bias.grad = DTensor.from_local(grad, mesh, placements)
+                    self.linear_projection.bias.grad = DTensor.from_local(
+                        grad, mesh, placements
+                    )
+
                 b.register_hook(_scatter_b)
                 self._b_hook_registered = True
 
         loss, _ = self.fused_linear_ce.LigerFusedLinearCrossEntropyFunction.apply(
-                hidden_states, 
-                w,
-                targets,
-                b,
-                None,                # ce_weight
-                self.ignore_index,   # ignore_index
-                0.0,                 # lse_square_scale
-                0.0,                 # label_smoothing
-                "sum",               # reduction
-                None,                # softcap
-                False                # return_z_loss
-            )
+            hidden_states,
+            w,
+            targets,
+            b,
+            None,  # ce_weight
+            self.ignore_index,  # ignore_index
+            0.0,  # lse_square_scale
+            0.0,  # label_smoothing
+            "sum",  # reduction
+            None,  # softcap
+            False,  # return_z_loss
+        )
         return loss
