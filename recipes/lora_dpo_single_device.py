@@ -136,6 +136,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.id_batch = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -566,9 +567,10 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
                 loss.backward()
+                self.id_batch += 1
 
                 # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if self.id_batch % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 

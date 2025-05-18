@@ -136,6 +136,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.id_batch = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -648,9 +649,10 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                     1 - self._kd_ratio
                 ) * class_loss + self._kd_ratio * kd_loss
                 current_loss.backward()
+                self.id_batch += 1
 
                 # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if self.id_batch % self._gradient_accumulation_steps == 0:
                     training.scale_grads(self._model, 1 / num_tokens)
                     if self._clip_grad_norm is not None:
                         grad_norm = torch.nn.utils.clip_grad_norm_(

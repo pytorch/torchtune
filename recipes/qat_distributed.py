@@ -276,6 +276,7 @@ class QATRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.id_batch = 0
 
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
@@ -936,8 +937,9 @@ class QATRecipeDistributed(FTRecipeInterface):
                     current_loss = current_loss * (self.dp_degree / num_tokens)
 
                 current_loss.backward()
+                self.id_batch += 1
                 # Optimizer step (if not fused in backward call)
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if self.id_batch % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         # Get total number of tokens across all ranks to normalize gradients
                         torch.distributed.all_reduce(num_tokens)

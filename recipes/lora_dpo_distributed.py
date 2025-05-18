@@ -192,6 +192,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.id_batch = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -764,9 +765,10 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 )
 
                 loss.backward()
+                self.id_batch += 1
 
                 # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if self.id_batch % self._gradient_accumulation_steps == 0:
                     # Accumulate running metrics across all devices
                     torch.distributed.all_reduce(running_loss)
                     torch.distributed.all_reduce(num_tokens)

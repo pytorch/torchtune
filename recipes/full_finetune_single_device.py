@@ -200,6 +200,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.id_batch = 0
 
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
@@ -628,8 +629,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if isinstance(self._optimizer, OptimizerInBackwardWrapper):
                     current_loss = current_loss * (1 / current_num_tokens)
                 current_loss.backward()
+                self.id_batch += 1
 
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if self.id_batch % self._gradient_accumulation_steps == 0:
                     # If we're not using optimizer in backwards, we step the optimizer like normal
                     if not isinstance(self._optimizer, OptimizerInBackwardWrapper):
                         training.scale_grads(self._model, 1 / num_tokens)
