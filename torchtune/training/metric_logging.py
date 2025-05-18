@@ -3,6 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+import json
 import os
 import sys
 import time
@@ -135,12 +136,14 @@ class DiskLogger(MetricLoggerInterface):
         This logger creates a new file based on the current time.
     """
 
+    _extension = "txt"
+
     def __init__(self, log_dir: str, filename: Optional[str] = None, **kwargs):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         if not filename:
             unix_timestamp = int(time.time())
-            filename = f"log_{unix_timestamp}.txt"
+            filename = f"log_{unix_timestamp}.{self._extension}"
         self._file_name = self.log_dir / filename
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
@@ -167,6 +170,46 @@ class DiskLogger(MetricLoggerInterface):
 
     def close(self) -> None:
         self._file.close()
+
+
+class JsonLLogger(DiskLogger):
+    """Logger to jsonl format.
+
+    Args:
+        log_dir (str): directory to store logs
+        filename (Optional[str]): optional filename to write logs to.
+            Default: None, in which case log_{unixtimestamp}.jsonl will be used.
+        **kwargs: additional arguments
+
+    Warning:
+        This logger is not thread-safe.
+
+    Note:
+        This logger creates a new file based on the current time.
+    """
+
+    _extension = "jsonl"
+
+    def __init__(self, log_dir: str, filename: Optional[str] = None, **kwargs):
+        super().__init__(log_dir, filename, **kwargs)
+
+    def log(self, name: str, data: Scalar, step: int) -> None:
+        json.dump(
+            {"step": step, "name": name, "data": data},
+            self._file,
+            default=lambda x: x.tolist() if isinstance(x, torch.Tensor) else str(x),
+        )
+        self._file.write("\n")
+        self._file.flush()
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        json.dump(
+            {"step": step} | {name: data for name, data in payload.items()},
+            self._file,
+            default=lambda x: x.tolist() if isinstance(x, torch.Tensor) else str(x),
+        )
+        self._file.write("\n")
+        self._file.flush()
 
 
 class StdoutLogger(MetricLoggerInterface):
