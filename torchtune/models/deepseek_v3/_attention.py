@@ -83,18 +83,20 @@ class DeepSeekV3Attention(nn.Module):
         kv = kv.view(b, s_x, self.num_heads, self.qk_nope_head_dim + self.v_head_dim)
         kv = kv.transpose(1, 2)
 
+
         k_nope, value_states = torch.split(kv, [self.qk_nope_head_dim, self.v_head_dim], dim=-1)
 
         q_pe = self.pos_embeddings(q_pe, input_pos=input_pos)
         k_pe = self.pos_embeddings(k_pe, input_pos=input_pos)
 
-        query_states = q_pe.new_empty(b, self.num_heads, s_x, self.q_head_dim)
+        query_states = k_pe.new_empty(b, self.num_heads, s_x, self.q_head_dim)
         query_states[:, :, :, : self.qk_nope_head_dim] = q_nope
         query_states[:, :, :, self.qk_nope_head_dim :] = q_pe
 
         key_states = k_pe.new_empty(b, self.num_heads, s_x, self.q_head_dim)
         key_states[:, :, :, : self.qk_nope_head_dim] = k_nope
         key_states[:, :, :, self.qk_nope_head_dim :] = k_pe
+
 
         output = self._attention_call(
             query_states,
@@ -103,8 +105,9 @@ class DeepSeekV3Attention(nn.Module):
             mask=mask,
             dropout_p=self.attn_dropout if self.training else 0.0,
             is_causal=mask is None,
+            scale=self.softmax_scale,
         )
-
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
+
         return self.output_proj(output)

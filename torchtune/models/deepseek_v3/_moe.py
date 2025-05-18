@@ -6,6 +6,76 @@
 
 import torch
 from torch import nn
+from typing import Optional
+
+class DeepseekV3MoE(nn.Module):
+    """This class implements the moe layer which is Mixture of Experts. Mixture of Experts
+    typically consists of a set of expert networks, alongside with a router, which directs input tokens
+    to the appropriate experts. See more details in https://arxiv.org/2401.0606.
+
+    This class is identical to :class:`~torchtune.modules.moe.moe.MoE`, except that it applies the 
+    router weighting scores to the *output* of the experts, rather than the input.
+
+    Args:
+        experts (nn.Module): experts module.
+        router (nn.Module): router module.
+        shared_expert (Optional[nn.Module]): shared expert module. Default is None.
+    """
+
+    def __init__(
+        self,
+        *,
+        experts: nn.Module,
+        router: nn.Module,
+        shared_expert: Optional[nn.Module] = None,
+    ):
+        super().__init__()
+        self.experts = experts
+        self.router = router
+        self.shared_expert = shared_expert
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): Input tensor with shape ``(bs, slen, dim)``.
+
+        Returns:
+            out (torch.Tensor): Output tensor with shape ``(bs, slen, dim)``.
+        """
+        b, s, dim = x.shape
+        # top_scores and selected_indices shape (bs*slen*experts_per_token,)
+        # num_tokens_per_expert shape (num_experts,)
+        (
+            top_scores,
+            token_indices,
+            num_tokens_per_expert,
+        ) = self.router(x.reshape(b * s, dim))
+
+        # shape (b*s*experts_per_token, dim)
+        token_indices = token_indices.reshape(-1, 1).expand(-1, dim)
+
+        # shape (b*s*experts_per_token, dim)
+        routed_input = torch.gather(
+            x.view(-1, dim),
+            dim=0,
+            index=token_indices,
+        )
+
+        # shape (b*s*top_k, dim)
+        routed_output = self.experts(routed_input, num_tokens_per_expert)
+
+        routed_output = routed_output * top_scores.reshape(-1, 1)
+
+        # import ipdb; ipdb.set_trace()
+        # shared expert
+        if self.shared_expert is not None:
+            out = self.shared_expert(x).reshape(b * s, dim)
+        else:
+            out = torch.zeros_like(x.reshape(b * s, dim))
+        if routed_output.numel() > 0:
+            out.scatter_add_(dim=0, index=token_indices, src=routed_output)
+        out = out.reshape(b, s, dim)
+        return out
 
 
 class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
@@ -33,7 +103,6 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         n = x.shape[0]
         logits = self.gate(x)
-
         # calculate scores for every expert in every group
         # import ipdb; ipdb.set_trace()
         scores = torch.sigmoid(logits.to(torch.float32)).to(x.dtype)
@@ -81,9 +150,7 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
             scores_per_token /= denominator
 
         # apply scaling factor
-        scores_per_token = (
-            scores_per_token * self.routed_scaling_factor
-        )
+        scores_per_token *= self.routed_scaling_factor
 
         num_tokens_per_expert = torch.histc(
             selected_experts_idxs.float(), bins=self.num_experts, min=0, max=self.num_experts - 1
@@ -97,5 +164,4 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         token_idxs_experts_sorted = (
             token_idxs_experts_sorted // self.experts_per_token
         )
-        print(scores_per_expert.isnan().any(), token_idxs_experts_sorted.isnan().any(), num_tokens_per_expert.isnan().any())
         return scores_per_expert, token_idxs_experts_sorted, num_tokens_per_expert

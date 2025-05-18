@@ -53,8 +53,9 @@ if _SUPPORTS_FLEX_ATTENTION:
         k: torch.Tensor,
         v: torch.Tensor,
         block_mask: BlockMask,
+        scale: float,
     ) -> torch.Tensor:
-        return flex_attention_compiled(q, k, v, block_mask=block_mask)
+        return flex_attention_compiled(q, k, v, block_mask=block_mask, scale=scale)
 
     _MaskType = Union[torch.Tensor, BlockMask]
 else:
@@ -201,6 +202,7 @@ def _sdpa_or_flex_attention() -> Callable:
             mask: Optional[_MaskType],
             dropout_p: float,
             is_causal: bool,
+            scale: Optional[float] = None,
         ) -> torch.Tensor:
 
             # Flex attention uses the BlockMask
@@ -224,6 +226,7 @@ def _sdpa_or_flex_attention() -> Callable:
                     k,
                     v,
                     block_mask=mask,
+                    scale=scale,
                 )
             # If mask is a standard boolean tensor or None, then use SDPA
             else:
@@ -239,6 +242,7 @@ def _sdpa_or_flex_attention() -> Callable:
                     attn_mask=mask,
                     dropout_p=dropout_p,
                     is_causal=is_causal,
+                    scale=scale,
                 )
 
     else:
@@ -250,6 +254,7 @@ def _sdpa_or_flex_attention() -> Callable:
             mask: Optional[_MaskType],
             dropout_p: float,
             is_causal: bool,
+            scale: Optional[float] = None,
         ) -> torch.Tensor:
             # shape: [b, 1, s, s]
             if mask is not None:
@@ -263,6 +268,7 @@ def _sdpa_or_flex_attention() -> Callable:
                 attn_mask=mask,
                 dropout_p=dropout_p,
                 is_causal=is_causal,
+                scale=scale,
             )
 
     return _attention_call

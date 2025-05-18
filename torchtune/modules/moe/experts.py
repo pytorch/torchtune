@@ -56,6 +56,7 @@ class GroupedExperts(nn.Module):
             torch.Tensor: tensor with shape (bsz * seq_len * experts_per_token, dim)
         """
 
+        # import ipdb; ipdb.set_trace()
         # a tuple of tensors indexed by experts
         # each with shape (tokens_per_expert(varying), dim)
         x = torch.split(
