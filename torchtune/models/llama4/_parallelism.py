@@ -60,7 +60,6 @@ def decoder_only_tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
     }
 
     for layer_id, transformer_block in enumerate(model.decoder.layers):
-
         layer_plan = {
             f"decoder.layers.{layer_id}.sa_norm": SequenceParallel(),
             f"decoder.layers.{layer_id}.attn": PrepareModuleInput(
@@ -125,7 +124,6 @@ def decoder_only_tp_inference_plan(model: nn.Module) -> dict[str, ParallelStyle]
     }
 
     for layer_id, transformer_block in enumerate(model.decoder.layers):
-
         layer_plan = {
             f"decoder.layers.{layer_id}.attn.q_proj": ColwiseParallel(),
             f"decoder.layers.{layer_id}.attn.k_proj": ColwiseParallel(),

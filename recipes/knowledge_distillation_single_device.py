@@ -569,7 +569,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
     ) -> (torch.Tensor, torch.Tensor):
-
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
@@ -624,7 +623,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0

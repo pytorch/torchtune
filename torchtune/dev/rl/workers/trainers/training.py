@@ -673,7 +673,6 @@ class TrainingWorker:
         self._profiler.start()
 
         while self._steps_run < self._total_dialog_turns:
-
             # Memory profiling start
             if (
                 self._is_rank_zero

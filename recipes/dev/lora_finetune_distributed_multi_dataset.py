@@ -774,7 +774,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             for idx, batch in enumerate(self._dataloader):
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero

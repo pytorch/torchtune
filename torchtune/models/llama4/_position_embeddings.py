@@ -110,7 +110,6 @@ class Llama4ScaledRoPE(nn.Module):
         high_freq_factor: float,
         old_context_len: int,
     ):
-
         low_freq_wavelen = old_context_len / low_freq_factor
         high_freq_wavelen = old_context_len / high_freq_factor
         new_freqs = []

@@ -103,7 +103,6 @@ class CLIPImageTransform:
         resample: str = "bilinear",
         resize_to_max_canvas: bool = False,
     ) -> None:
-
         # get_canvas_best_fit
         assert (
             possible_resolutions is not None or max_num_tiles is not None
