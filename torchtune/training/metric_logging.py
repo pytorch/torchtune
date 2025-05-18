@@ -173,7 +173,7 @@ class DiskLogger(MetricLoggerInterface):
 
 
 class JsonLLogger(DiskLogger):
-    """Logger to jsonl format.
+    """Logger to JSON Lines format.
 
     Args:
         log_dir (str): directory to store logs
@@ -195,7 +195,7 @@ class JsonLLogger(DiskLogger):
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         json.dump(
-            {"step": step, "name": name, "data": data},
+            {"step": step, name: data},
             self._file,
             default=lambda x: x.tolist() if isinstance(x, torch.Tensor) else str(x),
         )
