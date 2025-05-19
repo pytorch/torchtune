@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import jinja2
 from jinja2 import StrictUndefined
@@ -152,7 +152,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         return self.tokenizer.decode(token_ids)
 
 
-def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
+def _infer_special_tokens_from_hf_config(config: dict) -> List[str]:
     special_tokens = set()
 
     standard_keys = [
@@ -252,7 +252,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         self,
         messages: List[Message],
         add_eos: bool = True,
-        max_seq_len: int | None = None,
+        max_seq_len: Union[int, None] = None,
     ) -> Tuple[List[int], List[bool]]:
         # This part is extremely hacky, but we need to handle case where we have variable access with jinja
         special_tokens_mapping = {}
