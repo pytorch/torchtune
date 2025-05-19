@@ -282,6 +282,7 @@ class TestLoRAFinetuneDistributedRecipe:
         # Resume training
         epoch_folder = get_largest_iter_folder(tmpdir)
         epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
+
         cmd_2 = f"""
         tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
             --config {config} \

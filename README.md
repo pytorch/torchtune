@@ -75,11 +75,11 @@ You can also run e.g. ``tune ls full_dpo_distributed`` for a full list of availa
 
 | Type of Weight Update | 1 Device | >1 Device | >1 Node |
 |-----------------------|:--------:|:---------:|:-------:|
-| [Full](https://pytorch.org/torchtune/stable/recipes/qat_distributed.html)                  |    ❌    |     ✅    |    ❌    |
+| [Full](https://pytorch.org/torchtune/stable/recipes/qat_distributed.html)                  |    ✅     |     ✅    |    ❌    |
 | LoRA/QLoRA            |    ❌    |     ✅    |    ❌    |
 
 Example: ``tune run qat_distributed --config llama3_1/8B_qat_lora`` <br />
-You can also run e.g. ``tune ls qat_distributed`` for a full list of available configs.
+You can also run e.g. ``tune ls qat_distributed`` or ``tune ls qat_single_device`` for a full list of available configs.
 
 The above configs are just examples to get you started. The full list of recipes can be found [here](recipes/). If you'd like to work on one of the gaps you see, please submit a PR! If there's a entirely new post-training method you'd like to see implemented in torchtune, feel free to open an Issue.
 

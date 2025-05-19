@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Dict, List
+from typing import Any
 
 from torchtune.modules.transforms.tokenizers._sentencepiece import (
     SentencePieceBaseTokenizer,
@@ -25,7 +25,7 @@ class T5Tokenizer(SentencePieceBaseTokenizer):
         self.max_seq_len = max_seq_len
         self.truncate = truncate
 
-    def encode(self, text: str) -> List[int]:
+    def encode(self, text: str) -> list[int]:
         """
         Given a string, return the encoded list of token ids.
 
@@ -33,7 +33,7 @@ class T5Tokenizer(SentencePieceBaseTokenizer):
             text (str): The text to encode.
 
         Returns:
-            List[int]: The encoded list of token ids.
+            list[int]: The encoded list of token ids.
         """
         tokens = super().encode(
             text,
@@ -52,17 +52,17 @@ class T5Tokenizer(SentencePieceBaseTokenizer):
         return tokens
 
     def __call__(
-        self, sample: Dict[str, Any], inference: bool = False
-    ) -> Dict[str, Any]:
+        self, sample: dict[str, Any], inference: bool = False
+    ) -> dict[str, Any]:
         """
         Tokenize the "text" field in the sample.
 
         Args:
-            sample (Dict[str, Any]): A sample with a "text" field containing a string to tokenize
+            sample (dict[str, Any]): A sample with a "text" field containing a string to tokenize
             inference (bool): Unused by this tokenizer
 
         Returns:
-            Dict[str, Any]: The sample with added "tokens" field and the "messages" field removed.
+            dict[str, Any]: The sample with added "tokens" field and the "messages" field removed.
         """
         text = sample.pop("text")
         sample["tokens"] = self.encode(text)

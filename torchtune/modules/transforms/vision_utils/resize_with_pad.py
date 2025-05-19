@@ -7,7 +7,7 @@
 import logging
 
 import math
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def resize_with_pad(
     image: torch.Tensor,
-    target_size: Tuple[int, int],
+    target_size: tuple[int, int],
     resample: torchvision.transforms.InterpolationMode,
     max_size: Optional[int] = None,
 ) -> torch.Tensor:
@@ -29,7 +29,7 @@ def resize_with_pad(
 
     Args:
         image (torch.Tensor): The input image tensor in the format [..., H, W].
-        target_size (Tuple[int, int]): The desired resolution to fit the image into in the format [height, width].
+        target_size (tuple[int, int]): The desired resolution to fit the image into in the format [height, width].
         resample (torchvision.transforms.InterpolationMode): Resampling method used when resizing images.
             Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,
             InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.
@@ -100,7 +100,7 @@ def resize_with_pad(
 
 def _pad_image_top_left(
     image: torch.Tensor,
-    target_size: Tuple[int, int],
+    target_size: tuple[int, int],
 ) -> torch.Tensor:
     """
     Places the image at the top left of the canvas and pads with 0 the right and bottom
@@ -108,7 +108,7 @@ def _pad_image_top_left(
 
     Args:
         image (torch.Tensor): The input image tensor in the format [..., H, W].
-        target_size (Tuple[int, int]): The desired resolution to fit the image into in the format [height, width].
+        target_size (tuple[int, int]): The desired resolution to fit the image into in the format [height, width].
 
     Returns:
         torch.Tensor: The padded image tensor in the format [..., H, W].
@@ -127,9 +127,9 @@ def _pad_image_top_left(
 
 
 def _get_max_res_without_distortion(
-    image_size: Tuple[int, int],
-    target_size: Tuple[int, int],
-) -> Tuple[int, int]:
+    image_size: tuple[int, int],
+    target_size: tuple[int, int],
+) -> tuple[int, int]:
     """
     Determines the maximum resolution to which an image can be resized to without distorting its
     aspect ratio, based on the target resolution.
@@ -142,10 +142,10 @@ def _get_max_res_without_distortion(
     Since scale_w is the limiting side, then new_w = target_w, and new_h = old_h*scale_w
 
     Args:
-        image_size (Tuple[int, int]): The original resolution of the image.
-        target_size (Tuple[int, int]): The desired resolution to fit the image into.
+        image_size (tuple[int, int]): The original resolution of the image.
+        target_size (tuple[int, int]): The desired resolution to fit the image into.
     Returns:
-        Tuple[int, int]: The optimal dimensions to which the image should be resized.
+        tuple[int, int]: The optimal dimensions to which the image should be resized.
     Examples:
         >>> _get_max_res_without_distortion([200, 300], target_size = (450, 200))
         (133, 200)

@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -183,7 +183,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
         base model weights. If resume_from_checkpoint is True, this also includes
@@ -205,7 +205,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -351,41 +351,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled
@@ -419,8 +384,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        base_model_state_dict: Dict[str, Any],
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -488,7 +453,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -519,7 +484,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -631,7 +596,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
         )
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
         # run model

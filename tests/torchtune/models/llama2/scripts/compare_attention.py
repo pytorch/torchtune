@@ -120,7 +120,6 @@ def apply_rotary_emb(x: torch.Tensor, freqs_cis: torch.Tensor) -> torch.Tensor:
 def compare_rope(
     bsz: int, num_heads: int, embed_dim: int, seq_len: int, max_seq_len: int
 ) -> None:
-
     # make sure we have the right seed for generating outputs
     torch.manual_seed(0)
 
@@ -174,7 +173,6 @@ def compare_attention(
     num_kv_heads: int,
     max_seq_len: int,
 ) -> None:
-
     # make sure we have the right seed for generating outputs
     # this should match up the seed value set in the corresponding
     # unit test

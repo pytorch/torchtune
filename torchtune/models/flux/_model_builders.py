@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
 
 from torchtune.models.flux._autoencoder import FluxAutoencoder, FluxDecoder, FluxEncoder
 
@@ -13,7 +12,7 @@ def flux_1_autoencoder(
     ch_in: int = 3,
     ch_out: int = 3,
     ch_base: int = 128,
-    ch_mults: List[int] = [1, 2, 4, 4],
+    ch_mults: list[int] = [1, 2, 4, 4],
     ch_z: int = 16,
     n_layers_per_resample_block: int = 2,
     scale_factor: float = 0.3611,
@@ -35,7 +34,7 @@ def flux_1_autoencoder(
         ch_out (int): The number of channels of the output image.
         ch_base (int): The base number of channels.
             This gets multiplied by `ch_mult` values to get the number of inner channels during downsampling/upsampling.
-        ch_mults (List[int]): The channel multiple per downsample/upsample block.
+        ch_mults (list[int]): The channel multiple per downsample/upsample block.
             This gets multiplied by `ch_base` to get the number of inner channels during downsampling/upsampling.
         ch_z (int): The number of latent channels (dimension of the latent vector `z`).
         n_layers_per_resample_block (int): Number of resnet layers per downsample/upsample block.

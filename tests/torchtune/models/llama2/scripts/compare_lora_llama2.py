@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List
 
 import torch
 
@@ -30,13 +29,12 @@ def compare_lora_llama2(
     num_kv_heads: int,
     embed_dim: int,
     max_seq_len: int,
-    lora_modules: List[str],
+    lora_modules: list[str],
     lora_in_mlp: bool,
     lora_in_output: bool,
     lora_rank: int,
     lora_alpha: float,
 ) -> None:
-
     # make sure we have the right seed for generating outputs
     # this should match up the seed value set in the corresponding
     # unit test

@@ -183,12 +183,12 @@ class TestUtils:
         handler = logging.StreamHandler(stream)
         logger.addHandler(handler)
 
-        with mock.patch(
-            "torchtune.config._utils.get_logger", return_value=logger
-        ), mock.patch(
-            "torchtune.utils._logging.dist.is_available", return_value=True
-        ), mock.patch(
-            "torchtune.utils._logging.dist.is_initialized", return_value=True
+        with (
+            mock.patch("torchtune.config._utils.get_logger", return_value=logger),
+            mock.patch("torchtune.utils._logging.dist.is_available", return_value=True),
+            mock.patch(
+                "torchtune.utils._logging.dist.is_initialized", return_value=True
+            ),
         ):
             # Make sure rank 0 logs as expected
             with mock.patch(

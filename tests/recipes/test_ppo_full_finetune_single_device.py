@@ -121,7 +121,6 @@ class TestPPOFullFinetuneSingleDeviceRecipe:
     @mps_ignored_test()
     @gpu_test(gpu_count=1)
     def test_loss(self, tmpdir, monkeypatch):
-
         reward_ckpt = "llama2_reward_hf"
         policy_ckpt = "llama2_hf"
         reward_ckpt_path = Path(CKPT_MODEL_PATHS[reward_ckpt])

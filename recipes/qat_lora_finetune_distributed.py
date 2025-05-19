@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -238,7 +238,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -399,41 +399,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
@@ -486,9 +451,9 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        base_model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
         quantizer_cfg: Optional[DictConfig] = None,
     ) -> nn.Module:
         """
@@ -614,7 +579,7 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -737,7 +702,6 @@ class QATLoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))

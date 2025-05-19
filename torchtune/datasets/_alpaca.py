@@ -6,7 +6,7 @@
 
 from functools import partial
 
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from torchtune.data._messages import AlpacaToMessages
 
@@ -19,12 +19,12 @@ def alpaca_dataset(
     tokenizer: ModelTokenizer,
     *,
     source: str = "tatsu-lab/alpaca",
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     train_on_input: bool = True,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
     Support for family of Alpaca-style datasets from Hugging Face Datasets using
@@ -47,7 +47,7 @@ def alpaca_dataset(
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``tatsu-lab/alpaca``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns in the message transform
             :class:`~torchtune.data.AlpacaToMessages` to the new column names in the dataset. Keys should be
             "instruction", "input", and "output" and values should be the actual column names. If None, uses
             the default column names ``"instruction``, ``"input"``, and ``"output"`` in ``tatsu-lab/alpaca``.
@@ -58,7 +58,7 @@ def alpaca_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
 

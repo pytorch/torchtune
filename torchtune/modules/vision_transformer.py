@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import torch
 from torch import nn
@@ -181,7 +181,7 @@ class VisionTransformer(nn.Module):
             of shape (bsz * n_tiles, n_tokens, embed_dim) and output a tensor of shape
             (bsz * n_tiles, cls_output_dim). If provided, only the CLS token projection will be
             outputted, instead of all tokens.
-        out_indices (Optional[List[int]]): The indices of hidden layers to return.
+        out_indices (Optional[list[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
@@ -207,7 +207,7 @@ class VisionTransformer(nn.Module):
         pre_tile_pos_embed: Optional[nn.Module] = None,
         post_tile_pos_embed: Optional[nn.Module] = None,
         cls_projection: Optional[nn.Module] = None,
-        out_indices: Optional[List[int]] = None,
+        out_indices: Optional[list[int]] = None,
         in_channels: int = 3,
         append_cls_token: bool = False,
     ) -> None:
@@ -260,7 +260,7 @@ class VisionTransformer(nn.Module):
         self,
         images: torch.Tensor,
         aspect_ratio: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, list[torch.Tensor]]:
         """
         Processes images and returns the tokens and hidden states.
 
@@ -282,7 +282,7 @@ class VisionTransformer(nn.Module):
                 Used to calculate the positional embeddings for the tiles.
 
         Returns:
-            Tuple[torch.Tensor, List[torch.Tensor]]: A tuple: (x, hidden_states),
+            tuple[torch.Tensor, list[torch.Tensor]]: A tuple: (x, hidden_states),
                 where x is a torch.tensor of shape (bsz, n_imgs, n_tiles, n_tokens, embed_dim) and
                 hidden_states has shape is a list of len(out_indices) torch.tensor with shape
                 (bsz, n_imgs, n_tiles, n_tokens, embed_dim).
@@ -424,7 +424,6 @@ class CLSEmbedding(nn.Module):
         self.append_cls_token = append_cls_token
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
         # add 1 CLS token to every tile
         bsz_and_n_imgs, n_tiles, n_tokens, embed_dim = x.shape
         cls_emb = self.weight.broadcast_to(bsz_and_n_imgs, n_tiles, 1, embed_dim)

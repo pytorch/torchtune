@@ -4,9 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
-
 import torch
+
 from torchtune.modules.kv_cache import KVCache as TuneKVCache
 
 
@@ -66,7 +65,7 @@ class KVCache(TuneKVCache):
 
     def update(
         self, k_val: torch.Tensor, v_val: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Update KV cache with the new ``k_val``, ``v_val`` and return the updated cache.
 
         Note:
@@ -92,7 +91,7 @@ class KVCache(TuneKVCache):
             v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
+            tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
 
         Raises:
             AssertionError: if the sequence length of ``k_val`` is longer than the maximum cache sequence length.

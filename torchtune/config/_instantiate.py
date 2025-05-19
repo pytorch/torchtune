@@ -8,7 +8,7 @@ import copy
 import inspect
 import os
 import sys
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Union
 
 from omegaconf import DictConfig, OmegaConf
 from torchtune.config._errors import InstantiationError
@@ -17,8 +17,8 @@ from torchtune.config._utils import _get_component_from_path
 
 def _create_component(
     _component_: Callable[..., Any],
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
 ) -> Any:
     """Create an instance of a component with given arguments."""
     return _component_(*args, **kwargs)
@@ -27,7 +27,7 @@ def _create_component(
 def _instantiate_node(
     obj: Any,
     *args: Any,
-    caller_globals: Optional[Dict[str, Any]] = None,
+    caller_globals: Optional[dict[str, Any]] = None,
 ) -> Any:
     """
     Instantiate a component from an object, recursively processing nested structures.
@@ -39,7 +39,7 @@ def _instantiate_node(
     Args:
         obj (Any): Object to process (dict, list, or other).
         *args (Any): Positional arguments for the component (used only at top level).
-        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
+        caller_globals (Optional[dict[str, Any]]): Enable instantiating objects from caller's globals.
 
     Returns:
         Any: Instantiated object or processed structure.
@@ -67,9 +67,9 @@ def _instantiate_node(
 
 
 def instantiate(
-    config: Union[Dict[str, Any], DictConfig],
+    config: Union[dict[str, Any], DictConfig],
     *args: Any,
-    caller_globals: Optional[Dict[str, Any]] = None,
+    caller_globals: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> Any:
     """
@@ -83,9 +83,9 @@ def instantiate(
     Based on Hydra's `instantiate` utility.
 
     Args:
-        config (Union[Dict[str, Any], DictConfig]): Configuration with '_component_' and optional arguments.
+        config (Union[dict[str, Any], DictConfig]): Configuration with '_component_' and optional arguments.
         *args (Any): Positional arguments for the component.
-        caller_globals (Optional[Dict[str, Any]]): Enable instantiating objects from caller's globals.
+        caller_globals (Optional[dict[str, Any]]): Enable instantiating objects from caller's globals.
         **kwargs (Any): Keyword arguments to override or add to the config.
 
     Returns:

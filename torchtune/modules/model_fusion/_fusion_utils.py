@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import Dict, List
 
 from torch import nn
 
@@ -30,7 +29,7 @@ def register_fusion_module(module: nn.Module):
         module (nn.Module): module to add the fusion_params method to
     """
 
-    def fusion_params(self) -> List[str]:
+    def fusion_params(self) -> list[str]:
         """
         Return parameters of fusion layer.
         """
@@ -39,7 +38,7 @@ def register_fusion_module(module: nn.Module):
     module.fusion_params = functools.partial(fusion_params, module)
 
 
-def get_fusion_params(model: nn.Module) -> Dict[str, nn.Parameter]:
+def get_fusion_params(model: nn.Module) -> dict[str, nn.Parameter]:
     """
     Return the subset of parameters from a model that correspond to fused
     modules. Assumes that any fusion class has defined the
@@ -50,7 +49,7 @@ def get_fusion_params(model: nn.Module) -> Dict[str, nn.Parameter]:
             fusion params.
 
     Returns:
-        Dict[str, nn.Parameter]: the subset of model's state dict containing
+        dict[str, nn.Parameter]: the subset of model's state dict containing
             only adapter parameters.
 
     """
