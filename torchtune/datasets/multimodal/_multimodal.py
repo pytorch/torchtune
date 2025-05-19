@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from torchtune.data._messages import ShareGPTToMessages
 from torchtune.datasets._sft import SFTDataset
@@ -16,14 +16,14 @@ def multimodal_chat_dataset(
     model_transform: Transform,
     *,
     source: str,
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     image_tag: Optional[str] = None,
     image_dir: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> SFTDataset:
     """
     Configure a text+image dataset with conversations between user and model assistant.
@@ -73,7 +73,7 @@ def multimodal_chat_dataset(
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns ("conversations", "image")
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns ("conversations", "image")
             to the new column names in the dataset. Keys should be "conversations", "image" and values should
             be the new column names. If None, keep the default "conversations", "image".
             Default is None.
@@ -93,7 +93,7 @@ def multimodal_chat_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
 
     Examples:

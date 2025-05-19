@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
 
 import pytest
 
@@ -26,18 +25,18 @@ class TestFeedForward:
     """Class for testing FFN implementation."""
 
     @pytest.fixture
-    def input_params(self) -> Tuple[int, int]:
+    def input_params(self) -> tuple[int, int]:
         dim = 4096
         hidden_dim = 11008  # Scaled for SwiGLU
         return dim, hidden_dim
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int]) -> torch.Tensor:
+    def input(self, input_params: tuple[int, int]) -> torch.Tensor:
         dim, _ = input_params
         return torch.randn(1, dim)
 
     @pytest.fixture
-    def ffn(self, input_params: Tuple[int, int]) -> FeedForward:
+    def ffn(self, input_params: tuple[int, int]) -> FeedForward:
         dim, hidden_dim = input_params
         gate_proj = nn.Linear(dim, hidden_dim, bias=False)
         down_proj = nn.Linear(hidden_dim, dim, bias=False)

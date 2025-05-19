@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 from warnings import warn
 
 import torch
@@ -83,7 +83,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
@@ -146,7 +145,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -242,7 +241,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 )
 
             # Update the recipe state from the checkpoint state dict.
-            self._update_recipe_state(checkpoint_dict)
+            self.
+            checkpoint_dict)
 
         self._loss_fn = config.instantiate(cfg.loss)
         self._logger.info("Loss function is initialized.")
@@ -286,8 +286,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        base_model_state_dict: Dict[str, Any],
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -350,7 +350,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -441,14 +441,14 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         )
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+        self, model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
     ) -> ChosenRejectedOutputs:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
         Args:
             model (nn.Module): The model to be used for the forward pass.
-            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+            batch (tuple[torch.Tensor, torch.Tensor]): tuple of input_ids and labels.
 
         Returns:
             Dataclass of chosen log probs, rejected log probs, chosen logits, rejected logits.

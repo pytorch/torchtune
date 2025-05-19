@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 import math
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -112,7 +112,7 @@ class LoRALinear(nn.Module, AdapterModule):
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
 
-    def adapter_params(self) -> List[str]:
+    def adapter_params(self) -> list[str]:
         """
         Return a list of strings corresponding to the names of the ``nn.Parameter`` s in
         the model coming from the adapter.

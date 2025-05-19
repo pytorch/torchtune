@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Optional
 
 import torch
 
@@ -78,7 +78,7 @@ def generate_next_token(
     mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Generates the next tokens given a prompt, and also returns the corresponding logits.
 
@@ -96,7 +96,7 @@ def generate_next_token(
         top_k (Optional[int]): Top-k value to use for sampling, default None.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
+        tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
             - tokens (torch.Tensor): tensor with the generated tokens,
                 with shape [bsz x 1].
             - logits (torch.Tensor): tensor with the logits associated with the generated tokens,
@@ -204,10 +204,10 @@ def generate(
     pad_id: int = 0,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-    stop_tokens: Optional[List[int]] = None,
+    stop_tokens: Optional[list[int]] = None,
     rng: Optional[torch.Generator] = None,
     custom_generate_next_token: Optional[Callable] = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Generates tokens from a model conditioned on a prompt, and also returns logits for the generations.
 
@@ -220,7 +220,7 @@ def generate(
         temperature (float): value to scale the predicted logits by, default 1.0.
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,
             default None.
-        stop_tokens (Optional[List[int]]): If specified, generation is stopped when any of these tokens are generated,
+        stop_tokens (Optional[list[int]]): If specified, generation is stopped when any of these tokens are generated,
             default None.
         rng (Optional[torch.Generator]): random number generator, default None.
         custom_generate_next_token (Optional[Callable]): If specified, we'll use the
@@ -242,7 +242,7 @@ def generate(
         Hi my name is Jeremy and I'm a friendly language model assistant!
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
+        tuple[torch.Tensor, torch.Tensor]: tuple of two tensors:
             - tokens (torch.Tensor): tensor with the generated tokens,
                 with shape ``[bsz x seq_len + num_generated_tokens]`` where ``num_generated_tokens``
                 may be less than ``max_generated_tokens`` if ``stop_tokens`` are provided.
@@ -310,7 +310,6 @@ def generate(
 
     q = None
     if rng is not None:
-
         uniform_val = torch.rand(
             bsz,
             model.tok_embeddings.num_embeddings,

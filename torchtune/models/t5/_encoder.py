@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -22,7 +22,7 @@ class T5Encoder(nn.Module):
 
     Args:
         token_embedding (nn.Embedding): PyTorch embedding layer to place tokens in an embedding space.
-        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): A single encoder layer.
+        layers (Union[nn.Module, list[nn.Module], nn.ModuleList]): A single encoder layer.
         final_norm (nn.Module): Module that applies normalization to the output of the encoder
         num_heads (int): The number of attention heads.
         rel_pos_num_buckets (int): Number of discrete buckets to divide the relative positions into.
@@ -44,7 +44,7 @@ class T5Encoder(nn.Module):
         self,
         *,
         token_embedding: nn.Embedding,
-        layers: Union[nn.Module, List[nn.Module], nn.ModuleList],
+        layers: Union[nn.Module, list[nn.Module], nn.ModuleList],
         final_norm: nn.Module,
         num_heads: int,
         rel_pos_num_buckets: int,
@@ -183,8 +183,7 @@ class T5EncoderSelfAttention(nn.Module):
         super().__init__()
         if embed_dim % num_heads != 0:
             raise ValueError(
-                f"embed_dim ({embed_dim}) must be divisible by "
-                f"num_heads ({num_heads})"
+                f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})"
             )
         if embed_dim // num_heads != head_dim:
             raise ValueError(

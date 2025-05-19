@@ -7,7 +7,7 @@
 import sys
 import time
 
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 import PIL
 
@@ -138,7 +138,7 @@ class _VLMEvalWrapper(HFMultimodalLM):
     def truncation(self):
         return True
 
-    def tok_encode(self, string, **kwargs) -> List[int]:
+    def tok_encode(self, string, **kwargs) -> list[int]:
         # This is only used to get a number of tokens for use in sorting samples in dataset
         # These values will not actually be used for eval
         return self._transform.tokenizer.encode(string, add_bos=False, add_eos=False)
@@ -152,8 +152,8 @@ class _VLMEvalWrapper(HFMultimodalLM):
 
     def tok_batch_multimodal_encode(
         self,
-        all_texts: List[str],
-        all_images: List[List[PIL.Image.Image]],
+        all_texts: list[str],
+        all_images: list[list[PIL.Image.Image]],
         left_truncate_len: int = None,
         *args,
         **kwargs,
@@ -204,9 +204,9 @@ class _VLMEvalWrapper(HFMultimodalLM):
     @torch.inference_mode()
     def _model_multimodal_generate(
         self,
-        batch: Dict[str, torch.Tensor],
+        batch: dict[str, torch.Tensor],
         max_length: int,
-        stop: List[str],
+        stop: list[str],
         **generation_kwargs,
     ):
         # 1. Validate inputs
@@ -344,7 +344,7 @@ class _LLMEvalWrapper(HFLM):
     def enable_kv_cache(self):
         return self._enable_kv_cache
 
-    def tok_encode(self, text: str, **kwargs) -> List[int]:
+    def tok_encode(self, text: str, **kwargs) -> list[int]:
         # Note on add_bos flag: setting to False as this gives better results, for example
         # +1% on truthfulqa_mc2 with a LoRA finetune. lit-gpt also sets this to False,
         # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#L66,
@@ -353,8 +353,8 @@ class _LLMEvalWrapper(HFLM):
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
     def tok_batch_encode(
-        self, text: List[str], left_truncate_len: int = None, **kwargs
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        self, text: list[str], left_truncate_len: int = None, **kwargs
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         tokenized_text = [self.tok_encode(x) for x in text]
 
         # pad left
@@ -371,7 +371,7 @@ class _LLMEvalWrapper(HFLM):
 
         return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
 
-    def tok_decode(self, tokens: Union[List[int], int], **kwargs) -> str:
+    def tok_decode(self, tokens: Union[list[int], int], **kwargs) -> str:
         if isinstance(tokens, int):
             tokens = [tokens]
         return self._tokenizer.decode(tokens)
@@ -408,7 +408,6 @@ class _LLMEvalWrapper(HFLM):
             dtype=self._dtype,
             decoder_max_seq_len=self.max_length,
         ):
-
             toks, _ = generate(
                 self.model,
                 maybe_padded_context,

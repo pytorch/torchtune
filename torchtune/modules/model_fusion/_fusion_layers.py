@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List
-
 import torch
 from torch import nn
 
@@ -137,7 +135,7 @@ class FusionLayer(nn.Module):
         self.layer.reset_cache()
         self.fusion_layer.reset_cache()
 
-    def fusion_params(self) -> List[str]:
+    def fusion_params(self) -> list[str]:
         """
         Return parameters of fusion layer.
         """
@@ -146,12 +144,12 @@ class FusionLayer(nn.Module):
         ]
         return fusion_params
 
-    def forward(self, x: torch.Tensor, **kwargs: Dict) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, **kwargs: dict) -> torch.Tensor:
         """
         Args:
             x (torch.Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            **kwargs (Dict): all additional layer args
+            **kwargs (dict): all additional layer args
 
         Returns:
             Tensor: output tensor with same shape as input
@@ -235,7 +233,7 @@ class FusionEmbedding(nn.Module):
             state_dict[new_key] = state_dict[key]
             del state_dict[key]
 
-    def fusion_params(self) -> List[str]:
+    def fusion_params(self) -> list[str]:
         """
         Return fusion embedding parameters.
         """

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from torchtune.data import InputOutputToMessages
 from torchtune.datasets._sft import SFTDataset
@@ -16,12 +16,12 @@ def vqa_dataset(
     *,
     source: str,
     image_dir: str = None,
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> SFTDataset:
     """
     Configure a custom visual question answer dataset with separate columns for user question, image, and model response.
@@ -57,7 +57,7 @@ def vqa_dataset(
             was ``"images/1.jpg"``, the final image path that will be loaded is ``"/home/user/dataset/images/1.jpg"``.
             If None, assume images are available in current working directory or are located
             on a remote url. For text-only, leave as None. Default is None.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "input",
+        column_map (Optional[dict[str, str]]): a mapping to change the expected "input",
             "output", and "image" column names to the actual column names in the dataset. Keys should be "input",
             "output", and "image, and values should be the actual column names.
             Default is None, keeping the default "input" and "output", and "image" column names.
@@ -70,7 +70,7 @@ def vqa_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``,
             such as ``data_files`` or ``split``.
 
     Examples:

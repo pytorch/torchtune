@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -382,8 +382,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        base_model_state_dict: Dict[str, Any],
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -462,7 +462,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -558,7 +558,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             single_device=True,
         )
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
         # run model

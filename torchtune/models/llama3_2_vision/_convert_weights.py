@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import torch
 
@@ -160,8 +160,8 @@ def _layer_num(key: str):
 
 
 def llama3_vision_meta_to_tune(
-    state_dict: Dict[str, torch.Tensor]
-) -> Dict[str, torch.Tensor]:
+    state_dict: dict[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
     """
     Convertor from Meta state dict to torchtune state dict. This handles:
     - Updateing the cross attention layer numbers
@@ -202,8 +202,8 @@ def llama3_vision_meta_to_tune(
 
 
 def llama3_vision_tune_to_meta(
-    state_dict: Dict[str, torch.Tensor]
-) -> Dict[str, torch.Tensor]:
+    state_dict: dict[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
     """
     Convertor from torchtune state dict to Meta state dict. This handles:
     - Updateing the cross attention layer numbers
@@ -240,19 +240,19 @@ def llama3_vision_tune_to_meta(
 
 
 def llama3_vision_hf_to_tune(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
     head_dim: int = None,
     vocab_size: int = 128256,
-    cross_attention_layers: Optional[List[int]] = None,
+    cross_attention_layers: Optional[list[int]] = None,
     # Vision Encoder Paramters
     encoder_dim: int = 1280,
     tile_size: int = 448,
     num_tiles: int = 4,
-    supported_aspect_ratios: List[Tuple[int, int]] = None,
-) -> Dict[str, torch.Tensor]:
+    supported_aspect_ratios: list[tuple[int, int]] = None,
+) -> dict[str, torch.Tensor]:
     """
     Convertor from HF state dict to torchtune state dict. This handles:
     - Updating the cross attention layer numbers
@@ -333,19 +333,19 @@ def llama3_vision_hf_to_tune(
 
 
 def llama3_vision_tune_to_hf(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
     head_dim: int = None,
     vocab_size: int = 128256,
-    cross_attention_layers: Optional[List[int]] = None,
+    cross_attention_layers: Optional[list[int]] = None,
     # Vision Encoder Paramters
     encoder_dim: int = 1280,
     tile_size: int = 448,
     num_tiles: int = 4,
-    supported_aspect_ratios: List[Tuple[int, int]] = None,
-) -> Dict[str, torch.Tensor]:
+    supported_aspect_ratios: list[tuple[int, int]] = None,
+) -> dict[str, torch.Tensor]:
     """
     Convertor from Tune state dict to HF state dict. This handles:
     - Updateing the cross attention layer numbers

@@ -7,7 +7,7 @@
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -201,7 +201,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -393,7 +393,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        model_state_dict: Dict[str, Any],
+        model_state_dict: dict[str, Any],
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
@@ -433,7 +433,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Union[Optimizer, OptimizerInBackwardWrapper]:
         """
         Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
@@ -564,7 +564,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             single_device=True,
         )
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
@@ -624,6 +624,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 current_loss = self._loss_step(batch) * current_num_tokens
                 running_loss += current_loss
+                # If using opt in backwards, we need to unnormalize before stepping
+                if isinstance(self._optimizer, OptimizerInBackwardWrapper):
+                    current_loss = current_loss * (1 / current_num_tokens)
                 current_loss.backward()
 
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
