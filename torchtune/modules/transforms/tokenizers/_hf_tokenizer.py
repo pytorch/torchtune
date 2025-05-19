@@ -219,27 +219,16 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         _env.globals["raise_exception"] = self._raise_helper
 
         self.template = _env.from_string(
-            self._get_token_from_config(config, "chat_template")
+           config["chat_template"]
         )
         self.truncation_type = truncation_type
 
+        self.special_tokens_mapping = {}
+        for token in self.special_tokens:
+            self.special_tokens_mapping[token] = self.base_tokenizer.encode(token)
+
     def _raise_helper(self, message: str):
         raise jinja2.exceptions.TemplateError(message)
-
-    def _get_token_from_config(self, config: Dict[str, Any], key: str) -> str:
-        """
-        HF BOS/EOS tokens are either stored as e.g. {'bos_token': 5}
-        or {'bos_token': {'content': 5, ...}}. This utility handles both.
-        """
-        token = config.get(key)
-        if isinstance(token, Dict):
-            if "content" not in token:
-                raise ValueError(f"Could not parse {key} from config")
-            token = token["content"]
-        else:
-            if not isinstance(token, str):
-                raise ValueError(f"Could not parse {key} from config")
-        return token
 
     def extract_top_level_variables(self, config):
         top_level = {}
@@ -254,11 +243,6 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         add_eos: bool = True,
         max_seq_len: Union[int, None] = None,
     ) -> Tuple[List[int], List[bool]]:
-        # This part is extremely hacky, but we need to handle case where we have variable access with jinja
-        special_tokens_mapping = {}
-        for token in self.special_tokens:
-            special_tokens_mapping[token] = self.base_tokenizer.encode(token)
-
         tokenized_messages = []
         mask = []
         previous_tokens = []
@@ -271,8 +255,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
             rendered = self.template.render(
                 messages=current_messages,
-                add_generation_prompt=add_eos if i == len(messages) - 1 else False,
-                **special_tokens_mapping,  # We assume that the naming is consistent
+                **self.special_tokens_mapping,  # We assume that the naming is consistent
                 **self.top_level_variables,
             )
 
