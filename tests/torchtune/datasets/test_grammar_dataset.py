@@ -40,7 +40,7 @@ class TestGrammarDataset:
         input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
         assert input == [0, 7, 2, 3, 6, 4, 8, 5, 8, 5, 7, 4, 3, 6, 4, 8, 9, 2, 9, -1]
-        assert labels == input
+        assert labels[:-1] == input[1:]
 
     @patch("torchtune.datasets._sft.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):

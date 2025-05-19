@@ -4,10 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import Any, Callable, Mapping, Optional, Union
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
+
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._utils import truncate
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
@@ -33,7 +35,7 @@ class TextCompletionDataset(Dataset):
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
     """
@@ -45,7 +47,7 @@ class TextCompletionDataset(Dataset):
         column: str = "text",
         add_eos: bool = True,
         filter_fn: Optional[Callable] = None,
-        **load_dataset_kwargs: Dict[str, Any],
+        **load_dataset_kwargs: dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
@@ -58,11 +60,11 @@ class TextCompletionDataset(Dataset):
     def __len__(self):
         return len(self._data)
 
-    def __getitem__(self, index: int) -> Dict[str, List[int]]:
+    def __getitem__(self, index: int) -> dict[str, list[int]]:
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> dict[str, list[int]]:
         prompt = sample[self._column]
 
         tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
@@ -71,8 +73,10 @@ class TextCompletionDataset(Dataset):
         if self._tokenizer.max_seq_len is not None:
             tokens = truncate(tokens, self._tokenizer.max_seq_len - 1)
 
-        # No need to offset labels by 1 - happens in the recipe
-        labels = tokens.copy()
+        # Shift labels to be off by 1 from the logits.
+        # Padding added at the end so we dont need to slice the input.
+        labels = tokens[1:].copy()
+        labels.append(CROSS_ENTROPY_IGNORE_IDX)
 
         return {"tokens": tokens, "labels": labels}
 
@@ -86,7 +90,7 @@ def text_completion_dataset(
     split_across_pack: bool = True,
     split: str = "train",
     filter_fn: Optional[Callable] = None,
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> Union[TextCompletionDataset, PackedDataset]:
     """
     Build a configurable dataset from a freeform, unstructured text corpus similar
@@ -117,7 +121,7 @@ def text_completion_dataset(
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Examples:
         >>> from torchtune.datasets import text_completion_dataset

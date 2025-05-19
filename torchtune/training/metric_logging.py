@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import torch
 
@@ -48,11 +48,11 @@ def save_config(config: DictConfig) -> Path:
         log.warning(f"Error saving config.\nError: \n{e}.")
 
 
-def flatten_dict(d: Dict[str, Any], *, sep: str = ".", parent_key: str = ""):
+def flatten_dict(d: dict[str, Any], *, sep: str = ".", parent_key: str = ""):
     """Recursively flattens a nested dictionary into one level of key-value pairs.
 
     Args:
-        d (Dict[str, Any]): Any dictionary to flatten.
+        d (dict[str, Any]): Any dictionary to flatten.
         sep (str, optional): Desired separator for flattening nested keys. Defaults to ".".
         parent_key (str, optional): Key prefix for children (nested keys), containing parent key names. Defaults to "".
 
@@ -61,7 +61,7 @@ def flatten_dict(d: Dict[str, Any], *, sep: str = ".", parent_key: str = ""):
         {"foo--bar": "baz", "qux": "quux"}
 
     Returns:
-        Dict[str, Any]: Flattened dictionary.
+        dict[str, Any]: Flattened dictionary.
 
     Note:
         Does not unnest dictionaries within list values (i.e., {"foo": [{"bar": "baz"}]}).
@@ -402,9 +402,9 @@ class CometLogger(MetricLoggerInterface):
         online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
             in an offline experiment. Default is ``True``.
         experiment_name (Optional[str]): Name of the experiment. If not provided, Comet will auto-generate a name.
-        tags (Optional[List[str]]): Tags to associate with the experiment.
+        tags (Optional[list[str]]): Tags to associate with the experiment.
         log_code (bool): Whether to log the source code. Defaults to True.
-        **kwargs (Dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See
+        **kwargs (dict[str, Any]): additional arguments to pass to ``comet_ml.start``. See
             https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment-Creation/#comet_ml.ExperimentConfig
 
     Example:
@@ -434,9 +434,9 @@ class CometLogger(MetricLoggerInterface):
         mode: Optional[str] = None,
         online: Optional[bool] = None,
         experiment_name: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         log_code: bool = True,
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, Any],
     ):
         try:
             import comet_ml

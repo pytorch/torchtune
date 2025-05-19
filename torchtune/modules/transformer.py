@@ -4,12 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import torch
 from torch import nn
 from torchtune.modules import MultiHeadAttention
 from torchtune.modules.attention_utils import _MaskType
+
+from torchtune.utils import deprecated
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -89,7 +91,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         *,
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
-        **kwargs: Dict,
+        **kwargs: dict,
     ) -> torch.Tensor:
         """
         Args:
@@ -113,7 +115,7 @@ class TransformerSelfAttentionLayer(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
-            **kwargs (Dict): transformer layer inputs not relevant to self attention.
+            **kwargs (dict): transformer layer inputs not relevant to self attention.
 
         Returns:
             torch.Tensor: output tensor with same shape as input
@@ -256,7 +258,7 @@ class TransformerCrossAttentionLayer(nn.Module):
         *,
         encoder_input: Optional[torch.Tensor] = None,
         encoder_mask: Optional[torch.Tensor] = None,
-        **kwargs: Dict,
+        **kwargs: dict,
     ) -> torch.Tensor:
         """
         Args:
@@ -268,7 +270,7 @@ class TransformerCrossAttentionLayer(nn.Module):
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
                 to embedding j in the decoder. Mask has shape [batch_size x token_sequence x embed_sequence].
                 Default is None.
-            **kwargs (Dict): transformer layer inputs not relevant to self attention.
+            **kwargs (dict): transformer layer inputs not relevant to self attention.
 
         Returns:
             torch.Tensor: output tensor with same shape as input
@@ -333,7 +335,7 @@ class TransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
-        layers (Union[nn.Module, List[nn.Module], nn.ModuleList]): A single transformer Decoder layer, an
+        layers (Union[nn.Module, list[nn.Module], nn.ModuleList]): A single transformer Decoder layer, an
             nn.ModuleList of layers or a list of layers. It is recommended to use an nn.ModuleList.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
@@ -348,7 +350,7 @@ class TransformerDecoder(nn.Module):
             the decoder.
         num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
             layers is not a list.
-        output_hidden_states (Optional[List[int]]): List of layers (indices) to include in the output
+        output_hidden_states (Optional[list[int]]): list of layers (indices) to include in the output
 
     Raises:
         AssertionError:
@@ -365,14 +367,14 @@ class TransformerDecoder(nn.Module):
         self,
         *,
         tok_embeddings: nn.Embedding,
-        layers: Union[nn.Module, List[nn.Module], nn.ModuleList],
+        layers: Union[nn.Module, list[nn.Module], nn.ModuleList],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
         output: Union[nn.Linear, Callable],
         num_layers: Optional[int] = None,
-        output_hidden_states: Optional[List[int]] = None,
+        output_hidden_states: Optional[list[int]] = None,
     ) -> None:
         super().__init__()
         if isinstance(layers, nn.ModuleList):
@@ -396,11 +398,13 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.num_output_chunks = 0
+        self.skip_output_layer = False
 
         # attributes for KV caches during inference
         self.encoder_max_cache_seq_len = None
         self.decoder_max_cache_seq_len = None
 
+    @deprecated("Please use LinearCrossEntropyLoss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -485,8 +489,8 @@ class TransformerDecoder(nn.Module):
         for layer in self.layers:
             layer.reset_cache()
 
-    @torch.compiler.disable
-    def chunked_output(self, last_hidden_state: torch.Tensor) -> List[torch.Tensor]:
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
+    def chunked_output(self, last_hidden_state: torch.Tensor) -> list[torch.Tensor]:
         """
         Apply output projection in chunks. This should be applied in conjunction with
         :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss` as upcasting to fp32 is done there.
@@ -499,7 +503,7 @@ class TransformerDecoder(nn.Module):
                 [b, seq_len, embed_dim].
 
         Returns:
-            List[torch.Tensor]: List of num_chunks output tensors, each with shape
+            list[torch.Tensor]: List of num_chunks output tensors, each with shape
                 [b, seq_len/num_chunks, out_dim], where out_dim is usually the vocab size.
         """
         return [
@@ -576,7 +580,7 @@ class TransformerDecoder(nn.Module):
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
         input_embeds: Optional[torch.Tensor] = None,
-    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+    ) -> Union[torch.Tensor, list[torch.Tensor]]:
         """
         Args:
             tokens (Optional[torch.Tensor]): input tensor with shape ``[b x s]``
@@ -609,9 +613,9 @@ class TransformerDecoder(nn.Module):
                 and skip straight to the transformer layers. Shape ``[b x s x d]``. Default: None
 
         Returns:
-            Union[torch.Tensor, List[torch.Tensor]]: output tensor with shape ``[b x s x v]`` or a list of layer
-                output tensors defined by ``output_hidden_states`` with the
-                final output tensor appended to the list.
+            Union[torch.Tensor, list[torch.Tensor]]: output tensor with shape ``[b x s x v]`` if `self.skip_output_layer=False`
+            and ``[b x s x d]`` otherwise, or a list of layer output tensors defined by ``output_hidden_states`` with the
+            final output tensor appended to the list.
 
         Note:
             At the very first step of inference, when the model is provided with a prompt,
@@ -674,8 +678,9 @@ class TransformerDecoder(nn.Module):
     def unembed(self, h):
         # shape: [b, s, d]
         h = self.norm(h)
-
-        if self.num_output_chunks > 0:
+        if self.skip_output_layer:
+            output = h
+        elif self.num_output_chunks > 0:
             output = self.chunked_output(h)
         else:
             # shape: [b, seq_len, out_dim]

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Protocol
+from typing import Any, Mapping, Protocol
 
 import torch
 
@@ -69,16 +69,16 @@ class VisionCrossAttentionMask(Transform):
         self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
 
-    def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int]]:
+    def _get_image_attention_intervals(self, tokens: list[int]) -> list[list[int]]:
         """
         Returns a list of lists of the form [start, end) where start is the index
         of the current image token and end is the index of the next image token, exclusive.
 
         Args:
-            tokens (List[int]): List of token IDs in the text sequence
+            tokens (list[int]): list of token IDs in the text sequence
 
         Returns:
-            List[List[int]]: List of lists of the form [start, end) indicating
+            list[list[int]]: list of lists of the form [start, end) indicating
                 range of positions in text sequence that should attend to the image
 
         Example:
@@ -130,9 +130,9 @@ class VisionCrossAttentionMask(Transform):
 
         Args:
             sample (Mapping[str, Any]): Sample dict containing the following keys:
-                - tokens (List[int]): List of token IDs in the text sequence. Number of
+                - tokens (list[int]): list of token IDs in the text sequence. Number of
                     image token IDs in the sequence must match the number of images.
-                - images (List[torch.Tensor]): List of image Tensors post-tiling of shape
+                - images (list[torch.Tensor]): list of image Tensors post-tiling of shape
                     (n_tiles, c, h, w) each.
             inference (bool): Whether the template is being used for inference or not.
 

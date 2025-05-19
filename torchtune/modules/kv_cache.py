@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
-
 import torch
 from torch import nn
 
@@ -55,7 +53,7 @@ class KVCache(nn.Module):
 
     def update(
         self, k_val: torch.Tensor, v_val: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Update KV cache with the new ``k_val``, ``v_val`` and return the updated cache.
 
         Note:
@@ -64,7 +62,7 @@ class KVCache(nn.Module):
             already been filled, use ``.reset()``, which will reset the cache to the zero-th position.
 
         Example:
-            >>> cache = KVCache(batch_size=2, max_seq_len=16, num_kv_heads=4, head_dim=32, dtype=torch.bfloat16)
+            >>> cache = KVCache(batch_size=2, num_kv_heads=4, max_seq_len=16, head_dim=32, dtype=torch.bfloat16)
             >>> keys, values = torch.ones((2, 4, 8, 32)), torch.ones((2, 4, 8, 32))
             >>> cache.update(keys, values)
             >>> # now positions 0 through 7 are filled
@@ -81,7 +79,7 @@ class KVCache(nn.Module):
             v_val (torch.Tensor): Current value tensor with shape [B, H, S, D]
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
+            tuple[torch.Tensor, torch.Tensor]: Updated key and value cache tensors, respectively.
 
         Raises:
             ValueError: if the batch size of the new key (or value) tensor is greater than the batch size

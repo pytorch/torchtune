@@ -8,6 +8,7 @@ from unittest import mock
 
 from tests.test_utils import DummyTokenizer
 
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import TextCompletionDataset
 
 
@@ -15,6 +16,10 @@ class TestTextCompletionDataset:
     expected_tokenized_prompts = [
         [0, 4, 2, 2, 7, 5, -1],
         [0, 4, 2, 7, 7, 5, -1],
+    ]
+    expected_labels = [
+        [4, 2, 2, 7, 5, -1, CROSS_ENTROPY_IGNORE_IDX],
+        [4, 2, 7, 7, 5, -1, CROSS_ENTROPY_IGNORE_IDX],
     ]
 
     def get_samples(self):
@@ -30,7 +35,6 @@ class TestTextCompletionDataset:
     @mock.patch("torchtune.datasets._text_completion.load_dataset")
     def test_get_item(self, mock_load_dataset):
         mock_load_dataset.return_value = self.get_samples()
-        expected_labels = self.expected_tokenized_prompts
 
         dataset = TextCompletionDataset(
             tokenizer=DummyTokenizer(),
@@ -44,12 +48,11 @@ class TestTextCompletionDataset:
         for i in range(len(dataset)):
             prompt, label = dataset[i]["tokens"], dataset[i]["labels"]
             assert prompt == self.expected_tokenized_prompts[i]
-            assert label == expected_labels[i]
+            assert label == self.expected_labels[i]
 
     @mock.patch("torchtune.datasets._text_completion.load_dataset")
     def test_get_item_no_eos(self, mock_load_dataset):
         mock_load_dataset.return_value = self.get_samples()
-        expected_labels = self.expected_tokenized_prompts
 
         dataset = TextCompletionDataset(
             tokenizer=DummyTokenizer(),
@@ -66,4 +69,4 @@ class TestTextCompletionDataset:
             # trimming EOS IDs from the expected tokens, assertion is against:
             # [0, 4, 2, 2, 7, 5]
             assert prompt == self.expected_tokenized_prompts[i][:-1]
-            assert label == expected_labels[i][:-1]
+            assert label == self.expected_labels[i][:-2] + [CROSS_ENTROPY_IGNORE_IDX]

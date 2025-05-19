@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
@@ -92,8 +92,8 @@ class SFTDataset(Dataset):
         filter_fn (Optional[Callable]): callable used to filter the dataset prior to any pre-processing. See
             the Hugging Face `docs <https://huggingface.co/docs/datasets/v2.20.0/process#select-and-filter>`_ for more
             details.
-        filter_kwargs (Optional[Dict[str, Any]]): additional keyword arguments to pass to ``filter_fn``.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+        filter_kwargs (Optional[dict[str, Any]]): additional keyword arguments to pass to ``filter_fn``.
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
     """
@@ -105,8 +105,8 @@ class SFTDataset(Dataset):
         message_transform: Transform,
         model_transform: Transform,
         filter_fn: Optional[Callable] = None,
-        filter_kwargs: Optional[Dict[str, Any]] = None,
-        **load_dataset_kwargs: Dict[str, Any],
+        filter_kwargs: Optional[dict[str, Any]] = None,
+        **load_dataset_kwargs: dict[str, Any],
     ) -> None:
         self._message_transform = message_transform
         self._model_transform = model_transform
@@ -125,7 +125,7 @@ class SFTDataset(Dataset):
     def __len__(self):
         return len(self._data)
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         sample = self._data[index]
         return self._prepare_sample(sample)
 
@@ -143,7 +143,7 @@ class SFTTransform(Transform):
         self._message_transform = message_transform
         self._model_transform = model_transform
 
-    def __call__(self, sample: Mapping[str, Any]) -> Dict[str, Any]:
+    def __call__(self, sample: Mapping[str, Any]) -> dict[str, Any]:
         if self._message_transform is not None:
             transformed_sample = self._message_transform(sample)
             if "messages" in transformed_sample:
@@ -163,13 +163,16 @@ class SFTTransform(Transform):
                 raise ValueError(error_message)
 
             # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
+            # Shift labels to be off by 1 from the logits.
+            # Padding added at the end so we dont need to slice the logits.
             tokenized_dict["labels"] = list(
                 np.where(
-                    tokenized_dict["mask"],
+                    tokenized_dict["mask"][1:],
                     CROSS_ENTROPY_IGNORE_IDX,
-                    tokenized_dict["tokens"],
+                    tokenized_dict["tokens"][1:],
                 )
             )
+            tokenized_dict["labels"].append(CROSS_ENTROPY_IGNORE_IDX)
             assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
         else:
             tokenized_dict = transformed_sample
