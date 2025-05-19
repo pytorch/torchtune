@@ -241,8 +241,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 )
 
             # Update the recipe state from the checkpoint state dict.
-            self.
-            checkpoint_dict)
+            self._update_recipe_state(checkpoint_dict)
 
         self._loss_fn = config.instantiate(cfg.loss)
         self._logger.info("Loss function is initialized.")
