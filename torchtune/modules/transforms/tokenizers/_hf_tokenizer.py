@@ -255,6 +255,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
             rendered = self.template.render(
                 messages=current_messages,
+                add_generation_prompt=add_eos if i == len(messages) - 1 else False,
                 **self.special_tokens_mapping,  # We assume that the naming is consistent
                 **self.top_level_variables,
             )
@@ -263,11 +264,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
             delta = current_tokens[len(previous_tokens) :]
             previous_tokens = current_tokens
-
-            if message.masked:
-                tokenized_messages.extend([True] * len(delta))
-            else:
-                tokenized_messages.extend(delta)
+            tokenized_messages.extend(delta)
 
             mask.extend([message.masked] * len(delta))
 
