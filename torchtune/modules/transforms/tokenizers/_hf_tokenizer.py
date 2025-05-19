@@ -279,7 +279,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         tokenized_messages = truncate(
             tokens=tokenized_messages,
             max_seq_len=max_seq_len,
-            eos_id=None,
+            eos_id=self.base_tokenizer.eos_id,
             truncation_type=self.truncation_type,
         )
 
