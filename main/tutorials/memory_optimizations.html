@@ -639,8 +639,24 @@ How is this possible, you might ask? By <em>completely removing the buffer of gr
 <p>To understand how this works, we encourage you to read through the relevant PyTorch tutorial on this concept:
 <a class="reference external" href="https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html">How to save memory by fusing the optimizer step into the backward pass</a>.</p>
 <p><em>Sounds great! How do I use it?</em></p>
-<p>In torchtune, you can enable this feature using the <code class="docutils literal notranslate"><span class="pre">optimizer_in_bwd</span></code> flag. This feature works best when using a stateful optimizer
-with a model with a lot of parameters, and when you don’t need to use <a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.
+<p>In torchtune, you can enable this feature using <code class="xref py py-class docutils literal notranslate"><span class="pre">OptimizerInBackward</span></code>, which wraps around a normal PyTorch optimizer like so and can be used
+as a drop-in replacement for your normal Optimizer:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">OptimizerInBackward</span><span class="p">(</span>
+  <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+  <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">,</span>
+  <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>In order to use this OOTB with a torchtune recipe and config, simply specify your chosen optimizer and then add the key <code class="docutils literal notranslate"><span class="pre">optimizer_in_bwd:</span> <span class="pre">True</span></code>, which will
+construct a <code class="xref py py-class docutils literal notranslate"><span class="pre">OptimizerInBackward</span></code> from the base optimizer class.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">optimizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.AdamW</span>
+<span class="w">  </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.01</span>
+<span class="nt">optimizer_in_bwd</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<p>This feature works best when using a stateful optimizer with a model with a lot of parameters, and when you don’t need to use <a class="reference internal" href="#glossary-grad-accm"><span class="std std-ref">gradient accumulation</span></a>.
 You won’t see meaningful impact when finetuning LoRA recipes, since in this case the number of parameters being updated are small.</p>
 </section>
 <section id="offloading-optimizer-gradient-states-to-cpu">

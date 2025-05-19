@@ -7,10 +7,11 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview: module code &mdash; torchtune main documentation</title>
+  <title>OptimizerInBackward &mdash; torchtune main documentation</title>
   
 
   
@@ -39,6 +40,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="SentencePieceBaseTokenizer" href="torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html" />
+    <link rel="prev" title="SymmetricKLWithChunkedOutputLoss" href="torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -362,13 +365,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_generation.html">torchtune.generation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_rlhf.html">torchtune.rlhf</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_training.html">torchtune.training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
@@ -412,10 +415,16 @@
       </li>
 
         
-      <li>Overview: module code</li>
+          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+        
+      <li>OptimizerInBackward</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/torchtune.modules.optim.OptimizerInBackward.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
         
       </li>
     
@@ -444,123 +453,166 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>All modules for which code is available</h1>
-<ul><li><a href="functools.html">functools</a></li>
-<li><a href="torchtune/config/_instantiate.html">torchtune.config._instantiate</a></li>
-<li><a href="torchtune/config/_parse.html">torchtune.config._parse</a></li>
-<li><a href="torchtune/config/_utils.html">torchtune.config._utils</a></li>
-<li><a href="torchtune/config/_validate.html">torchtune.config._validate</a></li>
-<li><a href="torchtune/data/_collate.html">torchtune.data._collate</a></li>
-<li><a href="torchtune/data/_messages.html">torchtune.data._messages</a></li>
-<li><a href="torchtune/data/_prompt_templates.html">torchtune.data._prompt_templates</a></li>
-<li><a href="torchtune/data/_utils.html">torchtune.data._utils</a></li>
-<li><a href="torchtune/datasets/_alpaca.html">torchtune.datasets._alpaca</a></li>
-<li><a href="torchtune/datasets/_chat.html">torchtune.datasets._chat</a></li>
-<li><a href="torchtune/datasets/_cnn_dailymail.html">torchtune.datasets._cnn_dailymail</a></li>
-<li><a href="torchtune/datasets/_concat.html">torchtune.datasets._concat</a></li>
-<li><a href="torchtune/datasets/_grammar.html">torchtune.datasets._grammar</a></li>
-<li><a href="torchtune/datasets/_hh_rlhf_helpful.html">torchtune.datasets._hh_rlhf_helpful</a></li>
-<li><a href="torchtune/datasets/_instruct.html">torchtune.datasets._instruct</a></li>
-<li><a href="torchtune/datasets/_packed.html">torchtune.datasets._packed</a></li>
-<li><a href="torchtune/datasets/_preference.html">torchtune.datasets._preference</a></li>
-<li><a href="torchtune/datasets/_samsum.html">torchtune.datasets._samsum</a></li>
-<li><a href="torchtune/datasets/_sft.html">torchtune.datasets._sft</a></li>
-<li><a href="torchtune/datasets/_slimorca.html">torchtune.datasets._slimorca</a></li>
-<li><a href="torchtune/datasets/_stack_exchange_paired.html">torchtune.datasets._stack_exchange_paired</a></li>
-<li><a href="torchtune/datasets/_text_completion.html">torchtune.datasets._text_completion</a></li>
-<li><a href="torchtune/datasets/_wikitext.html">torchtune.datasets._wikitext</a></li>
-<li><a href="torchtune/datasets/multimodal/_llava_instruct.html">torchtune.datasets.multimodal._llava_instruct</a></li>
-<li><a href="torchtune/datasets/multimodal/_the_cauldron.html">torchtune.datasets.multimodal._the_cauldron</a></li>
-<li><a href="torchtune/datasets/multimodal/_vqa.html">torchtune.datasets.multimodal._vqa</a></li>
-<li><a href="torchtune/generation/_generation.html">torchtune.generation._generation</a></li>
-<li><a href="torchtune/models/clip/_component_builders.html">torchtune.models.clip._component_builders</a></li>
-<li><a href="torchtune/models/clip/_position_embeddings.html">torchtune.models.clip._position_embeddings</a></li>
-<li><a href="torchtune/models/code_llama2/_model_builders.html">torchtune.models.code_llama2._model_builders</a></li>
-<li><a href="torchtune/models/gemma/_component_builders.html">torchtune.models.gemma._component_builders</a></li>
-<li><a href="torchtune/models/gemma/_model_builders.html">torchtune.models.gemma._model_builders</a></li>
-<li><a href="torchtune/models/gemma2/_component_builders.html">torchtune.models.gemma2._component_builders</a></li>
-<li><a href="torchtune/models/gemma2/_model_builders.html">torchtune.models.gemma2._model_builders</a></li>
-<li><a href="torchtune/models/llama2/_component_builders.html">torchtune.models.llama2._component_builders</a></li>
-<li><a href="torchtune/models/llama2/_model_builders.html">torchtune.models.llama2._model_builders</a></li>
-<li><a href="torchtune/models/llama2/_prompt_template.html">torchtune.models.llama2._prompt_template</a></li>
-<li><a href="torchtune/models/llama3/_component_builders.html">torchtune.models.llama3._component_builders</a></li>
-<li><a href="torchtune/models/llama3/_model_builders.html">torchtune.models.llama3._model_builders</a></li>
-<li><a href="torchtune/models/llama3_1/_component_builders.html">torchtune.models.llama3_1._component_builders</a></li>
-<li><a href="torchtune/models/llama3_1/_model_builders.html">torchtune.models.llama3_1._model_builders</a></li>
-<li><a href="torchtune/models/llama3_2/_model_builders.html">torchtune.models.llama3_2._model_builders</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_component_builders.html">torchtune.models.llama3_2_vision._component_builders</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_encoder.html">torchtune.models.llama3_2_vision._encoder</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_model_builders.html">torchtune.models.llama3_2_vision._model_builders</a></li>
-<li><a href="torchtune/models/llama3_2_vision/_transform.html">torchtune.models.llama3_2_vision._transform</a></li>
-<li><a href="torchtune/models/llama4/_component_builders.html">torchtune.models.llama4._component_builders</a></li>
-<li><a href="torchtune/models/llama4/_encoder.html">torchtune.models.llama4._encoder</a></li>
-<li><a href="torchtune/models/llama4/_model_builders.html">torchtune.models.llama4._model_builders</a></li>
-<li><a href="torchtune/models/llama4/_tokenizer.html">torchtune.models.llama4._tokenizer</a></li>
-<li><a href="torchtune/models/llama4/_transform.html">torchtune.models.llama4._transform</a></li>
-<li><a href="torchtune/models/mistral/_component_builders.html">torchtune.models.mistral._component_builders</a></li>
-<li><a href="torchtune/models/mistral/_model_builders.html">torchtune.models.mistral._model_builders</a></li>
-<li><a href="torchtune/models/mistral/_prompt_template.html">torchtune.models.mistral._prompt_template</a></li>
-<li><a href="torchtune/models/phi3/_component_builders.html">torchtune.models.phi3._component_builders</a></li>
-<li><a href="torchtune/models/phi3/_model_builders.html">torchtune.models.phi3._model_builders</a></li>
-<li><a href="torchtune/models/phi4/_model_builders.html">torchtune.models.phi4._model_builders</a></li>
-<li><a href="torchtune/models/qwen2/_component_builders.html">torchtune.models.qwen2._component_builders</a></li>
-<li><a href="torchtune/models/qwen2/_model_builders.html">torchtune.models.qwen2._model_builders</a></li>
-<li><a href="torchtune/models/qwen2_5/_model_builders.html">torchtune.models.qwen2_5._model_builders</a></li>
-<li><a href="torchtune/modules/attention.html">torchtune.modules.attention</a></li>
-<li><a href="torchtune/modules/classifier.html">torchtune.modules.classifier</a></li>
-<li><a href="torchtune/modules/common_utils.html">torchtune.modules.common_utils</a></li>
-<li><a href="torchtune/modules/embedding_utils.html">torchtune.modules.embedding_utils</a></li>
-<li><a href="torchtune/modules/feed_forward.html">torchtune.modules.feed_forward</a></li>
-<li><a href="torchtune/modules/kv_cache.html">torchtune.modules.kv_cache</a></li>
-<li><a href="torchtune/modules/layer_dropout.html">torchtune.modules.layer_dropout</a></li>
-<li><a href="torchtune/modules/layer_norm.html">torchtune.modules.layer_norm</a></li>
-<li><a href="torchtune/modules/loss/cross_entropy_loss.html">torchtune.modules.loss.cross_entropy_loss</a></li>
-<li><a href="torchtune/modules/loss/kd_losses.html">torchtune.modules.loss.kd_losses</a></li>
-<li><a href="torchtune/modules/model_fusion/_deep_fusion.html">torchtune.modules.model_fusion._deep_fusion</a></li>
-<li><a href="torchtune/modules/model_fusion/_fusion_layers.html">torchtune.modules.model_fusion._fusion_layers</a></li>
-<li><a href="torchtune/modules/model_fusion/_fusion_utils.html">torchtune.modules.model_fusion._fusion_utils</a></li>
-<li><a href="torchtune/modules/optim.html">torchtune.modules.optim</a></li>
-<li><a href="torchtune/modules/peft/_utils.html">torchtune.modules.peft._utils</a></li>
-<li><a href="torchtune/modules/peft/dora.html">torchtune.modules.peft.dora</a></li>
-<li><a href="torchtune/modules/peft/lora.html">torchtune.modules.peft.lora</a></li>
-<li><a href="torchtune/modules/position_embeddings.html">torchtune.modules.position_embeddings</a></li>
-<li><a href="torchtune/modules/rms_norm.html">torchtune.modules.rms_norm</a></li>
-<li><a href="torchtune/modules/tanh_gate.html">torchtune.modules.tanh_gate</a></li>
-<li><a href="torchtune/modules/tied_linear.html">torchtune.modules.tied_linear</a></li>
-<li><a href="torchtune/modules/transformer.html">torchtune.modules.transformer</a></li>
-<li><a href="torchtune/modules/transforms/_transforms.html">torchtune.modules.transforms._transforms</a></li>
-<li><a href="torchtune/modules/transforms/tokenizers/_hf_tokenizer.html">torchtune.modules.transforms.tokenizers._hf_tokenizer</a></li>
-<li><a href="torchtune/modules/transforms/tokenizers/_sentencepiece.html">torchtune.modules.transforms.tokenizers._sentencepiece</a></li>
-<li><a href="torchtune/modules/transforms/tokenizers/_tiktoken.html">torchtune.modules.transforms.tokenizers._tiktoken</a></li>
-<li><a href="torchtune/modules/transforms/tokenizers/_utils.html">torchtune.modules.transforms.tokenizers._utils</a></li>
-<li><a href="torchtune/modules/vision_transformer.html">torchtune.modules.vision_transformer</a></li>
-<li><a href="torchtune/rlhf/loss/dpo.html">torchtune.rlhf.loss.dpo</a></li>
-<li><a href="torchtune/rlhf/loss/ppo.html">torchtune.rlhf.loss.ppo</a></li>
-<li><a href="torchtune/rlhf/rewards.html">torchtune.rlhf.rewards</a></li>
-<li><a href="torchtune/rlhf/sequence_processing.html">torchtune.rlhf.sequence_processing</a></li>
-<li><a href="torchtune/training/_distributed.html">torchtune.training._distributed</a></li>
-<li><a href="torchtune/training/_model_util.html">torchtune.training._model_util</a></li>
-<li><a href="torchtune/training/_profiler.html">torchtune.training._profiler</a></li>
-<li><a href="torchtune/training/activations.html">torchtune.training.activations</a></li>
-<li><a href="torchtune/training/checkpointing/_checkpointer.html">torchtune.training.checkpointing._checkpointer</a></li>
-<li><a href="torchtune/training/checkpointing/_utils.html">torchtune.training.checkpointing._utils</a></li>
-<li><a href="torchtune/training/lr_schedulers.html">torchtune.training.lr_schedulers</a></li>
-<li><a href="torchtune/training/memory.html">torchtune.training.memory</a></li>
-<li><a href="torchtune/training/metric_logging.html">torchtune.training.metric_logging</a></li>
-<li><a href="torchtune/training/pooling.html">torchtune.training.pooling</a></li>
-<li><a href="torchtune/training/precision.html">torchtune.training.precision</a></li>
-<li><a href="torchtune/training/quantization.html">torchtune.training.quantization</a></li>
-<li><a href="torchtune/training/seed.html">torchtune.training.seed</a></li>
-<li><a href="torchtune/utils/_device.html">torchtune.utils._device</a></li>
-<li><a href="torchtune/utils/_logging.html">torchtune.utils._logging</a></li>
-<li><a href="torchtune/utils/_version.html">torchtune.utils._version</a></li>
-<li><a href="typing.html">typing</a></li>
+  <section id="optimizerinbackward">
+<h1>OptimizerInBackward<a class="headerlink" href="#optimizerinbackward" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.modules.optim.OptimizerInBackward">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.optim.</span></span><span class="sig-name descname"><span class="pre">OptimizerInBackward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.13)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.parameter.Parameter.html#torch.nn.parameter.Parameter" title="(in PyTorch v2.7)"><span class="pre">Parameter</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.7)"><span class="pre">torch.optim.optimizer.Optimizer</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">optimizer_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/optim.html#OptimizerInBackward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.optim.OptimizerInBackward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps a standard PyTorch optimizer class to perform parameter updates inside the backward pass.</p>
+<p>For each parameter, a separate optimizer instance is created, allowing in-place updates
+during gradient computation. This reduces peak memory usage by freeing gradients immediately
+after they are applied.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Iterable</em><em>[</em><em>torch.nn.Parameter</em><em>]</em>) – Model parameters to optimize.</p></li>
+<li><p><strong>optimizer_cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><em>type</em></a><em>[</em><em>Optimizer</em><em>]</em>) – The optimizer class to use in backward pass (e.g., AdamW).</p></li>
+<li><p><strong>**optimizer_kwargs</strong> – Additional arguments passed to the optimizer constructor.</p></li>
 </ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">MyModel</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">OptimizerInBackward</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="nb">input</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">dataloader</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>  <span class="c1"># optimizer updates happen inside backward</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.optim.OptimizerInBackward.load_state_dict">
+<span class="sig-name descname"><span class="pre">load_state_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/optim.html#OptimizerInBackward.load_state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.optim.OptimizerInBackward.load_state_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the optimizer state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – optimizer state. Should be an object returned
+from a call to <a class="reference internal" href="#torchtune.modules.optim.OptimizerInBackward.state_dict" title="torchtune.modules.optim.OptimizerInBackward.state_dict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">state_dict()</span></code></a>.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The names of the parameters (if they exist under the “param_names” key of each param group
+in <a class="reference internal" href="#torchtune.modules.optim.OptimizerInBackward.state_dict" title="torchtune.modules.optim.OptimizerInBackward.state_dict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">state_dict()</span></code></a>) will not affect the loading process.
+To use the parameters’ names for custom cases (such as when the parameters in the loaded state dict
+differ from those initialized in the optimizer),
+a custom <code class="docutils literal notranslate"><span class="pre">register_load_state_dict_pre_hook</span></code> should be implemented to adapt the loaded dict
+accordingly.
+If <code class="docutils literal notranslate"><span class="pre">param_names</span></code> exist in loaded state dict <code class="docutils literal notranslate"><span class="pre">param_groups</span></code> they will be saved and override
+the current names, if present, in the optimizer state. If they do not exist in loaded state dict,
+the optimizer <code class="docutils literal notranslate"><span class="pre">param_names</span></code> will remain unchanged.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.optim.OptimizerInBackward.state_dict">
+<span class="sig-name descname"><span class="pre">state_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/optim.html#OptimizerInBackward.state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.optim.OptimizerInBackward.state_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the state of the optimizer as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p>
+<p>It contains two entries:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">state</span></code>: a Dict holding current optimization state. Its content</dt><dd><p>differs between optimizer classes, but some common characteristics
+hold. For example, state is saved per parameter, and the parameter
+itself is NOT saved. <code class="docutils literal notranslate"><span class="pre">state</span></code> is a Dictionary mapping parameter ids
+to a Dict with state corresponding to each parameter.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">param_groups</span></code>: a List containing all parameter groups where each</dt><dd><p>parameter group is a Dict. Each parameter group contains metadata
+specific to the optimizer, such as learning rate and weight decay,
+as well as a List of parameter IDs of the parameters in the group.
+If a param group was initialized with <code class="docutils literal notranslate"><span class="pre">named_parameters()</span></code> the names
+content will also be saved in the state dict.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>NOTE: The parameter IDs may look like indices but they are just IDs
+associating state with param_group. When loading from a state_dict,
+the optimizer will zip the param_group <code class="docutils literal notranslate"><span class="pre">params</span></code> (int IDs) and the
+optimizer <code class="docutils literal notranslate"><span class="pre">param_groups</span></code> (actual <code class="docutils literal notranslate"><span class="pre">nn.Parameter</span></code> s) in order to
+match state WITHOUT additional verification.</p>
+<p>A returned state dict might look something like:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>{
+    &#39;state&#39;: {
+        0: {&#39;momentum_buffer&#39;: tensor(...), ...},
+        1: {&#39;momentum_buffer&#39;: tensor(...), ...},
+        2: {&#39;momentum_buffer&#39;: tensor(...), ...},
+        3: {&#39;momentum_buffer&#39;: tensor(...), ...}
+    },
+    &#39;param_groups&#39;: [
+        {
+            &#39;lr&#39;: 0.01,
+            &#39;weight_decay&#39;: 0,
+            ...
+            &#39;params&#39;: [0]
+            &#39;param_names&#39; [&#39;param0&#39;]  (optional)
+        },
+        {
+            &#39;lr&#39;: 0.001,
+            &#39;weight_decay&#39;: 0.5,
+            ...
+            &#39;params&#39;: [1, 2, 3]
+            &#39;param_names&#39;: [&#39;param1&#39;, &#39;layer.weight&#39;, &#39;layer.bias&#39;] (optional)
+        }
+    ]
+}
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.optim.OptimizerInBackward.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">closure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/optim.html#OptimizerInBackward.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.optim.OptimizerInBackward.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a single optimization step to update parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>closure</strong> (<em>Callable</em>) – A closure that reevaluates the model and
+returns the loss. Optional for most optimizers.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.modules.optim.OptimizerInBackward.zero_grad">
+<span class="sig-name descname"><span class="pre">zero_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set_to_none</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/optim.html#OptimizerInBackward.zero_grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.optim.OptimizerInBackward.zero_grad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the gradients of all optimized <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code></a> s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>set_to_none</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – instead of setting to zero, set the grads to None.
+This will in general have lower memory footprint, and can modestly improve performance.
+However, it changes certain behaviors. For example:
+1. When the user tries to access a gradient and perform manual ops on it,
+a None attribute or a Tensor full of 0s will behave differently.
+2. If the user requests <code class="docutils literal notranslate"><span class="pre">zero_grad(set_to_none=True)</span></code> followed by a backward pass, <code class="docutils literal notranslate"><span class="pre">.grad</span></code>s
+are guaranteed to be None for params that did not receive a gradient.
+3. <code class="docutils literal notranslate"><span class="pre">torch.optim</span></code> optimizers have a different behavior if the gradient is 0 or None
+(in one case it does the step with a gradient of 0 and in the other it skips
+the step altogether).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
 
              </article>
              
             </div>
             <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="torchtune.modules.transforms.tokenizers.SentencePieceBaseTokenizer.html" class="btn btn-neutral float-right" title="SentencePieceBaseTokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="torchtune.modules.loss.SymmetricKLWithChunkedOutputLoss.html" class="btn btn-neutral" title="SymmetricKLWithChunkedOutputLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
   
 
   
@@ -589,7 +641,10 @@
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              
+              <ul>
+<li><a class="reference internal" href="#">OptimizerInBackward</a></li>
+</ul>
+
             </div>
           </div>
         </div>
