@@ -223,8 +223,8 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         )
         self.truncation_type = truncation_type
 
-    def _raise_helper(self, msg):
-        raise Exception(msg)
+    def _raise_helper(self, message: str):
+        raise jinja2.exceptions.TemplateError(message)
 
     def _get_token_from_config(self, config: Dict[str, Any], key: str) -> str:
         """
