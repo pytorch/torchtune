@@ -218,9 +218,7 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         # It is used sometimes in HF chat_templates
         _env.globals["raise_exception"] = self._raise_helper
 
-        self.template = _env.from_string(
-           config["chat_template"]
-        )
+        self.template = _env.from_string(config["chat_template"])
         self.truncation_type = truncation_type
 
         self.special_tokens_mapping = {}
