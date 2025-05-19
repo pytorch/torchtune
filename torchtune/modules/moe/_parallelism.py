@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 from torch import nn
 from torch.distributed.tensor import (
@@ -27,7 +27,7 @@ class ExpertTensorParallel(ParallelStyle):
     def __init__(
         self,
         *,
-        input_layouts: Optional[Tuple[Optional[Placement]]] = None,
+        input_layouts: Optional[tuple[Optional[Placement]]] = None,
         output_layout: Optional[Placement] = None,
         use_local_output: bool = True,
     ):
@@ -156,26 +156,26 @@ class PrepareModuleInputOutput(ParallelStyle):
     :class:`PrepareModuleInput` and :class:`PrepareModuleOutput`.
 
     Keyword Args:
-        input_layouts (Union[Placement, Tuple[Optional[Placement]]]):
+        input_layouts (Union[Placement, tuple[Optional[Placement]]]):
             The DTensor layouts of input tensors for the nn.Module, this is used to convert the input tensors to
             DTensors. If some inputs are not torch.Tensor or no need to convert to DTensors, ``None`` need to be specified
             as a placeholder. default: None.
-        desired_input_layouts (Union[Placement, Tuple[Optional[Placement]]]):
+        desired_input_layouts (Union[Placement, tuple[Optional[Placement]]]):
             The desired DTensor layout of input tensors for the nn.Module, this is used to ensure the inputs of the nn.Module
             have the desired DTensor layouts. This argument needs to have the same length with ``input_layouts``. default: None.
-        input_kwarg_layouts (Dict[str, Placement]):
+        input_kwarg_layouts (dict[str, Placement]):
             The DTensor layouts of input kwargs for the nn.Module, this is used to convert the input kwarg tensors to DTensors.
             default: None
-        desired_input_kwarg_layouts: (Dict[str, Placement]):
+        desired_input_kwarg_layouts: (dict[str, Placement]):
             The desired DTensor layout of input kwargs for the nn.Module, this is used to ensure the inputs of the nn.Module
             have the desired DTensor layouts. default: None.
         use_local_input (bool, optional):
             Whether to use local :class:`torch.Tensor` instead of :class:`DTensor` for the module inputs, default: False.
-        output_layouts (Union[Placement, Tuple[Placement]]):
+        output_layouts (Union[Placement, tuple[Placement]]):
             The DTensor layouts of output tensors for the nn.Module, this is used to convert the output tensors to
             DTensors if they are :class:`torch.Tensor`. If some outputs are not torch.Tensor or no need to convert to DTensors,
             ``None`` need to be specified as a placeholder.
-        desired_output_layouts (Union[Placement, Tuple[Placement]]):
+        desired_output_layouts (Union[Placement, tuple[Placement]]):
             The desired DTensor layouts of output tensors for the nn.Module, this is used to ensure the outputs of the nn.Module
             have the desired DTensor layouts.
         use_local_output (bool, optional):

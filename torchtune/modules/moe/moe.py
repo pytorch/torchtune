@@ -9,7 +9,7 @@ from typing import Optional
 import torch
 from torch import nn
 
-USE_GROUPED_MM = False
+USE_GROUPED_MM = True
 
 
 class TokenChoiceTopKRouter(nn.Module):

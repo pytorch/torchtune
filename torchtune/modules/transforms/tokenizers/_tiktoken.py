@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Iterator, List
+from typing import Iterator
 
 from tiktoken import Encoding
 from tiktoken.load import load_tiktoken_bpe
@@ -28,7 +28,7 @@ class TikTokenBaseTokenizer(BaseTokenizer):
             to byte-pair encoding.
         bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.
         eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.
-        special_tokens (Dict[str, int]): Mapping of special tokens to their ids.
+        special_tokens (dict[str, int]): Mapping of special tokens to their ids.
 
     Examples:
         >>> tokenizer = TikTokenBaseTokenizer("/path/to/tt_model")
@@ -44,7 +44,7 @@ class TikTokenBaseTokenizer(BaseTokenizer):
         pattern: str,
         bos_id: int,
         eos_id: int,
-        special_tokens: Dict[str, int],
+        special_tokens: dict[str, int],
     ):
         mergeable_ranks = load_tiktoken_bpe(path)
         self.tt_model = Encoding(
@@ -90,7 +90,7 @@ class TikTokenBaseTokenizer(BaseTokenizer):
         text: str,
         add_bos: bool = True,
         add_eos: bool = True,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Encode a string into a list of token ids. Assumes that the string
         contains no special tokens.
@@ -103,9 +103,9 @@ class TikTokenBaseTokenizer(BaseTokenizer):
                 Default True.
 
         Returns:
-            List[int]: The list of token ids.
+            list[int]: The list of token ids.
         """
-        substrs: List[str] = []
+        substrs: list[str] = []
         tokens = []
         if not text:
             return []
@@ -136,14 +136,14 @@ class TikTokenBaseTokenizer(BaseTokenizer):
 
     def decode(
         self,
-        token_ids: List[int],
+        token_ids: list[int],
         truncate_at_eos: bool = True,
     ) -> str:
         """
         Decode a list of token ids into a string.
 
         Args:
-            token_ids (List[int]): The list of token ids.
+            token_ids (list[int]): The list of token ids.
             truncate_at_eos (bool): Whether to truncate the string at the end of
                 sequence token. Default is True.
 

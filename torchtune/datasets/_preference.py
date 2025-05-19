@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
@@ -91,7 +91,7 @@ class PreferenceDataset(Dataset):
             details.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False. Packed is
             currently not supported for ``PreferenceDataset`` and a ``ValueError`` will be raised if this is set to True.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
 
@@ -107,7 +107,7 @@ class PreferenceDataset(Dataset):
         tokenizer: ModelTokenizer,
         filter_fn: Optional[Callable] = None,
         packed: bool = False,
-        **load_dataset_kwargs: Dict[str, Any],
+        **load_dataset_kwargs: dict[str, Any],
     ) -> None:
         if packed:
             raise ValueError(
@@ -124,11 +124,11 @@ class PreferenceDataset(Dataset):
     def __len__(self):
         return len(self._data)
 
-    def __getitem__(self, index: int) -> Dict[str, List[int]]:
+    def __getitem__(self, index: int) -> dict[str, list[int]]:
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> dict[str, list[int]]:
         transformed_sample = self._message_transform(sample)
 
         # TODO: Truncation differs from original DPO repo
@@ -165,12 +165,12 @@ def preference_dataset(
     tokenizer: ModelTokenizer,
     *,
     source: str,
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> PreferenceDataset:
     """
     Configures a custom preference dataset comprising interactions between user and
@@ -226,7 +226,7 @@ def preference_dataset(
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns "chosen" and "rejected"
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns "chosen" and "rejected"
             in the message transform :class:`~torchtune.data.ChosenRejectedToMessages` to the new column names in
             the dataset. Keys should be "chosen" and "rejected" and values should be the actual column names.
             If None, keep the default columns "chosen" and "rejected".
@@ -239,7 +239,7 @@ def preference_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Examples:
 

@@ -59,7 +59,7 @@ def get_cosine_schedule_with_warmup(
 
 
 def get_lr(
-    optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper]
+    optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
 ) -> float:
     """
     Full_finetune_distributed and full_finetune_single_device assume all optimizers have

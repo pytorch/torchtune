@@ -314,7 +314,6 @@ class TestPositionalEmbeddingsInterpolation:
 
     @pytest.mark.parametrize("params", tile_pos_emb_test_cases)
     def test_load_state_dict_hook_tile(self, params):
-
         # Extract parameters for instantiation
         max_num_tiles = params["expected_output"].shape[0]
         embed_dim = params["expected_output"].shape[-1]

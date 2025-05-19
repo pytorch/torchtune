@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from warnings import warn
 
 import torch
@@ -34,9 +34,8 @@ from torchtune.modules.peft import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import ChosenRejectedOutputs
+from torchtune.training import VALID_BACKENDS_FOR_MEMORY_STATS
 from tqdm import tqdm
-
-log = utils.get_logger("DEBUG")
 
 
 class LoRADPORecipeDistributed(FTRecipeInterface):
@@ -149,10 +148,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
-        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
-            log.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+        if (
+            self._log_peak_memory_stats
+            and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS
+        ):
+            self._logger.info(
+                f"log_peak_memory_stats was set to True; however, training device is not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
                 "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -175,7 +178,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 )
         elif self._enable_activation_checkpointing:
             utils.log_rank_zero(
-                log,
+                self._logger,
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
@@ -193,7 +196,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
         base model weights. If resume_from_checkpoint is True, this also includes
@@ -218,7 +221,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -269,7 +272,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             # log config with parameter override
             self._metric_logger.log_config(cfg)
 
-        utils.log_rank_zero(log, "metric logger is initialized.")
+        utils.log_rank_zero(self._logger, "metric logger is initialized.")
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
@@ -300,7 +303,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         self._loss_fn = config.instantiate(cfg.loss)
 
-        utils.log_rank_zero(log, "Loss is initialized.")
+        utils.log_rank_zero(self._logger, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -342,9 +345,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        base_model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -363,7 +366,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         init_start = time.perf_counter()
 
         utils.log_rank_zero(
-            log,
+            self._logger,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
         )
 
@@ -449,7 +452,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         training.validate_no_params_on_meta_device(model)
         utils.log_rank_zero(
-            log,
+            self._logger,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
         )
         if self._is_rank_zero:
@@ -462,7 +465,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -473,7 +476,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 self._device,
             )
 
-        utils.log_rank_zero(log, "Optimizer and loss are initialized.")
+        utils.log_rank_zero(self._logger, "Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -489,7 +492,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             last_epoch=last_epoch,
         )
 
-        utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
+        utils.log_rank_zero(self._logger, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -530,7 +533,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        utils.log_rank_zero(log, "Dataset and Sampler are initialized.")
+        utils.log_rank_zero(self._logger, "Dataset and Sampler are initialized.")
 
         return dataloader
 
@@ -623,14 +626,14 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             )
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+        self, model: nn.Module, batch: tuple[torch.Tensor, torch.Tensor]
     ) -> ChosenRejectedOutputs:
         """
         Run forward pass of the model with chosen and rejected samples concatenated.
 
         Args:
             model (nn.Module): The model to be used for the forward pass.
-            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+            batch (tuple[torch.Tensor, torch.Tensor]): tuple of input_ids and labels.
 
         Returns:
             Dataclass of chosen log probs, rejected log probs, chosen logits, rejected logits.
@@ -685,7 +688,6 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))

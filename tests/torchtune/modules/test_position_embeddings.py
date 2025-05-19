@@ -135,7 +135,6 @@ class TestRotaryPositionEmbedding:
 
 
 class TestVisionRotaryPositionEmbedding:
-
     EXPECTED_X_OUT_MEAN = tensor(-0.00903320)
     EXPECTED_X_OUT_SUM = tensor(-29.48437119)
     EXPECTED_X_OUT_MAX = tensor(4.07074356)

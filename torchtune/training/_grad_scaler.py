@@ -5,10 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, Iterable
 
 import torch
 from torch import nn, Tensor
+from torch.distributed.tensor import DTensor
 from torch.nn.utils.clip_grad import _no_grad, _tensor_or_tensors
 from torch.utils._foreach_utils import _device_has_foreach_support, _has_foreach_support
 from torchtune.utils._logging import deprecated
@@ -63,12 +64,14 @@ def scale_grads_(
     if isinstance(parameters, torch.Tensor):
         parameters = [parameters]
     else:
-        parameters = list(parameters)
+        # Graph Breaks
+        # Hint: Avoid calling builtin `list` with argument types ['generator']. Consider using an equivalent alternative function/method to `list`.
+        parameters = parameters
     _scale_grad_(parameters, scaler, foreach)
 
 
 def _group_tensors_by_device(
-    tensors: list[torch.Tensor],
+    tensors: Iterable[torch.Tensor],
 ) -> dict[torch.device, list[Tensor]]:
     ret = defaultdict(list)
     for i, tensor in enumerate(tensors):
@@ -102,4 +105,7 @@ def _scale_grad_(
         else:
             scaler_device = scaler.to(device)
             for g in device_grads:
-                g.mul_(scaler_device)
+                if isinstance(g, DTensor):
+                    g[:] = g * scaler_device
+                else:
+                    g.mul_(scaler_device)

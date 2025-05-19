@@ -10,15 +10,12 @@
 
 import logging
 import math
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.distributed._tensor import distribute_tensor, DTensor
-
-FORMAT = "[%(levelname)s %(asctime)s %(filename)s:%(lineno)s] %(message)s"
-logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 
 class TilePositionalEmbedding(nn.Module):
@@ -54,10 +51,10 @@ class TilePositionalEmbedding(nn.Module):
     @torch.no_grad()
     def _load_state_dict_hook(
         self,
-        state_dict: Dict[str, Any],
+        state_dict: dict[str, Any],
         prefix: str,
-        *args: Tuple[Any],
-        **kwargs: Dict[str, Any],
+        *args: tuple[Any],
+        **kwargs: dict[str, Any],
     ):
         """
         Interpolates positional embeddings to accomodate different number of tiles,
@@ -67,10 +64,10 @@ class TilePositionalEmbedding(nn.Module):
         For more info, check self._dynamic_resize function.
 
         Args:
-            state_dict (Dict[str, Any]): The state dict to load.
+            state_dict (dict[str, Any]): The state dict to load.
             prefix (str): The prefix of the state dict.
-            *args (Tuple[Any]): Additional positional arguments.
-            **kwargs (Dict[str, Any]): Additional keyword arguments.
+            *args (tuple[Any]): Additional positional arguments.
+            **kwargs (dict[str, Any]): Additional keyword arguments.
 
         Raises:
             ValueError: if the shape of the loaded embedding is not compatible with the current embedding.
@@ -81,7 +78,6 @@ class TilePositionalEmbedding(nn.Module):
         embedding = state_dict.get(prefix + "embedding")
 
         if embedding is not None:
-
             # We can only apply F.interpolate to vanilla tensors, not DTensors
             # If pos embeds are a DTensor, we gather the full tensor, apply
             # interpolate, and then reshard after
@@ -282,10 +278,10 @@ class TiledTokenPositionalEmbedding(nn.Module):
     @torch.no_grad()
     def _load_state_dict_hook(
         self,
-        state_dict: Dict[str, Any],
+        state_dict: dict[str, Any],
         prefix: str,
-        *args: Tuple[Any],
-        **kwargs: Dict[str, Any],
+        *args: tuple[Any],
+        **kwargs: dict[str, Any],
     ) -> None:
         """
         Interpolates positional embeddings to accomodate different number of tiles
@@ -296,10 +292,10 @@ class TiledTokenPositionalEmbedding(nn.Module):
         self._resize_global_position_embedding functions.
 
         Args:
-            state_dict (Dict[str, Any]): The state dict to load.
+            state_dict (dict[str, Any]): The state dict to load.
             prefix (str): The prefix of the state dict.
-            *args (Tuple[Any]): Additional positional arguments.
-            **kwargs (Dict[str, Any]): Additional keyword arguments.
+            *args (tuple[Any]): Additional positional arguments.
+            **kwargs (dict[str, Any]): Additional keyword arguments.
 
         Raises:
             ValueError: if loaded local or global embedding n_tokens_per_tile is not derived
@@ -316,7 +312,6 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
 
         if inpt_local_pos_embed is not None:
-
             # We can only apply F.interpolate to vanilla tensors, not DTensors
             # If pos embeds are a DTensor, we gather the full tensor, apply
             # interpolate, and then reshard after
@@ -374,7 +369,6 @@ class TiledTokenPositionalEmbedding(nn.Module):
         )
 
         if inpt_global_pos_embed is not None:
-
             # We can only apply F.interpolate to vanilla tensors, not DTensors
             # If pos embeds are a DTensor, we gather the full tensor, apply
             # interpolate, and then reshard after

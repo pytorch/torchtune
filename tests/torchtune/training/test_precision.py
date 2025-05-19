@@ -23,7 +23,6 @@ from torchtune.training.precision import (
 
 
 class TestPrecisionUtils:
-
     cuda_available: bool = torch.cuda.is_available()
 
     def test_get_dtype(self):

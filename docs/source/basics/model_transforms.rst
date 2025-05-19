@@ -111,9 +111,9 @@ The following methods are required on the model transform:
 
         def tokenize_messages(
             self,
-            messages: List[Message],
+            messages: list[Message],
             add_eos: bool = True,
-        ) -> Tuple[List[int], List[bool]]:
+        ) -> tuple[list[int], list[bool]]:
             # Any other custom logic here
             ...
 

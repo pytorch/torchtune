@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Generator, Iterable, Optional
 
 import torch
 
@@ -15,7 +15,7 @@ from torchtune.utils._device import is_npu_available
 log = get_logger()
 
 
-PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
+PRECISION_STR_TO_DTYPE: dict[str, torch.dtype] = {
     "fp16": torch.float16,
     "bf16": torch.bfloat16,
     "fp32": torch.float32,
@@ -150,17 +150,17 @@ def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
 
 
 def validate_expected_param_dtype(
-    named_params: Iterable[Tuple[str, torch.nn.Parameter]],
+    named_params: Iterable[tuple[str, torch.nn.Parameter]],
     dtype: torch.dtype,
-    exclude_param_names: Optional[List[str]] = None,
+    exclude_param_names: Optional[list[str]] = None,
 ) -> None:
     """
     Validates that all input parameters have the expected dtype.
 
     Args:
-        named_params (Iterable[Tuple[str, torch.nn.Parameter]]): Iterable of named parameters.
+        named_params (Iterable[tuple[str, torch.nn.Parameter]]): Iterable of named parameters.
         dtype (torch.dtype): Expected dtype.
-        exclude_param_names (Optional[List[str]]): Optional list of parameter names to exclude from dtype checking
+        exclude_param_names (Optional[list[str]]): Optional list of parameter names to exclude from dtype checking
 
     Raises:
         ValueError: If any parameter has a different dtype than `dtype`.

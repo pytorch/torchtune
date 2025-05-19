@@ -9,7 +9,7 @@ import mmap
 import sys
 from collections import OrderedDict
 from functools import partial
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Generator, Optional
 from warnings import warn
 
 import torch
@@ -23,7 +23,7 @@ _use_low_cpu_ram: bool = False
 
 def reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
-    state_dict: Dict[str, Any],
+    state_dict: dict[str, Any],
     *args: Any,
     dtype: torch.dtype = torch.bfloat16,
     offload_to_cpu: bool = True,
@@ -46,7 +46,7 @@ def reparametrize_as_dtype_state_dict_post_hook(
 
     Args:
         model (nn.Module): the model to take ``state_dict()`` on
-        state_dict (Dict[str, Any]): the state dict to modify
+        state_dict (dict[str, Any]): the state dict to modify
         *args (Any): Unused args passed when running this as a state_dict hook.
         dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
         offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
@@ -135,7 +135,7 @@ def slice_str_to_array(slice_str: str, length: int) -> list[bool]:
 
 def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
-    state_dict: Dict[str, Any],
+    state_dict: dict[str, Any],
     *args: Any,
     dtype: torch.dtype = torch.bfloat16,
     offload_to_cpu: bool = True,
@@ -161,7 +161,7 @@ def _low_ram_reparametrize_as_dtype_state_dict_post_hook(
 
     Args:
         model (nn.Module): the model to take ``state_dict()`` on
-        state_dict (Dict[str, Any]): the state dict to modify
+        state_dict (dict[str, Any]): the state dict to modify
         *args (Any): Unused args passed when running this as a state_dict hook.
         dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
         offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
