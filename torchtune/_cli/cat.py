@@ -8,7 +8,7 @@ import argparse
 import textwrap
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import yaml
 from torchtune._cli.subcommand import Subcommand
@@ -60,7 +60,7 @@ class Cat(Subcommand):
             "--sort", action="store_true", help="Print the config in sorted order"
         )
 
-    def _get_all_recipes(self) -> List[str]:
+    def _get_all_recipes(self) -> list[str]:
         return [recipe.name for recipe in get_all_recipes()]
 
     def _get_config(self, config_str: str) -> Optional[Config]:

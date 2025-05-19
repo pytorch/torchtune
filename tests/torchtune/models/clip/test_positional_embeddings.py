@@ -19,7 +19,6 @@ from torchtune.models.clip._position_embeddings import (
 class TestPositionalEmbeddings:
     @pytest.fixture(autouse=True)
     def setup_class(self):
-
         self.embed_dim = 16
         self.tile_size = 14
         self.max_num_tiles = 3

@@ -25,6 +25,7 @@ from torchtune.modules.early_exit_loss import (
     uniform_loss_scale,
 )
 
+
 # Mock components for TransformerDecoder
 class MockLayer(nn.Module):
     def forward(

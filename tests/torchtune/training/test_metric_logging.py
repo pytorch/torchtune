@@ -56,7 +56,7 @@ class TestDiskLogger:
             values = open(log_path).readlines()
             assert_expected(len(values), 5)
             for i in range(5):
-                assert values[i] == f"Step {i} | metric_1:{i} metric_2:{i ** 2} \n"
+                assert values[i] == f"Step {i} | metric_1:{i} metric_2:{i**2} \n"
 
 
 class TestStdoutLogger:
@@ -155,12 +155,12 @@ class TestWandBLogger:
             mock_log.assert_called_with(metric_dict, step=1)
 
     def test_save_config(self) -> None:
-        with patch("wandb.init") as mock_init, patch(
-            "wandb.run", create=True
-        ) as mock_run, patch("OmegaConf.save") as mock_save, patch(
-            "wandb.save"
-        ) as mock_wandb_save:
-
+        with (
+            patch("wandb.init") as mock_init,
+            patch("wandb.run", create=True) as mock_run,
+            patch("OmegaConf.save") as mock_save,
+            patch("wandb.save") as mock_wandb_save,
+        ):
             logger = WandBLogger(project="test_project")
             cfg = OmegaConf.create({"a": 1, "b": 2})
 

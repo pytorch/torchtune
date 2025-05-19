@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -18,7 +17,7 @@ class Config:
 class Recipe:
     name: str
     file_path: str
-    configs: List[Config]
+    configs: list[Config]
     supports_distributed: bool
 
 
@@ -28,8 +27,19 @@ _ALL_RECIPES = [
         file_path="dev/grpo_full_finetune_distributed.py",
         configs=[
             Config(name="dev/3B_full_grpo", file_path="dev/3B_full_grpo.yaml"),
+            Config(name="dev/qwen3B_sync_grpo", file_path="dev/qwen3B_sync_grpo.yaml"),
         ],
         supports_distributed=True,
+    ),
+    Recipe(
+        name="dev/async_grpo_full_finetune_distributed",
+        file_path="dev/async_grpo_full_finetune_distributed.py",
+        configs=[
+            Config(
+                name="dev/qwen3B_async_grpo", file_path="dev/qwen3B_async_grpo.yaml"
+            ),
+        ],
+        supports_distributed=False,
     ),
     Recipe(
         name="full_finetune_single_device",
@@ -378,6 +388,10 @@ _ALL_RECIPES = [
                 name="mistral/7B_full_ppo_low_memory",
                 file_path="mistral/7B_full_ppo_low_memory.yaml",
             ),
+            Config(
+                name="llama2/1B_full_ppo_low_memory_single_device",
+                file_path="llama2/1B_full_ppo_low_memory_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -570,11 +584,32 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="qat_single_device",
+        file_path="qat_single_device.py",
+        configs=[
+            Config(
+                name="qwen2_5/3B_qat_single_device",
+                file_path="qwen2_5/3B_qat_single_device.yaml",
+            ),
+            Config(
+                name="qwen2_5/1.5B_qat_single_device",
+                file_path="qwen2_5/1.5B_qat_single_device.yaml",
+            ),
+            Config(
+                name="llama2/1B_qat_single_device",
+                file_path="llama2/1B_qat_single_device.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
         name="qat_distributed",
         file_path="qat_distributed.py",
         configs=[
             Config(name="llama2/7B_qat_full", file_path="llama2/7B_qat_full.yaml"),
             Config(name="llama3/8B_qat_full", file_path="llama3/8B_qat_full.yaml"),
+            Config(name="llama3_1/8B_qat_full", file_path="llama3_1/8B_qat_full.yaml"),
+            Config(name="llama3_2/3B_qat_full", file_path="llama3_2/3B_qat_full.yaml"),
         ],
         supports_distributed=True,
     ),

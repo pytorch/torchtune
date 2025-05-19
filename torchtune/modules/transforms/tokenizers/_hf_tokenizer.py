@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from tokenizers import Tokenizer
 from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
@@ -55,13 +55,13 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self._infer_bos_eos_tokens()
         self._infer_should_add_bos_eos()
 
-    def _get_token_from_config(self, config: Dict[str, Any], key: str) -> str:
+    def _get_token_from_config(self, config: dict[str, Any], key: str) -> str:
         """
         HF BOS/EOS tokens are either stored as e.g. {'bos_token': 5}
         or {'bos_token': {'content': 5, ...}}. This utility handles both.
         """
         token = config.get(key)
-        if isinstance(token, Dict):
+        if isinstance(token, dict):
             if "content" not in token:
                 raise ValueError(f"Could not parse {key} from config")
             token = token["content"]
@@ -114,7 +114,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
 
     def encode(
         self, text: str, add_bos: bool = True, add_eos: bool = True
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Encodes a string into a list of token ids.
 
@@ -126,7 +126,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
                 Default True.
 
         Returns:
-            List[int]: The list of token ids.
+            list[int]: The list of token ids.
         """
         token_ids = self.tokenizer.encode(text).ids
         if add_bos and not self.hf_adds_bos:
@@ -135,12 +135,12 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
             token_ids.append(self.eos_id)
         return token_ids
 
-    def decode(self, token_ids: List[int]) -> str:
+    def decode(self, token_ids: list[int]) -> str:
         """
         Decode a list of token ids into a string.
 
         Args:
-            token_ids (List[int]): The list of token ids.
+            token_ids (list[int]): The list of token ids.
 
         Returns:
             str: The decoded string.

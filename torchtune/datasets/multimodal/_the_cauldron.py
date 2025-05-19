@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 from torchtune.data._messages import Message
 from torchtune.datasets._sft import SFTDataset, SFTTransform
@@ -56,7 +56,7 @@ class TheCauldronToMessages(Transform):
         ]
 
     Args:
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "texts" and "image"
+        column_map (Optional[dict[str, str]]): a mapping to change the expected "texts" and "image"
             column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
@@ -68,7 +68,7 @@ class TheCauldronToMessages(Transform):
 
     def __init__(
         self,
-        column_map: Optional[Dict[str, str]] = None,
+        column_map: Optional[dict[str, str]] = None,
         new_system_prompt: Optional[str] = None,
     ):
         self.new_system_prompt = new_system_prompt
@@ -126,12 +126,12 @@ def the_cauldron_dataset(
     *,
     subset: str = "orcvqa",
     source: str = "HuggingFaceM4/the_cauldron",
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> SFTDataset:
     """
     Support for family of image + text datasets similar to
@@ -188,7 +188,7 @@ def the_cauldron_dataset(
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``HuggingFaceM4/the_cauldron``.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "images"
+        column_map (Optional[dict[str, str]]): a mapping to change the expected "images"
             and "texts" column names to the actual column names in the dataset. Default is None,
             keeping the default column names.
         new_system_prompt (Optional[str]): if specified, prepend a system message. This can
@@ -200,7 +200,7 @@ def the_cauldron_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``. See Hugging
             Face's `API ref <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset>`_
             for more details.
 

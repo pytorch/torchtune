@@ -320,7 +320,7 @@ just specify any config with ``_lora`` in its name, e.g:
 There are two sets of parameters to customize LoRA to suit your needs. Firstly, the parameters which control
 which linear layers LoRA should be applied to in the model:
 
-* ``lora_attn_modules: List[str]`` accepts a list of strings specifying which layers of the model to apply
+* ``lora_attn_modules: list[str]`` accepts a list of strings specifying which layers of the model to apply
   LoRA to:
 
   * ``q_proj`` applies LoRA to the query projection layer.
