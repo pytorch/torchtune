@@ -4,14 +4,41 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable
 
 import torch
 from torch import nn
 
 from torchtune.modules import Fp32LayerNorm
 from torchtune.modules.transformer import _get_clones
+from torchtune.modules.fusion import register_fusion_module
 
+
+class Qwen2_5_VisionMLP(nn.Module):
+    """
+    MLP for Qwen 2.5 Vision.
+    """
+
+    def __init__(
+        self,
+        *,
+        gate_proj: nn.Module,
+        down_proj: nn.Module,
+        up_proj: Optional[nn.Module] = None,
+        activation: nn.Module = nn.SiLU(),
+    ):
+        super().__init__()
+        self.gate_proj = gate_proj
+        self.down_proj = down_proj
+        self.up_proj = up_proj
+        self.act_fn = activation
+
+    def forward(self, x: torch.Tensor):
+        x_gate, _ = self.gate_proj(x)
+        x_gate = self.act_fn(x_gate)
+        x_up, _ = self.up_proj(x)
+        x_down, _ = self.down_proj(x_gate * x_up)
+        return x_down
 
 class Qwen2_5_VisionTransformer(nn.Module):
     """
@@ -28,7 +55,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
         token_pos_embedding: nn.Module,
         pre_tile_pos_embed: Optional[nn.Module] = None,
         post_tile_pos_embed: Optional[nn.Module] = None,
-        cls_projection: Optional[nn.Module] = None,
         out_indices: Optional[List[int]] = None,
         in_channels: int = 3,
         append_cls_token: bool = False,
@@ -56,7 +82,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
         self.post_tile_pos_embed = post_tile_pos_embed
         self.token_pos_embedding = token_pos_embedding
 
-        self.cls_projection = cls_projection
         self.layers = _get_clones(layer, num_layers)
 
         # other modules
@@ -227,9 +252,6 @@ class Qwen2_5_VisionTransformer(nn.Module):
         # reshape output
         x = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
 
-        # cls token projection. n_tokens becomes 1
-        if self.cls_projection:
-            x = self.cls_projection(x)
 
         return x, hidden_states
 
@@ -266,29 +288,127 @@ class CLSEmbedding(nn.Module):
         )
 
 
-class CLSProjection(nn.Module):
-    """
-    Linear projection of the CLS token.
+
+
+class Qwen2_5VisionProjectionHead(nn.Module):
+    """Projection transformer to adapt the output of a
+    pretrained frozen encoder (CLIP) to a pretrained decoder model.
+    For example, ``nn.Sequential(CLIP(), Qwen2_5VisionProjectionHead())``.
+
+    Note: this module assumes the CLS token embedding is added at the end
+    of the sequence.
 
     Args:
-        embed_dim (int): The dimensionality of the input patch embedding.
-        cls_output_dim (int): The dimensionality of the output projection.
+        output (nn.Module): output layer, typically an MLP.
+        pixel_shuffle_scaling_factor (float): scaling factor for pixel shuffle.
     """
 
-    def __init__(self, embed_dim: int, cls_output_dim: int) -> None:
+    def __init__(
+        self,
+        output: nn.Module,
+        pixel_shuffle_scaling_factor: float = 0.5,
+    ) -> None:
         super().__init__()
+        self.output = output
+        self.pixel_shuffle_scaling_factor = pixel_shuffle_scaling_factor
 
-        scale = embed_dim**-0.5
-        self.cls_output_dim = cls_output_dim
-        self.weight = nn.Parameter(scale * torch.randn(embed_dim, cls_output_dim))
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        bsz, n_imgs, n_tiles, n_tokens, embed_dim = x.shape
-        x = x.reshape(bsz * n_imgs * n_tiles, n_tokens, embed_dim)
-
-        # out: (bsz * n_tiles, cls_output_dim)
-        x = x[:, 0, :] @ self.weight
-
-        # num_tokens becomes 1 because we only return the CLS token projection
-        x = x.reshape(bsz, n_imgs, n_tiles, 1, self.cls_output_dim)
+    def _pixel_shuffle(self, x: torch.Tensor) -> torch.Tensor:
+        n, w, h, c = x.size()
+        x = x.view(
+            n,
+            w,
+            int(h * self.pixel_shuffle_scaling_factor),
+            int(c / self.pixel_shuffle_scaling_factor),
+        )
+        x = x.permute(0, 2, 1, 3).contiguous()
+        x = x.view(
+            n,
+            int(h * self.pixel_shuffle_scaling_factor),
+            int(w * self.pixel_shuffle_scaling_factor),
+            int(
+                c
+                / (
+                    self.pixel_shuffle_scaling_factor
+                    * self.pixel_shuffle_scaling_factor
+                )
+            ),
+        )
+        x = x.permute(0, 2, 1, 3).contiguous()
         return x
+
+    def forward(
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): input tensor with shape [b, e, d]
+
+        Returns:
+            Tensor: output tensor of a sequence of embeddings [b, s, d * pixel_shuffle_factor ** 2]
+
+        Notation used for tensor shapes:
+            - b: batch size
+            - e: number of embeds per tile (e.g. CLS embed + patch embeds, etc.)
+            - s: sequence length computed by t * (e - 1) // (pixel_shuffle_factor ** 2)
+            - d: embed dim
+        """
+        # Remove cls token - assumes it is the last token in the sequence
+        x = x[:, :-1, :] # TODO: Remove?
+        bsz, embeds, dim = x.shape
+
+        # apply pixel shuffle
+        h_patches = w_patches = int(embeds**0.5)
+        x = x.reshape(bsz, h_patches, w_patches, -1)
+        x = self._pixel_shuffle(x)
+        _, new_h_patches, new_w_patches, new_dim = x.shape
+        # shape: [bsz, embeds // factor ** 2, dim * factor ** 2)]
+        x = x.reshape(bsz, new_h_patches * new_w_patches, new_dim)
+        # apply output - shape [bsz, embeds // factor ** 2, output_dim]
+        x = self.output(x)
+
+        return x
+
+
+
+class Qwen2_5VisionEncoder(nn.Module):
+    """Vision encoder model for Qwen 2.5. This combines a pretrained
+    vision encoder with a learnable projection head. The projection head
+    is converted to a fusion module and supports fusion utils.
+
+    Args:
+        visual_encoder (nn.Module): Qwen2_5_VisionTransformer model
+        projection_head (nn.Module): ``projection_head`` that takes embeddings
+            with dimension ``encoder_dim`` as input and outputs embeddings of
+            size ``decoder_dim``. See :func:`torchtune.models.qwen2_5_vision.qwen2_5_vision_projection_head`
+            as an example.
+    """
+
+    def __init__(self, visual_encoder: nn.Module, projection_head: nn.Module) -> None:
+        super().__init__()
+        self.visual_encoder = visual_encoder
+        self.projection = projection_head
+        register_fusion_module(self.projection)
+
+    def forward(self, images: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            images (torch.Tensor): Image tensor with shape [b x c x w x h]
+
+        Returns:
+            Tensor: output tensor of a sequence of embeddings ``[b x s x d]``
+                where sequence length (``s``) is ``(num_imgs*num_tiles)+num_embeds``
+
+         Notation used for tensor shapes:
+            - b: batch size, equal to flatten(batch x images x tiles)
+            - c: number of image channels (e.g. rgb = 3)
+            - w: image width
+            - h: image height
+            - s: sequence length computed by i*t*clip_embeds_per_tile
+            - d: embed dim
+        """
+        #TODO: check dims
+        x, _ = self.visual_encoder(images[:, None, None])
+        x = self.projection(x.squeeze((1, 2)))
+        return x
+

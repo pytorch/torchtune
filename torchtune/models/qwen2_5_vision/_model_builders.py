@@ -66,7 +66,7 @@ def qwen2_5_vl_7b_base(
         decoder = decoder,
         encoder = {"vision": encoder},
         encoder_tokens={
-            "vision": QWEN2_5_SPECIAL_TOKENS["<|patch|>"], #TODO: FIX
+            "vision": QWEN2_5_SPECIAL_TOKENS["<|patch|>"], #TODO: do we need to introduce a new token?
         },
         encoders_trainable={
             "vision": encoder_trainable,
