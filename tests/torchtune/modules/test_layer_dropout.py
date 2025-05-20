@@ -6,7 +6,6 @@
 
 
 import math
-from typing import Tuple
 
 import pytest
 import torch
@@ -24,14 +23,14 @@ class TestLayerDropout:
     """Class for testing LayerDropout implementation."""
 
     @pytest.fixture
-    def input_shape(self) -> Tuple[int, int]:
+    def input_shape(self) -> tuple[int, int]:
         bsz = 8
         seqlen = 256
         dim = 32
         return bsz, seqlen, dim
 
     @pytest.fixture
-    def input(self, input_shape: Tuple[int]) -> torch.Tensor:
+    def input(self, input_shape: tuple[int]) -> torch.Tensor:
         return torch.randn(input_shape)
 
     @pytest.fixture
@@ -72,13 +71,13 @@ class TestLayerDropout:
 
 class TestLayerDropoutWrapper:
     @pytest.fixture
-    def input_shape(self) -> Tuple[int, int]:
+    def input_shape(self) -> tuple[int, int]:
         bsz = 4
         dim = 8
         return (bsz, dim)
 
     @pytest.fixture
-    def input(self, input_shape: Tuple[int]) -> torch.Tensor:
+    def input(self, input_shape: tuple[int]) -> torch.Tensor:
         return torch.randn(input_shape)
 
     @pytest.fixture

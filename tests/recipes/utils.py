@@ -7,7 +7,7 @@
 import json
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 import torch
 from torch.utils.data import Dataset
@@ -88,7 +88,7 @@ def dummy_text_completion_alpaca_dataset_config():
     return out
 
 
-def llama2_test_config() -> List[str]:
+def llama2_test_config() -> list[str]:
     return [
         "model._component_=torchtune.models.llama2.llama2",
         "model.vocab_size=32_000",
@@ -101,7 +101,7 @@ def llama2_test_config() -> List[str]:
     ]
 
 
-def llama2_classifier_test_config() -> List[str]:
+def llama2_classifier_test_config() -> list[str]:
     return [
         "model._component_=torchtune.modules.classifier_model",
         "model.base_model_path=torchtune.models.llama2.llama2",
@@ -116,7 +116,7 @@ def llama2_classifier_test_config() -> List[str]:
     ]
 
 
-def llama3_test_config() -> List[str]:
+def llama3_test_config() -> list[str]:
     return [
         "model._component_=torchtune.models.llama3.llama3",
         "model.vocab_size=128_256",
@@ -129,7 +129,7 @@ def llama3_test_config() -> List[str]:
     ]
 
 
-def llama3_test_config_137m() -> List[str]:
+def llama3_test_config_137m() -> list[str]:
     """
     Test config with slightly larger embed dim to be paged and flex attention friendly
     """
@@ -145,7 +145,7 @@ def llama3_test_config_137m() -> List[str]:
     ]
 
 
-def llama3_2_vision_test_config() -> List[str]:
+def llama3_2_vision_test_config() -> list[str]:
     return [
         "model=tests.recipes.utils.dummy_vision_model",
         "tokenizer._component_=torchtune.models.llama3_2_vision._transform.Llama3VisionTransform",
@@ -205,7 +205,7 @@ def lora_llama2_test_config(
     lora_alpha: float = 16,
     quantize_base: bool = False,
     use_dora: bool = False,
-) -> List[str]:
+) -> list[str]:
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison
@@ -235,7 +235,7 @@ def lora_llama3_test_config(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
-) -> List[str]:
+) -> list[str]:
     return [
         # Note: we explicitly use _component_ so that we can also call
         # config.instantiate directly for easier comparison

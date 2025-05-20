@@ -11,7 +11,7 @@ import re
 import time
 from concurrent.futures import Future
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Optional, Protocol, Union
 
 import torch
 import torch.distributed as dist
@@ -113,9 +113,9 @@ class _CheckpointerInterface(Protocol):
 
     """
 
-    def load_checkpoint(self, **kwargs) -> Dict[str, Any]: ...
+    def load_checkpoint(self, **kwargs) -> dict[str, Any]: ...
 
-    def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None: ...
+    def save_checkpoint(self, state_dict: dict[str, Any], **kwargs) -> None: ...
 
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
@@ -128,7 +128,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
     Args:
         checkpoint_dir (str): Directory containing the checkpoint files
-        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care
+        checkpoint_files (list[str]): list of checkpoint files to load. Since the checkpointer takes care
             of sorting by file ID, the order in this list does not matter
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
         output_dir (str): Directory to save the checkpoint files
@@ -151,7 +151,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
     def __init__(
         self,
         checkpoint_dir: str,
-        checkpoint_files: List[str],
+        checkpoint_files: list[str],
         model_type: str,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
@@ -222,7 +222,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
             )
 
-    def load_checkpoint(self, weights_only: bool = True) -> Dict[str, Any]:
+    def load_checkpoint(self, weights_only: bool = True) -> dict[str, Any]:
         """
         Load torchtune checkpoint from file. Currently only loading from a single file is supported.
 
@@ -243,9 +243,9 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 cannot be loaded with weights_only=True
 
         Returns:
-            Dict[str, Any]: state_dict from the input checkpoint
+            dict[str, Any]: state_dict from the input checkpoint
         """
-        state_dict: Dict[str:Any] = {}
+        state_dict: dict[str:Any] = {}
         state_dict[training.MODEL_KEY] = safe_torch_load(
             self._checkpoint_path, weights_only=weights_only
         )
@@ -261,7 +261,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
     def save_checkpoint(
         self,
-        state_dict: Dict[str, Any],
+        state_dict: dict[str, Any],
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
@@ -287,7 +287,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         >>> }
 
         Args:
-            state_dict (Dict[str, Any]): State dict with model and (optionally) recipe state
+            state_dict (dict[str, Any]): State dict with model and (optionally) recipe state
             epoch (int): Current epoch number. This is added to the checkpoint file name to ensure
                 we're not overwriting intermediate checkpoint files
             intermediate_checkpoint (bool): If True, save an additional checkpoint file with the
@@ -388,7 +388,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
     Args:
         checkpoint_dir (str): Directory containing the checkpoint files
-        checkpoint_files (Union[List[str], Dict[str, str]]): List of checkpoint files to load or a dictionary
+        checkpoint_files (Union[list[str], dict[str, str]]): list of checkpoint files to load or a dictionary
             containing the keys keys ["filename_format", "max_filename"]. Since the checkpointer takes care
             of sorting by file ID, the order in this list does not matter.
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
@@ -417,7 +417,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     def __init__(
         self,
         checkpoint_dir: str,
-        checkpoint_files: Union[List[str], Dict[str, str]],
+        checkpoint_files: Union[list[str], dict[str, str]],
         model_type: str,
         output_dir: str,
         adapter_checkpoint: str = "adapter_model.pt",
@@ -459,7 +459,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
         # load
-        self._weight_map: Dict[str, str] = None
+        self._weight_map: dict[str, str] = None
 
         # the config.json file contains model params needed for state dict conversion
         self._config = None
@@ -505,7 +505,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 has_adapter_checkpoint=False,
             )
 
-    def load_checkpoint(self) -> Dict[str, Any]:
+    def load_checkpoint(self) -> dict[str, Any]:
         """
         Load HF checkpoint from file.
 
@@ -517,7 +517,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         the appropriate convert_weights function (depending on ``self._model_type``).
 
         Returns:
-            state_dict (Dict[str, Any]): torchtune checkpoint state dict
+            state_dict (dict[str, Any]): torchtune checkpoint state dict
 
         Raises:
             ValueError: If the values in the input state_dict are not Tensors
@@ -526,12 +526,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._weight_map = {}
 
         # merged state_dict contains keys and weights from all the checkpoint files
-        merged_state_dict: Dict[str, torch.Tensor] = {}
+        merged_state_dict: dict[str, torch.Tensor] = {}
 
         # converted_state_dict is the final state_dict passed to the recipe after the
         # keys are converted into the torchtune format. This optionally also contains
         # the recipe state and adapter weights
-        converted_state_dict: Dict[str, Dict[str, torch.Tensor]] = {}
+        converted_state_dict: dict[str, dict[str, torch.Tensor]] = {}
 
         if self._enable_dcp:
             from torch.distributed.checkpoint import (
@@ -693,7 +693,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
     def save_checkpoint(
         self,
-        state_dict: Dict[str, Any],
+        state_dict: dict[str, Any],
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
@@ -709,7 +709,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         ``_weight_map`` into separate checkpoint files.
 
         Args:
-            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
+            state_dict (dict[str, Any]): Checkpoint state dict to be written out to file
             epoch (int): Epoch number. Used to create the checkpoint file name
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
@@ -835,7 +835,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 #       "0001": {"key1": tensor1, "key2": tensor2},
                 #       "0002": {"key3": tensor3}
                 #       }
-                split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
+                split_state_dicts: dict[str, dict[str, torch.Tensor]] = {}
                 total_size = 0
                 for key, weight in state_dict[training.MODEL_KEY].items():
                     cpt_idx = self._weight_map[key]
@@ -1049,7 +1049,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
     Args:
         checkpoint_dir (str): Directory containing the checkpoint files
-        checkpoint_files (List[str]): List of checkpoint files to load. Currently this checkpointer only
+        checkpoint_files (list[str]): list of checkpoint files to load. Currently this checkpointer only
             supports loading a single checkpoint file.
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
         output_dir (str): Directory to save the checkpoint files
@@ -1073,7 +1073,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
     def __init__(
         self,
         checkpoint_dir: str,
-        checkpoint_files: List[str],
+        checkpoint_files: list[str],
         model_type: str,
         output_dir: str,
         adapter_checkpoint: Optional[str] = None,
@@ -1142,11 +1142,11 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 f"\n\tadapter_checkpoint: {self._adapter_checkpoint}"
             )
 
-    def load_checkpoint(self) -> Dict[str, Any]:
+    def load_checkpoint(self) -> dict[str, Any]:
         """
         Load Meta checkpoint from file. Currently only loading from a single file is supported.
         """
-        state_dict: Dict[str:Any] = {}
+        state_dict: dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
         if self._model_type == ModelType.LLAMA3_VISION:
             from torchtune.models.llama3_2_vision._convert_weights import (
@@ -1185,7 +1185,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
     def save_checkpoint(
         self,
-        state_dict: Dict[str, Any],
+        state_dict: dict[str, Any],
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
@@ -1198,7 +1198,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         which contains the recipe state.
 
         Args:
-            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
+            state_dict (dict[str, Any]): Checkpoint state dict to be written out to file
             epoch (int): Epoch number. Used to create the checkpoint file name
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
@@ -1399,10 +1399,10 @@ class DistributedCheckpointer(_CheckpointerInterface):
 
     def load_checkpoint(
         self,
-        state_dict: Dict[str, Any] = None,
+        state_dict: dict[str, Any] = None,
         checkpoint_path: Optional[str] = None,
         adapter_only: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Load a Distributed checkpoint saved at the <checkpoint_path>
         If no path is provided, latest intermediate checkpoint is loaded.
@@ -1441,7 +1441,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
 
     def save_checkpoint(
         self,
-        state_dict: Dict[str, Any],
+        state_dict: dict[str, Any],
         epoch: int,
         save_async: bool = False,
         adapter_only: bool = False,
@@ -1453,7 +1453,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         one as the finetuning job can not terminate until the checkpoint gets persisted.
 
         Args:
-            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
+            state_dict (dict[str, Any]): Checkpoint state dict to be written out to file
             epoch (int): Epoch number. Used to create the checkpoint file name
             save_async (bool): If True, save the checkpoint asynchronously
             adapter_only (bool): If True, only adapter weights are being saved, which affects which path to save to.

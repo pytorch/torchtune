@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import re
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from torchtune.datasets import SFTDataset
 from torchtune.modules.tokenizers import ModelTokenizer
@@ -57,7 +57,7 @@ def gsm8k_dataset(
     split: str = "train",
     name: str = "main",
     partition: Optional[str] = None,
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> RLDataset:
     """
     GSM8k dataset from OpenAI, prepared for RL-based training with verifiable rewards.
@@ -102,7 +102,7 @@ def gsm8k_sft(
     split: str = "train",
     name: str = "main",
     partition: Optional[str] = None,
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> SFTDataset:
     """
     GSM8k dataset from OpenAI, prepared for SFT-based training with CoT.

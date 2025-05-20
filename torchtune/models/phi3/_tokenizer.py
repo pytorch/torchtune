@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 from torchtune.data._messages import Message
 from torchtune.data._prompt_templates import PromptTemplate
@@ -36,7 +36,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
 
     Args:
         path (str): Path to pretrained tokenizer file.
-        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
+        special_tokens (Optional[dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Phi3 special tokens.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
@@ -63,7 +63,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
     def __init__(
         self,
         path: str,
-        special_tokens: Optional[Dict[str, int]] = None,
+        special_tokens: Optional[dict[str, int]] = None,
         max_seq_len: Optional[int] = None,
         prompt_template: Optional[PromptTemplate] = None,
         truncation_type: str = "right",
@@ -101,7 +101,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
         add_bos: bool = True,
         add_eos: bool = True,
         trim_leading_whitespace: bool = False,
-    ) -> List[int]:
+    ) -> list[int]:
         return self._spm_model.encode(
             text,
             add_bos=add_bos,
@@ -109,11 +109,11 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             trim_leading_whitespace=trim_leading_whitespace,
         )
 
-    def decode(self, ids: List[int], skip_special_tokens: bool = True) -> str:
+    def decode(self, ids: list[int], skip_special_tokens: bool = True) -> str:
         """Decode token IDs to strings.
 
         Args:
-            ids (List[int]): The input token IDs to be decoded.
+            ids (list[int]): The input token IDs to be decoded.
             skip_special_tokens (bool): Whether to show or skip special tokens in the decoded string.
                 Default is True.
 
@@ -132,11 +132,11 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        add_eos: bool = False,
+        add_end_tokens: bool = False,
         ignore_system_prompt: bool = False,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> tuple[list[int], list[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
@@ -158,9 +158,9 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
 
 
         Args:
-            messages (List[Message]): A list of messages, each containing role, content,
+            messages (list[Message]): A list of messages, each containing role, content,
                 and masked attributes.
-            add_eos (bool): Whether to append EOS after assistant message, default to False
+            add_end_tokens (bool): Whether to append EOS after assistant message, default to False
             ignore_system_prompt (bool): Whether to ignore system prompt, defaults to False.
 
         Raises:
@@ -168,7 +168,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             RuntimeError: If ``message["type"] != "text``.
 
         Returns:
-            Tuple[List[int], List[bool]]: The tokenized messages
+            tuple[list[int], list[bool]]: The tokenized messages
         """
         templated_messages = (
             self.prompt_template(messages)
@@ -235,7 +235,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             mask.extend([message.masked] * len(tokens))
 
             # If assistant message, append EOS at end
-            if end_of_turn and add_eos:
+            if end_of_turn and add_end_tokens:
                 tokenized_messages.append(self.eos_id)
                 mask.append(message.masked)
                 end_of_turn = False
@@ -252,13 +252,13 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             tokenized_messages = truncate(
                 tokens=tokenized_messages,
                 max_seq_len=self.max_seq_len,
-                eos_id=self.eos_id if add_eos else None,
+                eos_id=self.eos_id if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
             mask = truncate(
                 tokens=mask,
                 max_seq_len=self.max_seq_len,
-                eos_id=True if add_eos else None,
+                eos_id=True if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
 
@@ -272,7 +272,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
-                a List[Message] to tokenize
+                a list[Message] to tokenize
             inference (bool): Whether the template is being used for inference or not.
 
         Returns:
@@ -281,7 +281,7 @@ class Phi3MiniTokenizer(ModelTokenizer, Transform):
             inference (bool): Whether the template is being used for inference or not.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample

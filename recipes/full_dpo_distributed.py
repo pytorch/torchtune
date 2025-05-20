@@ -7,7 +7,7 @@
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -211,7 +211,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+    def _load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the reference model checkpoint state from file.
         """
@@ -221,7 +221,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         checkpoint_dict = _ref_checkpointer.load_checkpoint()
         return checkpoint_dict[training.MODEL_KEY]
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -407,8 +407,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         enable_activation_offloading: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -497,8 +497,8 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
     ) -> nn.Module:
         """
         Similar to `self._setup_model`:
@@ -583,7 +583,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
@@ -714,7 +714,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
     def concatenated_forward(
         self,
         model: nn.Module,
-        batch: Tuple[torch.Tensor, torch.Tensor],
+        batch: tuple[torch.Tensor, torch.Tensor],
         activations_handling: Optional[bool] = True,
     ) -> ChosenRejectedOutputs:
         """
@@ -722,7 +722,7 @@ class FullDPORecipeDistributed(FTRecipeInterface):
 
         Args:
             model (nn.Module): The model to be used for the forward pass.
-            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+            batch (tuple[torch.Tensor, torch.Tensor]): tuple of input_ids and labels.
 
         Returns:
             Dataclass of chosen log probs, rejected log probs, chosen logits, rejected logits.
@@ -789,7 +789,6 @@ class FullDPORecipeDistributed(FTRecipeInterface):
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
 

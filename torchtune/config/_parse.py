@@ -7,7 +7,7 @@ import argparse
 import functools
 import sys
 from argparse import Namespace
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -40,7 +40,7 @@ class TuneRecipeArgumentParser(argparse.ArgumentParser):
             required=True,
         )
 
-    def parse_known_args(self, *args, **kwargs) -> Tuple[Namespace, List[str]]:
+    def parse_known_args(self, *args, **kwargs) -> tuple[Namespace, list[str]]:
         """This acts the same as the base parse_known_args but will first load in defaults from
         from the config yaml file if it is provided. The command line args will always take
         precident over the values in the config file. All other parsing method, such as parse_args,

@@ -9,7 +9,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -27,6 +27,7 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.embedding_utils import resize_token_embeddings
 from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import (
@@ -227,6 +228,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._enable_activation_offloading = cfg.get(
             "enable_activation_offloading", False
         )
+        self._activation_offloading_use_streams = cfg.get(
+            "activation_offloading_use_streams", True
+        )
+        if self._activation_offloading_use_streams and self.parallel_dims.tp_enabled:
+            warn(
+                message=(
+                    "Using activation offloading with streams is not advised in tensor parallel, and may "
+                    "cause unstable training. It is advised to set activation_offloading_use_streams: False"
+                )
+            )
         if self._enable_activation_offloading:
             if device_type != "cuda":
                 raise RuntimeError(
@@ -256,7 +267,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -339,6 +350,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
+            activation_offloading_use_streams=self._activation_offloading_use_streams,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -347,6 +359,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ac_option=cfg.get("ac_option", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
+
+        if cfg.get("resize_token_embeddings", False):
+            resize_token_embeddings(self._model, self._tokenizer.vocab_size)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -358,6 +373,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
         if self._compile_optimizer_step:
+            if self._optimizer_in_bwd:
+                raise ValueError(
+                    "optimizer_in_bwd not supported with compiling the optimizer step"
+                )
             self._optimizer.step = torch.compile(
                 self._optimizer.step,
                 backend=self._compile_backend,
@@ -541,10 +560,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
+        activation_offloading_use_streams: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
     ) -> nn.Module:
@@ -659,7 +679,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
-            model, enable_activation_offloading
+            model, enable_activation_offloading, activation_offloading_use_streams
         )
 
         # Ensure no params and buffers are on meta device
@@ -683,7 +703,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
@@ -738,7 +758,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -784,7 +804,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return dataloader
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
@@ -806,7 +826,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return loss
 
-    def validate(self) -> Dict[str, float]:
+    def validate(self) -> dict[str, float]:
         """
         Run validation loop and return average validation loss.
         """
@@ -917,7 +937,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         self._grad_scaler(
-                            self._model.parameters(), self.dp_degree / num_tokens
+                            self._model.parameters(),
+                            self.world_size / num_tokens,
+                            False if self.parallel_dims.tp_enabled else None,
                         )
 
                         if self._clip_grad_norm is not None:

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Optional, TypeVar, Union
+from typing import Any, Callable, Literal, Optional, TypeVar, Union
 from urllib import request
 
 import torch
@@ -23,17 +23,17 @@ T = TypeVar("T", bound=type)
 
 
 def truncate(
-    tokens: List[Any],
+    tokens: list[Any],
     max_seq_len: int,
     eos_id: Optional[Any] = None,
     truncation_type: str = "right",
-) -> List[Any]:
+) -> list[Any]:
     """
     Truncate a list of tokens to a maximum length. If eos_id is provided, the last
     token will be replaced with eos_id.
 
     Args:
-        tokens (List[Any]): list of tokens to truncate
+        tokens (list[Any]): list of tokens to truncate
         max_seq_len (int): maximum length of the list
         eos_id (Optional[Any]): token to replace the last token with. If None, the
             last token will not be replaced. Default is None.
@@ -41,7 +41,7 @@ def truncate(
             Default is "right".
 
     Returns:
-        List[Any]: truncated list of tokens
+        list[Any]: truncated list of tokens
 
     Raises:
         ValueError: if truncation_type is not "left" or "right"
@@ -111,8 +111,8 @@ def load_image(image_loc: Union[Path, str]) -> torch.Tensor:
 
 
 def format_content_with_images(
-    content: str, *, image_tag: str, images: List["PIL.Image.Image"]
-) -> List[Dict[str, Any]]:
+    content: str, *, image_tag: str, images: list["PIL.Image.Image"]
+) -> list[dict[str, Any]]:
     """
     Given a raw text string, split by the specified ``image_tag``
     and form into list of dictionaries to be used in the :class:`~torchtune.data.Message` content
@@ -133,7 +133,7 @@ def format_content_with_images(
     Args:
         content (str): raw message text
         image_tag (str): string to split the text by
-        images (List["PIL.Image.Image"]): list of images to be used in the content
+        images (list["PIL.Image.Image"]): list of images to be used in the content
 
     Raises:
         ValueError: If the number of images does not match the number of image tags in the content
@@ -153,7 +153,7 @@ def format_content_with_images(
         ]
 
     Returns:
-        List[Dict[str, Any]]: list of dictionaries to be used in the :class:`~torchtune.data.Message` content field
+        list[dict[str, Any]]: list of dictionaries to be used in the :class:`~torchtune.data.Message` content field
     """
     num_image_tags_in_content = content.count(image_tag)
     if len(images) != num_image_tags_in_content:
@@ -173,12 +173,12 @@ def format_content_with_images(
     return final_content_list
 
 
-def chain(*funcs: List[Callable]) -> Callable:
+def chain(*funcs: list[Callable]) -> Callable:
     """
     Chain a list of functions together into a single function.
 
     Args:
-        *funcs (List[Callable]): list of functions to chain together
+        *funcs (list[Callable]): list of functions to chain together
 
     Returns:
         Callable: chained function
@@ -202,7 +202,7 @@ def load_hf_dataset(
     num_workers: int = 0,
     parallel_method: Literal["process", "thread"] = "thread",
     streaming: bool = False,
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> DatasetType:
     """
     Load a HuggingFace dataset (Map or Streaming) and apply a Transform to it.
@@ -219,7 +219,7 @@ def load_hf_dataset(
         parallel_method (Literal["process", "thread"]): Method to use for parallelism. Default is "thread". No effect if
             num_workers is 0.
         streaming (bool): whether to load a streaming vs map-style dataset. Default False.
-        **load_dataset_kwargs (Dict[str, Any]): Additional Keyword arguments to pass to HuggingFace dataset. See Hugging Face's
+        **load_dataset_kwargs (dict[str, Any]): Additional Keyword arguments to pass to HuggingFace dataset. See Hugging Face's
             documentation.
 
     Returns:
@@ -265,8 +265,8 @@ def load_hf_dataset(
 
 @requires_torchdata
 def get_multi_dataset(
-    datasets: Dict[str, DatasetType],
-    weights: Dict[str, float],
+    datasets: dict[str, DatasetType],
+    weights: dict[str, float],
     stop_criteria: str = "CYCLE_UNTIL_ALL_DATASETS_EXHASTED",
     seed: int = 0,
 ) -> DatasetType:
@@ -275,8 +275,8 @@ def get_multi_dataset(
     samples from the given datasets according to the specified weights.
 
     Args:
-        datasets (Dict[str, DatasetType]): dictionary of datasets
-        weights (Dict[str, float]): dictionary of weights for each dataset. If not
+        datasets (dict[str, DatasetType]): dictionary of datasets
+        weights (dict[str, float]): dictionary of weights for each dataset. If not
         stop_criteria (str): stop criteria for the sampler. Default "CYCLE_UNTIL_ALL_DATASETS_EXHASTED".
             See also: torchdata.nodes.StopCriteria
         seed (int): seed for the random number generator. Default 0.

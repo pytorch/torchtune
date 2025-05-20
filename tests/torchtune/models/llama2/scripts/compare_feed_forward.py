@@ -48,7 +48,6 @@ class FeedForwardRef(nn.Module):
 
 
 def compare_feed_forward(embed_dim: int, hidden_dim: int) -> None:
-
     # make sure we have the right seed for generating outputs
     # this should match up the seed value set in the corresponding
     # unit test

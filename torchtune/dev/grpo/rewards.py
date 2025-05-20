@@ -5,14 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import re
-from typing import Dict
 
 import torch
 
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
 
 
-def extract_tags(text: str) -> Dict:
+def extract_tags(text: str) -> dict:
     """
     Parse XML-like tags from text. Returns a dictionary with keys 'think' and 'answer'.
     The values are lists of strings, with each string being the content of a tag.

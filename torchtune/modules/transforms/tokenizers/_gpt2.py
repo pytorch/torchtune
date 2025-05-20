@@ -7,7 +7,6 @@
 import json
 import re
 from functools import lru_cache
-from typing import List
 
 from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
 
@@ -167,7 +166,7 @@ class GPT2BaseTokenizer(BaseTokenizer):
     def _tokenize(
         self,
         text: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Tokenize, but not encode given text.
 
@@ -197,7 +196,7 @@ class GPT2BaseTokenizer(BaseTokenizer):
         text: str,
         add_bos: bool = True,
         add_eos: bool = True,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Tokenize and encode given text.
 
@@ -217,12 +216,12 @@ class GPT2BaseTokenizer(BaseTokenizer):
             bpe_tokens = bpe_tokens + [self.eos_id]
         return bpe_tokens
 
-    def decode(self, tokens: list) -> List[str]:
+    def decode(self, tokens: list) -> list[str]:
         """
         Decode sequence of the given tokens into string.
 
         Args:
-            tokens (list): List of the integers, which represent encoded tokens.
+            tokens (list): list of the integers, which represent encoded tokens.
 
         Returns:
             Decoded text.
