@@ -182,7 +182,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self.id_batch = 0
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
@@ -686,6 +685,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not (self.rank == 0))
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                # Check if we should stop training for this epoch
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                    or (idx // self._gradient_accumulation_steps)
+                    == self._steps_per_epoch
+                ):
+                    break
+
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -710,10 +719,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 current_loss = self._loss_step(batch) * current_num_tokens
                 running_loss += current_loss
                 current_loss.backward()
-                self.id_batch += 1
 
                 # Step with optimizer
-                if self.id_batch % self._gradient_accumulation_steps == 0:
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # Get total number of tokens across all ranks to normalize gradients
                     torch.distributed.all_reduce(num_tokens)
                     # This will ensure that the logged loss matches what we're optimizing
@@ -793,11 +801,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     ):
                         pbar.refresh()
                         self.validate()
-
-                if (
-                    (idx + 1) // self._gradient_accumulation_steps
-                ) == self.max_steps_per_epoch:
-                    break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

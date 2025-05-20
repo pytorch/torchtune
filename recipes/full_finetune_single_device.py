@@ -200,7 +200,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self.id_batch = 0
 
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
@@ -604,6 +603,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                # Check if we should stop training for this epoch
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                    or (idx // self._gradient_accumulation_steps)
+                    == self._steps_per_epoch
+                ):
+                    break
+
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     curr_epoch == 0
@@ -629,9 +638,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if isinstance(self._optimizer, OptimizerInBackwardWrapper):
                     current_loss = current_loss * (1 / current_num_tokens)
                 current_loss.backward()
-                self.id_batch += 1
 
-                if self.id_batch % self._gradient_accumulation_steps == 0:
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
                     # If we're not using optimizer in backwards, we step the optimizer like normal
                     if not isinstance(self._optimizer, OptimizerInBackwardWrapper):
                         training.scale_grads(self._model, 1 / num_tokens)
@@ -695,12 +703,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Note we are stepping each batch, which might not include optimizer step in the trace
                 # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
-
-                # Check if we should stop training for this epoch
-                if (
-                    (idx + 1) // self._gradient_accumulation_steps
-                ) == self.max_steps_per_epoch:
-                    break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

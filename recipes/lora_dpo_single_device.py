@@ -136,7 +136,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self.id_batch = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -527,12 +526,16 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                # Check if we should stop training for this epoch
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
+                    or (idx // self._gradient_accumulation_steps)
+                    == self._steps_per_epoch
                 ):
                     break
+
                 # batch is input_ids, labels
                 num_tokens += batch[0].numel()
                 policy_chosen_rejected_outputs = self.concatenated_forward(
@@ -567,10 +570,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
                 loss.backward()
-                self.id_batch += 1
 
                 # Step with optimizer
-                if self.id_batch % self._gradient_accumulation_steps == 0:
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 

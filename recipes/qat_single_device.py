@@ -183,7 +183,6 @@ class QATRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self.id_batch = 0
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
@@ -513,10 +512,13 @@ class QATRecipeSingleDevice(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                # Check if we should stop training for this epoch
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
+                    or (idx // self._gradient_accumulation_steps)
+                    == self._steps_per_epoch
                 ):
                     break
 
@@ -589,9 +591,8 @@ class QATRecipeSingleDevice(FTRecipeInterface):
                     current_loss = current_loss / current_num_tokens
 
                 current_loss.backward()
-                self.id_batch += 1
 
-                if self.id_batch % self._gradient_accumulation_steps == 0:
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         training.scale_grads(self._model, 1 / num_tokens)
                         if self._clip_grad_norm is not None:
