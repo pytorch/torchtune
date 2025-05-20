@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.data._prompt_templates import _TemplateType
 
@@ -209,7 +209,7 @@ def llama4_transform(
 
 
 def lora_llama4_scout_17b_16e(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     *,
     decoder_trainable: str = "lora",
     encoder_trainable: str = "frozen",
@@ -227,7 +227,7 @@ def lora_llama4_scout_17b_16e(
     Builder for creating a 17B(active parameters) Llama4 MOE model with LoRA enabled.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         decoder_trainable (str): Option to set decoder params as fully trainable (full), lora trainable (lora),

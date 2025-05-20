@@ -122,3 +122,9 @@ def pytest_addoption(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Silence progress bar when fetching assets from S3",
     )
+    parser.addoption(
+        "--run-rl-tests",
+        action="store_true",
+        default=False,
+        help="Run RL tests",
+    )

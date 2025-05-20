@@ -10,7 +10,7 @@ import sys
 import time
 from functools import partial
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -110,7 +110,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
@@ -280,41 +279,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled
@@ -509,7 +473,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ref_policy_cfg: DictConfig,
         value_cfg: DictConfig,
         reward_cfg: DictConfig,
-    ) -> Tuple[
+    ) -> tuple[
         training.Checkpointer,
         training.Checkpointer,
         training.Checkpointer,
@@ -565,11 +529,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_reward_value_model: DictConfig,
         enable_activation_checkpointing: bool,
         compile_model: bool,
-        policy_state_dict: Dict[str, Any],
-        ref_policy_state_dict: Dict[str, Any],
-        value_model_state_dict: Dict[str, Any],
-        reward_model_state_dict: Dict[str, Any],
-    ) -> Tuple[nn.Module, nn.Module, nn.Module]:
+        policy_state_dict: dict[str, Any],
+        ref_policy_state_dict: dict[str, Any],
+        value_model_state_dict: dict[str, Any],
+        reward_model_state_dict: dict[str, Any],
+    ) -> tuple[nn.Module, nn.Module, nn.Module]:
         """
         Sets up the policy model, reference policy model, reward model, and value model.
         """
@@ -654,9 +618,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optimizer:
-
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
             optim_dict = {
@@ -781,7 +744,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=False,
         )
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -952,7 +915,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
-        trajectories: List[Trajectory] = []
+        trajectories: list[Trajectory] = []
         with torch.no_grad():
             for batch_start in range(0, self.batch_size, self._forward_batch_size):
                 batch_input_ids = input_ids[
@@ -1021,13 +984,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # # step 4. optimise using the PPO objective over multiple epochs
                 t0_ppo = time.perf_counter()
-                ppo_stats: List[PPOStats] = []
+                ppo_stats: list[PPOStats] = []
                 for _ in range(self._ppo_epochs):
                     batch_idxs = torch.randperm(self.batch_size, device=self._device)
                     for i in range(0, self.batch_size, self._ppo_batch_size):
                         mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
 
-                        batch_ppo_stats: List[PPOStats] = []
+                        batch_ppo_stats: list[PPOStats] = []
                         for j in range(
                             0, self._ppo_batch_size, self._ppo_backward_batch_size
                         ):

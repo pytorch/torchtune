@@ -7,7 +7,7 @@ import itertools
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, List
+from typing import Any
 
 import torch
 import torch.distributed as dist
@@ -45,7 +45,7 @@ class SingleTurnYAMLToMessages(Transform):
             text: Describe the image in detail.
     """
 
-    def __call__(self, prompt: Dict[str, Any]) -> List[Message]:
+    def __call__(self, prompt: dict[str, Any]) -> list[Message]:
         messages = []
 
         # Iterate through roles and add content
@@ -265,7 +265,6 @@ class InferenceRecipe:
 
         # 7. Continue generating
         for i in range(cfg.max_new_tokens):
-
             # Update position and mask for incremental decoding
             batch["input_pos"] = input_pos[None, seq_len]
             if use_flex:

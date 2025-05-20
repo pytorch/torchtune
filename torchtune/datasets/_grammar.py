@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from torchtune.data import InputOutputToMessages
 from torchtune.datasets._packed import PackedDataset
@@ -17,13 +17,13 @@ def grammar_dataset(
     tokenizer: ModelTokenizer,
     *,
     source: str = "liweili/c4_200m",
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     train_on_input: bool = False,
     new_system_prompt: Optional[str] = None,
     packed: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> Union[SFTDataset, PackedDataset]:
     """
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
@@ -45,7 +45,7 @@ def grammar_dataset(
             in the filepath in ``data_files``, and set ``split="train"``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``liweili/c4_200m``.
-        column_map (Optional[Dict[str, str]]): a mapping from the expected columns in the message transform
+        column_map (Optional[dict[str, str]]): a mapping from the expected columns in the message transform
             :class:`~torchtune.data.InputOutputToMessages` to the new column names in the dataset. Keys should be
             "input" and "output" and values should be the actual column names. If None, use
             the default column names ``"input"`` and ``"output"``in ``liweili/c4_200m``.
@@ -59,7 +59,7 @@ def grammar_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
         Union[SFTDataset, PackedDataset]: dataset configured with source data and template

@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict
-
 import torch
 
 from torchtune.models.convert_weights import get_mapped_key
@@ -37,13 +35,13 @@ QWEN2_TIED_KEY = "lm_head.weight"
 
 
 def qwen2_hf_to_tune(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
     head_dim: int = None,
     tie_word_embeddings: bool = False,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from HF's format to TorchTune's format, which contains the weights
     of a Qwen2 model.
@@ -53,7 +51,7 @@ def qwen2_hf_to_tune(
     output projection weights.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
+        state_dict (dict[str, torch.Tensor]): State dict in HF's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
@@ -62,7 +60,7 @@ def qwen2_hf_to_tune(
         tie_word_embeddings (bool): Whether the model's input and output word embeddings should be tied.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in torchtune's format.
+        dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     if head_dim is None:
@@ -82,7 +80,7 @@ def qwen2_hf_to_tune(
 
 
 def qwen2_tune_to_hf(
-    state_dict: Dict[str, torch.Tensor],
+    state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
@@ -95,7 +93,7 @@ def qwen2_tune_to_hf(
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
+        state_dict (dict[str, torch.Tensor]): State dict in torchtune's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
@@ -104,7 +102,7 @@ def qwen2_tune_to_hf(
         tie_word_embeddings (bool): Whether the model's input and output word embeddings should be tied.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in HF's format.
+        dict[str, torch.Tensor]: State dict in HF's format.
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}

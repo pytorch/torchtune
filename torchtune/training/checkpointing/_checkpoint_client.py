@@ -7,7 +7,7 @@
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from omegaconf import DictConfig
@@ -19,6 +19,7 @@ from torch.distributed.checkpoint.state_dict import (
     StateDictOptions,
 )
 from torchtune import config, training, utils
+from torchtune.modules.optim import OptimizerInBackward
 from torchtune.modules.peft import (
     get_adapter_state_dict,
     get_merged_lora_ckpt,
@@ -40,9 +41,9 @@ class TrainingProgress:
     epochs_run: int
     total_epochs: int
     max_steps_per_epoch: int
-    dataloader_state_dict: Optional[Dict[str, Any]] = None
+    dataloader_state_dict: Optional[dict[str, Any]] = None
 
-    def state_dict(self) -> Dict[str, object]:
+    def state_dict(self) -> dict[str, object]:
         return {
             training.SEED_KEY: self.seed,
             training.EPOCHS_KEY: self.epochs_run,
@@ -79,7 +80,8 @@ class CheckpointClient:
             "enable_async_checkpointing", False
         )
         self._optimizer_in_bwd = self._cfg.get("optimizer_in_bwd", False)
-        self._device = utils.get_device(device=self._cfg.device)
+        device = self._cfg.get("device", None)
+        self._device = utils.get_device(device=device)
 
         _, self._rank = utils.get_world_size_and_rank()
         self._is_rank_zero = self._rank == 0
@@ -168,11 +170,7 @@ class CheckpointClient:
 
         dcp_saver = self._get_dcp_checkpointer()
         if not adapter_only:
-            dcp_saver.save_checkpoint(
-                ckpt_dict,
-                epoch=epoch,
-                save_async=True,
-            )
+            dcp_saver.save_checkpoint(ckpt_dict, epoch=epoch, save_async=True)
 
             if self._is_rank_zero:
                 log.info(
@@ -211,6 +209,7 @@ class CheckpointClient:
         epoch: int,
         adapter_config: Optional[dict[str, Any]],
         adapter_only: bool,
+        single_device: bool,
     ) -> None:
         """
         Checkpoint the training state synchronously.
@@ -223,7 +222,9 @@ class CheckpointClient:
         """
         intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
         checkpointer = self._get_checkpointer()
-        no_dist = not isinstance(checkpointer, DistributedCheckpointer)
+        is_not_distributed_checkpointer = not isinstance(
+            checkpointer, DistributedCheckpointer
+        )
 
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
@@ -237,7 +238,7 @@ class CheckpointClient:
         model_state_dict = {}
         optim_state_dict = {}
 
-        if no_dist:
+        if is_not_distributed_checkpointer and not single_device:
             # To prevent GPU memory from spiking during checkpoint save,
             # we consolidate the full model and optim state dicts on CPU for rank 0
             model_state_dict = training.gather_cpu_state_dict(
@@ -250,6 +251,8 @@ class CheckpointClient:
                 log.info(
                     f"Getting full model state dict took {time.perf_counter() - cp_start:.2f} secs"
                 )
+        elif is_not_distributed_checkpointer:
+            model_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
         else:
             model_state_dict = model.state_dict()
 
@@ -258,21 +261,21 @@ class CheckpointClient:
                 log.info("Getting optimizer state dict...")
                 optim_start = time.perf_counter()
 
-            if no_dist:
-                if not self._optimizer_in_bwd:
-                    optim_state_dict = training.get_full_optimizer_state_dict(
-                        model,
-                        optimizer,
-                        self._is_rank_zero,
-                        device=self._device,
-                    )
-                else:
+            if is_not_distributed_checkpointer:
+                # This check can be removed once we fully migrate over to ``OptimizerInBackward``
+                if isinstance(optimizer, OptimizerInBackwardWrapper):
                     for param, opt in optimizer.optim_map.items():
                         optim_state_dict[
                             param
                         ] = training.get_full_optimizer_state_dict(
                             model, opt, self._is_rank_zero, device=self._device
                         )
+                elif isinstance(optimizer, OptimizerInBackward):
+                    optim_state_dict = optimizer.state_dict()
+                else:
+                    optim_state_dict = training.get_full_optimizer_state_dict(
+                        model, optimizer, self._is_rank_zero, device=self._device
+                    )
             else:
                 optim_state_dict = optimizer.state_dict()
 
@@ -322,7 +325,7 @@ class CheckpointClient:
 
         # Now that we have the model and optim state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
-        if no_dist:
+        if is_not_distributed_checkpointer and not single_device:
             if self._is_rank_zero:
                 _save_checkpoint_helper()
 
@@ -338,6 +341,7 @@ class CheckpointClient:
         epoch: int,
         adapter_config: Optional[dict[str, Any]] = None,
         adapter_only: bool = False,
+        single_device: bool = False,
     ) -> None:
         """
         Checkpoint the training state.
@@ -354,14 +358,25 @@ class CheckpointClient:
 
         if intermediate_checkpoint and self._enable_async_checkpointing:
             self._save_checkpoint_async(
-                model, optimizer, training_progress, epoch, adapter_config, adapter_only
+                model,
+                optimizer,
+                training_progress,
+                epoch,
+                adapter_config,
+                adapter_only,
             )
         else:
             self._save_checkpoint_sync(
-                model, optimizer, training_progress, epoch, adapter_config, adapter_only
+                model,
+                optimizer,
+                training_progress,
+                epoch,
+                adapter_config,
+                adapter_only,
+                single_device,
             )
 
-    def load_base_checkpoint(self) -> Dict[str, Any]:
+    def load_base_checkpoint(self) -> dict[str, Any]:
         """
         This method is used to load the base model from the checkpoint
         configured by the user.
@@ -373,7 +388,7 @@ class CheckpointClient:
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         adapter_config: Optional[dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
         Due to being distributed, this method is called on every rank.
@@ -385,7 +400,7 @@ class CheckpointClient:
             _init_optim_state(optimizer)
 
         # Build the state dict to be loaded from the distributed checkpoint
-        checkpoint_dict: Dict[str, Any] = {}
+        checkpoint_dict: dict[str, Any] = {}
         model_state_dict = model.state_dict()
         optim_state_dict = optimizer.state_dict()
 

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.models.phi3._component_builders import phi3, lora_phi3
 from torchtune.models.phi3._tokenizer import Phi3MiniTokenizer
@@ -48,7 +48,7 @@ def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None, ma
     Args:
         path (str): Path to the SPM tokenizer model.
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens, or a local json file 
+            model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Phi3 special tokens.
         max_seq_len (Optional[int]): maximum sequence length for tokenizing a single list of messages,
             after which the input will be truncated. Default is None.
@@ -74,7 +74,7 @@ def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None, ma
 
 
 def lora_phi3_mini(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
@@ -91,7 +91,7 @@ def lora_phi3_mini(
     https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
