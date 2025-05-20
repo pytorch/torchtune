@@ -69,8 +69,8 @@ class TestCosineLRWithMinLr:
             optimizer=optimizer,
             num_warmup_steps=10,
             num_training_steps=100,
-            min_lr_ratio_warmup=0.1,
-            min_lr_ratio_decay=0.05,
+            min_lr_warmup=0.02,
+            min_lr_decay=0.01,
             num_cycles=1.0,
         )
         return scheduler

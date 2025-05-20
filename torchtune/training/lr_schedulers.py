@@ -17,14 +17,14 @@ def get_cosine_schedule_with_warmup(
     num_warmup_steps: int,
     num_training_steps: int,
     num_cycles: float = 0.5,
-    min_lr_ratio_warmup: float = 0.0,
-    min_lr_ratio_decay: float = 0.0,
+    min_lr_warmup: float = 0.0,
+    min_lr_decay: float = 0.0,
     last_epoch: int = -1,
 ) -> LambdaLR:
     """
     Create a learning rate schedule that linearly increases the learning rate from
-    ``min_lr_ratio_warmup * lr`` to ``lr`` over ``num_warmup_steps``, then decreases to
-    ``min_lr_ratio_decay * lr`` on a cosine schedule over the remaining
+    ``min_lr_warmup`` to ``lr`` over ``num_warmup_steps``, then decreases to
+    ``min_lr_decay`` on a cosine schedule over the remaining
     ``num_training_steps - num_warmup_steps`` (assuming ``num_cycles`` = 0.5).
 
     This is based on the Hugging Face implementation
@@ -37,13 +37,20 @@ def get_cosine_schedule_with_warmup(
         num_training_steps (int): The total number of training steps.
         num_cycles (float): The number of waves in the cosine schedule. Defaults to 0.5
             (decrease from the max value to min_lr_ratio_decay following a half-cosine).
-        min_lr_ratio_warmup (float): Minimum learning rate ratio during warmup phase (0.0 to 1.0). Defaults to 0.0
-        min_lr_ratio_decay (float): Minimum learning rate ratio during decay phase (0.0 to 1.0). Defaults to 0.0
+        min_lr_warmup (float): Minimum learning rate during warmup phase. Defaults to 0.0
+        min_lr_decay (float): Minimum learning rate during decay phase. Defaults to 0.0
         last_epoch (int): The index of the last epoch when resuming training. Defaults to -1
 
     Returns:
         torch.optim.lr_scheduler.LambdaLR with the appropriate schedule.
     """
+    if min_lr_warmup > 0.0 or min_lr_decay > 0.0:
+        lr = get_lr(optimizer)
+        min_lr_ratio_decay = min_lr_decay / lr
+        min_lr_ratio_warmup = min_lr_warmup / lr
+    else:
+        min_lr_ratio_decay = 0.0
+        min_lr_ratio_warmup = 0.0
 
     def lr_lambda(current_step: int) -> float:
         # linear warmup phase

@@ -457,6 +457,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 raise ValueError(
                     "optimizer_in_bwd not supported with compiling the optimizer step"
                 )
+            if self._lr_scheduler is not None:
+                # Pytorch bug https://github.com/pytorch/pytorch/issues/126514
+                warn(
+                    message=(
+                        "If you see NaN loss after compiling optimizer step, set min_lr_warmup "
+                        "and min_lr_decay above 0.0 or disable optimizer compilation."
+                    )
+                )
             self._optimizer.step = torch.compile(
                 self._optimizer.step,
                 backend=self._compile_backend,
