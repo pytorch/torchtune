@@ -450,8 +450,10 @@ def get_model_checkpoint_path(
         output_dir (Union[str, Path]): Directory to use when resuming from a checkpoint.
         should_load_recipe_state (bool): Whether to resume from a checkpoint.
         has_adapter_checkpoint (bool): Indicates if there is an adapter checkpoint.
+
     Returns:
         list[Path]: Sorted list of paths to the checkpoint files.
+
     Example:
         >>> checkpoint_files = ["model-00001-of-00002.safetensors", "model-00002-of-00002.safetensors"]
         >>> checkpoint_dir = "/path/to/checkpoints"

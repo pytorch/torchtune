@@ -144,6 +144,10 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the recipe state from a previous run. Default is False
 
+    Keyword Args:
+        keep_last_n_checkpoints (int, optional): Number of checkpoints to retain during training. E.g. if ``keep_last_n_checkpoints=1``,
+            the checkpointer will delete the old checkpoint as soon as it creates a new one.
+
     Raises:
         ValueError: If more than one checkpoint file is provided
     """
@@ -294,6 +298,9 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 recipe state
             adapter_only (bool): If True, only save the adapter weights. Default is False
 
+        Keyword Args:
+            step (int, optional): Current step number. This is added to the checkpoint file name to ensure
+                we're not overwriting intermediate checkpoint files. Default is None.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
@@ -419,7 +426,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         checkpoint_dir: str,
         checkpoint_files: Union[list[str], dict[str, str]],
         model_type: str,
-        output_dir: str,
+        output_dir: Optional[str] = None,
         adapter_checkpoint: str = "adapter_model.pt",
         recipe_checkpoint: str = "recipe_state.pt",
         resume_from_checkpoint: bool = False,
@@ -429,59 +436,54 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         keep_last_n_checkpoints: Optional[int] = None,
         enable_dcp: bool = False,
     ) -> None:
+        self._checkpoint_dir = checkpoint_dir
+        self._keep_last_n_checkpoints = keep_last_n_checkpoints
+        self._safe_serialization = safe_serialization
+        self._model_type = ModelType[model_type]
+        self._enable_dcp = enable_dcp
+        self._output_dir = output_dir
         self._should_load_recipe_state = should_load_recipe_state
         if resume_from_checkpoint:
             self._should_load_recipe_state = resume_from_checkpoint
             logger.warning(
                 "*resume_from_checkpoint is deprecated. Please use the 'should_load_recipe_state' instead"
             )
-        self._keep_last_n_checkpoints = keep_last_n_checkpoints
 
-        self._safe_serialization = safe_serialization
-        self._checkpoint_dir = checkpoint_dir
-        self._model_type = ModelType[model_type]
-        self._enable_dcp = enable_dcp
-        self._fs, _ = url_to_fs(self._checkpoint_dir)
-        self._output_dir = output_dir
+        # Create fsspec filesystem for the checkpoint directory
+        self._input_fs, _ = url_to_fs(checkpoint_dir)
 
+        # Initialize the output directory if one is specified
         if self._output_dir is not None:
             check_outdir_not_in_ckptdir(
-                ckpt_dir=self._checkpoint_dir, out_dir=self._output_dir
+                ckpt_dir=checkpoint_dir, out_dir=self._output_dir
             )
-            output_fs, _ = url_to_fs(self._output_dir)
-            if self._fs != output_fs:
-                raise ValueError(
-                    f"Checkpoint and output directories must be on the same filesystem. "
-                    f"Got {self._fs} and {output_fs} instead."
-                )
-            self._fs.mkdirs(output_dir, exist_ok=True)
+            self._output_fs, _ = url_to_fs(self._output_dir)
+            self._output_fs.mkdirs(self._output_dir, exist_ok=True)
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
-        # parition the state dict into output checkpoint files. This is updated during checkpoint
-        # load
-        self._weight_map: dict[str, str] = None
+        # parition the state dict into output checkpoint files. This is updated during checkpoint load
+        self._weight_map: dict[str, str] = {}
 
         # the config.json file contains model params needed for state dict conversion
         self._config = None
-        with self._fs.open(
-            os.path.join(self._checkpoint_dir, "config.json"), "r"
+        with self._input_fs.open(
+            os.path.join(checkpoint_dir, "config.json"), "r"
         ) as json_file:
             self._config = json.loads(json_file.read())
 
         # repo_id is necessary for when saving an adapter config, so its compatible with HF.
         # This json file is produced and saved in the download step.
         # contents are {"repo_id": "some_model/some_model_version"}
-        repo_id_path = os.path.join(self._checkpoint_dir, REPO_ID_FNAME) + ".json"
-
+        repo_id_path = os.path.join(checkpoint_dir, REPO_ID_FNAME) + ".json"
         self.repo_id = None
-        if self._fs.exists(repo_id_path):
-            with self._fs.open(repo_id_path, "r") as json_file:
+        if self._input_fs.exists(repo_id_path):
+            with self._input_fs.open(repo_id_path, "r") as json_file:
                 data = json.load(json_file)
                 self.repo_id = data.get("repo_id")
 
-        self._adapter_checkpoint = None
         if self._should_load_recipe_state:
-            most_recent_checkpoint = get_most_recent_checkpoint(dir=self._output_dir)
+            assert output_dir is not None
+            most_recent_checkpoint = get_most_recent_checkpoint(dir=Path(output_dir))
             if most_recent_checkpoint is None:
                 raise ValueError(
                     "Recipe state cannot be loaded because no checkpoints were found in the output directory."
@@ -491,19 +493,46 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             self._adapter_checkpoint = most_recent_checkpoint / adapter_checkpoint
             self._checkpoint_paths = get_model_checkpoint_path(
                 checkpoint_files=checkpoint_files,
-                checkpoint_dir=self._checkpoint_dir,
+                checkpoint_dir=checkpoint_dir,
                 output_dir=most_recent_checkpoint,
                 should_load_recipe_state=True,
                 has_adapter_checkpoint=self._adapter_checkpoint.exists(),
             )
         else:
+            assert output_dir is not None
             self._checkpoint_paths = get_model_checkpoint_path(
                 checkpoint_files=checkpoint_files,
-                checkpoint_dir=self._checkpoint_dir,
-                output_dir=self._output_dir,
+                checkpoint_dir=checkpoint_dir,
+                output_dir=output_dir,
                 should_load_recipe_state=False,
                 has_adapter_checkpoint=False,
             )
+
+    def _load_checkpoint_with_dcp_storage_reader(self):
+        """
+        Helper function to load a checkpoint using DCP storage reader.
+        """
+        from torch.distributed.checkpoint._hf_planner import _HuggingFaceLoadPlanner
+        from torch.distributed.checkpoint._hf_storage import _HuggingFaceStorageReader
+        from torch.distributed.checkpoint.state_dict_loader import load
+
+        # DCP load using the storage reader
+        hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
+        metadata = hf_storage_reader.read_metadata()
+        state_dict = {}
+        for key in metadata.state_dict_metadata.keys():
+            # arbitrary value to ensure that the state_dict is not empty
+            state_dict[key] = torch.empty(1)
+
+        weight_map = metadata.storage_data
+
+        load(
+            state_dict=state_dict,
+            storage_reader=hf_storage_reader,
+            planner=_HuggingFaceLoadPlanner(allow_tensor_resize=True),
+        )
+
+        return state_dict, weight_map
 
     def load_checkpoint(self) -> dict[str, Any]:
         """
@@ -522,41 +551,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         Raises:
             ValueError: If the values in the input state_dict are not Tensors
         """
-
-        self._weight_map = {}
-
-        # merged state_dict contains keys and weights from all the checkpoint files
-        merged_state_dict: dict[str, torch.Tensor] = {}
-
-        # converted_state_dict is the final state_dict passed to the recipe after the
-        # keys are converted into the torchtune format. This optionally also contains
-        # the recipe state and adapter weights
-        converted_state_dict: dict[str, dict[str, torch.Tensor]] = {}
-
         if self._enable_dcp:
-            from torch.distributed.checkpoint import (
-                _HuggingFaceLoadPlanner,
-                _HuggingFaceStorageReader,
-            )
-
-            # DCP load using the storage reader
-            hf_storage_reader = _HuggingFaceStorageReader(path=self._checkpoint_dir)
-            metadata = hf_storage_reader.read_metadata()
-            state_dict = {}
-            for key in metadata.state_dict_metadata.keys():
-                # arbitrary value to ensure that the state_dict is not empty
-                state_dict[key] = torch.empty(1)
-
-            self._weight_map = metadata.storage_data
-
-            load(
-                state_dict=state_dict,
-                storage_reader=hf_storage_reader,
-                planner=_HuggingFaceLoadPlanner(allow_tensor_resize=True),
-            )
-
-            merged_state_dict = state_dict
+            (
+                merged_state_dict,
+                self._weight_map,
+            ) = self._load_checkpoint_with_dcp_storage_reader()
         else:
+            merged_state_dict = {}
             # _checkpoint_paths are already sorted so simply enumerate to generate the right id
             for cpt_idx, cpt_path in enumerate(self._checkpoint_paths):
                 state_dict = safe_torch_load(cpt_path)
@@ -575,6 +576,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 # delete the state_dict to free up memory; TODO check if this del is needed
                 del state_dict
                 gc.collect()
+
+        # converted_state_dict is the final state_dict passed to the recipe after the
+        # keys are converted into the torchtune format. This optionally also contains
+        # the recipe state and adapter weights
+        converted_state_dict: dict[str, dict[str, torch.Tensor]] = {}
 
         if self._model_type in (ModelType.PHI3_MINI, ModelType.PHI4):
             log_rank_zero(
@@ -714,7 +720,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
-            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
+
+        Keyword Args:
+            step (int, optional): Step number. Used to create the checkpoint file name if provided.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
@@ -860,7 +868,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
                     map_original_name_to_new_name[cpt_idx] = shard_name
                     output_path = os.path.join(
-                        self._output_dir, output_dirname, shard_name
+                        self._output_dir, ckpt_save_dirname, shard_name
                     )
                     self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -896,7 +904,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     index_file_name = TORCH_INDEX_FNAME
 
                 index_path = os.path.join(
-                    self._output_dir, output_dirname, index_file_name
+                    self._output_dir, ckpt_save_dirname, index_file_name
                 )
 
                 index_data = {
@@ -912,7 +920,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # convert_weights.peft_to_tune. The .pt format is not needed, but
             # it is an easy way to distinguish the adapters. Ideally we should save only one.
             output_path = (
-                os.path.join(self._output_dir, output_dirname, ADAPTER_MODEL_FNAME)
+                os.path.join(self._output_dir, ckpt_save_dirname, ADAPTER_MODEL_FNAME)
                 + ".pt"
             )
             self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
@@ -957,7 +965,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
                 )
                 output_path = os.path.join(
-                    self._output_dir, output_dirname, ADAPTER_MODEL_FNAME
+                    self._output_dir, ckpt_save_dirname, ADAPTER_MODEL_FNAME
                 )
                 self._fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
                 if not self._safe_serialization:
@@ -999,7 +1007,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     )
                 )
                 output_path = (
-                    os.path.join(self._output_dir, output_dirname, ADAPTER_CONFIG_FNAME)
+                    os.path.join(
+                        self._output_dir, ckpt_save_dirname, ADAPTER_CONFIG_FNAME
+                    )
                     + ".json"
                 )
                 with self._fs.open(output_path, "w") as f:
