@@ -42,6 +42,8 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
+  # NOTE: this is necessary because Qwen3 4B is missing the lm_head.weight parameter on HF
+  # Other Qwen3 models contain two copies of the tied param, but Qwen3 4B does not
   model_type: QWEN2
 resume_from_checkpoint: False
 
@@ -80,7 +82,7 @@ metric_logger:
   _component_: torchtune.training.metric_logging.DiskLogger
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
-log_peak_memory_stats: False
+log_peak_memory_stats: True
 log_level: INFO  # DEBUG, WARN, etc.
 
 # Environment

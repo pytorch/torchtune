@@ -16,7 +16,7 @@ checkpointer:
     model.safetensors,
   ]
   output_dir: ${output_dir}
-  model_type: QWEN2
+  model_type: QWEN3
 
 # Tokenizer
 tokenizer:

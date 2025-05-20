@@ -36,7 +36,7 @@ checkpointer:
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: QWEN2
+  model_type: QWEN3
 resume_from_checkpoint: False
 
 # Dataset

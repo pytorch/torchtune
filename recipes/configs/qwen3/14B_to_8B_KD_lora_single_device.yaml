@@ -45,7 +45,7 @@ checkpointer:
     max_filename: "00005"
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: QWEN2
+  model_type: QWEN3
 resume_from_checkpoint: False
 save_adapter_weights_only: False
 
@@ -58,7 +58,7 @@ teacher_checkpointer:
     max_filename: "00008"
   recipe_checkpoint: null
   output_dir: ${output_dir}
-  model_type: QWEN2
+  model_type: QWEN3
 
 # Dataset and Sampler
 dataset:
@@ -86,7 +86,7 @@ kd_loss:
 kd_ratio: 0.5
 
 # Training
-epochs: 5
+epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 8  # Use to increase effective batch size
 clip_grad_norm: null
