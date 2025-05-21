@@ -454,6 +454,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchtune.modules.common_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
@@ -492,10 +493,16 @@
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">intermediate_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">head_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
     <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1_000_000.0</span><span class="p">,</span>
     <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">q_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">k_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">v_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">q_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">k_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build the decoder associated with the Qwen2 model. This includes:</span>
@@ -519,14 +526,22 @@
 <span class="sd">            Default: 0.0</span>
 <span class="sd">        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,</span>
 <span class="sd">            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`</span>
+<span class="sd">        head_dim (Optional[int]): Dimension of each attention head. If not</span>
+<span class="sd">            specified, it defaults to `embed_dim // num_heads`. In GQA, `head_dim` is not necessarily equal to</span>
+<span class="sd">            `embed_dim // num_heads`, so this parameter allows the caller to explicitly specify a custom value.</span>
 <span class="sd">        norm_eps (float): epsilon in RMS norms.</span>
 <span class="sd">        rope_base (float): the base period of the RoPE embeddings.</span>
 <span class="sd">        tie_word_embeddings (bool): whether the model&#39;s input and output word embeddings should be tied.</span>
+<span class="sd">        q_proj_bias (bool): whether to use bias in the query projection.</span>
+<span class="sd">        k_proj_bias (bool): whether to use bias in the key projection.</span>
+<span class="sd">        v_proj_bias (bool): whether to use bias in the value projection.</span>
+<span class="sd">        q_norm (bool): whether to use normalization in the query projection.</span>
+<span class="sd">        k_norm (bool): whether to use normalization in the key projection.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Qwen2 model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
+    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span> <span class="ow">or</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
 
     <span class="n">rope</span> <span class="o">=</span> <span class="n">Qwen2RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">)</span>
@@ -538,11 +553,13 @@
             <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
             <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
             <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
-            <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-            <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-            <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-            <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">q_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">q_proj_bias</span><span class="p">),</span>
+            <span class="n">k_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">k_proj_bias</span><span class="p">),</span>
+            <span class="n">v_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">v_proj_bias</span><span class="p">),</span>
+            <span class="n">output_proj</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
             <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
+            <span class="n">q_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">)</span> <span class="k">if</span> <span class="n">q_norm</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="c1"># norm on head_dim</span>
+            <span class="n">k_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">)</span> <span class="k">if</span> <span class="n">k_norm</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">kv_cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
             <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
@@ -595,10 +612,16 @@
     <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">intermediate_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">head_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
     <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1_000_000.0</span><span class="p">,</span>
     <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">q_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">k_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">v_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">q_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">k_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -636,6 +659,11 @@
 <span class="sd">        norm_eps (float): epsilon in RMS norms.</span>
 <span class="sd">        rope_base (float): the base period of the RoPE embeddings.</span>
 <span class="sd">        tie_word_embeddings (bool): whether the model&#39;s input and output word embeddings should be tied.</span>
+<span class="sd">        q_proj_bias (bool): whether to use bias in the query projection.</span>
+<span class="sd">        k_proj_bias (bool): whether to use bias in the key projection.</span>
+<span class="sd">        v_proj_bias (bool): whether to use bias in the value projection.</span>
+<span class="sd">        q_norm (bool): whether to use normalization in the query projection.</span>
+<span class="sd">        k_norm (bool): whether to use normalization in the key projection.</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
@@ -659,7 +687,14 @@
             <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
             <span class="n">num_kv_heads</span><span class="o">=</span><span class="n">num_kv_heads</span><span class="p">,</span>
             <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="n">head_dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span>
             <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+            <span class="n">norm_eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">,</span>
+            <span class="n">q_proj_bias</span><span class="o">=</span><span class="n">q_proj_bias</span><span class="p">,</span>
+            <span class="n">k_proj_bias</span><span class="o">=</span><span class="n">k_proj_bias</span><span class="p">,</span>
+            <span class="n">v_proj_bias</span><span class="o">=</span><span class="n">v_proj_bias</span><span class="p">,</span>
+            <span class="n">q_norm</span><span class="o">=</span><span class="n">q_norm</span><span class="p">,</span>
+            <span class="n">k_norm</span><span class="o">=</span><span class="n">k_norm</span><span class="p">,</span>
             <span class="n">rope_base</span><span class="o">=</span><span class="n">rope_base</span><span class="p">,</span>
             <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
@@ -740,8 +775,15 @@
     <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">num_kv_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">head_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">norm_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
     <span class="n">rope_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1_000_000.0</span><span class="p">,</span>
+    <span class="n">q_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">k_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">v_proj_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">q_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">k_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="c1"># LoRA args</span>
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -767,7 +809,15 @@
 <span class="sd">            by :func:`~torchtune.modules.KVCache`</span>
 <span class="sd">        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.</span>
 <span class="sd">            Default: 0.0</span>
+<span class="sd">        norm_eps (float): epsilon in RMS norms. Default: 1e-5</span>
 <span class="sd">        rope_base (float): the base period of the RoPE embeddings. Default: 1_000_000.0</span>
+<span class="sd">        q_proj_bias (bool): whether to use bias in the query projection.</span>
+<span class="sd">        k_proj_bias (bool): whether to use bias in the key projection.</span>
+<span class="sd">        v_proj_bias (bool): whether to use bias in the value projection.</span>
+<span class="sd">        q_norm (bool): whether to use normalization in the query projection.</span>
+<span class="sd">        k_norm (bool): whether to use normalization in the key projection.</span>
+<span class="sd">        head_dim (Optional[int]): the dimension of each head. If not specified, is computed </span>
+<span class="sd">            as `embed_dim` // `num_heads`</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        lora_dropout (float): LoRA dropout probability. Default: 0.0</span>
@@ -784,7 +834,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">lora_modules</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Must pass one or more of </span><span class="si">{</span><span class="n">LORA_ATTN_MODULES</span><span class="si">}</span><span class="s2"> as lora_modules&quot;</span><span class="p">)</span>
 
-    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
+    <span class="n">head_dim</span> <span class="o">=</span> <span class="n">head_dim</span> <span class="ow">or</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
     <span class="n">num_kv_heads</span> <span class="o">=</span> <span class="n">num_kv_heads</span> <span class="k">if</span> <span class="n">num_kv_heads</span> <span class="k">else</span> <span class="n">num_heads</span>
     <span class="n">adapter_cls</span> <span class="o">=</span> <span class="n">DoRALinear</span> <span class="k">if</span> <span class="n">use_dora</span> <span class="k">else</span> <span class="n">LoRALinear</span>
     <span class="n">q_proj</span> <span class="o">=</span> <span class="p">(</span>
@@ -794,11 +844,11 @@
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-            <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">q_proj_bias</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;q_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
-        <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">q_proj_bias</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">k_proj</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">adapter_cls</span><span class="p">(</span>
@@ -807,11 +857,11 @@
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-            <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">k_proj_bias</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;k_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
-        <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">k_proj_bias</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">v_proj</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">adapter_cls</span><span class="p">(</span>
@@ -820,15 +870,15 @@
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
             <span class="n">dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
-            <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">v_proj_bias</span><span class="p">,</span>
             <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;v_proj&quot;</span> <span class="ow">in</span> <span class="n">lora_modules</span>
-        <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_kv_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">v_proj_bias</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">output_proj</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">adapter_cls</span><span class="p">(</span>
-            <span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">num_heads</span> <span class="o">*</span> <span class="n">head_dim</span><span class="p">,</span>
             <span class="n">embed_dim</span><span class="p">,</span>
             <span class="n">rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
@@ -847,6 +897,8 @@
         <span class="n">q_proj</span><span class="o">=</span><span class="n">q_proj</span><span class="p">,</span>
         <span class="n">k_proj</span><span class="o">=</span><span class="n">k_proj</span><span class="p">,</span>
         <span class="n">v_proj</span><span class="o">=</span><span class="n">v_proj</span><span class="p">,</span>
+        <span class="n">q_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">)</span> <span class="k">if</span> <span class="n">q_norm</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">k_norm</span><span class="o">=</span><span class="n">RMSNorm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">head_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">norm_eps</span><span class="p">)</span> <span class="k">if</span> <span class="n">k_norm</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">output_proj</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
         <span class="n">pos_embeddings</span><span class="o">=</span><span class="n">rope</span><span class="p">,</span>
         <span class="n">kv_cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
