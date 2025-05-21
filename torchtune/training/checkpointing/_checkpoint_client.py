@@ -60,16 +60,20 @@ class CheckpointClient:
 
     Args:
         cfg (DictConfig): Configuration object used to instantiate the recipe.
+        checkpointer (Optional[Any]): Checkpointer used to save and load checkpoints.
+                                      Used if we want to override the default checkpointer.
+                                      eg. teacher checkpointer config
     """
 
     def __init__(
         self,
         cfg: DictConfig,
+        checkpointer: Optional[Any] = None,
     ) -> None:
         self._cfg = cfg
 
         # _checkpointer is the user configured checkpointer
-        self._checkpointer = None
+        self._checkpointer = checkpointer
 
         # DistributedCheckpointer is used for asynchronous checkpointing, if enabled.
         self._dcp_checkpointer = None
@@ -268,10 +272,10 @@ class CheckpointClient:
                     )
                 else:
                     for param, opt in optimizer.optim_map.items():
-                        optim_state_dict[
-                            param
-                        ] = training.get_full_optimizer_state_dict(
-                            model, opt, self._is_rank_zero, device=self._device
+                        optim_state_dict[param] = (
+                            training.get_full_optimizer_state_dict(
+                                model, opt, self._is_rank_zero, device=self._device
+                            )
                         )
             else:
                 optim_state_dict = optimizer.state_dict()
@@ -407,9 +411,9 @@ class CheckpointClient:
         if "param_groups" in optim_state_dict:
             for param_group in optim_state_dict["param_groups"]:
                 if param_group.get("initial_lr") is None:
-                    param_group[
-                        "initial_lr"
-                    ] = 0.0  # This will get overriden by the actual value in optimizer
+                    param_group["initial_lr"] = (
+                        0.0  # This will get overriden by the actual value in optimizer
+                    )
 
         checkpoint_dict.update(
             {
