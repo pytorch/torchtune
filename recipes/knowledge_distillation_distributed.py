@@ -228,9 +228,7 @@ class KDRecipeDistributed(FTRecipeInterface):
 
         self._compile = cfg.get("compile", False)
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
-        teacher_checkpoint_dict = self.load_teacher_checkpoint(
-            cfg=cfg.teacher_checkpointer
-        )
+        teacher_checkpoint_dict = self.load_teacher_checkpoint(cfg=cfg)
 
         # set up model
         self._model = self._setup_model(
