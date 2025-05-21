@@ -91,6 +91,7 @@ class MoE(nn.Module):
         experts (nn.Module): experts module.
         router (nn.Module): router module.
         shared_expert (Optional[nn.Module]): shared expert module. Default is None.
+        use_grouped_mm (bool): use grouped_mm or for loop for experts computation.
     """
 
     def __init__(
@@ -142,7 +143,7 @@ class MoE(nn.Module):
             # incurring synchronization between device and host.
             from torchtune.modules.moe.indices import generate_permute_indices
 
-            ALIGN_SIZE_M = 16
+            ALIGN_SIZE_M = 16  # noqa
 
             with torch.no_grad():
                 (

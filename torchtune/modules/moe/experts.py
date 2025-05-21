@@ -27,6 +27,7 @@ class GroupedExperts(nn.Module):
         hidden_dim (int): Hidden dimension.
         num_experts (int): Number of experts in this grouped experts layer. Default is 1.
         activation (Callable): Activation function to use. Default is F.silu.
+        use_grouped_mm (bool): use grouped_mm or for loop for experts computation.
     """
 
     def __init__(
@@ -45,7 +46,6 @@ class GroupedExperts(nn.Module):
         self.down_proj = nn.Parameter(torch.empty(num_experts, hidden_dim, dim))
         self.up_proj = nn.Parameter(torch.empty(num_experts, dim, hidden_dim))
         self.act_fn = activation
-        self.rank = torch.distributed.get_rank()
         self.use_grouped_mm = use_grouped_mm
 
     def reset_parameters(self) -> None:
@@ -58,7 +58,6 @@ class GroupedExperts(nn.Module):
     # TODO: force no inference mode as a hack to get around
     # "Cannot set version_counter for inference tensor"
     @torch.inference_mode(mode=False)
-    @torch._dynamo.disable(recursive=False)
     def forward(
         self,
         x: torch.Tensor,
