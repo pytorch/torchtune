@@ -38,6 +38,7 @@ from torchtune.modules.moe import (
     TokenChoiceTopKRouter,
 )
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
+from torchtune.utils._device import has_cuda_capability
 
 """
 Component builders for the Llama4 model.
@@ -180,6 +181,7 @@ def llama4_decoder(
     num_experts: int = 16,
     experts_per_token: int = 1,
     use_shared_expert: bool = True,
+    use_grouped_mm: bool = True,
     use_qk_norm: bool = True,
     moe_every_n_layers: Optional[int] = None,
     mlp_hidden_dim: Optional[int] = None,
@@ -244,6 +246,11 @@ def llama4_decoder(
         raise ValueError(
             "Must pass local_chunk_size when enabling local chunked attention"
         )
+    if use_grouped_mm and not has_cuda_capability(9, 0):
+        torchtune.utils.get_logger("WARNING")(
+            "Failed to use grouped mm, which is only supported on SM90 or later",
+        )
+        use_grouped_mm = False
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
@@ -263,7 +270,6 @@ def llama4_decoder(
         )
     layers = []
     for i in range(num_layers):
-
         mask_mod = None
         if skip_rope_interval is not None and (i + 1) % skip_rope_interval != 0:
             mask_mod = partial(
@@ -300,6 +306,7 @@ def llama4_decoder(
                 num_experts=num_experts,
                 experts_per_token=experts_per_token,
                 use_shared_expert=use_shared_expert,
+                use_grouped_mm=use_grouped_mm,
             )
         else:
             mlp_layer = llama4_mlp(dim=embed_dim, hidden_dim=mlp_hidden_dim)
@@ -355,6 +362,7 @@ def llama4_moe(
     num_experts: int = 8,
     experts_per_token: int = 1,
     use_shared_expert: bool = True,
+    use_grouped_mm: bool = True,
 ) -> MoE:
     """
     Build the MoE layer associated with the Llama model.
@@ -631,6 +639,7 @@ def lora_llama4_decoder(
         raise ValueError(
             "Must pass local_chunk_size when enabling local chunked attention"
         )
+
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     if use_scaled_rope:
@@ -649,7 +658,6 @@ def lora_llama4_decoder(
         )
     layers = []
     for i in range(num_layers):
-
         mask_mod = None
         if skip_rope_interval is not None and (i + 1) % skip_rope_interval != 0:
             mask_mod = partial(
