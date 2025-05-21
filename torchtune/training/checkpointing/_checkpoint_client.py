@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import dataclasses
 import os
 import time
 from dataclasses import dataclass
@@ -436,6 +435,9 @@ class CheckpointClient:
                 training.EPOCHS_KEY: 0,
                 training.TOTAL_EPOCHS_KEY: 0,
                 training.MAX_STEPS_KEY: 0,
+                "steps_run": 0,
+                "total_training_steps": 0,
+                training.DATALOADER_KEY: {},
             }
         )
 

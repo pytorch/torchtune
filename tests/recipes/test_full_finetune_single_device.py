@@ -396,6 +396,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             tokenizer.prompt_template=null \
             metric_logger.filename={first_log_file} \
             optimizer_in_bwd=False \
+            save_every_n_steps=2 \
         """.split()
 
         model_config = MODEL_TEST_CONFIGS["llama2"]
@@ -422,7 +423,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             enable_async_checkpointing=True\

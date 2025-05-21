@@ -144,14 +144,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._log_peak_memory_stats = False
 
         # Training cfg
-        self._resume_from_checkpoint = cfg.resume_from_checkpoint or cfg.get(
-            "should_load_recipe_state", False
-        )
+        self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self.save_every_n_steps = cfg.get("save_every_n_steps")
-        self.checkpointer = config.instantiate(
-            cfg.checkpointer,
-            should_load_recipe_state=self._resume_from_checkpoint,
-        )
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
         self.optimizer_in_bwd = cfg.optimizer_in_bwd
@@ -275,7 +269,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
-                state_dict[training.OPT_KEY] if self._resume_from_checkpoint else None
+                state_dict[training.OPT_KEY] if training.OPT_KEY in state_dict else None
             ),
         )
 
@@ -314,7 +308,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             collate_fn=collate_name,
             dataloader_state_dict=(
                 state_dict[training.DATALOADER_KEY]
-                if self._resume_from_checkpoint
+                if training.DATALOADER_KEY in state_dict
                 else None
             ),
         )
