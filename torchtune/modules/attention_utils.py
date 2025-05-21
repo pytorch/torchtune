@@ -47,7 +47,7 @@ if _SUPPORTS_FLEX_ATTENTION:
     # when compiled. To insulate it from the compiler, we wrap it with
     # compiler.disable so that it can be used regardless of whether the model
     # is compiled or not, and flex attention always remains compiled.
-    @torch.compiler.disable(recursive=False)
+    # @torch.compiler.disable(recursive=False)
     def compile_friendly_flex_attention(
         q: torch.Tensor,
         k: torch.Tensor,
