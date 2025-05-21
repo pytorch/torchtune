@@ -37,6 +37,7 @@ from torchtune.training.checkpointing._utils import (
     get_all_checkpoints_in_dir,
     get_model_checkpoint_path,
     get_most_recent_checkpoint,
+    get_recipe_checkpoint_path,
     ModelType,
     prune_surplus_checkpoints,
     RECIPE_STATE_DIRNAME,
@@ -261,6 +262,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
+        **kwargs,
     ) -> None:
         """
         Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -1119,8 +1121,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
-        *,
-        step: Optional[int] = None,
+        **kwargs,
     ) -> None:
         """
         Save Meta checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -1133,18 +1134,11 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
-            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-        # Prefer to use step, not epoch
-        if step is not None:
-            ckpt_save_dirname = f"step_{step}"
-            ckpt_pattern = r"^step_(\d+)"
-        else:
-            ckpt_save_dirname = f"epoch_{epoch}"
-            ckpt_pattern = r"^epoch_(\d+)"
+        ckpt_save_dirname = f"epoch_{epoch}"
 
         if not adapter_only:
             model_state_dict = state_dict[training.MODEL_KEY]
@@ -1244,16 +1238,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                     "The full model checkpoint, including all weights and configurations, has been saved successfully."
                     "You can now use this checkpoint for further training or inference."
                 )
-
-        # If specified, prune the checkpoints in the output directory
-        if self._keep_last_n_checkpoints is not None:
-            all_current_checkpoints = get_all_checkpoints_in_dir(
-                self._output_dir, pattern=ckpt_pattern
-            )
-            prune_surplus_checkpoints(
-                all_current_checkpoints,
-                keep_last_n_checkpoints=self._keep_last_n_checkpoints,
-            )
 
 
 class DistributedCheckpointer(_CheckpointerInterface):

@@ -585,6 +585,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
 
             # Get iterator for the dataloader
+            self._dataloader.sampler.set_epoch(curr_epoch)
             dataloader_iter = iter(self._dataloader)
             batch_count = 0
 
