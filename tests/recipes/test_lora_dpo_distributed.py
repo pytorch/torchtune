@@ -149,7 +149,7 @@ class TestLoRADPODistributedRecipe:
     def test_training_state_on_resume_with_async_checkpointing(
         self, tmpdir, monkeypatch, save_adapter_weights_only
     ):
-        """Test whether the recipe state is correctly updated on resume. Since this
+        """Test whether the recipe state is correctly updated on resume with async checkpointing. Since this
         is model agnostic, we should run this on the small model only. The test
         consists of three stages:
             - Train a model for 2 epochs
