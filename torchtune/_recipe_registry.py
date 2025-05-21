@@ -617,6 +617,10 @@ _ALL_RECIPES = [
                 name="code_llama2/evaluation",
                 file_path="code_llama2/evaluation.yaml",
             ),
+            Config(
+                name="qwen3/evaluation",
+                file_path="qwen3/evaluation.yaml",
+            ),
         ],
         supports_distributed=False,
     ),

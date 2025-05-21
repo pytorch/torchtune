@@ -7,10 +7,10 @@
 #   tune download Qwen/Qwen3-8B
 #
 # You get better results using KD if the teacher model has already been fine-tuned on the target dataset:
-#   tune run lora_finetune_single_device --config qwen3/14B_lora_single_device.yaml
+#   tune run lora_finetune_single_device --config qwen3/14B_lora_single_device
 #
 # To launch on a single device, run the following command from root:
-#   tune run knowledge_distillation_single_device --config qwen3/14B_to_8B_KD_lora_single_device.yaml
+#   tune run knowledge_distillation_single_device --config qwen3/14B_to_8B_KD_lora_single_device
 #
 # This config works only for training on single device.
 
@@ -33,8 +33,8 @@ teacher_model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen3.qwen3_tokenizer
-  path: /Qwen3-8B/vocab.json
-  merges_file: /Qwen3-8B/merges.txt
+  path: /tmp/Qwen3-8B/vocab.json
+  merges_file: /tmp/Qwen3-8B/merges.txt
   max_seq_len: null
 
 checkpointer:

@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Dict, Optional
+from typing import Optional
 
 from torchtune.data import PromptTemplate
 from torchtune.models.qwen2._tokenizer import (
@@ -37,7 +37,7 @@ class Qwen3Tokenizer(Qwen2_5Tokenizer):  # noqa: N801
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Dict[str, int]): Special tokens to add to the tokenizer. Default is QWEN2_5_SPECIAL_TOKENS.
+        special_tokens (dict[str, int]): Special tokens to add to the tokenizer. Default is QWEN2_5_SPECIAL_TOKENS.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -77,7 +77,7 @@ class Qwen3Tokenizer(Qwen2_5Tokenizer):  # noqa: N801
         self,
         path: str,
         merges_file: str,
-        special_tokens: Dict[str, int] = QWEN3_SPECIAL_TOKENS,
+        special_tokens: dict[str, int] = QWEN3_SPECIAL_TOKENS,
         max_seq_len: Optional[int] = None,
         *,
         prompt_template: Optional[PromptTemplate] = None,
