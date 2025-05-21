@@ -655,3 +655,57 @@ def prune_surplus_checkpoints(
         shutil.rmtree(checkpoint)
 
     return
+
+
+def get_adapter_checkpoint_path(
+    output_dir: Union[Path, str],
+    adapter_checkpoint: Optional[str] = None,
+    should_load_recipe_state: bool = False,
+    pattern: str = r"^epoch_(\d+)",
+) -> Optional[str]:
+    r"""
+    If adapter_checkpoint is None, look for it in {output_dir}/epoch_{latest_epoch}/adapter_model.pt.
+    This is to make it easier to resume from a previous run, without having to specify the adapter_checkpoint.
+
+    Args:
+        output_dir (Union[Path, str]): Directory containing the adapter checkpoint.
+        adapter_checkpoint (Optional[str]): Name of the adapter checkpoint file. Defaults to None.
+        should_load_recipe_state (bool): Whether to load the recipe state from checkpoint.
+        pattern (str): Regex pattern to match the epoch folder. Defaults to "epoch_(\d+)".
+
+    Returns:
+        Optional[str]: Path to the adapter checkpoint file, or None if not applicable.
+
+    Raises:
+        ValueError: If the adapter checkpoint file is missing or if the adapter checkpoint file is not a .pt file.
+    """
+    if not should_load_recipe_state:
+        return None
+
+    adapter_checkpoint_path = None
+
+    if adapter_checkpoint:
+        adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
+        fs, _ = url_to_fs(adapter_checkpoint_path)
+        if not fs.exists(adapter_checkpoint_path):
+            raise ValueError(
+                f"Adapter checkpoint file {adapter_checkpoint_path} does not exist."
+            )
+        if not adapter_checkpoint_path.endswith(".pt"):
+            raise ValueError(
+                f"Adapter checkpoint file {adapter_checkpoint_path} must end with .pt extension."
+            )
+    else:
+        # Look for the latest adapter checkpoint in the output directory
+        largest_iter_folder = get_largest_iter_folder(output_dir, pattern=pattern)
+        if largest_iter_folder is None:
+            return None
+
+        tentative_adapter_checkpoint_path = os.path.join(
+            output_dir, largest_iter_folder, "adapter_model.pt"
+        )
+        fs, _ = url_to_fs(tentative_adapter_checkpoint_path)
+        if fs.exists(tentative_adapter_checkpoint_path):
+            adapter_checkpoint_path = tentative_adapter_checkpoint_path
+
+    return adapter_checkpoint_path if adapter_checkpoint_path else None

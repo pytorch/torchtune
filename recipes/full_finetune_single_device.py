@@ -481,6 +481,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -530,7 +531,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             dataloader.load_state_dict(dataloader_state_dict)
         return dataloader
 
-    def save_checkpoint(self, *, epoch: int, step: int) -> None:
+    def save_checkpoint(self, *, epoch: int, step: int, fast_save: bool) -> None:
         """
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
@@ -546,9 +547,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 total_epochs=self.total_epochs,
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
+                steps_run=step,
             ),
             epoch=epoch,
             single_device=True,
+            fast_save=fast_save,
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -617,7 +620,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 current_loss.backward()
 
                 # Take a normal optimizer step
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if (batch_count + 1) % self._gradient_accumulation_steps == 0:
                     grad_norm = None
                     if not self.optimizer_in_bwd:
                         training.scale_grads(self._model, 1.0 / num_tokens)
@@ -658,11 +661,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._metric_logger.log_dict(log_dict, step=self.global_step)
 
                     # Save checkpoint if specified by user
-                    if (
-                        self.global_step > 0
-                        and self.global_step % self.save_every_n_steps == 0
-                    ):
-                        self.save_checkpoint(epoch=curr_epoch, step=self.global_step)
+                    if self.global_step % self.save_every_n_steps == 0:
+                        self.save_checkpoint(
+                            epoch=curr_epoch, step=self.global_step, fast_save=True
+                        )
 
                     running_loss, num_tokens = 0.0, 0
                     t0 = time.perf_counter()
@@ -680,15 +682,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     torch.cuda.memory._record_memory_history(enabled=None)
 
                 self._profiler.step()
-
                 batch_count += 1
 
             self.epochs_run += 1
 
-        # Save final checkpoint if not already saved during training
-        if self.global_step % self.save_every_n_steps != 0:
-            self.save_checkpoint(epoch=curr_epoch, step=self.global_step)
         self._profiler.stop()
+        # Save final checkpoint
+        self.save_checkpoint(epoch=curr_epoch, step=self.global_step, fast_save=False)
 
     def cleanup(self) -> None:
         self._metric_logger.close()

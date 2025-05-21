@@ -26,6 +26,7 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.training.checkpointing._checkpointer import DistributedCheckpointer
+from torchtune.training.checkpointing._utils import get_most_recent_checkpoint
 from torchtune.training.memory import OptimizerInBackwardWrapper
 
 log = utils.get_logger("DEBUG")
@@ -41,6 +42,7 @@ class TrainingProgress:
     epochs_run: int
     total_epochs: int
     max_steps_per_epoch: int
+    steps_run: Optional[int] = None
     dataloader_state_dict: Optional[dict[str, Any]] = None
 
     def state_dict(self) -> dict[str, object]:
@@ -49,6 +51,7 @@ class TrainingProgress:
             training.EPOCHS_KEY: self.epochs_run,
             training.TOTAL_EPOCHS_KEY: self.total_epochs,
             training.MAX_STEPS_KEY: self.max_steps_per_epoch,
+            "steps_run": self.steps_run,
             training.DATALOADER_KEY: self.dataloader_state_dict,
         }
 
@@ -110,12 +113,10 @@ class CheckpointClient:
         """
         if not self._dcp_checkpointer:
             checkpointer = self._get_checkpointer()
-
             self._dcp_checkpointer = DistributedCheckpointer(
                 checkpoint_dir=checkpointer._checkpoint_dir,
                 output_dir=checkpointer._output_dir,
             )
-
         return self._dcp_checkpointer
 
     def _save_checkpoint_async(
@@ -170,8 +171,12 @@ class CheckpointClient:
 
         dcp_saver = self._get_dcp_checkpointer()
         if not adapter_only:
-            dcp_saver.save_checkpoint(ckpt_dict, epoch=epoch, save_async=True)
-
+            dcp_saver.save_checkpoint(
+                ckpt_dict,
+                epoch=epoch,
+                save_async=True,
+                step=training_progress.steps_run,
+            )
             if self._is_rank_zero:
                 log.info(
                     f"Saving asynchronous checkpoint took {time.perf_counter() - cp_start:.2f} secs"
@@ -180,7 +185,7 @@ class CheckpointClient:
         if adapter_config is not None:
             adapter_start = time.perf_counter()
 
-            save_path = dcp_saver.get_output_path(epoch=epoch)
+            save_path = dcp_saver.output_dir
             os.makedirs(save_path, exist_ok=True)
 
             dcp_saver.save_checkpoint(
@@ -188,12 +193,13 @@ class CheckpointClient:
                 epoch=epoch,
                 save_async=True,
                 adapter_only=True,
+                step=training_progress.steps_run,
             )
 
             if adapter_only:
                 torch.save(
                     training_progress.state_dict(),
-                    os.path.join(save_path, "training_progress.pt"),
+                    os.path.join(save_path, "recipe_state.pt"),
                 )
 
             if self._is_rank_zero:
@@ -319,6 +325,7 @@ class CheckpointClient:
                 epoch=epoch,
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=adapter_only,
+                step=training_progress.steps_run,
             )
 
             if self._is_rank_zero:
@@ -345,7 +352,7 @@ class CheckpointClient:
         adapter_only: bool = False,
         single_device: bool = False,
         *,
-        step: Optional[int] = None,
+        fast_save: bool = False,
     ) -> None:
         """
         Checkpoint the training state.
@@ -358,9 +365,7 @@ class CheckpointClient:
         Otherwise, the checkpoint will be saved synchronously with the
         checkpointer user has configured.
         """
-        intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
-
-        if intermediate_checkpoint and self._enable_async_checkpointing:
+        if fast_save and self._enable_async_checkpointing:
             self._save_checkpoint_async(
                 model,
                 optimizer,
@@ -400,7 +405,7 @@ class CheckpointClient:
         if self._is_rank_zero:
             dcp_load_start = time.perf_counter()
 
-        if not self._optimizer_in_bwd:
+        if not isinstance(optimizer, OptimizerInBackwardWrapper):
             _init_optim_state(optimizer)
 
         # Build the state dict to be loaded from the distributed checkpoint
@@ -446,7 +451,7 @@ class CheckpointClient:
 
         adapter_only = False
         dcp_checkpointer = self._get_dcp_checkpointer()
-        checkpoint_path = dcp_checkpointer.get_latest_intermediate_checkpoint()
+        checkpoint_path = get_most_recent_checkpoint(dcp_checkpointer.output_dir)
         if checkpoint_path:
             adapter_only = not os.path.isfile(
                 os.path.join(checkpoint_path, dcp_checkpointer._metadata_file)
@@ -459,7 +464,7 @@ class CheckpointClient:
             )
 
             progress_state_dict = torch.load(
-                os.path.join(checkpoint_path, "training_progress.pt"), weights_only=True
+                os.path.join(checkpoint_path, "recipe_state.pt"), weights_only=True
             )
             checkpoint_dict.update(progress_state_dict)
 
@@ -476,7 +481,7 @@ class CheckpointClient:
 
         options = StateDictOptions(strict=False)
         # Load the checkpoint state dict into model and optimizer
-        if not self._optimizer_in_bwd:
+        if not isinstance(optimizer, OptimizerInBackwardWrapper):
             if training.OPT_KEY in checkpoint_dict:
                 base_missing, base_unexpected = set_state_dict(
                     model,

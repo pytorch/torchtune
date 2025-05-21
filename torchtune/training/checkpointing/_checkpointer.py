@@ -7,7 +7,6 @@
 import gc
 import json
 import os
-import re
 import time
 from concurrent.futures import Future
 from pathlib import Path
@@ -25,6 +24,7 @@ from torch.distributed.checkpoint import (
     load,
     save,
 )
+from torch.distributed.checkpoint.filesystem import SerializationFormat
 
 from torchtune import training
 from torchtune.models import convert_weights
@@ -146,10 +146,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the recipe state from a previous run. Default is False
 
-    Keyword Args:
-        keep_last_n_checkpoints (int, optional): Number of checkpoints to retain during training. E.g. if ``keep_last_n_checkpoints=1``,
-            the checkpointer will delete the old checkpoint as soon as it creates a new one.
-
     Raises:
         ValueError: If more than one checkpoint file is provided
     """
@@ -164,11 +160,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
-        *,
-        keep_last_n_checkpoints: Optional[int] = None,
     ) -> None:
-        self._keep_last_n_checkpoints = keep_last_n_checkpoints
-
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
@@ -271,8 +263,6 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         epoch: int,
         intermediate_checkpoint: bool = False,
         adapter_only: bool = False,
-        *,
-        step: Optional[int] = None,
     ) -> None:
         """
         Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -300,14 +290,9 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 recipe state
             adapter_only (bool): If True, only save the adapter weights. Default is False
 
-        Keyword Args:
-            step (int, optional): Current step number. This is added to the checkpoint file name to ensure
-                we're not overwriting intermediate checkpoint files. Default is None.
-
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
         """
-
         # Output file is always a .bin file with the epoch number in the name
         if not adapter_only:
             shard_name = SHARD_FNAME.format(
@@ -402,12 +387,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             of sorting by file ID, the order in this list does not matter.
         model_type (str): Model type of the model for which the checkpointer is being loaded, e.g. LLAMA3.
         output_dir (Optional[str]): Directory to save the checkpoint files, default None.
-        adapter_checkpoint (Optional[str]): Path to the adapter weights. If None,
+        adapter_checkpoint (str): Path to the adapter weights. If None,
             and `should_load_recipe_state=True`, then look for adapter_model.pt in output_dir/epoch_{largest_epoch}.
-            Default is None.
-        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. If None,
+            Default is "adapter_model.pt".
+        recipe_checkpoint (str): Path to the recipe state checkpoint file. If None,
             and `should_load_recipe_state=True`, then look for recipe_state.pt in output_dir/RECIPE_STATE_DIRNAME.
-            Default is None.
+            Default is "recipe_state.pt".
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
             the receipe state from a previous run. Default is False. This flag is deprecated. Please use
             the should_load_recipe_state flag instead.
@@ -746,9 +731,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
-
-        Keyword Args:
-            step (int, optional): Step number. Used to create the checkpoint file name if provided.
+            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
@@ -846,10 +829,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
             if self._enable_dcp:
                 self._save_checkpoint_with_dcp_hf(
-                    state_dict,
-                    output_path=ckpt_output_dir,
+                    state_dict, output_path=ckpt_output_dir
                 )
-
             else:
                 # split the state_dict into separate dicts, one for each output checkpoint file
                 # e.g. split_state_dicts= {
@@ -1033,7 +1014,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             ]:
                 state_dict.pop(key, None)
             recipe_state_path = os.path.join(ckpt_output_dir, "recipe_state.pt")
-            torch.save(state_dict, recipe_state_path)
+            with self._output_fs.open(recipe_state_path, "wb") as f:
+                torch.save(state_dict, f)
             logger.info(
                 f"Recipe checkpoint of size {os.path.getsize(recipe_state_path) / 1024**3:.2f} GiB "
                 f"saved to {recipe_state_path}"
@@ -1075,7 +1057,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 should_load_recipe_state instead.
         should_load_recipe_state (bool): If True, the checkpointer will load the additional checkpoint files corresponding to
                 the recipe state from a previous run. Default is False
-        keep_last_n_checkpoints (Optional[int]): How many checkpoints to keep. If None, all checkpoints are kept.
 
     Raises:
         ValueError: If ``checkpoint_files`` is not a list of length 1
@@ -1091,11 +1072,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
         should_load_recipe_state: bool = False,
-        *,
-        keep_last_n_checkpoints: Optional[int] = None,
     ) -> None:
-        self._keep_last_n_checkpoints = keep_last_n_checkpoints
-
         # Fail fast if ``checkpoint_files`` is invalid
         # TODO: support loading more than one file
         if len(checkpoint_files) != 1:
@@ -1358,84 +1335,33 @@ class DistributedCheckpointer(_CheckpointerInterface):
         self._checkpoint_dir = Path(checkpoint_dir)
         self._output_dir = Path(output_dir)
         self._checkpoint_future = None
-        self._checkpoint_dir_prefix = "dist_epoch"
         self._metadata_file = ".metadata"
         self._adapter_dir = "adapter_model"
         _, self._rank = get_world_size_and_rank()
         self._process_group: Optional[dist.ProcessGroup] = process_group
 
-    def get_output_path(self, epoch: int) -> str:
-        """
-        Get the output path for the checkpoint directory.
-
-        Args:
-            epoch (int): Epoch number. Used to create the checkpoint file name
-
-        Returns:
-            str: The fully qualified path of the checkpoint directory.
-        """
-        return os.path.join(self._output_dir, f"{self._checkpoint_dir_prefix}_{epoch}")
-
-    def get_latest_intermediate_checkpoint(self) -> Optional[str]:
-        """
-        This method iterates over the available intermediate distributed checkpoints and
-        finds the latest checkpoint to load.
-
-        Returns:
-            str: The fully qualified path of the checkpoint directory containing the latest and valid
-            intermediate checkpoint. A valid checkpoint needs to have the metadata file.
-        """
-
-        checkpoint_dir_pattern = re.compile(f"{self._checkpoint_dir_prefix}_(\\d+)")
-        checkpoint_paths = [
-            name
-            for name in os.listdir(self._output_dir)
-            if re.match(checkpoint_dir_pattern, name)
-            and (
-                os.path.isfile(
-                    os.path.join(self._output_dir, name, self._metadata_file)
-                )
-                or os.path.isdir(
-                    os.path.join(self._output_dir, name, self._adapter_dir)
-                )
-            )
-        ]
-
-        if checkpoint_paths:
-            latest_checkpoint_dir = sorted(
-                checkpoint_paths, key=lambda x: int(x.split("_")[-1])
-            )[-1]
-            return os.path.join(self._output_dir, latest_checkpoint_dir)
-        return None
+    @property
+    def output_dir(self) -> Path:
+        return self._output_dir
 
     def load_checkpoint(
         self,
-        state_dict: dict[str, Any] = None,
-        checkpoint_path: Optional[str] = None,
+        state_dict: dict[str, Any],
         adapter_only: bool = False,
     ) -> dict[str, Any]:
         """
         Load a Distributed checkpoint saved at the <checkpoint_path>
         If no path is provided, latest intermediate checkpoint is loaded.
         """
-
-        if state_dict is None:
+        checkpoint_path = get_most_recent_checkpoint(self.output_dir)
+        if checkpoint_path is None:
             raise ValueError(
-                "State dict must be provided to load a distributed checkpoint."
+                "No intermediate checkpoint was found in the output directory."
+                "Please ensure that a checkpoint exists to load."
             )
 
-        # If no checkpoint path is provided, load the latest intermediate checkpoint.
-        if checkpoint_path is None:
-            checkpoint_path = self.get_latest_intermediate_checkpoint()
-
-            if checkpoint_path is None:
-                raise ValueError(
-                    "No checkpoint path was provided."
-                    "Also, No intermediate checkpoint was found in the output directory."
-                    "Please ensure that a checkpoint exists to load."
-                )
-            if adapter_only:
-                checkpoint_path = os.path.join(checkpoint_path, self._adapter_dir)
+        if adapter_only:
+            checkpoint_path = os.path.join(checkpoint_path, self._adapter_dir)
 
         log_rank_zero(logger, msg=f"Loading checkpoint from {checkpoint_path}")
 
@@ -1456,6 +1382,8 @@ class DistributedCheckpointer(_CheckpointerInterface):
         epoch: int,
         save_async: bool = False,
         adapter_only: bool = False,
+        *,
+        step: Optional[int] = None,
     ) -> None:
         """
         Save a distributed checkpoint to storage.
@@ -1468,18 +1396,17 @@ class DistributedCheckpointer(_CheckpointerInterface):
             epoch (int): Epoch number. Used to create the checkpoint file name
             save_async (bool): If True, save the checkpoint asynchronously
             adapter_only (bool): If True, only adapter weights are being saved, which affects which path to save to.
+            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
         """
+        # Prefer to use step, not epoch
+        if step is not None:
+            ckpt_save_dirname = f"step_{step}"
+        else:
+            ckpt_save_dirname = f"epoch_{epoch}"
 
-        log_rank_zero(
-            logger,
-            msg=f"DistributedCheckpointer is saving a checkpoint for the epoch {epoch}",
-        )
-
-        checkpoint_path = Path.joinpath(
-            self._output_dir, f"{self._checkpoint_dir_prefix}_{epoch}"
-        )
+        checkpoint_path = os.path.join(self._output_dir, ckpt_save_dirname)
         if adapter_only:
-            checkpoint_path = Path.joinpath(checkpoint_path, self._adapter_dir)
+            checkpoint_path = os.path.join(checkpoint_path, self._adapter_dir)
 
         if self._checkpoint_future and not self._checkpoint_future.done():
             # Previous checkpoint needs to finish before saving the next one.
@@ -1518,8 +1445,8 @@ class DistributedCheckpointer(_CheckpointerInterface):
                 storage_writer=FileSystemWriter(
                     checkpoint_path,
                     thread_count=16,
-                    single_file_per_rank=False,
-                    sync_files=False,
+                    cache_staged_state_dict=True,
+                    serialization_format=SerializationFormat.SAFETENSORS,
                 ),
                 process_group=self._process_group,
             )
@@ -1546,9 +1473,3 @@ class DistributedCheckpointer(_CheckpointerInterface):
                 ),
                 process_group=self._process_group,
             )
-
-        log_rank_zero(
-            logger,
-            msg="The full model checkpoint, including all the weights and configurations, has been saved successfully "
-            "by the DistributedCheckpointer. You can now use this checkpoint for further training.",
-        )
