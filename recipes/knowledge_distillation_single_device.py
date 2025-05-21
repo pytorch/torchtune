@@ -145,16 +145,20 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         self._checkpoint_client = CheckpointClient(cfg)
         self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
 
-    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
+    def load_teacher_checkpoint(self, cfg: DictConfig) -> dict[str, Any]:
         """
         Extract the teacher checkpoint state from file.
         """
-        # add checkpointer class to config to work with checkpoint_client
-        checkpointer_dict = {"checkpointer": cfg_checkpointer}
+        # update checkpointer class to config to work with checkpoint_client
+        # by setting the teacher_checkpointer key as the checkpointer key
+        # that the checkpoint client will use to load
+        new_cfg = OmegaConf.create(cfg)
+        del new_cfg["checkpointer"]
+        teacher_checkpoint_val = new_cfg.pop("teacher_checkpointer")
+        new_cfg["checkpointer"] = teacher_checkpoint_val
 
-        new_cfg_checkpointer = OmegaConf.create(checkpointer_dict)
         teacher_checkpoint_client = CheckpointClient(
-            new_cfg_checkpointer,
+            new_cfg,
         )
         checkpoint_dict = teacher_checkpoint_client.load_base_checkpoint()
         return checkpoint_dict
@@ -218,9 +222,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
                 "NPU does not support model compilation. Please set `compile: False` in the config."
             )
 
-        teacher_checkpoint_dict = self.load_teacher_checkpoint(
-            cfg_checkpointer=cfg.teacher_checkpointer
-        )
+        teacher_checkpoint_dict = self.load_teacher_checkpoint(cfg=cfg)
 
         common_utils._use_low_cpu_ram = cfg.get("low_cpu_ram", False)
 
