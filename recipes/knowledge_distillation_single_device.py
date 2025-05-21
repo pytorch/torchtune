@@ -153,7 +153,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         teacher_checkpointer = config.instantiate(
             cfg.teacher_checkpointer,
         )
-
         teacher_checkpoint_client = CheckpointClient(cfg, teacher_checkpointer)
         checkpoint_dict = teacher_checkpoint_client.load_base_checkpoint()
         return checkpoint_dict
