@@ -11,12 +11,12 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torchtune.modules.peft import AdapterModule
-from torchtune.modules.moe.moe import USE_GROUPED_MM
 
 
 @torch._dynamo.allow_in_graph
 def _grouped_mm(x, w, offs):
     return torch._grouped_mm(x, w, offs=offs)
+
 
 class GroupedExperts(nn.Module):
     """This class implements the grouped experts layer used in Mixture of Experts. Each expert
@@ -36,6 +36,7 @@ class GroupedExperts(nn.Module):
         hidden_dim: int,
         num_experts: int = 1,
         activation: Callable = F.silu,
+        use_grouped_mm: bool = False,
     ):
         super().__init__()
         self.dim = dim
@@ -44,6 +45,8 @@ class GroupedExperts(nn.Module):
         self.down_proj = nn.Parameter(torch.empty(num_experts, hidden_dim, dim))
         self.up_proj = nn.Parameter(torch.empty(num_experts, dim, hidden_dim))
         self.act_fn = activation
+        self.rank = torch.distributed.get_rank()
+        self.use_grouped_mm = use_grouped_mm
 
     def reset_parameters(self) -> None:
         # Default initialization used by torch.nn.Linear
@@ -55,7 +58,7 @@ class GroupedExperts(nn.Module):
     # TODO: force no inference mode as a hack to get around
     # "Cannot set version_counter for inference tensor"
     @torch.inference_mode(mode=False)
-    # @torch._dynamo.disable(recursive=False)
+    @torch._dynamo.disable(recursive=False)
     def forward(
         self,
         x: torch.Tensor,
@@ -70,13 +73,16 @@ class GroupedExperts(nn.Module):
         Returns:
             torch.Tensor: tensor with shape ``(bsz * seq_len * experts_per_token, dim)``
         """
-        self.use_grouped_mm = USE_GROUPED_MM
         if not self.use_grouped_mm:
             # a tuple of tensors indexed by experts
             # each with shape (tokens_per_expert(varying), dim)
+            num_tokens_per_expert_list = num_tokens_per_expert.tolist()
+            if torch.compiler.is_compiling():
+                for n in num_tokens_per_expert_list:
+                    torch._check_is_size(n)
             x = torch.split(
                 x,
-                split_size_or_sections=num_tokens_per_expert.tolist(),
+                split_size_or_sections=num_tokens_per_expert_list,
                 dim=0,
             )
             out_experts_splits = []
@@ -100,9 +106,7 @@ class GroupedExperts(nn.Module):
             # https://github.com/pytorch/pytorch/pull/150374
             # NOTE: torch._gouped_mm requires bf16 dtypes
             #       and shapes to be multiple of 8
-            offsets = torch.cumsum(
-                num_tokens_per_expert, dim=0, dtype=torch.int32
-            )
+            offsets = torch.cumsum(num_tokens_per_expert, dim=0, dtype=torch.int32)
             # grouped mm between a 2D tensor and a 3D tensor
             assert x.dim() == 2
         else:
@@ -121,7 +125,7 @@ class GroupedExperts(nn.Module):
         h = F.silu(_grouped_mm(x, w1, offs=offsets))
         h = h * _grouped_mm(x, w3, offs=offsets)
         out = _grouped_mm(h, w2, offs=offsets)
-
+        out[offsets[-1] :].zero_()
         return out
 
 

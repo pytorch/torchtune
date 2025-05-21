@@ -148,10 +148,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             offload_ops_to_cpu=self.fsdp_cpu_offload
             or self._enable_async_checkpointing,
         )
-        group_name = "torchtune-finetune"
-        init_process_group(self.distributed_backend, group_name=group_name)
-        pg = dist.distributed_c10d._get_default_group()
-        torch._C._distributed_c10d._register_process_group(group_name, pg)
+        # group_name = "torchtune-finetune"
+        # pg = dist.distributed_c10d._get_default_group()
+        # torch._C._distributed_c10d._register_process_group(group_name, pg)
+        # init_process_group(self.distributed_backend, group_name=group_name)
+        init_process_group(self.distributed_backend)
 
         # Initialize distributed variables
         self.world_size, self.rank = utils.get_world_size_and_rank()
@@ -333,7 +334,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         compile_bool = bool(compile)
         self._compile_backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
         self._compile_mode = None # "max-autotune-no-cudagraphs"
-        torch._inductor.config.cpp_wrapper = True
+        # torch._inductor.config.cpp_wrapper = True
+        # torch._dynamo.config.capture_scalar_outputs = True
 
         self._compile_model = compile_bool
         self._compile_loss = compile_bool
@@ -817,6 +819,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with self.activations_handling_ctx:
             outputs = self._model(**batch)
+        # print(f"XXX {dist.get_rank()} OUTPUTS:{outputs.shape} {outputs.dtype}")
 
         # post process for third party loss functions
         if not isinstance(self._loss_fn, SFTLoss):
@@ -827,6 +830,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Compute loss
         loss = self._loss_fn(outputs, labels)
+        # print(f"XXX {dist.get_rank()} LOSS:{loss}")
 
         # free logits otherwise it peaks backward memory
         del outputs
@@ -902,6 +906,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                b_tokens = batch["tokens"]
+                b_labels = batch["labels"]
+                # print(f"XXX R:{dist.get_rank()} BATCH:{idx} b_labels:{b_labels.shape} b_tokens:{b_tokens.shape}")
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -923,7 +930,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
+                # print(f"XXX R:{dist.get_rank()} BATCH:{idx} current_num_tokens:{current_num_tokens}")
                 current_loss = self._loss_step(batch) * current_num_tokens
+                # print(f"XXX R:{dist.get_rank()} BATCH:{idx} current_loss:{current_loss}")
                 running_loss += current_loss
 
                 # For optimizer in backward, we need to normalize before calling backward

@@ -9,8 +9,6 @@ from typing import Optional
 import torch
 from torch import nn
 
-USE_GROUPED_MM = True
-
 
 class TokenChoiceTopKRouter(nn.Module):
     """This class implements Token Choice routing. In Token Choice top K routing, each token is
@@ -101,12 +99,13 @@ class MoE(nn.Module):
         experts: nn.Module,
         router: nn.Module,
         shared_expert: Optional[nn.Module] = None,
+        use_grouped_mm: bool = False,
     ):
         super().__init__()
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
-        self.use_grouped_mm = USE_GROUPED_MM
+        self.use_grouped_mm = use_grouped_mm
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -141,9 +140,7 @@ class MoE(nn.Module):
             # the number of tokens each expert gets is a multiple of 16.
             # The following kernel helps achieve this via padding, without
             # incurring synchronization between device and host.
-            from torchtune.modules.moe.indices import (
-                generate_permute_indices,
-            )
+            from torchtune.modules.moe.indices import generate_permute_indices
 
             ALIGN_SIZE_M = 16
 
@@ -174,6 +171,7 @@ class MoE(nn.Module):
             out = self.shared_expert(x).reshape(bs * slen, dim)
         else:
             out = torch.zeros_like(x.reshape(bs * slen, dim))
+
         out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(bs, slen, dim)
         return out
