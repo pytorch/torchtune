@@ -24,7 +24,6 @@ from torch.distributed.checkpoint import (
     load,
     save,
 )
-from torch.distributed.checkpoint.filesystem import SerializationFormat
 
 from torchtune import training
 from torchtune.models import convert_weights
@@ -1445,8 +1444,9 @@ class DistributedCheckpointer(_CheckpointerInterface):
                 storage_writer=FileSystemWriter(
                     checkpoint_path,
                     thread_count=16,
+                    single_file_per_rank=False,
+                    sync_files=False,
                     cache_staged_state_dict=True,
-                    serialization_format=SerializationFormat.SAFETENSORS,
                 ),
                 process_group=self._process_group,
             )
@@ -1470,6 +1470,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
                     thread_count=16,
                     single_file_per_rank=False,
                     sync_files=False,
+                    cache_staged_state_dict=True,
                 ),
                 process_group=self._process_group,
             )

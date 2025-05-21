@@ -43,6 +43,7 @@ class TrainingProgress:
     total_epochs: int
     max_steps_per_epoch: int
     steps_run: Optional[int] = None
+    total_training_steps: Optional[int] = None
     dataloader_state_dict: Optional[dict[str, Any]] = None
 
     def state_dict(self) -> dict[str, object]:
@@ -52,6 +53,7 @@ class TrainingProgress:
             training.TOTAL_EPOCHS_KEY: self.total_epochs,
             training.MAX_STEPS_KEY: self.max_steps_per_epoch,
             "steps_run": self.steps_run,
+            "total_training_steps": self.total_training_steps,
             training.DATALOADER_KEY: self.dataloader_state_dict,
         }
 
@@ -226,7 +228,9 @@ class CheckpointClient:
         To correctly resume training from this checkpoint, user needs to have both
         resume_from_checkpoint flag set to True and recipe file paths set in the config.
         """
-        intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
+        intermediate_checkpoint = (
+            training_progress.steps_run < training_progress.total_training_steps
+        )
         checkpointer = self._get_checkpointer()
         is_distributed_checkpointer = not isinstance(
             checkpointer, DistributedCheckpointer

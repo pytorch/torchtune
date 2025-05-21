@@ -548,6 +548,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 max_steps_per_epoch=self.max_steps_per_epoch,
                 dataloader_state_dict=self._dataloader.state_dict(),
                 steps_run=step,
+                total_training_steps=self.total_epochs * self._steps_per_epoch,
             ),
             epoch=epoch,
             single_device=True,
