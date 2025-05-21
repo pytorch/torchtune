@@ -16,6 +16,7 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 from torch import nn
+import torch.distributed as dist
 from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed.tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
@@ -147,6 +148,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             offload_ops_to_cpu=self.fsdp_cpu_offload
             or self._enable_async_checkpointing,
         )
+        # group_name = "torchtune-finetune"
+        # pg = dist.distributed_c10d._get_default_group()
+        # torch._C._distributed_c10d._register_process_group(group_name, pg)
+        # init_process_group(self.distributed_backend, group_name=group_name)
         init_process_group(self.distributed_backend)
 
         # Initialize distributed variables
@@ -328,6 +333,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         compile = cfg.get("compile")
         compile_bool = bool(compile)
         self._compile_backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+        self._compile_mode = None # "max-autotune-no-cudagraphs"
+        # torch._inductor.config.cpp_wrapper = True
+        # torch._dynamo.config.capture_scalar_outputs = True
 
         self._compile_model = compile_bool
         self._compile_loss = compile_bool
@@ -343,7 +351,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._grad_scaler = training.scale_grads_
         if self._compile_scale_grads:
             self._grad_scaler = torch.compile(
-                self._grad_scaler, backend=self._compile_backend
+                self._grad_scaler, backend=self._compile_backend, mode=self._compile_mode
             )
 
         self._model = self._setup_model(
@@ -380,6 +388,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._optimizer.step = torch.compile(
                 self._optimizer.step,
                 backend=self._compile_backend,
+                mode=self._compile_mode
             )
 
         if self._resume_from_checkpoint:
@@ -413,7 +422,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._loss_fn.set_model_output(self._model)
 
         if self._compile_loss:
-            training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
+            training.compile_loss(self._loss_fn, mode=self._compile_mode, verbose=self._is_rank_zero)
 
         utils.log_rank_zero(self._logger, "Loss is initialized.")
 
@@ -586,7 +595,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model = config.instantiate(cfg_model)
 
         if self._compile_model:
-            training.compile_model(model, verbose=self._is_rank_zero)
+            training.compile_model(model, mode=self._compile_mode, verbose=self._is_rank_zero)
 
         if self._enable_fp8_training:
             # Requires https://github.com/pytorch/pytorch/pull/148922
@@ -810,6 +819,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         with self.activations_handling_ctx:
             outputs = self._model(**batch)
+        # print(f"XXX {dist.get_rank()} OUTPUTS:{outputs.shape} {outputs.dtype}")
 
         # post process for third party loss functions
         if not isinstance(self._loss_fn, SFTLoss):
@@ -820,6 +830,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Compute loss
         loss = self._loss_fn(outputs, labels)
+        # print(f"XXX {dist.get_rank()} LOSS:{loss}")
 
         # free logits otherwise it peaks backward memory
         del outputs
@@ -895,6 +906,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                b_tokens = batch["tokens"]
+                b_labels = batch["labels"]
+                # print(f"XXX R:{dist.get_rank()} BATCH:{idx} b_labels:{b_labels.shape} b_tokens:{b_tokens.shape}")
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -916,7 +930,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
+                # print(f"XXX R:{dist.get_rank()} BATCH:{idx} current_num_tokens:{current_num_tokens}")
                 current_loss = self._loss_step(batch) * current_num_tokens
+                # print(f"XXX R:{dist.get_rank()} BATCH:{idx} current_loss:{current_loss}")
                 running_loss += current_loss
 
                 # For optimizer in backward, we need to normalize before calling backward
@@ -1068,6 +1084,26 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._metric_logger.close()
         destroy_process_group()
 
+# from torch.utils._python_dispatch import TorchDispatchMode
+# import torch.utils._pytree as pytree
+# from torch._higher_order_ops.flex_attention import flex_attention
+# 
+# 
+# 
+# class Mode(TorchDispatchMode):
+#     def __torch_dispatch__(self, func, types, args=(), kwargs=None):
+#         r = torch.distributed.get_rank()
+#         print(f"XXX RANK[{r}] MODE._torch_dispatch_ {func} {types}") 
+#         for a in pytree.tree_leaves(args):
+#             if issubclass(type(a), torch.Tensor):
+#                 print(f"XXX RANK[{r}] {a.dtype} {a.shape}")
+#             else:
+#                 print(f"XXX RANK[{r}] {a}")
+#         return func(*args, **kwargs)
+# 
+# def flex_attention_mode_call(mode, *args, **kwargs):
+#     return flex_attention(*args, **kwargs)
+# flex_attention.py_impl(Mode)(flex_attention_mode_call)
 
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
@@ -1081,6 +1117,7 @@ def recipe_main(cfg: DictConfig) -> None:
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
     recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
+    # with Mode():
     recipe.train()
     recipe.cleanup()
 
