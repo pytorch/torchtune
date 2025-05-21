@@ -156,7 +156,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         del new_cfg["checkpointer"]
         teacher_checkpoint_val = new_cfg.pop("teacher_checkpointer")
         new_cfg["checkpointer"] = teacher_checkpoint_val
-        print("new config is: ", new_cfg)
 
         teacher_checkpoint_client = CheckpointClient(
             new_cfg,
