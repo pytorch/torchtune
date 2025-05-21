@@ -716,3 +716,34 @@ def prune_surplus_checkpoints(
         shutil.rmtree(checkpoint)
 
     return
+
+
+def get_most_recent_checkpoint(dir: Path) -> Optional[Path]:
+    """
+    Return the most recent checkpoint in the given directory.
+    The function assumes that the checkpoint files are named in the format "epoch_{epoch_number}" or "step_{step_number}".
+    The function will return None if no checkpoint files are found in the directory.
+
+    Args:
+        dir (Path): The directory containing the checkpoints.
+
+    Returns:
+        Optional[Path]: The path to the most recent checkpoint, or None if no checkpoints are found.
+    """
+    # First, check for epochs
+    checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^epoch_(\d+)")
+
+    # If no epochs found, check for steps
+    if not checkpoints:
+        checkpoints = get_all_checkpoints_in_dir(dir, pattern=r"^step_(\d+)")
+
+    # If no steps found, return None
+    if not checkpoints:
+        return None
+
+    # Finally, loop through checkpoints and return the most recent (non-empty) one
+    checkpoints.sort(key=lambda x: int(x.name.split("_")[-1]))
+    while checkpoints:
+        ckpt = checkpoints.pop()
+        if any(ckpt.iterdir()):
+            return ckpt
