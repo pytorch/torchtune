@@ -12,7 +12,7 @@ from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -26,14 +26,16 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
     AdapterModule,
     get_adapter_params,
-    get_adapter_state_dict,
     get_lora_module_names,
-    get_merged_lora_ckpt,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training.checkpointing._checkpoint_client import (
+    CheckpointClient,
+    TrainingProgress,
+)
 
 from tqdm import tqdm
 
@@ -135,6 +137,9 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._logger = utils.get_logger(cfg.log_level)
 
         # training attributes
+        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
+        self._checkpoint_client = CheckpointClient(cfg)
+
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
         # These are public properties which are updated by the checkpoint loader
@@ -152,36 +157,22 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._kd_ratio = cfg.get("kd_ratio", 0.5)
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
-        """
-        Extract the checkpoint state from file and validate. This includes the
-        base model weights. If resume_from_checkpoint is True, this also includes
-        the adapter weights and recipe state
-        """
-        self._checkpointer = config.instantiate(
-            cfg_checkpointer,
-            should_load_recipe_state=self._resume_from_checkpoint,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            if training.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError(
-                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
-                )
-            # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
-            # no need to check here
-            self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
-
-    def load_teacher_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
+    def load_teacher_checkpoint(self, cfg: DictConfig) -> dict[str, Any]:
         """
         Extract the teacher checkpoint state from file.
         """
-        teacher_checkpointer = config.instantiate(
-            cfg_checkpointer,
+        # update checkpointer class to config to work with checkpoint_client
+        # by setting the teacher_checkpointer key as the checkpointer key
+        # that the checkpoint client will use to load
+        new_cfg = OmegaConf.create(cfg)
+        del new_cfg["checkpointer"]
+        teacher_checkpoint_val = new_cfg.pop("teacher_checkpointer")
+        new_cfg["checkpointer"] = teacher_checkpoint_val
+
+        teacher_checkpoint_client = CheckpointClient(
+            new_cfg,
         )
-        checkpoint_dict = teacher_checkpointer.load_checkpoint()
+        checkpoint_dict = teacher_checkpoint_client.load_base_checkpoint()
         return checkpoint_dict
 
     def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
@@ -236,9 +227,9 @@ class KDRecipeDistributed(FTRecipeInterface):
             self._metric_logger.log_config(cfg)
 
         self._compile = cfg.get("compile", False)
-        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
         teacher_checkpoint_dict = self.load_teacher_checkpoint(
-            cfg_checkpointer=cfg.teacher_checkpointer
+            cfg=cfg.teacher_checkpointer
         )
 
         # set up model
@@ -250,7 +241,7 @@ class KDRecipeDistributed(FTRecipeInterface):
             base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
             lora_weights_state_dict=(
                 checkpoint_dict[training.ADAPTER_KEY]
-                if self._resume_from_checkpoint
+                if training.ADAPTER_KEY in checkpoint_dict
                 else None
             ),
         )
@@ -270,10 +261,30 @@ class KDRecipeDistributed(FTRecipeInterface):
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
-                if self._resume_from_checkpoint
+                if training.OPT_KEY in checkpoint_dict
                 else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
+                    self._model,
+                    self._optimizer,
+                    self._adapter_config,
+                )
+
+            if training.ADAPTER_KEY not in checkpoint_dict:
+                raise ValueError(
+                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
+                )
+
+            # Update the recipe state from the checkpoint state dict.
+            self._update_recipe_state(checkpoint_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -396,6 +407,16 @@ class KDRecipeDistributed(FTRecipeInterface):
         self._lora_attn_modules = list(cfg_model.lora_attn_modules)
         self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
+        self._adapter_config = {
+            "r": self._lora_rank,
+            "lora_alpha": self._lora_alpha,
+            "target_modules": get_lora_module_names(
+                self._lora_attn_modules,
+                self._apply_lora_to_mlp,
+                self._apply_lora_to_output,
+            ),
+            "peft_type": "LORA",
+        }
 
         utils.log_rank_zero(
             self._logger,
@@ -661,85 +682,20 @@ class KDRecipeDistributed(FTRecipeInterface):
         return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
-        """
-        Checkpoint the state of the recipe. The constructed checkpoint state dict
-        contains the following information:
-        - Merged weights with key MODEL_KEY
-        - Adapter weights with key ADAPTER_KEY
-        - Relevant recipe state if training is not complete
-        - If the `self._save_adapter_weights_only` option is True, the checkpointer will save only the adapter weights
-
-        To correctly resume from training, the adapter weights and recipe state must be provided along with the base model weights.
-        """
-        # final dict passed onto the checkpointer
-        checkpoint_dict = {}
-
-        intermediate_checkpoint = epoch + 1 < self.total_epochs
-        # To prevent GPU memory from spiking during checkpoint save,
-        # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = training.gather_cpu_state_dict(
-            self._model,
-            self._is_rank_zero,
-            device=self._device,
+        self._checkpoint_client.save_checkpoint(
+            model=self._model,
+            optimizer=self._optimizer,
+            training_progress=TrainingProgress(
+                seed=self.seed,
+                epochs_run=self.epochs_run,
+                total_epochs=self.total_epochs,
+                max_steps_per_epoch=self.max_steps_per_epoch,
+                dataloader_state_dict=self._dataloader.state_dict(),
+            ),
+            epoch=epoch,
+            adapter_config=self._adapter_config.copy(),
+            adapter_only=self._save_adapter_weights_only,
         )
-
-        if intermediate_checkpoint:
-            opt_state_dict = training.get_full_optimizer_state_dict(
-                self._model,
-                self._optimizer,
-                self._is_rank_zero,
-                device=self._device,
-            )
-        else:
-            opt_state_dict = None
-
-        # Now that we have the model and opt state dict, create the actual checkpoint
-        # to be sent to the checkpointer and ultimately written to file
-        if self._is_rank_zero:
-            # Filter out the adapter keys and weights from the model state dict. These will
-            # be saved separately
-            adapter_state_dict = get_adapter_state_dict(cpu_state_dict)
-            checkpoint_dict.update({training.ADAPTER_KEY: adapter_state_dict})
-
-            # merge the adapter weights and base weights to create the model checkpoint
-            merged_state_dict = get_merged_lora_ckpt(
-                cpu_state_dict,
-                rank=self._lora_rank,
-                alpha=self._lora_alpha,
-            )
-            checkpoint_dict.update({training.MODEL_KEY: merged_state_dict})
-
-            # if training is in-progress, checkpoint the optimizer state and recipe state
-            # as well
-            if intermediate_checkpoint:
-                checkpoint_dict.update(
-                    {
-                        training.OPT_KEY: opt_state_dict,
-                        training.SEED_KEY: self.seed,
-                        training.EPOCHS_KEY: self.epochs_run,
-                        training.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        training.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                        training.DATALOADER_KEY: self._dataloader.state_dict(),
-                    }
-                )
-
-            adapter_config = {
-                "r": self._lora_rank,
-                "lora_alpha": self._lora_alpha,
-                "target_modules": get_lora_module_names(
-                    self._lora_attn_modules,
-                    self._apply_lora_to_mlp,
-                    self._apply_lora_to_output,
-                ),
-                "peft_type": "LORA",
-            }
-            checkpoint_dict.update({training.ADAPTER_CONFIG: adapter_config})
-            self._checkpointer.save_checkpoint(
-                checkpoint_dict,
-                epoch=epoch,
-                intermediate_checkpoint=intermediate_checkpoint,
-                adapter_only=self._save_adapter_weights_only,
-            )
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
