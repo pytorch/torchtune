@@ -12,7 +12,7 @@ from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
