@@ -42,7 +42,6 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-3.2-1B-Instruct/
   checkpoint_files: [model.safetensors]
-  recipe_checkpoint: null
   output_dir: ${output_dir}
   model_type: LLAMA3_2
   keep_last_n_checkpoints: 2

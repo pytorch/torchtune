@@ -247,10 +247,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # log config with parameter override
         self._metric_logger.log_config(cfg)
 
-        state_dict = self.checkpointer.load_checkpoint()
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(state_dict)
-        ckpt_dict = self._checkpoint_client.load_base_checkpoint()
+        state_dict = self._checkpoint_client.load_base_checkpoint()
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
@@ -289,7 +286,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # progress.
             if self._enable_async_checkpointing:
                 try:
-                    ckpt_dict = self._checkpoint_client.load_distributed_checkpoint(
+                    state_dict = self._checkpoint_client.load_distributed_checkpoint(
                         self._model,
                         self.optimizer,
                     )
@@ -297,9 +294,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self._logger.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
                     )
-
-            # Update the recipe state from the checkpoint state dict.
-            self._update_recipe_state(ckpt_dict)
+            self._update_recipe_state(state_dict)
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
@@ -583,7 +578,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             inner_step_count = self.global_step % self._steps_per_epoch
-            pbar = tqdm(initial=inner_step_count, total=self._steps_per_epoch)
+            pbar = tqdm(
+                initial=inner_step_count,
+                total=self._steps_per_epoch,
+                desc=f"{self.epochs_run}|{self.global_step}",
+            )
 
             # Get iterator for the dataloader
             dataloader_iter = iter(self._dataloader)
