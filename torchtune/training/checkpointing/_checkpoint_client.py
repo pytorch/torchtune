@@ -231,9 +231,7 @@ class CheckpointClient:
         resume_from_checkpoint flag set to True and recipe file paths set in the config.
         """
         checkpointer = self._get_checkpointer()
-        is_distributed_checkpointer = not isinstance(
-            checkpointer, DistributedCheckpointer
-        )
+        is_distributed_checkpointer = isinstance(checkpointer, DistributedCheckpointer)
 
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
