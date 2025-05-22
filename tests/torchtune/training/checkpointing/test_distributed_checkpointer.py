@@ -137,7 +137,7 @@ class TestDistributedCheckpointer:
 
         checkpoint_path = Path.joinpath(
             distributed_checkpointer._output_dir,
-            f"{distributed_checkpointer._checkpoint_dir_prefix}_1",
+            f"epoch_1",
         )
 
         assert os.path.exists(checkpoint_path)
