@@ -47,20 +47,13 @@ def deepseek_v3(
     moe_hidden_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
 ):
-    def rope(x, input_pos=None):
-        return x
-    layers = []
+    use_yarn = False
+    if use_yarn:
+        pass
+    else:
+        rope = RotaryPositionalEmbeddings(dim=qk_rope_head_dim, max_seq_len=max_seq_len, base=rope_base)
+    layers = [] 
     for i in range(num_layers):
-
-        # q is sometimes decomposed into A/B (if q_lora_rank)
-        # kv is *always* decomposed
-
-        # when q is decomposed the norm is applied but
-        # not otherwise - in this case the norm
-        # should be applied after q a proj and before q b proj
-
-        # for kv decomposition pos embeddings need to be extracted before
-        # projecting back up
         q_head_dim = qk_rope_head_dim + qk_nope_head_dim
         if q_lora_rank is None:
             q_proj = nn.Linear(embed_dim, num_heads * q_head_dim, bias=False)

@@ -74,7 +74,7 @@ class DeepSeekV3Attention(nn.Module):
         q = self.q_proj(x)
         q = q.view(b, s_x, self.num_heads, self.q_head_dim)
         q = q.transpose(1, 2)
-
+        
         q_nope, q_pe = torch.split(
             q, [self.qk_nope_head_dim, self.qk_rope_head_dim], dim=-1
         )
@@ -83,12 +83,16 @@ class DeepSeekV3Attention(nn.Module):
         kv = kv.view(b, s_x, self.num_heads, self.qk_nope_head_dim + self.v_head_dim)
         kv = kv.transpose(1, 2)
 
-
         k_nope, value_states = torch.split(kv, [self.qk_nope_head_dim, self.v_head_dim], dim=-1)
+        
 
+        q_pe = q_pe.transpose(1, 2)
+        k_pe = k_pe.transpose(1, 2)
         q_pe = self.pos_embeddings(q_pe, input_pos=input_pos)
         k_pe = self.pos_embeddings(k_pe, input_pos=input_pos)
 
+        q_pe = q_pe.transpose(1, 2)
+        k_pe = k_pe.transpose(1, 2)
         query_states = k_pe.new_empty(b, self.num_heads, s_x, self.q_head_dim)
         query_states[:, :, :, : self.qk_nope_head_dim] = q_nope
         query_states[:, :, :, self.qk_nope_head_dim :] = q_pe

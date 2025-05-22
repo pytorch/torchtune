@@ -9,9 +9,10 @@ from torch import nn
 from typing import Optional
 
 class DeepseekV3MoE(nn.Module):
-    """This class implements the moe layer which is Mixture of Experts. Mixture of Experts
-    typically consists of a set of expert networks, alongside with a router, which directs input tokens
-    to the appropriate experts. See more details in https://arxiv.org/2401.0606.
+    """This class implements the Mixture of Experts (MoE) layer for DeepSeek V3.
+    This comprises a set of a router and a set of experts, which are typically smaller than MLP layers in standard
+    transformer models. The router is used to select a subset of experts for each token, and the selected experts are
+    then used to compute the output of the MoE layer. See more details in https://arxiv.org/2401.0606.
 
     This class is identical to :class:`~torchtune.modules.moe.moe.MoE`, except that it applies the 
     router weighting scores to the *output* of the experts, rather than the input.
