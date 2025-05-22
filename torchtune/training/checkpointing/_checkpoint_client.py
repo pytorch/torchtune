@@ -219,6 +219,7 @@ class CheckpointClient:
         adapter_config: Optional[dict[str, Any]],
         adapter_only: bool,
         single_device: bool,
+        intermediate_checkpoint: bool,
     ) -> None:
         """
         Checkpoint the training state synchronously.
@@ -229,12 +230,6 @@ class CheckpointClient:
         To correctly resume training from this checkpoint, user needs to have both
         resume_from_checkpoint flag set to True and recipe file paths set in the config.
         """
-        try:
-            intermediate_checkpoint = (
-                training_progress.steps_run < training_progress.total_training_steps
-            )
-        except TypeError:
-            intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
         checkpointer = self._get_checkpointer()
         is_distributed_checkpointer = not isinstance(
             checkpointer, DistributedCheckpointer
@@ -360,7 +355,7 @@ class CheckpointClient:
         adapter_only: bool = False,
         single_device: bool = False,
         *,
-        fast_save: bool = False,
+        fast_save: Optional[bool] = None,
     ) -> None:
         """
         Checkpoint the training state.
@@ -373,6 +368,14 @@ class CheckpointClient:
         Otherwise, the checkpoint will be saved synchronously with the
         checkpointer user has configured.
         """
+        try:
+            intermediate_checkpoint = (
+                training_progress.steps_run < training_progress.total_training_steps
+            )
+        except TypeError:
+            intermediate_checkpoint = epoch + 1 < training_progress.total_epochs
+        if fast_save is None:
+            fast_save = intermediate_checkpoint
         if fast_save and self._enable_async_checkpointing:
             self._save_checkpoint_async(
                 model,
@@ -391,6 +394,7 @@ class CheckpointClient:
                 adapter_config,
                 adapter_only,
                 single_device,
+                intermediate_checkpoint,
             )
 
     def load_base_checkpoint(self) -> dict[str, Any]:
