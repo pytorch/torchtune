@@ -526,8 +526,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
+        # Since we might save at an epoch boundary, we need to increment the epoch counter
         if step % self._steps_per_epoch == 0:
             epoch += 1
+            self.epochs_run += 1
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self.optimizer,

@@ -413,6 +413,11 @@ class TestFullFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
+        # delete latest checkpoint dir to make sure we are resuming from the right one
+        import shutil
+
+        shutil.rmtree(os.path.join(tmpdir, "step_4"))
+
         # Resume training
         log_file = gen_log_file_name(tmpdir, suffix="resume")
         cmd_2 = f"""
@@ -431,6 +436,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
             optimizer_in_bwd=False \
+            save_every_n_steps=2 \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config

@@ -493,7 +493,7 @@ def get_adapter_checkpoint_path(
 
     adapter_checkpoint_path = None
 
-    if adapter_checkpoint:
+    if adapter_checkpoint is not None:
         adapter_checkpoint_path = os.path.join(output_dir, adapter_checkpoint)
         fs, _ = url_to_fs(adapter_checkpoint_path)
         if not fs.exists(adapter_checkpoint_path):

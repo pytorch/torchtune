@@ -16,6 +16,7 @@ import torch
 import torch.distributed as dist
 from fsspec.core import url_to_fs
 from huggingface_hub.serialization import save_torch_state_dict
+from huggingface_hub.serialization._base import MAX_SHARD_SIZE
 from safetensors.torch import save as save_safetensors
 from torch.distributed.checkpoint import (
     async_save,
@@ -289,6 +290,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, save an additional checkpoint file with the
                 recipe state
             adapter_only (bool): If True, only save the adapter weights. Default is False
+            **kwargs: Ignored keyword arguments to maintain compatibility with the Checkpointer interface
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
@@ -718,6 +720,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         adapter_only: bool = False,
         *,
         step: Optional[int] = None,
+        max_shard_size: str = MAX_SHARD_SIZE,
     ) -> None:
         """
         Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -734,6 +737,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
             step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
+            max_shard_size (str): Maximum shard size for the checkpoint files. Default is '5GB'.
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
@@ -838,12 +842,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     state_dict[training.MODEL_KEY],
                     ckpt_output_dir,
                     safe_serialization=self._safe_serialization,
+                    max_shard_size=max_shard_size,
                 )
-                logger.info(
-                    "Model checkpoint of size "
-                    f"{os.path.getsize(ckpt_output_dir) / 1024**3:.2f} GiB "
-                    f"saved to {ckpt_output_dir}"
-                )
+                logger.info(f"Model checkpoint saved to {ckpt_output_dir}")
 
         if training.ADAPTER_KEY in state_dict:
             # TODO: saving it "as is" is a requirement because, if we only save with
@@ -1134,6 +1135,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
+            **kwargs: Ignored keyword arguments to maintain compatibility with the Checkpointer interface
 
         Raises:
             ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
