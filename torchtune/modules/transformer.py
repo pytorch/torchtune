@@ -46,6 +46,7 @@ class TransformerSelfAttentionLayer(nn.Module):
         self.sa_norm = sa_norm or nn.Identity()
         self.mlp_norm = mlp_norm or nn.Identity()
         self.sa_scale = sa_scale or nn.Identity()
+        print(f"XXX transformer.py self.sa_scale:{type(self.sa_scale)}")
         self.mlp_scale = mlp_scale or nn.Identity()
         self.mask_mod = mask_mod or None
 

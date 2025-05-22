@@ -23,6 +23,7 @@ log = get_logger("INFO")
 
 def compile_model(
     model: Union[TransformerDecoder, DeepFusionModel],
+    mode = None,
     verbose: bool = True,
 ) -> None:
     """
@@ -48,10 +49,10 @@ def compile_model(
         if isinstance(m, TransformerSelfAttentionLayer) or isinstance(
             m, TransformerCrossAttentionLayer
         ):
-            m.compile(backend=backend)
+            m.compile(backend=backend, mode=mode)
 
 
-def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
+def compile_loss(loss: nn.Module, mode=None, verbose: bool = True) -> nn.Module:
     """
     Utility to compile and return loss function
 
@@ -68,6 +69,6 @@ def compile_loss(loss: nn.Module, verbose: bool = True) -> nn.Module:
     if hasattr(loss, "apply_compile_strategy"):
         loss = loss.apply_compile_strategy(backend=backend)
     else:
-        loss = torch.compile(loss, backend=backend)
+        loss = torch.compile(loss, backend=backend, mode=mode)
 
     return loss
