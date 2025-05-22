@@ -202,18 +202,9 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
             raise ValueError(
                 "Model output layer must have a weight parameter for LigerLinearCrossEntropy"
             )
-        if not hasattr(self.linear_projection, "bias"):
-            raise ValueError(
-                "Model output layer must have a bias parameter for LigerLinearCrossEntropy"
-            )
 
     def apply_compile_strategy(self, *args, **kwargs):
-        """Applies compile to the forward pass for fused kernel operations."""
-        log.warning("Skipping compile loss, as it is not supported at this time")
-        # TODO: Fix it later failing for charachter encoding
-        # self.forward = torch.compile(
-        #     self.forward, *args, **kwargs
-        # )
+        """Triton kernels are already JIT-compiled so no additional compilation needed."""
         return self
 
     def forward(
@@ -238,6 +229,15 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
         if isinstance(hidden_states, DTensor):
             hidden_states = hidden_states.full_tensor()
 
+        batch_size, seq_len, emb_dim = hidden_states.shape
+        hidden_states = hidden_states.reshape(
+            -1, emb_dim
+        )  # [batch_size*seq_len, emb_dim]
+        targets = targets.reshape(-1)  # [batch_size*seq_len]
+
+        mask = targets != self.ignore_index
+        total_elements = mask.sum()
+
         w = self.linear_projection.weight
         if isinstance(w, DTensor):
             mesh, placements = w.device_mesh, w.placements
@@ -252,8 +252,8 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
                 w.register_hook(_scatter_w)
                 self._w_hook_registered = True
 
-        b = self.linear_projection.bias
-        if isinstance(b, DTensor):
+        b = getattr(self.linear_projection, "bias", None)
+        if b is not None and isinstance(b, DTensor):
             mesh, placements = b.device_mesh, b.placements
             b = b.full_tensor()
             if not hasattr(self, "_b_hook_registered"):
@@ -275,8 +275,10 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
             self.ignore_index,  # ignore_index
             0.0,  # lse_square_scale
             0.0,  # label_smoothing
-            "sum",  # reduction
+            "mean",  # reduction
             None,  # softcap
             False,  # return_z_loss
         )
+        if total_elements == 0:
+            return loss
         return loss

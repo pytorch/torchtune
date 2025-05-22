@@ -44,14 +44,20 @@ class TestLigerFusedCrossEntropyLoss:
         ignore_index = -100
 
         # Create dummy data
-        hidden = torch.randn(batch_size * seq_len, embed_dim, dtype=torch.float32)
+        hidden = torch.randn(batch_size, seq_len, embed_dim, dtype=torch.float32)
         targets = torch.randint(
-            0, vocab_size, (batch_size * seq_len,), dtype=torch.long
+            0,
+            vocab_size,
+            (
+                batch_size,
+                seq_len,
+            ),
+            dtype=torch.long,
         )
         hidden = hidden.cuda()
         targets = targets.cuda()
         # Add some ignored indices
-        mask = torch.rand(batch_size * seq_len) < 0.2
+        mask = torch.rand(batch_size, seq_len) < 0.2
         targets[mask] = ignore_index
 
         # Create a dummy model
@@ -68,8 +74,10 @@ class TestLigerFusedCrossEntropyLoss:
         logits = F.linear(
             hidden, model.output.weight, model.output.bias
         )  # [batch_size*seq_len, vocab_size]
+        logits = logits.reshape(-1, vocab_size)
+        targets = targets.reshape(-1)
         standard_loss = F.cross_entropy(
-            logits, targets, reduction="sum", ignore_index=ignore_index
+            logits, targets, reduction="mean", ignore_index=ignore_index
         )
 
         # Validate the results are close enough
@@ -86,15 +94,19 @@ class TestLigerFusedCrossEntropyLoss:
         ignore_index = -100
 
         # Create dummy data on GPU
-        hidden = torch.randn(
-            batch_size * seq_len, embed_dim, dtype=torch.float32
-        ).cuda()
+        hidden = torch.randn(batch_size, seq_len, embed_dim, dtype=torch.float32).cuda()
         targets = torch.randint(
-            0, vocab_size, (batch_size * seq_len,), dtype=torch.long
+            0,
+            vocab_size,
+            (
+                batch_size,
+                seq_len,
+            ),
+            dtype=torch.long,
         ).cuda()
 
         # Add ignored indices
-        mask = torch.rand(batch_size * seq_len) < 0.2
+        mask = torch.rand(batch_size, seq_len) < 0.2
         targets[mask] = ignore_index
 
         # Create model with fixed initialization
