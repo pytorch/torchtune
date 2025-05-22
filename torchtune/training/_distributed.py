@@ -37,6 +37,7 @@ from torchtune.modules.model_fusion import DeepFusionModel, EarlyFusionModel
 from torchtune.modules.peft import get_adapter_state_dict
 from torchtune.utils import get_device, get_logger
 from torchtune.utils._logging import deprecated
+from torch.distributed.fsdp import MixedPrecisionPolicy
 
 _log: logging.Logger = get_logger()
 
@@ -646,6 +647,7 @@ def shard_model(
     fsdp_kwargs = {"reshard_after_forward": reshard_after_forward, "mesh": dp_mesh}
     if cpu_offload:
         fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
+    # fsdp_kwargs["mp_policy"] = MixedPrecisionPolicy(reduce_dtype=torch.float8_e5m2)
 
     # Shard the model with FSDP, iterating in reverse to start with
     # lowest-level modules first
