@@ -373,6 +373,7 @@ def llama4_moe(
         num_experts (int): Number of experts in each MoE layer. Default: 8
         experts_per_token (int): Number of experts each token will be routed to in Token Choice.
         use_shared_expert (bool): Whether to use a shared expert or not. Default: True
+        use_grouped_mm (bool): use grouped_mm or for-each loop of mm. Default: True
 
     Returns:
         MoE: Instantiation of MoE layer.
@@ -383,7 +384,12 @@ def llama4_moe(
         num_experts=num_experts,
         experts_per_token=experts_per_token,
     )
-    experts = GroupedExperts(dim=dim, hidden_dim=hidden_dim, num_experts=num_experts)
+    experts = GroupedExperts(
+        dim=dim,
+        hidden_dim=hidden_dim,
+        num_experts=num_experts,
+        use_grouped_mm=use_grouped_mm,
+    )
     shared_expert = (
         llama4_mlp(dim=dim, hidden_dim=hidden_dim) if use_shared_expert else None
     )
@@ -391,6 +397,7 @@ def llama4_moe(
         experts=experts,
         router=router,
         shared_expert=shared_expert,
+        use_grouped_mm=use_grouped_mm,
     )
 
 
