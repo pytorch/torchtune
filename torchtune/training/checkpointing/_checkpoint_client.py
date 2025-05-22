@@ -30,6 +30,7 @@ from torchtune.training.checkpointing._utils import get_most_recent_checkpoint
 from torchtune.training.memory import OptimizerInBackwardWrapper
 
 log = utils.get_logger("DEBUG")
+import torchdata
 
 
 @dataclass
@@ -400,6 +401,7 @@ class CheckpointClient:
         self,
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
+        dataloader: Optional[torchdata.stateful_dataloader.StatefulDataLoader] = None,
         adapter_config: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
@@ -409,7 +411,9 @@ class CheckpointClient:
         if self._is_rank_zero:
             dcp_load_start = time.perf_counter()
 
-        if not isinstance(optimizer, OptimizerInBackwardWrapper):
+        if not isinstance(optimizer, OptimizerInBackwardWrapper) and not isinstance(
+            optimizer, OptimizerInBackward
+        ):
             _init_optim_state(optimizer)
 
         # Build the state dict to be loaded from the distributed checkpoint
@@ -437,7 +441,7 @@ class CheckpointClient:
                 training.MAX_STEPS_KEY: 0,
                 "steps_run": 0,
                 "total_training_steps": 0,
-                training.DATALOADER_KEY: {},
+                training.DATALOADER_KEY: dataloader.state_dict() if dataloader else {},
             }
         )
 
@@ -486,9 +490,16 @@ class CheckpointClient:
         # Load the checkpoint state dict from the distributed checkpoint
         checkpoint_dict = self._get_dcp_checkpointer().load_checkpoint(checkpoint_dict)
 
+        if dataloader is not None:
+            dataloader.load_state_dict(
+                checkpoint_dict[training.DATALOADER_KEY],
+            )
+
         options = StateDictOptions(strict=False)
         # Load the checkpoint state dict into model and optimizer
-        if not isinstance(optimizer, OptimizerInBackwardWrapper):
+        if not isinstance(optimizer, OptimizerInBackwardWrapper) and not isinstance(
+            optimizer, OptimizerInBackward
+        ):
             if training.OPT_KEY in checkpoint_dict:
                 base_missing, base_unexpected = set_state_dict(
                     model,

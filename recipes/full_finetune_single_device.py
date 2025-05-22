@@ -273,23 +273,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        if self._resume_from_checkpoint:
-            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
-            # using the DistributedCheckpointer.
-            # Therefore the recipe needs to load the distributed checkpoint to restore the training
-            # progress.
-            if self._enable_async_checkpointing:
-                try:
-                    state_dict = self._checkpoint_client.load_distributed_checkpoint(
-                        self._model,
-                        self.optimizer,
-                    )
-                except Exception as e:
-                    self._logger.warning(
-                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
-                    )
-            self._update_recipe_state(state_dict)
-
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
         if isinstance(self._loss_fn, SFTLoss):
@@ -312,6 +295,24 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 else None
             ),
         )
+
+        if self._resume_from_checkpoint:
+            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
+            # using the DistributedCheckpointer.
+            # Therefore the recipe needs to load the distributed checkpoint to restore the training
+            # progress.
+            if self._enable_async_checkpointing:
+                try:
+                    state_dict = self._checkpoint_client.load_distributed_checkpoint(
+                        self._model,
+                        self.optimizer,
+                        dataloader=self._dataloader,
+                    )
+                except Exception as e:
+                    self._logger.warning(
+                        f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
+                    )
+            self._update_recipe_state(state_dict)
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
