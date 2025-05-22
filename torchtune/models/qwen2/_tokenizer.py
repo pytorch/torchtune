@@ -329,7 +329,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         self,
         messages: list[Message],
         *,
-        add_eos: bool = True,
+        add_end_tokens: bool = True,
     ) -> tuple[list[int], list[bool]]:
         """
         Given a list of messages, return a list of tokens for the concatenated
@@ -337,8 +337,8 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Args:
             messages (list[Message]): The message list to tokenize.
-            add_eos (bool): Wether to add the tokenizer's eos_id at the end of the
-                sequence of messages. Default is True.
+            add_end_tokens (bool): Wether to add the tokenizer's end of message
+                tokens, such as  eos_id. Default is True.
 
         Returns:
             tuple[list[int], list[bool]]: The list of token ids and the list of masks.
@@ -398,7 +398,7 @@ class Qwen2Tokenizer(ModelTokenizer):
                 break
 
         # Add the End-Of-Sequence token
-        if add_eos:
+        if add_end_tokens:
             tokenized_messages.append(self.eos_id)
             mask.append(mask[-1])
 
@@ -407,13 +407,13 @@ class Qwen2Tokenizer(ModelTokenizer):
             tokenized_messages = truncate(
                 tokens=tokenized_messages,
                 max_seq_len=self.max_seq_len,
-                eos_id=self.eos_id if add_eos else None,
+                eos_id=self.eos_id if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
             mask = truncate(
                 tokens=mask,
                 max_seq_len=self.max_seq_len,
-                eos_id=True if add_eos else None,
+                eos_id=True if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
 
@@ -436,7 +436,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             inference (bool): Whether the template is being used for inference or not.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample

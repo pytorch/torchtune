@@ -323,7 +323,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         )
                     )
                 except Exception as e:
-                    log.warning(
+                    self._logger.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
                     )
 
@@ -860,7 +860,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         log_dict = {"val_loss": avg_val_loss}
 
         if self._is_rank_zero:
-            log.info(f"Validation loss: {avg_val_loss:.4f}")
+            self._logger.info(f"Validation loss: {avg_val_loss:.4f}")
             self._metric_logger.log_dict(
                 log_dict,
                 step=self.global_step,
