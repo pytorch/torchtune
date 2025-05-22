@@ -50,10 +50,12 @@ def deepseek_v3(
     use_yarn = False
     if use_yarn:
         pass
-    else:
-        rope = RotaryPositionalEmbeddings(dim=qk_rope_head_dim, max_seq_len=max_seq_len, base=rope_base)
+    # else:
+        # rope = RotaryPositionalEmbeddings(dim=qk_rope_head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = nn.Identity()
     layers = [] 
     for i in range(num_layers):
+        print("layer idx, mps memory usage", i, torch.mps.current_allocated_memory() / 1024**3, "GB")
         q_head_dim = qk_rope_head_dim + qk_nope_head_dim
         if q_lora_rank is None:
             q_proj = nn.Linear(embed_dim, num_heads * q_head_dim, bias=False)
