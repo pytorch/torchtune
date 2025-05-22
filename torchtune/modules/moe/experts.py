@@ -22,6 +22,7 @@ class GroupedExperts(nn.Module):
         hidden_dim (int): Hidden dimension.
         num_experts (int): Number of experts in this grouped experts layer. Default is 1.
         activation (Callable): Activation function to use. Default is F.silu.
+        use_grouped_mm (bool): use grouped_mm or for loop for experts computation.
     """
 
     def __init__(
@@ -31,6 +32,7 @@ class GroupedExperts(nn.Module):
         hidden_dim: int,
         num_experts: int = 1,
         activation: Callable = F.silu,
+        use_grouped_mm: bool = False,
     ):
         super().__init__()
         self.dim = dim
@@ -39,6 +41,7 @@ class GroupedExperts(nn.Module):
         self.down_proj = nn.Parameter(torch.empty(num_experts, hidden_dim, dim))
         self.up_proj = nn.Parameter(torch.empty(num_experts, dim, hidden_dim))
         self.act_fn = activation
+        self.use_grouped_mm = use_grouped_mm
 
     def reset_parameters(self) -> None:
         # Default initialization used by torch.nn.Linear
@@ -46,6 +49,35 @@ class GroupedExperts(nn.Module):
         nn.init.kaiming_uniform_(self.down_proj, a=math.sqrt(5))
         if self.up_proj is not None:
             nn.init.kaiming_uniform_(self.up_proj, a=math.sqrt(5))
+
+    # Compile fails because of unbacked symints guards from .tolist().
+    # TODO(ivankobzarev): fix compilation with unbacked for split.
+    @torch._dynamo.disable(recursive=False)
+    def _forward_no_grouped_mm(
+        self, x: torch.Tensor, num_tokens_per_expert: torch.Tensor
+    ) -> torch.Tensor:
+        # a tuple of tensors indexed by experts
+        # each with shape (tokens_per_expert(varying), dim)
+        num_tokens_per_expert_list = num_tokens_per_expert.tolist()
+        x = torch.split(
+            x,
+            split_size_or_sections=num_tokens_per_expert_list,
+            dim=0,
+        )
+        out_experts_splits = []
+        for expert_idx, x_expert in enumerate(x):
+            w1, w2, w3 = (
+                self.gate_proj[expert_idx],
+                self.down_proj[expert_idx],
+                self.up_proj[expert_idx],
+            )
+            h = self.act_fn(torch.matmul(x_expert, w1))
+            h = h * torch.matmul(x_expert, w3)
+            h = torch.matmul(h, w2)
+            # h shape (tokens_per_expert(varying), dim)
+            out_experts_splits.append(h)
+        out = torch.cat(out_experts_splits, dim=0)
+        return out
 
     # TODO: force no inference mode as a hack to get around
     # "Cannot set version_counter for inference tensor"
@@ -64,28 +96,34 @@ class GroupedExperts(nn.Module):
         Returns:
             torch.Tensor: tensor with shape ``(bsz * seq_len * experts_per_token, dim)``
         """
+        if not self.use_grouped_mm:
+            return self._forward_no_grouped_mm(x, num_tokens_per_expert)
 
-        # a tuple of tensors indexed by experts
-        # each with shape (tokens_per_expert(varying), dim)
-        x = torch.split(
-            x,
-            split_size_or_sections=num_tokens_per_expert.tolist(),
-            dim=0,
+        # grouped mm implementation
+        if num_tokens_per_expert is not None:
+            # https://github.com/pytorch/pytorch/pull/150374
+            # NOTE: torch._gouped_mm requires bf16 dtypes
+            #       and shapes to be multiple of 8
+            offsets = torch.cumsum(num_tokens_per_expert, dim=0, dtype=torch.int32)
+            # grouped mm between a 2D tensor and a 3D tensor
+            assert x.dim() == 2
+        else:
+            offsets = None
+            # fall back to regular bmm between 3D tensors
+            assert x.dim() == 3
+
+        w1, w2, w3 = (
+            self.gate_proj,
+            self.down_proj,
+            self.up_proj,
         )
-        out_experts_splits = []
-        for expert_idx, x_expert in enumerate(x):
-            w1, w2, w3 = (
-                self.gate_proj[expert_idx],
-                self.down_proj[expert_idx],
-                self.up_proj[expert_idx],
-            )
-            h = self.act_fn(torch.matmul(x_expert, w1))
-            h = h * torch.matmul(x_expert, w3)
-            h = torch.matmul(h, w2)
-            # h shape (tokens_per_expert(varying), dim)
-            out_experts_splits.append(h)
-        out = torch.cat(out_experts_splits, dim=0)
-
+        assert (
+            x.dtype == w1.dtype == w2.dtype == w3.dtype == torch.bfloat16
+        ), "torch._grouped_mm only supports bf16 dtypes"
+        h = F.silu(torch._grouped_mm(x, w1, offs=offsets))
+        h = h * torch._grouped_mm(x, w3, offs=offsets)
+        out = torch._grouped_mm(h, w2, offs=offsets)
+        out[offsets[-1] :].zero_()
         return out
 
 
