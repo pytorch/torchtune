@@ -166,12 +166,12 @@ def generate_permute_indices(
     Prepare permutation indices and the number of tokens for each expert.
 
     Args:
-        tokens_per_expert_group: number of tokens for each expert from all ranks.
-        experts_per_rank: number of experts per rank.
-        num_ranks: number of ranks.
-        max_len: maximum length of the output index vector.
-        alignment: alignment for each returned element in `m_sizes` and padding min for zero token experts.
-        use_cpu: whether to use CPU implementation.
+        tokens_per_expert_group (torch.Tensor): number of tokens for each expert from all ranks.
+        experts_per_rank (int): number of experts per rank.
+        num_ranks (int): number of ranks.
+        max_len (int): maximum length of the output index vector.
+        alignment (int): alignment for each returned element in `m_sizes` and padding min for zero token experts.
+        use_cpu (bool): whether to use CPU implementation.
 
 
     Returns:
