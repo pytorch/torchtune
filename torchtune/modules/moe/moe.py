@@ -91,6 +91,7 @@ class MoE(nn.Module):
         experts (nn.Module): experts module.
         router (nn.Module): router module.
         shared_expert (Optional[nn.Module]): shared expert module. Default is None.
+        use_grouped_mm (bool): use grouped_mm or for loop for experts computation.
     """
 
     def __init__(
@@ -99,11 +100,13 @@ class MoE(nn.Module):
         experts: nn.Module,
         router: nn.Module,
         shared_expert: Optional[nn.Module] = None,
+        use_grouped_mm: bool = False,
     ):
         super().__init__()
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
+        self.use_grouped_mm = use_grouped_mm
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -133,6 +136,34 @@ class MoE(nn.Module):
         )
         routed_input = routed_input * top_scores.reshape(-1, 1)
 
+        if self.use_grouped_mm:
+            # NOTE: In order to use torch._grouped_mm, we need to make sure
+            # the number of tokens each expert gets is a multiple of 16.
+            # The following kernel helps achieve this via padding, without
+            # incurring synchronization between device and host.
+            from torchtune.modules.moe.indices import generate_permute_indices
+
+            ALIGN_SIZE_M = 16  # noqa
+
+            with torch.no_grad():
+                (
+                    permuted_indices,
+                    num_tokens_per_expert,
+                    _,
+                ) = generate_permute_indices(
+                    num_tokens_per_expert,
+                    self.experts.num_experts,
+                    1,
+                    token_indices.shape[0] + self.experts.num_experts * ALIGN_SIZE_M,
+                    ALIGN_SIZE_M,
+                )
+            token_indices = torch.vstack(
+                (token_indices, token_indices.new_zeros((dim)))
+            )
+            token_indices = token_indices[permuted_indices, :]
+            routed_input = torch.vstack((routed_input, routed_input.new_zeros((dim))))
+            routed_input = routed_input[permuted_indices, :]
+
         # shape (bs*slen*top_k, dim)
         routed_output = self.experts(routed_input, num_tokens_per_expert)
 
@@ -141,6 +172,7 @@ class MoE(nn.Module):
             out = self.shared_expert(x).reshape(bs * slen, dim)
         else:
             out = torch.zeros_like(x.reshape(bs * slen, dim))
+
         out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(bs, slen, dim)
         return out
