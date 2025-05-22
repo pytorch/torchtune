@@ -14,6 +14,7 @@ from torchtune.models.qwen2_5_vision._encoder import (
     Qwen2_5VisionEncoder,
     Qwen2_5VisionProjectionHead,
     Qwen2_5_VisionMLP,
+    Qwen2_5_VisionTransformer,
 )
 from torchtune.modules import (
     Fp32LayerNorm,
@@ -122,11 +123,7 @@ def qwen2_5_vision_encoder(
 
     head_dim = embed_dim // num_heads
 
-    cls_projection = (
-        CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim)
-        if output_cls_projection
-        else None
-    )
+    # TODO: change
     rope = (
         VisionRotaryPositionalEmbeddings(
             patch_size=patch_size,
@@ -190,13 +187,12 @@ def qwen2_5_vision_encoder(
             embed_dim=embed_dim, patch_size=patch_size, tile_size=tile_size
         )
 
-    return VisionTransformer(
+    return Qwen2_5_VisionTransformer(
         num_layers=num_layers,
         layer=transformer_layer,
         token_pos_embedding=token_pos_embedding,
         pre_tile_pos_embed=pre_tile_pos_embed,
         post_tile_pos_embed=post_tile_pos_embed,
-        cls_projection=cls_projection,
         out_indices=out_indices,
         tile_size=tile_size,
         patch_size=patch_size,
