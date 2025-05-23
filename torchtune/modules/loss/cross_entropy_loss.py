@@ -174,9 +174,11 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
     def __init__(self, ignore_index: int = -100):
         super().__init__()
         try:
-            import liger_kernel.ops.fused_linear_cross_entropy
+            from liger_kernel.ops.fused_linear_cross_entropy import (
+                LigerFusedLinearCrossEntropyFunction,
+            )
 
-            self.fused_linear_ce = liger_kernel.ops.fused_linear_cross_entropy
+            self.fused_linear_ce = LigerFusedLinearCrossEntropyFunction
         except ImportError as err:
             raise ImportError(
                 "liger_kernel is required for LigerLinearCrossEntropy but not installed. "
@@ -229,56 +231,23 @@ class LigerLinearCrossEntropy(nn.Module, SFTLoss):
         if isinstance(hidden_states, DTensor):
             hidden_states = hidden_states.full_tensor()
 
-        batch_size, seq_len, emb_dim = hidden_states.shape
-        hidden_states = hidden_states.reshape(
-            -1, emb_dim
-        )  # [batch_size*seq_len, emb_dim]
-        targets = targets.reshape(-1)  # [batch_size*seq_len]
-
-        mask = targets != self.ignore_index
-        total_elements = mask.sum()
+        hidden_states = hidden_states.flatten(0, 1)  # [batch_size*seq_len, emb_dim]
+        targets = targets.flatten()  # [batch_size*seq_len]
 
         w = self.linear_projection.weight
         if isinstance(w, DTensor):
-            mesh, placements = w.device_mesh, w.placements
             w = w.full_tensor()
-            if not hasattr(self, "_w_hook_registered"):
-
-                def _scatter_w(grad):
-                    self.linear_projection.weight.grad = DTensor.from_local(
-                        grad, mesh, placements
-                    )
-
-                w.register_hook(_scatter_w)
-                self._w_hook_registered = True
 
         b = getattr(self.linear_projection, "bias", None)
         if b is not None and isinstance(b, DTensor):
-            mesh, placements = b.device_mesh, b.placements
             b = b.full_tensor()
-            if not hasattr(self, "_b_hook_registered"):
 
-                def _scatter_b(grad):
-                    self.linear_projection.bias.grad = DTensor.from_local(
-                        grad, mesh, placements
-                    )
-
-                b.register_hook(_scatter_b)
-                self._b_hook_registered = True
-
-        loss, _ = self.fused_linear_ce.LigerFusedLinearCrossEntropyFunction.apply(
+        loss, _ = self.fused_linear_ce.apply(
             hidden_states,
             w,
             targets,
             b,
-            None,  # ce_weight
-            self.ignore_index,  # ignore_index
-            0.0,  # lse_square_scale
-            0.0,  # label_smoothing
-            "mean",  # reduction
-            None,  # softcap
-            False,  # return_z_loss
+            None,
+            self.ignore_index,
         )
-        if total_elements == 0:
-            return loss
         return loss
