@@ -913,7 +913,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=config.get("head_dim", None),
                 )
                 output_path = os.path.join(ckpt_output_dir, ADAPTER_MODEL_FNAME)
-                self._output_fs.mkdirs(os.path.dirname(output_path), exist_ok=True)
+                self._output_fs.mkdirs(output_path, exist_ok=True)
                 if not self._safe_serialization:
                     output_path = output_path + ".bin"
                     with self._output_fs.open(output_path, "wb") as f:

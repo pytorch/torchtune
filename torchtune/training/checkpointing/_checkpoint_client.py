@@ -188,9 +188,6 @@ class CheckpointClient:
         if adapter_config is not None:
             adapter_start = time.perf_counter()
 
-            save_path = dcp_saver.output_dir
-            os.makedirs(save_path, exist_ok=True)
-
             dcp_saver.save_checkpoint(
                 ckpt_dict[training.ADAPTER_KEY],
                 epoch=epoch,
@@ -200,6 +197,14 @@ class CheckpointClient:
             )
 
             if adapter_only:
+                # TODO: Remove this. Hackily needed to access the actual dir
+                # used for saving outside of the save loop
+                save_path = dcp_saver.output_dir
+                if training_progress.steps_run is not None:
+                    save_path = save_path / f"step_{training_progress.steps_run}"
+                else:
+                    save_path = save_path / f"epoch_{epoch}"
+                save_path.mkdir(parents=True, exist_ok=True)
                 torch.save(
                     training_progress.state_dict(),
                     os.path.join(save_path, "recipe_state.pt"),
