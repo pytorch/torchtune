@@ -726,6 +726,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             policy_ckpt_dict.update(
                 {
                     training.SEED_KEY: self.seed,
+                    training.SCHEDULER_KEY: self._lr_scheduler.state_dict(),
                     training.EPOCHS_KEY: self._epochs_run,
                     training.TOTAL_EPOCHS_KEY: self._total_epochs,
                     training.MAX_STEPS_KEY: self._total_steps,
