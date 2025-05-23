@@ -342,6 +342,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 cfg_lr_scheduler=lr_scheduler_cfg,
                 num_training_steps=self.total_epochs * self._steps_per_epoch,
                 last_epoch=self.global_step - 1,
+                scheduler_state_dict=(
+                    ckpt_dict[training.SCHEDULER_KEY]
+                    if self._resume_from_checkpoint
+                    else None
+                ),
             )
         else:
             self.lr_scheduler = None
@@ -450,6 +455,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_lr_scheduler: DictConfig,
         num_training_steps: int,
         last_epoch: int,
+        scheduler_state_dict: Optional[dict[str, Any]] = None,
     ) -> LambdaLR:
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
@@ -457,6 +463,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
+
+        if scheduler_state_dict:
+            lr_scheduler.load_state_dict(scheduler_state_dict)
+
         self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 

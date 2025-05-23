@@ -329,6 +329,11 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             cfg_lr_scheduler=cfg.lr_scheduler,
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
+            scheduler_state_dict=(
+                checkpoint_dict[training.SCHEDULER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
@@ -492,6 +497,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         cfg_lr_scheduler: DictConfig,
         num_training_steps: int,
         last_epoch: int,
+        scheduler_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optimizer:
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
@@ -499,6 +505,8 @@ class KDRecipeSingleDevice(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
+        if scheduler_state_dict:
+            lr_scheduler.load_state_dict(scheduler_state_dict)
 
         self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
