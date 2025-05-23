@@ -661,6 +661,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._checkpoint_client.save_checkpoint(
             model=self._model,
             optimizer=self._optimizer,
+            scheduler=self._lr_scheduler,
             training_progress=TrainingProgress(
                 seed=self.seed,
                 epochs_run=self.epochs_run,

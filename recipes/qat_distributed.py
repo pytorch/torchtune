@@ -1059,6 +1059,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     if not self._optimizer_in_bwd
                     else self._optim_ckpt_wrapper
                 ),
+                scheduler=self._lr_scheduler,
                 training_progress=TrainingProgress(
                     seed=self.seed,
                     epochs_run=self.epochs_run,
