@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from packaging import version
 from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
@@ -130,7 +131,8 @@ class TestFullFinetuneDistributedRecipe:
         )
 
     @pytest.mark.skipif(
-        torch.__version__ < "2.8.0", reason="2D parallel test requires PyTorch >= 2.8"
+        version.parse(torch.__version__).base_version < "2.8.0",
+        reason="2D parallel test requires PyTorch >= 2.8",
     )
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
