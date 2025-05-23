@@ -231,7 +231,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._activation_offloading_use_streams = cfg.get(
             "activation_offloading_use_streams", True
         )
-        if self._activation_offloading_use_streams and self.parallel_dims.tp_enabled:
+        if (
+            self._enable_activation_offloading
+            and self._activation_offloading_use_streams
+            and self.parallel_dims.tp_enabled
+        ):
             warn(
                 message=(
                     "Using activation offloading with streams is not advised in tensor parallel, and may "
