@@ -268,6 +268,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
             num_training_steps=lr_steps,
             last_epoch=self.global_step - 1,
+            scheduler_state_dict=(
+                checkpoint_dict[training.SCHEDULER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
@@ -311,6 +316,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_lr_scheduler: Optional[DictConfig],
         num_training_steps: int,
         last_epoch: int,
+        scheduler_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         """
         Set up the learning rate scheduler based on the provided configuration.
@@ -345,6 +351,9 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
+
+        if scheduler_state_dict:
+            lr_scheduler.load_state_dict(scheduler_state_dict)
 
         if self._optimizer_in_bwd:
             # Modify the scheduler for optimizer_in_bwd case
@@ -717,6 +726,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             policy_ckpt_dict.update(
                 {
                     training.SEED_KEY: self.seed,
+                    training.SCHEDULER_KEY: self._lr_scheduler.state_dict(),
                     training.EPOCHS_KEY: self._epochs_run,
                     training.TOTAL_EPOCHS_KEY: self._total_epochs,
                     training.MAX_STEPS_KEY: self._total_steps,

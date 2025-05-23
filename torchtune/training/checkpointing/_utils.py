@@ -61,6 +61,7 @@ EPOCHS_KEY = "epochs_run"
 MAX_STEPS_KEY = "max_steps_per_epoch"
 MODEL_KEY = "model"
 OPT_KEY = "optimizer"
+SCHEDULER_KEY = "lr_scheduler"
 SEED_KEY = "seed"
 
 # total number of epochs for training; resumed training runs for
