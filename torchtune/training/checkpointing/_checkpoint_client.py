@@ -406,8 +406,8 @@ class CheckpointClient:
         self,
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
-        dataloader: Optional[torchdata.stateful_dataloader.StatefulDataLoader] = None,
         adapter_config: Optional[dict[str, Any]] = None,
+        dataloader: Optional[torchdata.stateful_dataloader.StatefulDataLoader] = None,
     ) -> dict[str, Any]:
         """
         This method is used to resume training from a distributed checkpoint state.
