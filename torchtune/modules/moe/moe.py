@@ -61,6 +61,7 @@ class TokenChoiceTopKRouter(nn.Module):
             scores, k=self.experts_per_token, dim=1
         )
         self.selected_experts_indices = selected_experts_indices
+        # top_scores /= top_scores.sum(dim=-1, keep_dim=True).to(x.dtype)
 
         # group tokens together by expert indices from 0 to num_experts and pass that to experts forward
         num_tokens_per_expert = torch.histc(
@@ -85,7 +86,6 @@ class MoE(nn.Module):
     """This class implements the moe layer which is Mixture of Experts. Mixture of Experts
     typically consists of a set of expert networks, alongside with a router, which directs input tokens
     to the appropriate experts. See more details in https://arxiv.org/pdf/2407.06204.
-
 
     Args:
         experts (nn.Module): experts module.
@@ -113,36 +113,34 @@ class MoE(nn.Module):
         Returns:
             out (torch.Tensor): Output tensor with shape ``(bs, slen, dim)``.
         """
-        b, s, dim = x.shape
+        bs, slen, dim = x.shape
         # top_scores and selected_indices shape (bs*slen*experts_per_token,)
         # num_tokens_per_expert shape (num_experts,)
         (
             top_scores,
             token_indices,
             num_tokens_per_expert,
-        ) = self.router(x.reshape(b * s, dim))
+        ) = self.router(x.reshape(bs * slen, dim))
 
-        # shape (b*s*experts_per_token, dim)
+        # shape (bs*slen*experts_per_token, dim)
         token_indices = token_indices.reshape(-1, 1).expand(-1, dim)
 
-        # shape (b*s*experts_per_token, dim)
+        # shape (bs*slen*experts_per_token, dim)
         routed_input = torch.gather(
             x.view(-1, dim),
             dim=0,
             index=token_indices,
         )
-        # routed_input = routed_input * top_scores.reshape(-1, 1)
+        routed_input = routed_input * top_scores.reshape(-1, 1)
 
-        # shape (b*s*top_k, dim)
+        # shape (bs*slen*top_k, dim)
         routed_output = self.experts(routed_input, num_tokens_per_expert)
-        routed_output = routed_output * top_scores.reshape(-1, 1)
 
         # shared expert
         if self.shared_expert is not None:
-            out = self.shared_expert(x).reshape(b * s, dim)
+            out = self.shared_expert(x).reshape(bs * slen, dim)
         else:
-            out = torch.zeros_like(x.reshape(b * s, dim))
-        if routed_output.numel() > 0:
-            out.scatter_add_(dim=0, index=token_indices, src=routed_output)
-        out = out.reshape(b, s, dim)
+            out = torch.zeros_like(x.reshape(bs * slen, dim))
+        out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
+        out = out.reshape(bs, slen, dim)
         return out

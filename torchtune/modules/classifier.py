@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 import torch.nn as nn
 from torchtune.config._utils import _get_component_from_path
@@ -13,7 +13,7 @@ from torchtune.modules.transformer import TransformerDecoder
 
 # TODO (SalmanMohammadi) - add a tutorial for fine-tuning classifiers
 def classifier_model(
-    num_classes: int, base_model_path: str, **base_model_kwargs: Dict[str, Any]
+    num_classes: int, base_model_path: str, **base_model_kwargs: dict[str, Any]
 ) -> Union[TransformerDecoder, nn.Module]:
     """
     Create a classifier model from a base model by adapting the output layer.
@@ -26,7 +26,7 @@ def classifier_model(
         base_model_path (str): The path to the base model builder, which
             must return an instance of ``TransformerDecoder``, or a model with
             a ``decoder`` attribute that is an instance of ``TransformerDecoder``.
-        **base_model_kwargs (Dict[str, Any]): Keyword arguments for the base model.
+        **base_model_kwargs (dict[str, Any]): Keyword arguments for the base model.
 
     Returns:
         Union[TransformerDecoder, nn.Module]: The base model, with the output layer adapted for the number of classes.
