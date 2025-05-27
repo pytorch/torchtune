@@ -99,6 +99,6 @@ class TestQwenTokenizer:
         # fmt: on
 
         expected_mask = [True] * 67 + [False] * 120
-        tokens, mask = tokenizer.tokenize_messages(messages, add_eos=False)
+        tokens, mask = tokenizer.tokenize_messages(messages, add_end_tokens=False)
         assert tokens == expected_tokens
         assert mask == expected_mask

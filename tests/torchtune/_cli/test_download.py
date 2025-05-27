@@ -18,7 +18,6 @@ class TestTuneDownloadCommand:
 
     @pytest.fixture
     def snapshot_download(self, mocker, tmpdir):
-
         from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 
         yield mocker.patch(

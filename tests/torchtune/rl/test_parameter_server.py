@@ -20,12 +20,11 @@ else:
 
 
 import os
-from typing import Dict
 
 import pytest
 import torch
 from omegaconf import OmegaConf
-from tests.test_utils import gpu_test, skip_if_lt_python_310
+from tests.test_utils import gpu_test, rl_test, skip_if_lt_python_310
 
 
 @remote(num_cpus=1, num_gpus=1)
@@ -115,7 +114,7 @@ class DummyCollector:
 @pytest.mark.skipif(not _has_ray or not _has_vllm, reason="requires ray and vllm")
 @skip_if_lt_python_310()
 class TestParamServer:
-    def _get_env_vars(self, rank, world_size) -> Dict[str, str]:
+    def _get_env_vars(self, rank, world_size) -> dict[str, str]:
         env_vars = {
             "RANK": str(rank),
             "WORLD_SIZE": str(world_size),
@@ -134,6 +133,7 @@ inference:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
+    @rl_test()
     def test_receive_from_trainer(self) -> None:
         import ray
         from torchtune.dev.rl.workers import VLLMParameterServer
@@ -169,6 +169,7 @@ inference:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=4)
     @pytest.mark.parametrize("tp_size", (1, 2))
+    @rl_test()
     def test_send_to_generator(self, tp_size) -> None:
         import ray
 

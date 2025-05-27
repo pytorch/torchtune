@@ -64,7 +64,6 @@ class TestForwardKLWithChunkedOutputLoss:
         return chunked_loss, standard_loss
 
     def test_forward_kl_loss(self):
-
         chunked_loss, standard_loss = self.setup_forward_kl_loss(
             ignore_all_tokens=False
         )
@@ -73,7 +72,6 @@ class TestForwardKLWithChunkedOutputLoss:
         assert_expected(chunked_loss, standard_loss, rtol=1e-2, atol=1e-2)
 
     def test_forward_kl_loss_zero_masks(self):
-
         # set all masks to zero
         chunked_loss, standard_loss = self.setup_forward_kl_loss(ignore_all_tokens=True)
 

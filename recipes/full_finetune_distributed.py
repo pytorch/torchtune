@@ -4,11 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -16,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._tensor import DTensor
+from torch.distributed.tensor import DTensor
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.optim import Optimizer
 from torchao.float8 import precompute_float8_dynamic_scale_for_fsdp
@@ -26,8 +27,14 @@ from torchtune import config, modules, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.embedding_utils import resize_token_embeddings
+from torchtune.modules.loss import SFTLoss
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import (
+    DummyProfiler,
+    PROFILER_KEY,
+    VALID_BACKENDS_FOR_MEMORY_STATS,
+)
 from torchtune.training.activations import apply_selective_activation_checkpointing
 from torchtune.training.checkpointing._checkpoint_client import (
     CheckpointClient,
@@ -178,9 +185,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
         self._logger = utils.get_logger(cfg.log_level)
-        if self._log_peak_memory_stats and self._device.type not in {"cuda", "xpu"}:
+        if (
+            self._log_peak_memory_stats
+            and self._device.type not in VALID_BACKENDS_FOR_MEMORY_STATS
+        ):
             self._logger.info(
-                "log_peak_memory_stats was set to True, however, training does not use cuda or xpu."
+                f"log_peak_memory_stats was set to True; however, training device is not in {VALID_BACKENDS_FOR_MEMORY_STATS}."
                 "Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -220,6 +230,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._enable_activation_offloading = cfg.get(
             "enable_activation_offloading", False
         )
+        self._activation_offloading_use_streams = cfg.get(
+            "activation_offloading_use_streams", True
+        )
+        if (
+            self._enable_activation_offloading
+            and self._activation_offloading_use_streams
+            and self.parallel_dims.tp_enabled
+        ):
+            warn(
+                message=(
+                    "Using activation offloading with streams is not advised in tensor parallel, and may "
+                    "cause unstable training. It is advised to set activation_offloading_use_streams: False"
+                )
+            )
         if self._enable_activation_offloading:
             if device_type != "cuda":
                 raise RuntimeError(
@@ -249,7 +273,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -307,11 +331,32 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Load the base model
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
-        self._compile = cfg.get("compile", False)
+        compile = cfg.get("compile")
+        compile_bool = bool(compile)
+        self._compile_backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+
+        self._compile_model = compile_bool
+        self._compile_loss = compile_bool
+        self._compile_optimizer_step = compile_bool
+        self._compile_scale_grads = compile_bool
+        if isinstance(compile, DictConfig):
+            self._compile_model = compile.get("model", True)
+            self._compile_loss = compile.get("loss", True)
+            self._compile_optimizer_step = compile.get("optimizer_step", False)
+            self._compile_scale_grads = compile.get("scale_grads", True)
+
+        # This indirection is needed to apply torch.compile to scale_grads step.
+        self._grad_scaler = training.scale_grads_
+        if self._compile_scale_grads:
+            self._grad_scaler = torch.compile(
+                self._grad_scaler, backend=self._compile_backend
+            )
+
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
+            activation_offloading_use_streams=self._activation_offloading_use_streams,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
             reshard_after_forward=cfg.get("fsdp_reshard_after_forward", True),
@@ -320,6 +365,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ac_option=cfg.get("ac_option", None),
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
+
+        if cfg.get("resize_token_embeddings", False):
+            resize_token_embeddings(self._model, self._tokenizer.vocab_size)
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -330,6 +378,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 else None
             ),
         )
+        if self._compile_optimizer_step:
+            if self._optimizer_in_bwd:
+                raise ValueError(
+                    "optimizer_in_bwd not supported with compiling the optimizer step"
+                )
+            self._optimizer.step = torch.compile(
+                self._optimizer.step,
+                backend=self._compile_backend,
+            )
 
         if self._resume_from_checkpoint:
             # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
@@ -358,13 +415,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
+        if isinstance(self._loss_fn, SFTLoss):
+            self._loss_fn.set_model_output(self._model)
 
-        if self._compile:
+        if self._compile_loss:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-
-        # The loss may handle the output projection. If true, the model should skip it.
-        self.linear_loss = getattr(self._loss_fn, "linear_loss", False)
-        self._model.skip_linear_projection = self.linear_loss
 
         utils.log_rank_zero(self._logger, "Loss is initialized.")
 
@@ -478,41 +533,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
@@ -546,10 +566,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
+        activation_offloading_use_streams: bool,
         fsdp_cpu_offload: bool,
         reshard_after_forward: bool,
-        model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_state_dict: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
     ) -> nn.Module:
@@ -570,7 +591,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        if self._compile:
+        if self._compile_model:
             training.compile_model(model, verbose=self._is_rank_zero)
 
         if self._enable_fp8_training:
@@ -664,7 +685,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # activation offloading
         self.activations_handling_ctx = training.get_act_offloading_ctx_manager(
-            model, enable_activation_offloading
+            model, enable_activation_offloading, activation_offloading_use_streams
         )
 
         # Ensure no params and buffers are on meta device
@@ -688,7 +709,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
@@ -743,7 +764,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -791,27 +812,29 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         return dataloader
 
-    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
 
         with self.activations_handling_ctx:
             outputs = self._model(**batch)
 
-        if self.linear_loss:
-            weight = self._model.linear_projection_weight
-            loss = self._loss_fn(weight, outputs, labels)
-        else:
+        # post process for third party loss functions
+        if not isinstance(self._loss_fn, SFTLoss):
             labels = labels.reshape(-1)
             outputs = outputs.reshape(-1, outputs.size(-1))
-            loss = self._loss_fn(outputs, labels)
+            if isinstance(outputs, DTensor):
+                outputs = outputs.full_tensor()
+
+        # Compute loss
+        loss = self._loss_fn(outputs, labels)
 
         # free logits otherwise it peaks backward memory
         del outputs
 
         return loss
 
-    def validate(self) -> Dict[str, float]:
+    def validate(self) -> dict[str, float]:
         """
         Run validation loop and return average validation loss.
         """
@@ -931,11 +954,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(num_tokens)
                         # This will ensure that the logged loss matches what we're optimizing
                         torch.distributed.all_reduce(running_loss)
+
                         # Manually scale the gradients from unnormalized loss by total # of tokens
                         # TODO: check this
-                        training.scale_grads(
-                            self._model, self.dp_degree * self.cp_degree / num_tokens
+                        self._grad_scaler(
+                            self._model.parameters(),
+                            self.world_size / num_tokens,
+                            False if self.parallel_dims.tp_enabled else None,
                         )
+
                         if self._clip_grad_norm is not None:
                             grad_norm = torch.nn.utils.clip_grad_norm_(
                                 self._model.parameters(),

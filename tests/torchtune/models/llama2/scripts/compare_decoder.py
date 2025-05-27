@@ -24,6 +24,7 @@ Replicating code here to minimize dependencies. The code is modified to
 include params for the constructor and remove start_pos (not supported).
 """
 
+
 # TODO: Move this to standalone ref implementation
 class Transformer(nn.Module):
     def __init__(
@@ -35,7 +36,6 @@ class Transformer(nn.Module):
         max_seq_len: int,
         n_kv_heads: int,
     ):
-
         super().__init__()
         self.vocab_size = vocab_size
         self.n_layers = n_layers
@@ -83,7 +83,6 @@ def compare_decoder(
     vocab_size: int,
     num_layers: int,
 ) -> None:
-
     # make sure we have the right seed for generating outputs
     # this should match up the seed value set in the corresponding
     # unit test

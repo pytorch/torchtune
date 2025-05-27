@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Dict, List, Mapping, Set, Tuple
+from typing import Any, Mapping
 
 import regex as re
 
@@ -57,7 +57,7 @@ class CLIPTokenizer(BaseTokenizer):
             "<|endoftext|>": "<|endoftext|>",
         }
 
-    def encode(self, text: str) -> List[int]:
+    def encode(self, text: str) -> list[int]:
         """
         Given a string, return the encoded list of token ids.
 
@@ -65,7 +65,7 @@ class CLIPTokenizer(BaseTokenizer):
             text (str): The text to encode.
 
         Returns:
-            List[int]: The encoded list of token ids.
+            list[int]: The encoded list of token ids.
         """
         text = _clean_text(text).lower()
 
@@ -89,12 +89,12 @@ class CLIPTokenizer(BaseTokenizer):
 
         return tokens
 
-    def decode(self, tokens: List[int]) -> str:
+    def decode(self, tokens: list[int]) -> str:
         """
         Given a list of token ids, return the decoded text, optionally including special tokens.
 
         Args:
-            tokens (List[int]): The list of token ids to decode.
+            tokens (list[int]): The list of token ids to decode.
 
         Returns:
             str: The decoded text.
@@ -184,7 +184,7 @@ class CLIPTokenizer(BaseTokenizer):
         return word
 
 
-def _bytes_to_unicode() -> Dict[int, str]:
+def _bytes_to_unicode() -> dict[int, str]:
     """
     Returns list of utf-8 byte and a corresponding list of unicode strings.
     """
@@ -204,7 +204,7 @@ def _bytes_to_unicode() -> Dict[int, str]:
     return dict(zip(bs, cs))
 
 
-def _get_pairs(word: Tuple[str, ...]) -> Set[Tuple[str, str]]:
+def _get_pairs(word: tuple[str, ...]) -> set[tuple[str, str]]:
     """
     Return set of symbol pairs in a word.
     Word is represented as tuple of symbols (symbols being variable-length strings).
@@ -224,7 +224,7 @@ def _clean_text(text: str) -> str:
     return text.replace("’", "'")
 
 
-def _load_merges(path: str) -> List[Tuple[str, str]]:
+def _load_merges(path: str) -> list[tuple[str, str]]:
     merges = []
     with open(path, encoding="utf-8") as f:
         for i, line in enumerate(f):

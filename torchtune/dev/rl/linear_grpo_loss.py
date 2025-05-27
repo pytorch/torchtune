@@ -4,16 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.distributed.tensor import DTensor
 
-from torchtune.modules.loss.loss_protocols import RLLinearLoss
+from torchtune.modules.loss import RLLoss
 
 
-class LinearGRPOLoss(nn.Module, RLLinearLoss):
+class LinearGRPOLoss(nn.Module, RLLoss):
     """Memory efficient GRPO loss that incrementally computes loss for chunks of tokens
     by masking ignored tokens, calculating logits and then applying GRPO loss. Combines
     the linear projection with the GRPO calculation for futher memory savings.
@@ -35,6 +36,7 @@ class LinearGRPOLoss(nn.Module, RLLinearLoss):
             mask_pre_projection (bool): Whether to mask the output tensor before projection, avoiding
                 computing it for tokens that will be ignored during CE anyway. Default is True.
         """
+        self.linear_projection = None
         self.num_output_chunks = num_output_chunks
         self.epsilon = epsilon
         self.kl_coeff = kl_coeff
@@ -47,15 +49,26 @@ class LinearGRPOLoss(nn.Module, RLLinearLoss):
         self.chunked_grpo_loss = torch.compile(self.chunked_grpo_loss, *args, **kwargs)
         return self
 
+    def set_model_output(self, model: nn.Module) -> None:
+        """Modify model output to match the expected input for the loss function."""
+        # The loss may handle the output projection. If true, the model should skip it.
+        model.skip_output_layer = True
+        self.linear_projection = model.output
+
     def chunked_grpo_loss(
         self,
-        weight: torch.Tensor,  # [H, Vocab]
         hidden_chunk: torch.Tensor,  # [B*G, chunk_size, H]
         targets_chunk: torch.Tensor,  # [B*G, chunk_size]
         ref_logprobs_chunk: torch.Tensor,  # [B*G, chunk_size]
         advantages: torch.Tensor,  # [B*G]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        pi_logits_chunk = F.linear(hidden_chunk, weight)
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        pi_logits_chunk = self.linear_projection(hidden_chunk)
+        if isinstance(pi_logits_chunk, DTensor):
+            pi_logits_chunk = pi_logits_chunk.full_tensor()
+        if isinstance(targets_chunk, DTensor):
+            targets_chunk = targets_chunk.full_tensor()
+        if isinstance(ref_logprobs_chunk, DTensor):
+            ref_logprobs_chunk = ref_logprobs_chunk.full_tensor()
 
         # CE
         pi_logits_flat = pi_logits_chunk.reshape(-1, pi_logits_chunk.size(-1))
@@ -88,38 +101,36 @@ class LinearGRPOLoss(nn.Module, RLLinearLoss):
 
     def forward(
         self,
-        weight: torch.Tensor,
-        outputs: torch.Tensor,
-        targets: torch.Tensor,
-        ref_logprobs: torch.Tensor,
+        pi_old_outputs: torch.Tensor,
+        pi_outputs: torch.Tensor,
+        ref_outputs: torch.Tensor,
         advantages: torch.Tensor,
         padding_masks: Optional[torch.Tensor] = None,  # [B*G, response_length]
-    ) -> Tuple[torch.Tensor, ...]:
+    ) -> tuple[torch.Tensor, ...]:
         """
         Args:
-            weight (torch.Tensor): Tensor with weights of the model output projection layer. Shape ``[vocab_size, emb_dim]``
-            outputs (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
-            targets (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
-            ref_logprobs (torch.Tensor): Reference logprobs for KL loss. Shape ``[bsz, seq_len, vocab_size]``
+            pi_old_outputs (torch.Tensor): Hidden state of the model, pre projection. Shape ``[bsz, seq_len, emb_dim]``
+            pi_outputs (torch.Tensor): Labels for the model. Shape ``[bsz, seq_len]``
+            ref_outputs (torch.Tensor): Reference logprobs for KL loss. Shape ``[bsz, seq_len, vocab_size]``
             advantages (torch.Tensor): Advantages for KL loss. Shape ``[bsz, seq_len, vocab_size?]``
             padding_masks (Optional[torch.Tensor]): Mask for padding tokens. Shape ``[bsz, seq_len]``
 
         Returns:
-            Tuple[torch.Tensor, ...]: loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs
+            tuple[torch.Tensor, ...]: loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs
         """
         # Chunk along sequence dimension
-        hidden_chunks = outputs.tensor_split(self.num_output_chunks, dim=1)
-        target_chunks = targets.tensor_split(self.num_output_chunks, dim=1)
-        ref_logprobs_chunks = ref_logprobs.tensor_split(self.num_output_chunks, dim=1)
+        hidden_chunks = pi_old_outputs.tensor_split(self.num_output_chunks, dim=1)
+        target_chunks = pi_outputs.tensor_split(self.num_output_chunks, dim=1)
+        ref_logprobs_chunks = ref_outputs.tensor_split(self.num_output_chunks, dim=1)
 
         # Default to all-ones mask if padding_masks is None
         if padding_masks is None:
-            padding_masks = torch.ones_like(targets, dtype=torch.bool)
+            padding_masks = torch.ones_like(pi_outputs, dtype=torch.bool)
         padding_masks_chunks = padding_masks.tensor_split(self.num_output_chunks, dim=1)
 
         # Initialize accumulators
         batch_size = advantages.numel()
-        device = outputs.device
+        device = pi_old_outputs.device
 
         total_loss_sum = torch.zeros(batch_size, device=device)
         total_policy_sum = torch.zeros(batch_size, device=device)
@@ -135,7 +146,6 @@ class LinearGRPOLoss(nn.Module, RLLinearLoss):
                 per_token_kl_chunk,
                 pi_logprobs_chunk,
             ) = self.chunked_grpo_loss(
-                weight,
                 hidden_chunks[chunk_idx],
                 target_chunks[chunk_idx],
                 ref_logprobs_chunks[chunk_idx],

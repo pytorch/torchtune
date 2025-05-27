@@ -30,7 +30,7 @@ jobs:
       PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
     steps:
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup conda env
         uses: conda-incubator/setup-miniconda@v2
         with:

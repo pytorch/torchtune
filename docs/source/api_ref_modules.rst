@@ -40,6 +40,15 @@ Losses
     loss.ReverseKLWithChunkedOutputLoss
     loss.SymmetricKLWithChunkedOutputLoss
 
+Optimizers
+----------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    optim.OptimizerInBackward
+
 Base Tokenizers
 ---------------
 Base tokenizers are tokenizer models that perform the direct encoding of text
@@ -113,6 +122,7 @@ These are utilities that are common to and can be used by all modules.
    common_utils.local_kv_cache
    common_utils.disable_kv_cache
    common_utils.delete_kv_caches
+   embedding_utils.resize_token_embeddings
 
 
 Vision Transforms

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -41,7 +41,7 @@ class GRPOLoss(nn.Module):
         ref_logprobs: torch.Tensor,  # [B x G, L]
         advantages: torch.Tensor,  # [B x G]
         padding_masks: Optional[torch.Tensor] = None,  # [B x G, L]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass of the GRPO loss module.
 
@@ -54,7 +54,7 @@ class GRPOLoss(nn.Module):
                 Shape: [batch_size * num_groups, seq_len]
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
                 - loss: Total GRPO loss (policy loss + KL penalty)
                 - policy_loss: Clipped policy loss
                 - kl_loss: KL divergence loss between policy and reference model
@@ -127,7 +127,7 @@ class GRPOCompletionLoss(nn.Module):
         ref_logprobs: torch.Tensor,  # [B x G, L]
         advantages: torch.Tensor,  # [B x G]
         padding_masks: Optional[torch.Tensor] = None,  # [B x G, L]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass of the GRPO loss module.
 
@@ -140,7 +140,7 @@ class GRPOCompletionLoss(nn.Module):
                 Shape: [batch_size * num_groups, seq_len]
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
                 - loss: Total GRPO loss (policy loss + KL penalty)
                 - policy_loss: Clipped policy loss
                 - kl_loss: KL divergence loss between policy and reference model
@@ -214,7 +214,7 @@ class GRPOSimpleLoss(nn.Module):
         ref_logprobs: torch.Tensor,  # [B x G, L]
         advantages: torch.Tensor,  # [B x G]
         padding_masks: Optional[torch.Tensor] = None,  # [B x G, L]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass of the GRPO loss module.
 
@@ -231,7 +231,7 @@ class GRPOSimpleLoss(nn.Module):
                 Shape: [batch_size * num_groups, seq_len]
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
                 - loss: Total GRPO loss (policy loss + KL penalty)
                 - policy_loss: Clipped policy loss
                 - kl_loss: KL divergence loss between policy and reference model
@@ -272,7 +272,7 @@ class GRPOSimpleLoss(nn.Module):
         )
 
 
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -303,8 +303,7 @@ class GRPOWithChunkedOutputLoss(nn.Module):
         targets_chunk: torch.Tensor,  # [B*G, chunk_size]
         ref_logprobs_chunk: torch.Tensor,  # [B*G, chunk_size]
         advantages: torch.Tensor,  # [B*G]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         # CE
         pi_logits_flat = pi_logits_chunk.reshape(-1, pi_logits_chunk.size(-1))
         targets_flat = targets_chunk.reshape(-1)
@@ -337,13 +336,13 @@ class GRPOWithChunkedOutputLoss(nn.Module):
     def forward(
         self,
         pi_logits: (
-            torch.Tensor | List[torch.Tensor]
-        ),  # [B*G, response_length, V] or List[[B*G, chunk_size, V]]
+            torch.Tensor | list[torch.Tensor]
+        ),  # [B*G, response_length, V] or list[[B*G, chunk_size, V]]
         targets: torch.Tensor,  # [B*G, response_length]
         ref_logprobs: torch.Tensor,  # [B*G, response_length]
         advantages: torch.Tensor,  # [B*G]
         padding_masks: Optional[torch.Tensor] = None,  # [B*G, response_length]
-    ) -> Tuple[
+    ) -> tuple[
         torch.Tensor,
         torch.Tensor,
         torch.Tensor,
@@ -355,14 +354,14 @@ class GRPOWithChunkedOutputLoss(nn.Module):
         Compute GRPO loss over chunked or full logits.
 
         Args:
-            pi_logits (torch.Tensor | List[torch.Tensor]): Logits of the policy model. If a list, each element is a chunk of logits.
+            pi_logits (torch.Tensor | list[torch.Tensor]): Logits of the policy model. If a list, each element is a chunk of logits.
             targets (torch.Tensor): Targets for the policy model.
             ref_logprobs (torch.Tensor): Log probabilities of the reference model.
             advantages (torch.Tensor): Advantage values.
             padding_masks (Optional[torch.Tensor]): Padding token masks where True indicates tokens to include in loss calculation.
 
         Returns:
-            Tuple of (loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs).
+            tuple of (loss, policy_loss, kl_loss, ratios, clipfrac, pi_logprobs).
         """
         # Handle chunked or non-chunked pi_logits
         if isinstance(pi_logits, torch.Tensor):
