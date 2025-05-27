@@ -11,10 +11,13 @@ from torch import nn
 from torch.nn import functional as F
 
 
-class GroupedExperts(nn.Module):
+class DeepseekV3GroupedExperts(nn.Module):
     """This class implements the grouped experts layer used in Mixture of Experts. Each expert
     is a variant of the Gated Linear Units network. See more details in https://arxiv.org/pdf/2002.05202.
 
+    This class is identical to :class:`~torchtune.modules.moe.experts.GroupedExperts`, except that it uses a 
+    `ModuleDict` to store the gate, down, and up projection matrices for each expert, rather than a 
+    combined `nn.Parameter`.
     Args:
         dim (int): Input dimension.
         hidden_dim (int): Hidden dimension.
@@ -33,9 +36,15 @@ class GroupedExperts(nn.Module):
         super().__init__()
         self.dim = dim
         self.num_experts = num_experts
-        self.gate_proj = nn.Parameter(torch.empty(num_experts, dim, hidden_dim))
-        self.down_proj = nn.Parameter(torch.empty(num_experts, hidden_dim, dim))
-        self.up_proj = nn.Parameter(torch.empty(num_experts, dim, hidden_dim))
+        self.experts = nn.ModuleDict({
+            f"expert_{i}": nn.Linear(dim, hidden_dim) for i in range(num_experts)
+        })
+        self.experts_down = nn.ModuleDict({
+            f"expert_{i}": nn.Linear(hidden_dim, dim) for i in range(num_experts)
+        })
+        self.experts_up = nn.ModuleDict({
+            f"expert_{i}": nn.Linear(dim, hidden_dim) for i in range(num_experts)
+        })
         self.act_fn = activation
 
     # TODO: force no inference mode as a hack to get around
@@ -66,9 +75,6 @@ class GroupedExperts(nn.Module):
         )
         out_experts_splits = []
         for expert_idx, x_expert in enumerate(x):
-            if x_expert.numel() == 0:
-                out_experts_splits.append(torch.zeros_like(x_expert))
-                continue
             w1, w2, w3 = (
                 self.gate_proj[expert_idx],
                 self.down_proj[expert_idx],

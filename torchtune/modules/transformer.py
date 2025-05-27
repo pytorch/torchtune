@@ -133,11 +133,17 @@ class TransformerSelfAttentionLayer(nn.Module):
 
         # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
-
+        # import ipdb; ipdb.set_trace()
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         out = h + self.mlp_scale(mlp_out)
         return out
 
+
+def print_stats(name, x: torch.Tensor):
+    print(f"--{name}--")
+    print(f"max: {x.max()}, min: {x.min()}, mean: {x.float().mean()}, std: {x.float().std()}")
+    print(f"shape: {x.shape}")
+    # import ipdb; ipdb.set_trace()
 
 class TransformerCrossAttentionLayer(nn.Module):
     """

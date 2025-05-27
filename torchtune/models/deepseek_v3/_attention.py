@@ -48,7 +48,7 @@ class DeepSeekV3Attention(nn.Module):
         self.cache_enabled = False
 
         self._attention_call = _sdpa_or_flex_attention()
-        
+
     def forward(
         self,
         x: torch.Tensor,
@@ -57,8 +57,8 @@ class DeepSeekV3Attention(nn.Module):
         mask: Optional[_MaskType] = None,
         input_pos: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        
-        # import ipdb; ipdb.set_trace()
+
+        # # import ipdb; ipdb.set_trace()
 
         # q is sometimes decomposed into A/B
         # kv is *always* decomposed
@@ -74,7 +74,7 @@ class DeepSeekV3Attention(nn.Module):
         q = self.q_proj(x)
         q = q.view(b, s_x, self.num_heads, self.q_head_dim)
         q = q.transpose(1, 2)
-        
+
         q_nope, q_pe = torch.split(
             q, [self.qk_nope_head_dim, self.qk_rope_head_dim], dim=-1
         )
@@ -84,23 +84,21 @@ class DeepSeekV3Attention(nn.Module):
         kv = kv.transpose(1, 2)
 
         k_nope, value_states = torch.split(kv, [self.qk_nope_head_dim, self.v_head_dim], dim=-1)
-        
 
-        q_pe = q_pe.transpose(1, 2)
-        k_pe = k_pe.transpose(1, 2)
+        # q_pe = q_pe.transpose(1, 2)
+        # k_pe = k_pe.transpose(1, 2)
         q_pe = self.pos_embeddings(q_pe, input_pos=input_pos)
         k_pe = self.pos_embeddings(k_pe, input_pos=input_pos)
 
-        q_pe = q_pe.transpose(1, 2)
-        k_pe = k_pe.transpose(1, 2)
+        # q_pe = q_pe.transpose(1, 2)
+        # k_pe = k_pe.transpose(1, 2)
         query_states = k_pe.new_empty(b, self.num_heads, s_x, self.q_head_dim)
         query_states[:, :, :, : self.qk_nope_head_dim] = q_nope
-        query_states[:, :, :, self.qk_nope_head_dim :] = q_pe
+        query_states[:, :, :, self.qk_nope_head_dim:] = q_pe
 
         key_states = k_pe.new_empty(b, self.num_heads, s_x, self.q_head_dim)
         key_states[:, :, :, : self.qk_nope_head_dim] = k_nope
-        key_states[:, :, :, self.qk_nope_head_dim :] = k_pe
-
+        key_states[:, :, :, self.qk_nope_head_dim:] = k_pe
 
         output = self._attention_call(
             query_states,
@@ -111,6 +109,13 @@ class DeepSeekV3Attention(nn.Module):
             is_causal=mask is None,
             scale=self.softmax_scale,
         )
+        # print(f"attn output\n")
+        # print(f"\tshape: {output.shape}")
+        # print(f"\tmean: {output.mean()}")
+        # print(f"\tstd: {output.std()}")
+        # print(f"\tmin: {output.min()}")
+        # print(f"\tmax: {output.max()}")
+        # exit()
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(b, s_x, -1)
 

@@ -8,6 +8,7 @@ from typing import Optional
 
 import torch
 from torch import nn
+from torchtune.models.deepseek_v3._experts import DeepseekV3GroupedExperts
 from torchtune.models.deepseek_v3._linear import DeepSeekV3LatentLinear
 from torchtune.models.deepseek_v3._attention import DeepSeekV3Attention
 from torchtune.models.deepseek_v3._moe import DeepSeekV3TokenChoiceTopKRouter, DeepseekV3MoE
@@ -89,13 +90,8 @@ def deepseek_v3(
         is_moe = (moe_every_n_layers is None or (i + 1) % moe_every_n_layers == 0) and i >= first_moe_layer
         if is_moe:
             mlp_layer = DeepseekV3MoE(
-                experts=GroupedExperts(
-                    dim=embed_dim,
-                    hidden_dim=moe_hidden_dim,
-                    num_experts=num_experts,
-                ),
+                experts=deepseek_v3_experts(num_experts, embed_dim, moe_hidden_dim),
                 router=DeepSeekV3TokenChoiceTopKRouter(
-                    gate=nn.Linear(embed_dim, num_experts, bias=False),
                     dim=embed_dim,
                     num_experts=num_experts,
                     experts_per_token=experts_per_token,
@@ -131,6 +127,15 @@ def deepseek_v3(
         output=output_proj,
     )
 
+def deepseek_v3_experts(
+        num_experts: int,
+        dim: int,
+        hidden_dim: int,
+) -> nn.ModuleDict:
+    experts = nn.ModuleDict({
+        str(i): deepseek_v3_mlp(dim, hidden_dim) for i in range(num_experts)
+    })
+    return experts
 
 def deepseek_v3_mlp(
     dim: int,

@@ -85,7 +85,7 @@ class MoE(nn.Module):
     """This class implements the moe layer which is Mixture of Experts. Mixture of Experts
     typically consists of a set of expert networks, alongside with a router, which directs input tokens
     to the appropriate experts. See more details in https://arxiv.org/pdf/2407.06204.
-    
+
 
     Args:
         experts (nn.Module): experts module.
@@ -137,13 +137,12 @@ class MoE(nn.Module):
         routed_output = self.experts(routed_input, num_tokens_per_expert)
         routed_output = routed_output * top_scores.reshape(-1, 1)
 
-        # import ipdb; ipdb.set_trace()
         # shared expert
         if self.shared_expert is not None:
             out = self.shared_expert(x).reshape(b * s, dim)
         else:
             out = torch.zeros_like(x.reshape(b * s, dim))
-        if routed_output.numel() > 0:   
+        if routed_output.numel() > 0:
             out.scatter_add_(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(b, s, dim)
         return out

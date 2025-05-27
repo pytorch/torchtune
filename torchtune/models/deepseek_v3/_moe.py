@@ -4,9 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import torch.nn.functional as F
 import torch
 from torch import nn
 from typing import Optional
+
 
 class DeepseekV3MoE(nn.Module):
     """This class implements the Mixture of Experts (MoE) layer for DeepSeek V3.
@@ -26,7 +28,7 @@ class DeepseekV3MoE(nn.Module):
     def __init__(
         self,
         *,
-        experts: nn.Module,
+        experts: nn.ModuleDict,
         router: nn.Module,
         shared_expert: Optional[nn.Module] = None,
     ):
@@ -43,6 +45,8 @@ class DeepseekV3MoE(nn.Module):
         Returns:
             out (torch.Tensor): Output tensor with shape ``(bs, slen, dim)``.
         """
+        # import ipdb
+        # ipdb.set_trace()
         b, s, dim = x.shape
         # top_scores and selected_indices shape (bs*slen*experts_per_token,)
         # num_tokens_per_expert shape (num_experts,)
@@ -52,9 +56,7 @@ class DeepseekV3MoE(nn.Module):
             num_tokens_per_expert,
         ) = self.router(x.reshape(b * s, dim))
 
-        # shape (b*s*experts_per_token, dim)
-        token_indices = token_indices.reshape(-1, 1).expand(-1, dim)
-
+        token_indices = token_indices.unsqueeze(1).expand(-1, dim)
         # shape (b*s*experts_per_token, dim)
         routed_input = torch.gather(
             x.view(-1, dim),
@@ -63,25 +65,34 @@ class DeepseekV3MoE(nn.Module):
         )
 
         # shape (b*s*top_k, dim)
-        routed_output = self.experts(routed_input, num_tokens_per_expert)
-
-        routed_output = routed_output * top_scores.reshape(-1, 1)
-
+        routed_input = torch.split(routed_input, split_size_or_sections=num_tokens_per_expert.tolist(), dim=0)
+        routed_output = []
+        for expert_idx, x_expert in enumerate(routed_input):
+            if x_expert.numel() == 0:
+                routed_output.append(torch.zeros_like(x_expert))
+                continue
+            routed_output.append(self.experts[str(expert_idx)](x_expert))
         # import ipdb; ipdb.set_trace()
-        # shared expert
-        if self.shared_expert is not None:
-            out = self.shared_expert(x).reshape(b * s, dim)
-        else:
-            out = torch.zeros_like(x.reshape(b * s, dim))
+        routed_output = torch.cat(routed_output, dim=0)
+        import ipdb; ipdb.set_trace()
+        routed_output = routed_output * top_scores.unsqueeze(-1)
+
+        out = torch.zeros_like(x.reshape(b * s, dim)).to(routed_output.dtype)
         if routed_output.numel() > 0:
             out.scatter_add_(dim=0, index=token_indices, src=routed_output)
-        out = out.reshape(b, s, dim)
+            
+        out = out.view(b, s, dim).to(x.dtype)
+        
+        if self.shared_expert is not None:
+            out += self.shared_expert(x)
+
+        print_stats("output after shared", out)
+        exit()
         return out
 
 
 class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
     def __init__(self,
-                 gate: nn.Module,
                  dim: int,
                  num_experts: int,
                  experts_per_token: int,
@@ -91,7 +102,6 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
                  routed_scaling_factor: float
                  ):
         super().__init__()
-        self.gate = gate
         self.dim = dim
         self.num_experts = num_experts
         self.experts_per_token = experts_per_token
@@ -100,30 +110,34 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         self.norm_topk_prob = norm_topk_prob
         self.routed_scaling_factor = routed_scaling_factor
         self.e_score_correction_bias = nn.Parameter(torch.rand((self.num_experts)))
+        self.gate = nn.Parameter(torch.empty((num_experts, dim)))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         n = x.shape[0]
-        logits = self.gate(x)
+        logits = F.linear(x.to(torch.float32), self.gate.to(torch.float32), None)
+        # logits = self.gate(x)
         # calculate scores for every expert in every group
-        # import ipdb; ipdb.set_trace()
-        scores = torch.sigmoid(logits.to(torch.float32)).to(x.dtype)
-        scores += self.e_score_correction_bias.unsqueeze(0)
+        # # import ipdb; ipdb.set_trace()
+        scores = torch.sigmoid(logits)
+        print_stats("scores", scores)
+        scores_for_choice = scores + self.e_score_correction_bias.unsqueeze(0)
 
+        print_stats("scores_for_choice", scores_for_choice)
         # now calculate scores for every group based on the
         # top 2 scores of experts within each group
         experts_per_group = self.num_experts // self.num_groups
         group_scores = (
-            scores.view(n, self.num_groups, experts_per_group)
+            scores_for_choice.view(n, self.num_groups, experts_per_group)
             .topk(2, dim=-1)[0].sum(dim=-1)
         )
 
+        print_stats("group_scores", group_scores)
+
         # grab the topk_groups number of groups based
         # on the scores for each group calculated above
-        group_idxs = torch.topk(
-            group_scores, k=self.topk_groups, dim=-1, sorted=False)[
-            1
-        ]
+        group_idxs = torch.topk(group_scores, k=self.topk_groups, dim=-1, sorted=False).indices
 
+        print_stats("group_idxs", group_idxs)
         # mask out all experts within groups which will not be considered
         group_mask = torch.zeros_like(group_scores, dtype=torch.bool)
         group_mask.scatter_(1, group_idxs, True)  # [n, n_group]
@@ -135,11 +149,11 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
             )
             .reshape(n, -1)
         )
-
-        masked_scores = scores.masked_fill(
+        # masked_scores = scores + self.e_score_correction_bias.unsqueeze(0)
+        masked_scores = scores_for_choice.masked_fill(
             ~score_mask, float('-inf')
         )
-
+        print_stats("masked_scores", masked_scores)
         # now select the top experts_per_token number of
         # experts based on experts within eligible groups
         _, selected_experts_idxs = torch.topk(masked_scores, k=self.experts_per_token, dim=-1, sorted=False)
@@ -151,7 +165,7 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
             scores_per_token /= denominator
 
         # apply scaling factor
-        scores_per_token *= self.routed_scaling_factor
+        scores_per_token = scores_per_token * self.routed_scaling_factor
 
         num_tokens_per_expert = torch.histc(
             selected_experts_idxs.float(), bins=self.num_experts, min=0, max=self.num_experts - 1
@@ -162,7 +176,15 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         )
 
         scores_per_expert = scores_per_token.view(-1)[token_idxs_experts_sorted]
+        print_stats("scores_per_expert", scores_per_expert)
         token_idxs_experts_sorted = (
             token_idxs_experts_sorted // self.experts_per_token
         )
         return scores_per_expert, token_idxs_experts_sorted, num_tokens_per_expert
+
+
+def print_stats(name, x: torch.Tensor):
+    print(f"--{name}--")
+    print(f"max: {x.max()}, min: {x.min()}, mean: {x.float().mean()}, std: {x.float().std()}")
+    print(f"shape: {x.shape}")
+    # import ipdb; ipdb.set_trace()
