@@ -34,6 +34,7 @@ from .transformer import (  # noqa
 )
 from .vision_transformer import VisionTransformer
 from .vq_embeddings import VectorQuantizedEmbeddings
+from .embedding_utils import resize_token_embeddings  # usort: skip
 
 __all__ = [
     "MultiHeadAttention",
@@ -61,4 +62,5 @@ __all__ = [
     "prepare_layer_dropout",
     "classifier_model",
     "rms_norm",
+    "resize_token_embeddings",
 ]

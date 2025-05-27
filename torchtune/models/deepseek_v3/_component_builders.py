@@ -48,12 +48,9 @@ def deepseek_v3(
     moe_hidden_dim: Optional[int] = None,
     norm_eps: float = 1e-5,
 ):
-    use_yarn = False
     if use_yarn:
-        pass
-    # else:
-        # rope = RotaryPositionalEmbeddings(dim=qk_rope_head_dim, max_seq_len=max_seq_len, base=rope_base)
-    # rope = nn.Identity()
+        raise NotImplementedError("Yarn is not supported yet")
+    rope = RotaryPositionalEmbeddings(dim=qk_rope_head_dim, max_seq_len=max_seq_len, base=rope_base)
     def rope(x, input_pos=None):
         return x
     layers = [] 

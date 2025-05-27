@@ -16,9 +16,6 @@ class DeepseekV3MoE(nn.Module):
     transformer models. The router is used to select a subset of experts for each token, and the selected experts are
     then used to compute the output of the MoE layer. See more details in https://arxiv.org/2401.0606.
 
-    This class is identical to :class:`~torchtune.modules.moe.moe.MoE`, except that it applies the 
-    router weighting scores to the *output* of the experts, rather than the input.
-
     Args:
         experts (nn.Module): experts module.
         router (nn.Module): router module.
@@ -45,8 +42,7 @@ class DeepseekV3MoE(nn.Module):
         Returns:
             out (torch.Tensor): Output tensor with shape ``(bs, slen, dim)``.
         """
-        # import ipdb
-        # ipdb.set_trace()
+
         b, s, dim = x.shape
         # top_scores and selected_indices shape (bs*slen*experts_per_token,)
         # num_tokens_per_expert shape (num_experts,)
@@ -58,6 +54,7 @@ class DeepseekV3MoE(nn.Module):
 
         token_indices = token_indices.unsqueeze(1).expand(-1, dim)
         # shape (b*s*experts_per_token, dim)
+
         routed_input = torch.gather(
             x.view(-1, dim),
             dim=0,
@@ -72,22 +69,19 @@ class DeepseekV3MoE(nn.Module):
                 routed_output.append(torch.zeros_like(x_expert))
                 continue
             routed_output.append(self.experts[str(expert_idx)](x_expert))
-        # import ipdb; ipdb.set_trace()
+
         routed_output = torch.cat(routed_output, dim=0)
-        import ipdb; ipdb.set_trace()
         routed_output = routed_output * top_scores.unsqueeze(-1)
 
         out = torch.zeros_like(x.reshape(b * s, dim)).to(routed_output.dtype)
         if routed_output.numel() > 0:
             out.scatter_add_(dim=0, index=token_indices, src=routed_output)
-            
-        out = out.view(b, s, dim).to(x.dtype)
-        
-        if self.shared_expert is not None:
-            out += self.shared_expert(x)
 
-        print_stats("output after shared", out)
-        exit()
+        out = out.view(b, s, dim).to(x.dtype)
+
+        if self.shared_expert is not None:
+            out = out + self.shared_expert(x)
+
         return out
 
 
@@ -115,14 +109,11 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         n = x.shape[0]
         logits = F.linear(x.to(torch.float32), self.gate.to(torch.float32), None)
-        # logits = self.gate(x)
+
         # calculate scores for every expert in every group
-        # # import ipdb; ipdb.set_trace()
         scores = torch.sigmoid(logits)
-        print_stats("scores", scores)
         scores_for_choice = scores + self.e_score_correction_bias.unsqueeze(0)
 
-        print_stats("scores_for_choice", scores_for_choice)
         # now calculate scores for every group based on the
         # top 2 scores of experts within each group
         experts_per_group = self.num_experts // self.num_groups
@@ -131,13 +122,10 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
             .topk(2, dim=-1)[0].sum(dim=-1)
         )
 
-        print_stats("group_scores", group_scores)
-
         # grab the topk_groups number of groups based
         # on the scores for each group calculated above
         group_idxs = torch.topk(group_scores, k=self.topk_groups, dim=-1, sorted=False).indices
 
-        print_stats("group_idxs", group_idxs)
         # mask out all experts within groups which will not be considered
         group_mask = torch.zeros_like(group_scores, dtype=torch.bool)
         group_mask.scatter_(1, group_idxs, True)  # [n, n_group]
@@ -153,7 +141,6 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         masked_scores = scores_for_choice.masked_fill(
             ~score_mask, float('-inf')
         )
-        print_stats("masked_scores", masked_scores)
         # now select the top experts_per_token number of
         # experts based on experts within eligible groups
         _, selected_experts_idxs = torch.topk(masked_scores, k=self.experts_per_token, dim=-1, sorted=False)
@@ -176,15 +163,7 @@ class DeepSeekV3TokenChoiceTopKRouter(nn.Module):
         )
 
         scores_per_expert = scores_per_token.view(-1)[token_idxs_experts_sorted]
-        print_stats("scores_per_expert", scores_per_expert)
         token_idxs_experts_sorted = (
             token_idxs_experts_sorted // self.experts_per_token
         )
         return scores_per_expert, token_idxs_experts_sorted, num_tokens_per_expert
-
-
-def print_stats(name, x: torch.Tensor):
-    print(f"--{name}--")
-    print(f"max: {x.max()}, min: {x.min()}, mean: {x.float().mean()}, std: {x.float().std()}")
-    print(f"shape: {x.shape}")
-    # import ipdb; ipdb.set_trace()
