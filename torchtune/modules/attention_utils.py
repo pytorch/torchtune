@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import torch
 
@@ -63,14 +63,14 @@ else:
 
 
 def _get_document_ids_from_seq_lens(
-    seq_lens: List[torch.Tensor],
+    seq_lens: list[torch.Tensor],
 ) -> torch.Tensor:
     """
     Convert a batch tensor of seq lens into integer IDs denoting sample ownership.
     For example, seq_lens = [2, 3, 1] would return [0, 0, 1, 1, 1, 2].
 
     Args:
-        seq_lens (List[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
+        seq_lens (list[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
             shape (batch_size, n), where n is the max number of sequences in a pack and can vary
             across packs.
 
@@ -93,7 +93,7 @@ def _get_document_ids_from_seq_lens(
     return batch_document_ids
 
 
-def create_block_causal_mask(seq_lens: List[torch.Tensor]) -> torch.Tensor:
+def create_block_causal_mask(seq_lens: list[torch.Tensor]) -> torch.Tensor:
     """
     Given a batch tensor of seq lens defining the lengths of samples in each pack,
     Construct a 2D block causal mask for each pack in the batch. For example, if
@@ -109,7 +109,7 @@ def create_block_causal_mask(seq_lens: List[torch.Tensor]) -> torch.Tensor:
         ]
 
     Args:
-        seq_lens (List[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
+        seq_lens (list[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
             shape (batch_size, n), where n is the max number of sequences in a pack and can vary
             across packs.
 
@@ -132,7 +132,7 @@ def create_block_causal_mask(seq_lens: List[torch.Tensor]) -> torch.Tensor:
 
 
 def packed_block_causal_mask(
-    seq_lens: List[torch.Tensor],
+    seq_lens: list[torch.Tensor],
 ) -> _MaskType:
     """
     Create a block causal document mask for a batch of packed sequences. If
@@ -142,7 +142,7 @@ def packed_block_causal_mask(
     mask. If on an older version, a standard 2D block causal mask is created and returned.
 
     Args:
-        seq_lens (List[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
+        seq_lens (list[torch.Tensor]): Sequence lengths of samples in each pack in the batch,
             shape (batch_size, n), where n is the max number of sequences in a pack and can vary
             across packs.
 
@@ -204,7 +204,6 @@ def _sdpa_or_flex_attention() -> Callable:
             is_causal: bool,
             scale: Optional[float] = None,
         ) -> torch.Tensor:
-
             # Flex attention uses the BlockMask
             # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
             # instead of a traditional boolean tensor mask. If this is passed in,

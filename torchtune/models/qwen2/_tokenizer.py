@@ -6,7 +6,7 @@
 import json
 import unicodedata
 from functools import lru_cache
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 import regex as re
 
@@ -82,7 +82,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         merges_file (str): Path to merges.txt file.
             merges.txt contains all BPE merge operations, and this file is required to split a single word into
             byte-level BPE tokens.
-        special_tokens (Dict[str, int]): Special tokens to add to the tokenizer. Default is QWEN2_SPECIAL_TOKENS.
+        special_tokens (dict[str, int]): Special tokens to add to the tokenizer. Default is QWEN2_SPECIAL_TOKENS.
         max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
             Default: None
         prompt_template (Optional[PromptTemplate]): template used to format the messages based on their role. This is used
@@ -122,7 +122,7 @@ class Qwen2Tokenizer(ModelTokenizer):
         self,
         path: str,
         merges_file: str,
-        special_tokens: Dict[str, int] = QWEN2_SPECIAL_TOKENS,
+        special_tokens: dict[str, int] = QWEN2_SPECIAL_TOKENS,
         max_seq_len: Optional[int] = None,
         *,
         prompt_template: Optional[PromptTemplate] = None,
@@ -229,7 +229,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
     def encode(
         self, text: str, add_bos: bool = True, add_eos: bool = True
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Encode a string into a list of token ids.
 
@@ -239,7 +239,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             add_eos (bool): (Optional) Whether to add the end of sequence token.
 
         Returns:
-            List[int]: The list of token ids.
+            list[int]: The list of token ids.
 
         Note:
             This method follows
@@ -282,7 +282,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             return self.decoder.get(index)
         return token
 
-    def _convert_tokens_to_string(self, tokens: List[str]) -> str:
+    def _convert_tokens_to_string(self, tokens: list[str]) -> str:
         """Converts a sequence of tokens (string) in a single string."""
         text = "".join([t for t in tokens if t is not None])
         text = bytearray([self.byte_decoder[c] for c in text]).decode(
@@ -292,14 +292,14 @@ class Qwen2Tokenizer(ModelTokenizer):
 
     def decode(
         self,
-        token_ids: List[int],
+        token_ids: list[int],
         skip_special_tokens: bool = False,
     ) -> str:
         """
         Decode a list of token ids into a string.
 
         Args:
-            token_ids (List[int]): The list of token ids.
+            token_ids (list[int]): The list of token ids.
             skip_special_tokens (bool): Whether the special tokens should be removed from the decoded string.
 
         Returns:
@@ -327,21 +327,21 @@ class Qwen2Tokenizer(ModelTokenizer):
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        add_eos: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+        add_end_tokens: bool = True,
+    ) -> tuple[list[int], list[bool]]:
         """
         Given a list of messages, return a list of tokens for the concatenated
         and formatted messages.
 
         Args:
-            messages (List[Message]): The message list to tokenize.
-            add_eos (bool): Wether to add the tokenizer's eos_id at the end of the
-                sequence of messages. Default is True.
+            messages (list[Message]): The message list to tokenize.
+            add_end_tokens (bool): Wether to add the tokenizer's end of message
+                tokens, such as  eos_id. Default is True.
 
         Returns:
-            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+            tuple[list[int], list[bool]]: The list of token ids and the list of masks.
 
         Raises:
             RuntimeError: If a message contains non-text content
@@ -398,7 +398,7 @@ class Qwen2Tokenizer(ModelTokenizer):
                 break
 
         # Add the End-Of-Sequence token
-        if add_eos:
+        if add_end_tokens:
             tokenized_messages.append(self.eos_id)
             mask.append(mask[-1])
 
@@ -407,13 +407,13 @@ class Qwen2Tokenizer(ModelTokenizer):
             tokenized_messages = truncate(
                 tokens=tokenized_messages,
                 max_seq_len=self.max_seq_len,
-                eos_id=self.eos_id if add_eos else None,
+                eos_id=self.eos_id if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
             mask = truncate(
                 tokens=mask,
                 max_seq_len=self.max_seq_len,
-                eos_id=True if add_eos else None,
+                eos_id=True if add_end_tokens else None,
                 truncation_type=self.truncation_type,
             )
 
@@ -427,7 +427,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
-                a List[Message] to tokenize
+                a list[Message] to tokenize
             inference (bool): Whether the template is being used for inference or not.
 
         Returns:
@@ -436,7 +436,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             inference (bool): Whether the template is being used for inference or not.
         """
         messages = sample.pop("messages")
-        tokens, mask = self.tokenize_messages(messages)
+        tokens, mask = self.tokenize_messages(messages, add_end_tokens=not inference)
         sample["tokens"] = tokens
         sample["mask"] = mask
         return sample

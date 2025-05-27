@@ -8,8 +8,9 @@
 import logging
 import os
 from dataclasses import dataclass
+from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple
+from typing import Any, Callable, cast, Optional
 
 import torch
 import torch.distributed as dist
@@ -46,6 +47,9 @@ torch_version = torch.__version__
 #     "dev" not in torch_version and torch_version_ge("2.6.0")
 # ) or ("dev" in torch_version and torch_version.split("dev")[1] >= "20241220")
 _DISTRIBUTED_STATE_DICT_API_IS_AVAILABLE = False
+
+# Valid backends for logging memory stats
+VALID_BACKENDS_FOR_MEMORY_STATS = ("cuda", "xpu", "npu")
 
 
 @dataclass
@@ -122,6 +126,11 @@ class ParallelDims:
     def tp_enabled(self):
         return self.tp > 1
 
+    @cached_property
+    def non_data_parallel_size(self):
+        # update below as more parallelism options are implemented
+        return self.tp
+
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
     """Helper function to convert sharding strategy strings to ShardingStrategy enum."""
@@ -165,6 +174,10 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         device = tensor.device
         if dist.get_backend() == "nccl":
             tensor = tensor.to(get_device("cuda"))
+        elif dist.get_backend() == "xccl":
+            tensor = tensor.to(get_device("xpu"))
+        elif dist.get_backend() == "hccl":
+            tensor = tensor.to(get_device("npu"))
         dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
     else:
@@ -203,11 +216,11 @@ def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) 
 @deprecated(
     msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
 )
-def init_distributed(**kwargs: Dict[str, Any]) -> bool:
+def init_distributed(**kwargs: dict[str, Any]) -> bool:
     """Initialize process group required for ``torch.distributed``.
 
     Args:
-        **kwargs (Dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.
+        **kwargs (dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.
 
     Returns:
         bool: True if torch.distributed is initialized.
@@ -244,12 +257,12 @@ def set_torch_num_threads() -> None:
     msg="`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. "
     "Please use `torchtune.utils.get_world_size_and_rank` instead."
 )
-def get_world_size_and_rank() -> Tuple[int, int]:
+def get_world_size_and_rank() -> tuple[int, int]:
     """Function that gets the current world size (aka total number
     of ranks) and rank number of the current process in the default process group.
 
     Returns:
-        Tuple[int, int]: world size, rank
+        tuple[int, int]: world size, rank
     """
     if dist.is_available() and dist.is_initialized():
         return torch.distributed.get_world_size(), torch.distributed.get_rank()
@@ -276,23 +289,25 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
 
 def load_from_full_model_state_dict(
     model: "FSDPModule",  # noqa
-    full_sd: Dict[str, Any],
+    full_sd: dict[str, Any],
     device: torch.device,
     strict: bool = False,
     cpu_offload: bool = False,
     use_distributed_state_dict: bool = False,
+    release_sd: bool = True,
 ) -> _IncompatibleKeys:
     """
     Converting full state dict into a sharded state dict
     and loading it into FSDP model
     Args:
         model (FSDPModule): Model to generate fully qualified names for cpu_state_dict
-        full_sd (Dict[str, Any]): a full state dict to load into the model
+        full_sd (dict[str, Any]): a full state dict to load into the model
         device (torch.device): device used to move full state dict tensors
         strict (bool): flag to check if to load the model in strict mode
         cpu_offload (bool): flag to check if offload to CPU is enabled
         use_distributed_state_dict (bool): Whether to use set_model_state_dict for loading
             state dict. Default: False. (TODO: this should be True once 3.2 Vision is fixed)
+        release_sd (bool): whether to release memory of full_sd to save ram usage
     Returns:
         ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
             * **missing_keys** is a list of str containing the missing keys
@@ -333,6 +348,7 @@ def load_from_full_model_state_dict(
         sharded_sd = {}
         for param_name, full_tensor in full_sd.items():
             sharded_meta_param = meta_sharded_sd.get(param_name)
+            assert sharded_meta_param is not None, f"{param_name} not found in model"
             full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
             if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
                 sharded_meta_param._local_tensor, NF4Tensor
@@ -351,7 +367,7 @@ def load_from_full_model_state_dict(
                 mesh = sharded_meta_param.device_mesh
                 if mesh.ndim > 1:
                     raise NotImplementedError(
-                        f"only support 1D FSDP but got {mesh.ndim=}"
+                        f"only support 1D FSDP but got {mesh.ndim}"
                     )
                 shard_mesh_dim = 0
                 shard_world_size = mesh.size(shard_mesh_dim)
@@ -391,6 +407,8 @@ def load_from_full_model_state_dict(
             if cpu_offload:
                 sharded_tensor = sharded_tensor.cpu()
             sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+            if release_sd:
+                full_sd[param_name] = None
         # choose `assign=True` since we cannot call `copy_` on meta tensor
         return model.load_state_dict(sharded_sd, strict=strict, assign=True)
 
@@ -424,7 +442,7 @@ def gather_cpu_state_dict(
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
     adapter_weights_only: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
     Returning non-empty result only on rank0 to avoid peaking CPU memory
@@ -439,7 +457,7 @@ def gather_cpu_state_dict(
         adapter_weights_only (bool): flag to check if only trainable parameters should be returned. Default: False
 
     Returns:
-        Dict[str, Any]: State dict on CPU
+        dict[str, Any]: State dict on CPU
     """
     # TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.
     cpu_state_dict = {}
@@ -470,16 +488,14 @@ def get_full_optimizer_state_dict(
     opt: Optimizer,
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Converting optimizer state from sharded to full
     For example, "exp_avg" in AdamW is `DTensor`,
     "exp_avg.full_tensor()" converts it to plain tensor on rank 0
     Returning non-empty cpu state dict on rank 0
     """
-    options = StateDictOptions(
-        full_state_dict=True, broadcast_from_rank0=True, cpu_offload=True
-    )
+    options = StateDictOptions(full_state_dict=True, cpu_offload=True)
     full_state_dict = get_optimizer_state_dict(
         model=model, optimizers=opt, options=options
     )
@@ -492,7 +508,7 @@ def get_full_optimizer_state_dict(
 def load_from_full_optimizer_state_dict(
     model: "FSDPModule",  # noqa
     opt: Optimizer,
-    full_sd: Dict[str, Any],
+    full_sd: dict[str, Any],
     device: torch.device,
 ) -> None:
     """
@@ -550,7 +566,7 @@ def load_from_full_optimizer_state_dict(
 def get_shard_conditions(
     name: str,
     module: nn.Module,
-    names_to_match: Optional[List[str]] = None,
+    names_to_match: Optional[list[str]] = None,
     *args,
     **kwargs,
 ) -> bool:
@@ -569,7 +585,7 @@ def get_shard_conditions(
     Args:
         name (str): Name of the module.
         module (nn.Module): Module to be sharded.
-        names_to_match (Optional[List[str]]): List of names to match, if any.
+        names_to_match (Optional[list[str]]): list of names to match, if any.
         *args: Variable length argument list to be passed to the Embedding module.
         **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
 
@@ -598,7 +614,7 @@ def get_shard_conditions(
 
 def shard_model(
     model: TransformerDecoder,
-    shard_conditions: List[Callable[[str, nn.Module], bool]],
+    shard_conditions: list[Callable[[str, nn.Module], bool]],
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
@@ -612,7 +628,7 @@ def shard_model(
 
     Args:
         model (TransformerDecoder): Model to shard with FSDP.
-        shard_conditions (List[Callable[[str, nn.Module], bool]]): A list of functions to determine
+        shard_conditions (list[Callable[[str, nn.Module], bool]]): A list of functions to determine
             which modules to shard with FSDP. Each function should take module name (relative to root)
             and the module itself, returning True if FSDP should shard the module and False otherwise.
             If any of shard_conditions return True for a given module, it will be sharded by FSDP.

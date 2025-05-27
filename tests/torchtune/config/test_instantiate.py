@@ -107,7 +107,7 @@ class TestInstantiate:
         tokenizer:
           _component_: torchtune.models.llama2.llama2_tokenizer
           max_seq_len: null
-          path: {assets / 'm.model'}
+          path: {assets / "m.model"}
         """
         )
         config = OmegaConf.create(s)

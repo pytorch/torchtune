@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
-
 import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
@@ -38,14 +36,14 @@ class VectorQuantizedEmbeddings(nn.Module):
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
 
-    def forward(self, z: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, z: Tensor) -> tuple[Tensor, Tensor]:
         """
         Args:
             z (Tensor): Tensor containing a batch of encoder outputs of shape ``(b, s, d)``, where
                 b is batch size, s is sequence length or time, and d is ``embedding_dim``.
 
         Returns:
-            Tuple[Tensor, Tensor]: The quantized input and the embedding vector ids that were used.
+            tuple[Tensor, Tensor]: The quantized input and the embedding vector ids that were used.
 
         Raises:
             ValueError: if input embedding dimension does not match embedding dimension of module

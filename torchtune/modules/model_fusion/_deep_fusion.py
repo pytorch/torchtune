@@ -4,13 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 import torch
 from torch import nn
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params
+from torchtune.utils import deprecated
 
 
 class DeepFusionModel(nn.Module):
@@ -93,6 +94,7 @@ class DeepFusionModel(nn.Module):
             trainable_params -= set(get_fusion_params(self))
         set_trainable_params(self, trainable_params)
 
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
@@ -149,15 +151,32 @@ class DeepFusionModel(nn.Module):
         """
         self.decoder.reset_caches()
 
+    @property
+    def output(self) -> torch.Tensor:
+        """Returns the output layer. Useful when a finer control of the output projection is needed,
+        for example when using a custom loss function or when interested in applying it to only some tokens.
+        """
+        return self.decoder.output
+
+    @property
+    def skip_output_layer(self) -> bool:
+        """Returns whether to skip output layer projection and return hidden states instead."""
+        return self.decoder.skip_output_layer
+
+    @skip_output_layer.setter
+    def skip_output_layer(self, skip: bool) -> None:
+        """Set whether to skip output layer projection and return hidden states instead."""
+        self.decoder.skip_output_layer = skip
+
     def forward(
         self,
         tokens: torch.Tensor,
         *,
         mask: Optional[torch.Tensor] = None,
-        encoder_input: Optional[Dict] = None,
+        encoder_input: Optional[dict] = None,
         encoder_mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
-    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+    ) -> Union[torch.Tensor, list[torch.Tensor]]:
         """
         Args:
             tokens (torch.Tensor): input tensor with shape ``[b x s]``
@@ -166,7 +185,7 @@ class DeepFusionModel(nn.Module):
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            encoder_input (Optional[Dict]): Optional input for the encoder.
+            encoder_input (Optional[dict]): Optional input for the encoder.
             encoder_mask (Optional[torch.Tensor]):  Boolean tensor defining a relational matrix between
                 tokens and encoder embeddings. A True value at position i,j means token i can attend
                 to embedding j in the decoder. Mask has shape ``[b x s x s_e]``. Default is None.

@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Type
-
 from torch import nn
 
 from torch.distributed.tensor import Replicate, Shard
@@ -25,10 +23,10 @@ from torchao.float8.float8_tensor_parallel import (
 
 
 def _get_base_llama_tp_training_plan(
-    layerwise_colwise_parallel_cls: Type[ParallelStyle] = ColwiseParallel,
-    layerwise_rowwise_parallel_cls: Type[ParallelStyle] = RowwiseParallel,
-    layerwise_prepare_module_input_cls: Type[ParallelStyle] = PrepareModuleInput,
-) -> Dict[str, ParallelStyle]:
+    layerwise_colwise_parallel_cls: type[ParallelStyle] = ColwiseParallel,
+    layerwise_rowwise_parallel_cls: type[ParallelStyle] = RowwiseParallel,
+    layerwise_prepare_module_input_cls: type[ParallelStyle] = PrepareModuleInput,
+) -> dict[str, ParallelStyle]:
     """
     Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models.
     """
@@ -39,8 +37,8 @@ def _get_base_llama_tp_training_plan(
         "norm": SequenceParallel(),
         "output": ColwiseParallel(input_layouts=Shard(1), output_layouts=Replicate()),
         "layers.*.attn": layerwise_prepare_module_input_cls(
-            input_layouts=(Shard(1), None),
-            desired_input_layouts=(Replicate(), None),
+            input_layouts=(Shard(1), Shard(1)),
+            desired_input_layouts=(Replicate(), Replicate()),
         ),
         "layers.*.mlp": layerwise_prepare_module_input_cls(
             input_layouts=(Shard(1),),
@@ -83,7 +81,7 @@ BASE_LLAMA_TP_INFERENCE_PLAN = {
 
 def base_llama_tp_plan(
     model: nn.Module, inference: bool = False
-) -> Dict[str, ParallelStyle]:
+) -> dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
 
@@ -92,19 +90,19 @@ def base_llama_tp_plan(
         inference (bool): Whether running inference or not.
 
     Returns:
-        Dict[str, Any]: The tensor parallel plan for Llama3 model.
+        dict[str, Any]: The tensor parallel plan for Llama3 model.
     """
     return BASE_LLAMA_TP_INFERENCE_PLAN if inference else BASE_LLAMA_TP_TRAINING_PLAN
 
 
 # TODO: expose this once tested
-def _fp8_llama_tp_plan() -> Dict[str, ParallelStyle]:
+def _fp8_llama_tp_plan() -> dict[str, ParallelStyle]:
     """
     Return the tensor parallel plan for Llama3 model that uses float8 for all-gather for both
     rowwise and colwise computation, currently only compatible with float8 fine-tuning with
     "tensorwise" scaling. This tensor parallel plan is shared between 3.1, 3.2, and 3.3 models.
 
     Returns:
-        Dict[str, Any]: The float8-enabled tensor parallel plan for Llama3 model.
+        dict[str, Any]: The float8-enabled tensor parallel plan for Llama3 model.
     """
     return FP8_LLAMA_TP_TRAINING_PLAN
