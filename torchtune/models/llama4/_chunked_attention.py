@@ -17,6 +17,10 @@ if _SUPPORTS_FLEX_ATTENTION:
     from torch.nn.attention.flex_attention import BlockMask, create_block_mask
 
 
+# Compilation graph breaks here can result in NaNs.
+# This is suboptimal to not compile create_block_mask,
+# TODO: Enable once it compiles without graph breaks.
+@torch._dynamo.disable(recursive=True)
 def get_chunked_attention_mask(
     mask: Optional[_MaskType],
     chunk_size: int,
