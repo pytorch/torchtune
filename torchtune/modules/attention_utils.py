@@ -24,7 +24,7 @@ if _SUPPORTS_FLEX_ATTENTION:
 
     def compile_flex_attention():
         try:
-            return torch.compile(flex_attention, dynamic=False)
+            return torch.compile(flex_attention)
         except Exception as e:
             # It may fail on some combinations of hardware/versions. Using max-autotune fixes this issue.
             # Context: https://github.com/pytorch/torchtune/issues/2113
@@ -32,7 +32,7 @@ if _SUPPORTS_FLEX_ATTENTION:
                 f"Compiling flex_attention failed with error '{e}'. Retrying with mode='max-autotune'."
             )
             try:
-                return torch.compile(flex_attention, dynamic=False, mode="max-autotune")
+                return torch.compile(flex_attention, mode="max-autotune")
             except Exception as e:
                 _log.info(
                     f"Compiling flex_attention failed with error: '{e}', "
