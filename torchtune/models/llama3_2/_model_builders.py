@@ -170,7 +170,6 @@ def lora_llama3_2_3b(
     Returns:
         TransformerDecoder: Instantiation of Llama3.2 3B model with LoRA applied
     """
-
     return lora_llama3_2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
