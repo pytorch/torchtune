@@ -288,7 +288,7 @@ def gemma3_27b() -> TransformerDecoder:
         vocab_size=262_144,
         num_layers=62,
         num_heads=32,
-        head_dim=256,
+        head_dim=128,
         num_kv_heads=16,
         embed_dim=5376,
         intermediate_dim=86016, # (embed_dim * 8) // 2
