@@ -798,7 +798,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            # TODO: overkill?
+            # Need 2 * cp_degree due to
             # https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
             collate_fn=(
                 partial(
@@ -922,7 +922,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 utils.batch_to_device(batch, self._device)
 
                 # Define optional context manager for context parallelism
-                optional_context_parallel_context_manager = (
+                context_parallel_context_manager = (
                     training.get_context_parallel_context(
                         cp_enabled=self.cp_degree > 1,
                         world_mesh=self.world_mesh,
@@ -940,7 +940,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                with optional_context_parallel_context_manager:
+                with context_parallel_context_manager:
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
                     # For optimizer in backward, we need to normalize before calling backward
@@ -960,7 +960,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         torch.distributed.all_reduce(running_loss)
 
                         # Manually scale the gradients from unnormalized loss by total # of tokens
-                        # TODO: check this
                         self._grad_scaler(
                             self._model.parameters(),
                             self.world_size / num_tokens,

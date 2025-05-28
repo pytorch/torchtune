@@ -799,6 +799,8 @@ class QATRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
+            # Need 2 * cp_degree due to
+            # https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
             collate_fn=(
                 partial(
                     collate_fn,
@@ -919,7 +921,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                 utils.batch_to_device(batch, self._device)
 
                 # Define optional context manager for context parallelism
-                optional_context_parallel_context_manager = (
+                context_parallel_context_manager = (
                     training.get_context_parallel_context(
                         cp_enabled=self.cp_degree > 1,
                         world_mesh=self.world_mesh,
@@ -937,7 +939,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                with optional_context_parallel_context_manager:
+                with context_parallel_context_manager:
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
 
