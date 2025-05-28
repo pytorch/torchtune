@@ -1,0 +1,11 @@
+{
+  "_from_model_config": true,
+  "bos_token_id": 2,
+  "cache_implementation": "hybrid",
+  "eos_token_id": [
+    1,
+    107
+  ],
+  "pad_token_id": 0,
+  "transformers_version": "4.42.4"
+}
