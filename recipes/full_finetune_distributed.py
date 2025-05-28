@@ -605,6 +605,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     "FP8 training does not support tensor parallelism yet. "
                     "This will be enabled in the near future."
                 )
+            if self.cp_degree > 1:
+                raise ValueError(
+                    "Context Parallel for fp8 training is not currently supported"
+                )
             model = convert_to_float8_training(model, self._fp8_recipe_name)
 
         # Apply tensor parallelism to the model
@@ -903,6 +907,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
+                # TODO: remove (just for debug)
+                seq_len = batch["labels"].shape[1]
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
@@ -916,14 +922,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 utils.batch_to_device(batch, self._device)
 
                 # Define optional context manager for context parallelism
-                model_inputs = list(batch.values())
-                buffers = list(self._model.buffers())
                 optional_context_parallel_context_manager = (
                     training.get_context_parallel_context(
                         cp_enabled=self.cp_degree > 1,
                         world_mesh=self.world_mesh,
+                        model=self._model,
                         model_inputs=list(batch.values()),
-                        model_buffers=list(self._model.buffers()),
                     )
                 )
 

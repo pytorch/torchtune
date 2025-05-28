@@ -787,8 +787,8 @@ def get_context_parallel_context(
     *,
     cp_enabled: bool = False,
     world_mesh: torch.distributed.DeviceMesh,
+    model: TransformerDecoder,
     model_inputs: list[torch.Tensor],
-    model_buffers: Optional[list[torch.Tensor]] = None,
 ) -> Generator[None, None, None]:
     """
     Context manager for applying context parallelism to a model. In addition to applying the
@@ -798,10 +798,9 @@ def get_context_parallel_context(
     Args:
         cp_enabled (bool): Whether context parallel is enabled. Default: False
         world_mesh (torch.distributed.DeviceMesh): Global device mesh.
+        model (TransformerDecoder): Model to apply context parallelism to.
         model_inputs (list[torch.Tensor]): List of any model inputs which should be
             sharded along sequence dimension.
-        model_buffers (Optional[list[torch.Tensor]]): List of any model buffers. These should also be
-            sharded along sequence dimension. Default: None
 
     Returns:
         A context manager applying context parallelism if cp_enabled is True. Otherwise a context manager
@@ -829,7 +828,12 @@ def get_context_parallel_context(
         raise ValueError(
             "Context parallel is enabled but no context parallel device mesh is provided."
         )
-    model_buffers = model_buffers or []
+    # TODO: context parallel for multimodal models requires extra work
+    if cp_enabled and not isinstance(model, TransformerDecoder):
+        raise ValueError(
+            "Context parallel not supported for models other than TransformerDecoder"
+        )
+    model_buffers = list(model.buffers())
 
     @contextlib.contextmanager
     def context():

@@ -168,6 +168,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
+        self.cp_degree = cfg.get("context_parallel_dim", 1)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -176,6 +177,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             dp_replicate=data_replicate,
             dp_shard=data_shard,
             tp=self.tp_degree,
+            cp=self.cp_degree,
             world_size=self.world_size,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
@@ -802,7 +804,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.tp_degree,
+                    pad_to_multiple_of=self.tp_degree * self.cp_degree * 2,
                 )
                 if not packed
                 else padded_collate_packed
@@ -916,6 +918,16 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 utils.batch_to_device(batch, self._device)
 
+                # Define optional context manager for context parallelism
+                optional_context_parallel_context_manager = (
+                    training.get_context_parallel_context(
+                        cp_enabled=self.cp_degree > 1,
+                        world_mesh=self.world_mesh,
+                        model=self._model,
+                        model_inputs=list(batch.values()),
+                    )
+                )
+
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
                 current_num_tokens = (
@@ -925,17 +937,19 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_step(batch) * current_num_tokens
-                running_loss += current_loss
+                with optional_context_parallel_context_manager:
+                    current_loss = self._loss_step(batch) * current_num_tokens
+                    running_loss += current_loss
 
-                # For optimizer in backward, we need to normalize before calling backward
-                # This case and gradient accumulation are mutually exclusive
-                if self._optimizer_in_bwd:
-                    torch.distributed.all_reduce(num_tokens)
-                    torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss * (self.dp_degree / num_tokens)
+                    # For optimizer in backward, we need to normalize before calling backward
+                    # This case and gradient accumulation are mutually exclusive
+                    if self._optimizer_in_bwd:
+                        torch.distributed.all_reduce(num_tokens)
+                        torch.distributed.all_reduce(running_loss)
+                        current_loss = current_loss * (self.dp_degree / num_tokens)
 
-                current_loss.backward()
+                    current_loss.backward()
+
                 # Optimizer step (if not fused in backward call)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
