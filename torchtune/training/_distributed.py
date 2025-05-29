@@ -11,7 +11,7 @@ import os
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Generator, Optional
+from typing import Any, Callable, cast, Generator, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -764,7 +764,7 @@ def _get_sdpa_context() -> (
     """
 
     @contextlib.contextmanager
-    def context(cp_context: Generator[None, None, None] | None = None):
+    def context(cp_context: Union[Generator[None, None, None], None] = None):
         with contextlib.ExitStack() as stack:
             if cp_context is not None:
                 stack.enter_context(
