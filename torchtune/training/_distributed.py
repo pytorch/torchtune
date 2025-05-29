@@ -854,7 +854,7 @@ def get_context_parallel_manager(
     def context(model_inputs: list[torch.Tensor]):
         # Create context parallel context if enabled
         cp_context = None
-        if any([isinstance(input, BlockMask) for input in model_inputs]):
+        if enabled and any([isinstance(input, BlockMask) for input in model_inputs]):
             raise ValueError(
                 "Context parallel with flex attention is not yet supported"
             )
