@@ -78,6 +78,8 @@ def llama4_scout_17b_16e(
         norm_eps=1e-5,
         num_experts=16,
         use_shared_expert=True,
+        # Main switch llama4 use_grouped_mm
+        use_grouped_mm=True,
         skip_rope_interval=4,
         attention_chunk_size=8192,
         use_scaled_rope=True,
