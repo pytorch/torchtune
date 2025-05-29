@@ -32,6 +32,7 @@ from torch.distributed.fsdp import FSDPModule, ShardingStrategy
 from torch.distributed.tensor.experimental import context_parallel
 from torch.distributed.tensor.experimental._attention import set_rotate_method
 from torch.nn.attention import sdpa_kernel, SDPBackend
+from torch.nn.attention.flex_attention import BlockMask
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -115,7 +116,7 @@ class ParallelDims:
             dp_mesh_dim_names.append("dp_shard")
             dp_shard_cp_mesh_dim_names.append("dp_shard")
             dp_cp_mesh_dim_names.append("dp_shard")
-        if self.cp_enabled:
+        if self.enabled:
             dp_shard_cp_mesh_dim_names.append("cp")
             dp_cp_mesh_dim_names.append("cp")
 
@@ -132,7 +133,7 @@ class ParallelDims:
         return mesh
 
     @property
-    def cp_enabled(self):
+    def enabled(self):
         return self.cp > 1
 
     @property
@@ -154,7 +155,22 @@ class ParallelDims:
     @cached_property
     def non_data_parallel_size(self):
         # update below as more parallelism options are implemented
-        return self.tp
+        return self.tp * self.cp
+
+    @cached_property
+    def min_seq_len_divisor(self):
+        """
+        This property can be used for padding batches to a sequence length that is valid for
+        the given ParallelDims.
+
+        Sequence parallelism requires that seq_len be divisible by TP dim.
+        Ref: https://github.com/pytorch/torchtitan/pull/640#discussion_r1849481001
+
+        Context parallelism requires that seq_len be divisible by 2 * CP dim.
+        Ref: https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
+
+        """
+        return 2 * self.tp * self.cp
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -783,38 +799,35 @@ def _get_sdpa_context() -> (
     return context
 
 
-def get_context_parallel_context(
+def get_context_parallel_manager(
     *,
-    cp_enabled: bool = False,
+    enabled: bool = False,
     world_mesh: torch.distributed.DeviceMesh,
     model: TransformerDecoder,
-    model_inputs: list[torch.Tensor],
-) -> Generator[None, None, None]:
+) -> Callable[[list[torch.Tensor]], Generator[None, None, None]]:
     """
     Context manager for applying context parallelism to a model. In addition to applying the
     standard context manager to patch SDPA and shard model inputs and buffers along the sequence
     dimension, this context manager also calls into _get_sdpa_context to filter to acceptable SDPA backends.
 
     Args:
-        cp_enabled (bool): Whether context parallel is enabled. Default: False
+        enabled (bool): Whether context parallel is enabled. Default: False
         world_mesh (torch.distributed.DeviceMesh): Global device mesh.
         model (TransformerDecoder): Model to apply context parallelism to.
-        model_inputs (list[torch.Tensor]): List of any model inputs which should be
-            sharded along sequence dimension.
 
     Returns:
-        A context manager applying context parallelism if cp_enabled is True. Otherwise a context manager
+        A context manager applying context parallelism if enabled is True. Otherwise a context manager
         disabling the math SDPA backend.
 
     Raises:
-        ValueError: if cp_enabled is True but world_mesh does not contain a "cp" dimension
+        ValueError: if enabled is True but world_mesh does not contain a "cp" dimension
 
     Example:
         ```python
         batch = {"inputs": inputs, "labels": labels}
         with get_context_parallel_context(
-            cp_enabled=parallel_dims.cp_enabled,
-            cp_mesh=world_mesh["cp"] if parallel_dims.cp_enabled else None,
+            enabled=parallel_dims.enabled,
+            cp_mesh=world_mesh["cp"] if parallel_dims.enabled else None,
             model_inputs=list(batch.values()),
             model_buffers=model.buffers(),
         ):
@@ -824,27 +837,28 @@ def get_context_parallel_context(
         ```
     """
 
-    if cp_enabled and "cp" not in world_mesh.mesh_dim_names:
+    if enabled and "cp" not in world_mesh.mesh_dim_names:
         raise ValueError(
             "Context parallel is enabled but no context parallel device mesh is provided."
         )
     # TODO: context parallel for multimodal models requires extra work
-    if cp_enabled and not isinstance(model, TransformerDecoder):
-        raise ValueError(
-            "Context parallel not supported for models other than TransformerDecoder"
-        )
+    if enabled and not isinstance(model, TransformerDecoder):
+        raise ValueError("Context parallel is only supported for text models")
+    # TODO: this is a hacky proxy for whether we use flex for chunked attention
+    # remove this once flex is supported
+    if enabled and any([layer.mask_mod is not None for layer in model.layers]):
+        raise ValueError("Context parallel with flex attention is not yet supported")
     model_buffers = list(model.buffers())
 
     @contextlib.contextmanager
-    def context():
+    def context(model_inputs: list[torch.Tensor]):
         # Create context parallel context if enabled
         cp_context = None
-        if (
-            cp_enabled
-            and world_mesh is not None
-            and model_inputs + model_buffers is not None
-        ):
-            # TODO: do we need to parametrize this?
+        if any([isinstance(input, BlockMask) for input in model_inputs]):
+            raise ValueError(
+                "Context parallel with flex attention is not yet supported"
+            )
+        if enabled:
             set_rotate_method("allgather")
             cp_context = context_parallel(
                 world_mesh["cp"],
@@ -859,4 +873,4 @@ def get_context_parallel_context(
         with sdpa_context(cp_context):
             yield
 
-    return context()
+    return context
