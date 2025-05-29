@@ -343,7 +343,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._compile_optimizer_step = compile.get("optimizer_step", False)
             self._compile_scale_grads = compile.get("scale_grads", True)
         if self._compile_model:
-            # Enable capture_scalar_outputs to compile non-grouped-mm path of moe, that uses split
+            # Capture scalar outputs is required to compile MoE
             torch._dynamo.config.capture_scalar_outputs = True
 
         # This indirection is needed to apply torch.compile to scale_grads step.
