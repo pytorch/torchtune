@@ -231,7 +231,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._activation_offloading_use_streams = cfg.get(
             "activation_offloading_use_streams", True
         )
-        if self._activation_offloading_use_streams and self.parallel_dims.tp_enabled:
+        if (
+            self._enable_activation_offloading
+            and self._activation_offloading_use_streams
+            and self.parallel_dims.tp_enabled
+        ):
             warn(
                 message=(
                     "Using activation offloading with streams is not advised in tensor parallel, and may "
@@ -338,6 +342,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
             self._compile_scale_grads = compile.get("scale_grads", True)
+        if self._compile_model:
+            # Capture scalar outputs is required to compile MoE
+            torch._dynamo.config.capture_scalar_outputs = True
 
         # This indirection is needed to apply torch.compile to scale_grads step.
         self._grad_scaler = training.scale_grads_

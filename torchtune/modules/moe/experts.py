@@ -50,18 +50,14 @@ class GroupedExperts(nn.Module):
         if self.up_proj is not None:
             nn.init.kaiming_uniform_(self.up_proj, a=math.sqrt(5))
 
-    # Compile fails because of unbacked symints guards from .tolist().
-    # TODO(ivankobzarev): fix compilation with unbacked for split.
-    @torch._dynamo.disable(recursive=False)
     def _forward_no_grouped_mm(
         self, x: torch.Tensor, num_tokens_per_expert: torch.Tensor
     ) -> torch.Tensor:
         # a tuple of tensors indexed by experts
         # each with shape (tokens_per_expert(varying), dim)
-        num_tokens_per_expert_list = num_tokens_per_expert.tolist()
         x = torch.split(
             x,
-            split_size_or_sections=num_tokens_per_expert_list,
+            split_size_or_sections=num_tokens_per_expert.tolist(),
             dim=0,
         )
         out_experts_splits = []
@@ -123,7 +119,6 @@ class GroupedExperts(nn.Module):
         h = F.silu(torch._grouped_mm(x, w1, offs=offsets))
         h = h * torch._grouped_mm(x, w3, offs=offsets)
         out = torch._grouped_mm(h, w2, offs=offsets)
-        out[offsets[-1] :].zero_()
         return out
 
 

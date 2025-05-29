@@ -173,6 +173,20 @@ class MoE(nn.Module):
         else:
             out = torch.zeros_like(x.reshape(bs * slen, dim))
 
-        out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
+        if self.use_grouped_mm:
+            num_tokens = num_tokens_per_expert.sum().item()
+            if torch.compiler.is_compiling():
+                # Hints to compile dynamic shapes to pass through slice shape checks.
+                torch._check_is_size(num_tokens)
+                torch._check(num_tokens <= token_indices.size(0))
+                torch._check(num_tokens <= routed_output.size(0))
+            # grouped_mm path requires alignment by 16 and adds padding
+            # this padding will not be initialized.
+            # Doing slice avoids padding to participate in compute.
+            out = out.scatter_add(
+                dim=0, index=token_indices[:num_tokens], src=routed_output[:num_tokens]
+            )
+        else:
+            out = out.scatter_add(dim=0, index=token_indices, src=routed_output)
         out = out.reshape(bs, slen, dim)
         return out

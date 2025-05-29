@@ -8,6 +8,12 @@ import torch
 
 from torchtune.models.convert_weights import get_mapped_key
 
+# NOTE: This file is the same as the Qwen2 _convert_weights.py file with one key difference.
+# For tied-embedding Qwen2 models, only the embedding weight is stored on the HF Hub.
+# However, for Qwen3, both the embedding and output weights are stored on the Hub.
+# While we handle the tying ourselves on load, we do need to duplicate the weight to save in HF's format.
+# The exception is for Qwen3 4B, which matches the behavior of Qwen2.
+
 # state dict key mappings from HF's format to torchtune's format
 _FROM_HF = {
     "model.embed_tokens.weight": "tok_embeddings.weight",
@@ -31,10 +37,11 @@ _FROM_HF = {
 }
 
 
-QWEN2_TIED_KEY = "lm_head.weight"
+QWEN3_TIED_KEY = "lm_head.weight"
+QWEN3_TUNE_EMBEDDING_KEY = "tok_embeddings.weight"
 
 
-def qwen2_hf_to_tune(
+def qwen3_hf_to_tune(
     state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
@@ -44,7 +51,7 @@ def qwen2_hf_to_tune(
 ) -> dict[str, torch.Tensor]:
     """
     Convert a state dict from HF's format to TorchTune's format, which contains the weights
-    of a Qwen2 model.
+    of a Qwen3 model.
     State dicts from multiple checkpoint files should be consolidated into a single state dict
     before calling this function.
     The logic is identical to :func:`~torchtune.models.convert_weights.hf_to_tune`, but may not load
@@ -68,7 +75,7 @@ def qwen2_hf_to_tune(
 
     for key, value in state_dict.items():
         if (
-            tie_word_embeddings and QWEN2_TIED_KEY in key
+            tie_word_embeddings and QWEN3_TIED_KEY in key
         ):  # Skip loading the output projection weights
             continue
         if "rotary_emb.inv_freq" in key:  # Skip loading the position embeddings
@@ -79,7 +86,7 @@ def qwen2_hf_to_tune(
     return converted_state_dict
 
 
-def qwen2_tune_to_hf(
+def qwen3_tune_to_hf(
     state_dict: dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
@@ -106,12 +113,15 @@ def qwen2_tune_to_hf(
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
-
     if head_dim is None:
         head_dim = dim // num_heads
 
     for key, value in state_dict.items():
         new_key = get_mapped_key(key, inverted_mapping_dict)
         converted_state_dict[new_key] = value
+        if QWEN3_TUNE_EMBEDDING_KEY in key and tie_word_embeddings:
+            # If the model's input and output word embeddings are tied, we need to
+            # copy the input word embeddings to the output word embeddings
+            converted_state_dict["lm_head.weight"] = value.detach().clone()
 
     return converted_state_dict
