@@ -924,16 +924,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 utils.batch_to_device(batch, self._device)
 
-                # Define optional context manager for context parallelism
-                # context_parallel_context_manager = (
-                #     training.get_context_parallel_context(
-                #         enabled=self.cp_degree > 1,
-                #         world_mesh=self.world_mesh,
-                #         model=self._model,
-                #         model_inputs=list(batch.values()),
-                #     )
-                # )
-
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
                 current_num_tokens = (
