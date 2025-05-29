@@ -672,6 +672,13 @@ class QATRecipeDistributed(FTRecipeInterface):
                 dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
+        # Define context manager for context parallelism
+        self.context_parallel_manager = training.get_context_parallel_manager(
+            enabled=self.cp_degree > 1,
+            world_mesh=self.world_mesh,
+            model=model,
+        )
+
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
@@ -799,14 +806,12 @@ class QATRecipeDistributed(FTRecipeInterface):
             dataset=ds,
             batch_size=batch_size,
             sampler=sampler,
-            # Need 2 * cp_degree due to
-            # https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
             collate_fn=(
                 partial(
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.tp_degree * self.cp_degree * 2,
+                    pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
                 )
                 if not packed
                 else padded_collate_packed
@@ -920,16 +925,6 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 utils.batch_to_device(batch, self._device)
 
-                # Define optional context manager for context parallelism
-                context_parallel_context_manager = (
-                    training.get_context_parallel_context(
-                        cp_enabled=self.cp_degree > 1,
-                        world_mesh=self.world_mesh,
-                        model=self._model,
-                        model_inputs=list(batch.values()),
-                    )
-                )
-
                 # Calculate the number of unmasked tokens in the current batch
                 # and increment the total number of tokens seen in the step
                 current_num_tokens = (
@@ -939,7 +934,7 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                with context_parallel_context_manager:
+                with self.context_parallel_manager(list(batch.values())):
                     current_loss = self._loss_step(batch) * current_num_tokens
                     running_loss += current_loss
 
