@@ -6,7 +6,7 @@
 
 import sys
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -164,7 +164,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
@@ -184,7 +184,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -335,7 +335,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _setup_optimizer(
         self,
         cfg_optimizer: DictConfig,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optimizer:
         """
         Set up the optimizer based on the provided configuration.
@@ -454,7 +454,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -564,8 +564,8 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        base_model_state_dict: Dict[str, Any],
-        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        base_model_state_dict: dict[str, Any],
+        lora_weights_state_dict: Optional[dict[str, Any]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -665,7 +665,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         return model
 
     def generate_trajectory(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: list[str]
     ) -> GRPOTrajectory:
         """
         Generates a trajectory given the current policy model, using disable_adapter with the main model
@@ -804,7 +804,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
     def generate_trajectory_batched(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: list[str]
     ) -> GRPOTrajectory:
         """
         Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
@@ -818,7 +818,7 @@ class LoraGRPOFinetuneRecipeSingleDevice(FTRecipeInterface):
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
-        trajectories: List[GRPOTrajectory] = []
+        trajectories: list[GRPOTrajectory] = []
         with torch.no_grad():
             for batch_start in range(0, self.batch_size, self._forward_batch_size):
                 batch_input_ids = input_ids[
