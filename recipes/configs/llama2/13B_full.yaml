@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-13b-hf --output-dir /tmp/Llama-2-13b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
+#   tune download meta-llama/Llama-2-13b-hf --output-dir /tmp/Llama-2-13b-hf --ignore-patterns "*.bin" --hf-token <HF_TOKEN>
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config llama2/13B_full
@@ -26,11 +26,11 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Llama-2-13b-hf/
+  checkpoint_dir: /tmp/Llama-2-13b-hf
   checkpoint_files: [
-    pytorch_model-00001-of-00003.bin,
-    pytorch_model-00002-of-00003.bin,
-    pytorch_model-00003-of-00003.bin
+    model-00001-of-00003.safetensors,
+    model-00002-of-00003.safetensors,
+    model-00003-of-00003.safetensors
   ]
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -43,12 +43,20 @@ tokenizer:
   path: /tmp/Llama-2-13b-hf/tokenizer.model
   max_seq_len: null
 
-# Dataset
+# Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
+  split: train[:95%]
 seed: null
 shuffle: True
+
+# Validation
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
+dataset_val:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  split: train[95%:]
+batch_size_val: ${batch_size}
 
 # Fine-tuning arguments
 batch_size: 2
@@ -58,7 +66,7 @@ optimizer:
   fused: True
   lr: 2e-5
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 clip_grad_norm: null
@@ -81,6 +89,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 
 # Profiler (disabled)

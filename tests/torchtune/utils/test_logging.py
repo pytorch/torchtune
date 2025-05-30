@@ -9,7 +9,7 @@ from io import StringIO
 from unittest import mock
 
 import pytest
-from torchtune.utils._logging import deprecated, log_rank_zero
+from torchtune.utils._logging import deprecate_parameter, deprecated, log_rank_zero
 
 
 def test_deprecated():
@@ -39,6 +39,34 @@ def test_deprecated():
         dummy_func()
 
 
+def test_deprecate_parameter():
+    @deprecate_parameter(param_name="param_a", msg="Please use param_b instead.")
+    class DummyClass:
+        def __init__(self, param_a, param_b=None):
+            pass
+
+    with pytest.warns(
+        FutureWarning,
+        match="param_a is deprecated for DummyClass and will be removed in future versions. Please use param_b instead.",
+    ):
+        DummyClass(1)
+
+    with pytest.warns(None) as record:
+        DummyClass(1)
+
+    assert len(record) == 0, "Warning raised twice when it should only be raised once."
+
+    @deprecate_parameter(param_name="param_a", msg="Please use param_b instead.")
+    def dummy_func(param_a, param_b=None):
+        pass
+
+    with pytest.warns(
+        FutureWarning,
+        match="param_a is deprecated for dummy_func and will be removed in future versions. Please use param_b instead.",
+    ):
+        dummy_func(1)
+
+
 def test_log_rank_zero(capsys):
     # Create a logger and add a StreamHandler to it so we can
     # assert on logged strings
@@ -48,9 +76,10 @@ def test_log_rank_zero(capsys):
     handler = logging.StreamHandler(stream)
     logger.addHandler(handler)
 
-    with mock.patch(
-        "torchtune.utils._logging.dist.is_available", return_value=True
-    ), mock.patch("torchtune.utils._logging.dist.is_initialized", return_value=True):
+    with (
+        mock.patch("torchtune.utils._logging.dist.is_available", return_value=True),
+        mock.patch("torchtune.utils._logging.dist.is_initialized", return_value=True),
+    ):
         # Make sure rank 0 logs as expected
         with mock.patch(
             "torchtune.utils._logging.dist.get_rank",

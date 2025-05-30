@@ -1,7 +1,7 @@
 # Config for running the InferenceRecipe in generate_V2.py to generate output from an LLM
 #
 # This config assumes that you've run the following command before launching:
-#   tune download meta-llama/Llama-2-7b-chat-hf --output-dir /tmp/Llama-2-7b-chat-hf --ignore-patterns "*.safetensors"
+#   tune download meta-llama/Llama-2-7b-chat-hf --output-dir /tmp/Llama-2-7b-chat-hf --ignore-patterns "*.bin" --hf-token <HF_TOKEN>
 #
 # To launch, run the following command:
 #    tune run dev/generate_v2 --config llama2/generation_v2
@@ -23,8 +23,8 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-7b-chat-hf
   checkpoint_files: [
-    pytorch_model-00001-of-00002.bin,
-    pytorch_model-00002-of-00002.bin
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors
   ]
   output_dir: ${output_dir}
   model_type: LLAMA2
@@ -33,7 +33,7 @@ checkpointer:
 device: cuda
 dtype: bf16
 seed: 1234
-log_level: INFO
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Generation arguments
 prompt:

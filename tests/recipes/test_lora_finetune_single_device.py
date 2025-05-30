@@ -23,6 +23,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    gpu_test,
     TOKENIZER_PATHS,
 )
 from torchtune import config
@@ -39,7 +40,6 @@ from torchtune.training.checkpointing._utils import (
 class TestLoRAFinetuneSingleDeviceRecipe:
     def _get_test_config_overrides(self, dtype_str: str = "fp32", epochs: int = 2):
         return [
-            "device=cpu",
             f"dtype={dtype_str}",
             "dataset.train_on_input=False",
             "seed=9",
@@ -72,6 +72,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             ("llama3/8B_lora_single_device", "llama3", "tune", 2, 4, False),
         ],
     )
+    @gpu_test(gpu_count=1)
     def test_loss(
         self,
         compile,
@@ -136,6 +137,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             ("bf16", False, 8, 1),
         ],
     )
+    @gpu_test(gpu_count=1)
     def test_loss_qlora(
         self,
         dtype,
@@ -190,6 +192,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_training_state_on_resume(
         self, tmpdir, monkeypatch, save_adapter_weights_only
     ):
@@ -277,8 +280,96 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.parametrize("save_adapter_weights_only", [False, True])
+    @pytest.mark.integration_test
+    def test_training_state_on_resume_with_async_checkpointing(
+        self, tmpdir, monkeypatch, save_adapter_weights_only
+    ):
+        """Test whether the recipe state is correctly updated on resume. Since this
+        is model agnostic, we should run this on the small model only. The test
+        consists of three stages:
+            - Train a model for 2 epochs
+            - Resume training after epoch 1
+            - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
+        """
+
+        ckpt = "llama2_hf"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+
+        # Config file needed for model conversion.
+        # Create a second copy for training resume
+        write_hf_ckpt_config(ckpt_dir)
+        write_hf_ckpt_config(tmpdir)
+
+        # Train for two epochs
+        cmd_1 = f"""
+        tune run lora_finetune_single_device \
+            --config llama2/7B_lora_single_device \
+            batch_size=8 \
+            gradient_accumulation_steps=1 \
+            output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            save_adapter_weights_only={save_adapter_weights_only} \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
+            enable_async_checkpointing=True \
+        """.split()
+
+        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
+
+        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
+        monkeypatch.setattr(sys, "argv", cmd_1)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # Resume training
+        cmd_2 = f"""
+        tune run lora_finetune_single_device \
+            --config llama2/7B_lora_single_device \
+            batch_size=8 \
+            gradient_accumulation_steps=1 \
+            output_dir={tmpdir} \
+            model.lora_attn_modules=['q_proj','v_proj','k_proj','output_proj'] \
+            model.apply_lora_to_mlp=True \
+            checkpointer=torchtune.training.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            resume_from_checkpoint=True \
+            metric_logger.filename={log_file} \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            tokenizer.prompt_template=null \
+            enable_activation_checkpointing=True \
+            enable_activation_offloading=False \
+            enable_async_checkpointing=True \
+        """.split()
+        cmd_2 = cmd_2 + self._get_test_config_overrides(epochs=3) + model_config
+        monkeypatch.setattr(sys, "argv", cmd_2)
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        # Second epoch only
+        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
+        loss_values = get_loss_values_from_metric_logger(log_file)[:2]
+
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+        )
+
     @pytest.mark.parametrize("use_dora", [False, True])
     @pytest.mark.integration_test
+    @gpu_test(gpu_count=1)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch, use_dora):
         ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])

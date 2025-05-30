@@ -45,11 +45,18 @@ resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
+  split: train[:95%]
 seed: null
 shuffle: True
-batch_size: 2
+
+# Validation
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
+dataset_val:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  split: train[95%:]
+batch_size_val: ${batch_size}
 
 # Optimizer and Scheduler
 optimizer:
@@ -62,10 +69,11 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 
 # Training
 epochs: 1
+batch_size: 2
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 clip_grad_norm: null
@@ -77,6 +85,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: False
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Environment
 device: cuda

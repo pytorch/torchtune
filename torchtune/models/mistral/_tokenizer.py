@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 from torchtune.data import Message, PromptTemplate
 from torchtune.models.mistral._prompt_template import MistralChatTemplate
@@ -88,7 +88,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
         add_bos: bool = True,
         add_eos: bool = True,
         trim_leading_whitespace: bool = False,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Encode a string into a list of token IDs
 
@@ -102,7 +102,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
                 encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
                 added to s2. Default: False
         Returns:
-            List[int]: The encoded token IDs.
+            list[int]: The encoded token IDs.
         """
         return self._spm_model.encode(
             text,
@@ -113,12 +113,12 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
     def decode(
         self,
-        token_ids: List[int],
+        token_ids: list[int],
     ) -> str:
         """Decode token IDs to strings.
 
         Args:
-            token_ids (List[int]): The input token IDs to be decoded.
+            token_ids (list[int]): The input token IDs to be decoded.
 
         Returns:
             str: The decoded text.
@@ -127,10 +127,10 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
         add_eos: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> tuple[list[int], list[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
@@ -159,12 +159,12 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
 
         Args:
-            messages (List[Message]): A list of messages, each containing role, content,
+            messages (list[Message]): A list of messages, each containing role, content,
                 and masked attributes.
             add_eos (bool): Whether to append EOS after assistant message, default to True
 
         Returns:
-            Tuple[List[int], List[bool]]: The tokenized messages
+            tuple[list[int], list[bool]]: The tokenized messages
         """
         templated_messages = (
             self.prompt_template(messages)
@@ -187,7 +187,7 @@ class MistralTokenizer(ModelTokenizer, Transform):
 
         Args:
             sample (Mapping[str, Any]): A sample with a "messages" field containing
-                a List[Message] to tokenize
+                a list[Message] to tokenize
             inference (bool): Whether the template is being used for inference or not.
 
         Returns:

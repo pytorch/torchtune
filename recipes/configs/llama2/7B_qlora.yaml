@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.safetensors" --hf-token <HF_TOKEN>
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --ignore-patterns "*.bin" --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama2/7B_qlora
@@ -38,8 +38,8 @@ checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /tmp/Llama-2-7b-hf
   checkpoint_files: [
-    pytorch_model-00001-of-00002.bin,
-    pytorch_model-00002-of-00002.bin
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors
   ]
   adapter_checkpoint: null
   recipe_checkpoint: null
@@ -52,10 +52,16 @@ save_adapter_weights_only: False
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
-  train_on_input: True
+  split: train[:95%]
 seed: null
 shuffle: True
-batch_size: 2
+
+# Validation
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
+dataset_val:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  split: train[95%:]
+batch_size_val: ${batch_size}
 
 # Optimizer and Scheduler
 optimizer:
@@ -68,13 +74,14 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 
 fsdp:
   cpu_offload: False
 
 # Training
 epochs: 1
+batch_size: 2
 max_steps_per_epoch: null
 gradient_accumulation_steps: 8  # Use to increase effective batch size
 clip_grad_norm: null
@@ -86,6 +93,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Environment
 device: cuda

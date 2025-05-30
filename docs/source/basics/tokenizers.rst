@@ -176,26 +176,26 @@ between raw text and token IDs.
 
     class BaseTokenizer(Protocol):
 
-        def encode(self, text: str, **kwargs: Dict[str, Any]) -> List[int]:
+        def encode(self, text: str, **kwargs: dict[str, Any]) -> list[int]:
             """
             Given a string, return the encoded list of token ids.
 
             Args:
                 text (str): The text to encode.
-                **kwargs (Dict[str, Any]): kwargs.
+                **kwargs (dict[str, Any]): kwargs.
 
             Returns:
-                List[int]: The encoded list of token ids.
+                list[int]: The encoded list of token ids.
             """
             pass
 
-        def decode(self, token_ids: List[int], **kwargs: Dict[str, Any]) -> str:
+        def decode(self, token_ids: list[int], **kwargs: dict[str, Any]) -> str:
             """
             Given a list of token ids, return the decoded text, optionally including special tokens.
 
             Args:
-                token_ids (List[int]): The list of token ids to decode.
-                **kwargs (Dict[str, Any]): kwargs.
+                token_ids (list[int]): The list of token ids to decode.
+                **kwargs (dict[str, Any]): kwargs.
 
             Returns:
                 str: The decoded text.
@@ -258,22 +258,22 @@ which converts a list of Messages into a list of token IDs.
 
     class ModelTokenizer(Protocol):
 
-        special_tokens: Dict[str, int]
+        special_tokens: dict[str, int]
         max_seq_len: Optional[int]
 
         def tokenize_messages(
-            self, messages: List[Message], **kwargs: Dict[str, Any]
-        ) -> Tuple[List[int], List[bool]]:
+            self, messages: list[Message], **kwargs: dict[str, Any]
+        ) -> tuple[list[int], list[bool]]:
             """
             Given a list of messages, return a list of tokens and list of masks for
             the concatenated and formatted messages.
 
             Args:
-                messages (List[Message]): The list of messages to tokenize.
-                **kwargs (Dict[str, Any]): kwargs.
+                messages (list[Message]): The list of messages to tokenize.
+                **kwargs (dict[str, Any]): kwargs.
 
             Returns:
-                Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+                tuple[list[int], list[bool]]: The list of token ids and the list of masks.
             """
             pass
 

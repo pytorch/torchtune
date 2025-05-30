@@ -4,13 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch import nn
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.model_fusion._fusion_utils import get_fusion_params
 from torchtune.modules.peft._utils import set_trainable_params
+from torchtune.utils import deprecated
 
 
 class EarlyFusionModel(nn.Module):
@@ -57,11 +58,11 @@ class EarlyFusionModel(nn.Module):
 
     Args:
         decoder (TransformerDecoder): decoder module
-        encoders (Dict[str, nn.Module]): dictionary mapping encoder name as a string to the encoder module.
-        encoder_tokens (Dict[str, int]): dictionary mapping encoder name to special token ID indicating where
+        encoders (dict[str, nn.Module]): dictionary mapping encoder name as a string to the encoder module.
+        encoder_tokens (dict[str, int]): dictionary mapping encoder name to special token ID indicating where
             in the text sequence the encoder embedding outputs should be injected.
         decoder_trainable (bool): whether to train or freeze the decoder. Default is False.
-        encoders_trainable (Union[bool, Dict[str, bool]]): whether to train or freeze the encoder. Use a single
+        encoders_trainable (Union[bool, dict[str, bool]]): whether to train or freeze the encoder. Use a single
             boolean to set trainable for all encoders or a dictionary keyed by encoder names to specify trainable
             for each encoder individually. Encoder names should match with ``encoders``. Default is False.
         fusion_trainable (bool): whether to train the fusion parameters. Default is True.
@@ -73,10 +74,10 @@ class EarlyFusionModel(nn.Module):
     def __init__(
         self,
         decoder: TransformerDecoder,
-        encoders: Dict[str, nn.Module],
-        encoder_tokens: Dict[str, int],
+        encoders: dict[str, nn.Module],
+        encoder_tokens: dict[str, int],
         decoder_trainable: bool = False,
-        encoders_trainable: Union[bool, Dict[str, bool]] = False,
+        encoders_trainable: Union[bool, dict[str, bool]] = False,
         fusion_trainable: bool = True,
     ):
         super().__init__()
@@ -115,19 +116,39 @@ class EarlyFusionModel(nn.Module):
 
         set_trainable_params(self, trainable_params)
 
+    @deprecated("Please use self.skip_output_layer=True and use a linear loss instead")
     def set_num_output_chunks(self, num_output_chunks: int) -> None:
         """Used to save memory in combination with :class:`~torchtune.modules.loss.CEWithChunkedOutputLoss`.
         This should be called before the first forward pass, in the recipe."""
         self.decoder.set_num_output_chunks(num_output_chunks)
 
-    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
-        """Setup key value caches for attention calculation.
+    def setup_caches(
+        self,
+        batch_size: int,
+        dtype: torch.dtype,
+        *,
+        encoder_max_seq_len: Optional[int] = None,
+        decoder_max_seq_len: Optional[int] = None,
+    ) -> None:
+        """
+        Setup key value caches for attention calculation.
+        For each layer in ``self.decoder.layers``:
+        - :class:`torchtune.modules.TransformerSelfAttentionLayer` will use ``decoder_max_seq_len``.
+        - :class:`torchtune.modules.TransformerCrossAttentionLayer` will use ``encoder_max_seq_len``.
+        - :class:`torchtune.modules.fusion.FusionLayer` will use both ``decoder_max_seq_len`` and ``encoder_max_seq_len``.
 
         Args:
             batch_size (int): batch size for the caches.
             dtype (torch.dtype): dtype for the caches.
+            encoder_max_seq_len (Optional[int]): maximum encoder cache sequence length.
+            decoder_max_seq_len (Optional[int]): maximum decoder cache sequence length.
         """
-        self.decoder.setup_caches(batch_size, dtype)
+        self.decoder.setup_caches(
+            batch_size,
+            dtype,
+            encoder_max_seq_len=encoder_max_seq_len,
+            decoder_max_seq_len=decoder_max_seq_len,
+        )
 
     def caches_are_setup(self) -> bool:
         """
@@ -149,7 +170,24 @@ class EarlyFusionModel(nn.Module):
         """Reset the key value caches."""
         self.decoder.reset_caches()
 
-    def _decoder_embed(self, tokens) -> Tuple[torch.Tensor, torch.Tensor]:
+    @property
+    def output(self) -> torch.Tensor:
+        """Returns the output layer. Useful when a finer control of the output projection is needed,
+        for example when using a custom loss function or when interested in applying it to only some tokens.
+        """
+        return self.decoder.output
+
+    @property
+    def skip_output_layer(self) -> bool:
+        """Returns whether to skip output layer projection and return hidden states instead."""
+        return self.decoder.skip_output_layer
+
+    @skip_output_layer.setter
+    def skip_output_layer(self, skip: bool) -> None:
+        """Set whether to skip output layer projection and return hidden states instead."""
+        self.decoder.skip_output_layer = skip
+
+    def _decoder_embed(self, tokens) -> tuple[torch.Tensor, torch.Tensor]:
         """Embed the text-only tokens with the decoder's tok_embeddings"""
         encoder_token_ids = torch.tensor(
             list(self.encoder_tokens.values()), device=tokens.device
@@ -167,9 +205,9 @@ class EarlyFusionModel(nn.Module):
         tokens: torch.Tensor,
         *,
         mask: Optional[torch.Tensor] = None,
-        encoder_input: Optional[Dict[str, Dict[str, Any]]] = None,
+        encoder_input: Optional[dict[str, dict[str, Any]]] = None,
         input_pos: Optional[torch.Tensor] = None,
-        **kwargs: Dict[str, Any],  # no need for encoder_mask
+        **kwargs: dict[str, Any],  # no need for encoder_mask
     ) -> torch.Tensor:
         """
         Note: This module assumes that there will be enough encoder inputs (i.e., total number of images in the batch)
@@ -182,14 +220,14 @@ class EarlyFusionModel(nn.Module):
                 before the softmax. A value of True in row i and column j means token i attends
                 to token j. A value of False means token i does not attend to token j. If no
                 mask is specified, a causal mask is used by default. Default is None.
-            encoder_input (Optional[Dict[str, Dict[str, Any]]]): Optional input kwargs for the encoders. Must be
+            encoder_input (Optional[dict[str, dict[str, Any]]]): Optional input kwargs for the encoders. Must be
                 keyed by encoder name and match the keys of ``encoders``
             input_pos (Optional[torch.Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape ``[b x s]``.
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
-            **kwargs (Dict[str, Any]): additional keyword arguments. This is solely used to match the
+            **kwargs (dict[str, Any]): additional keyword arguments. This is solely used to match the
                 :class:`~torchtune.modules.TransformerDecoder` forward and does not have any effect.
 
         Note: At the very first step of inference, when the model is provided with a prompt,
@@ -214,11 +252,12 @@ class EarlyFusionModel(nn.Module):
             - d_e: encoder embed dim
             - m_s: max seq len
         """
-        if encoder_input is not None and encoder_input.keys() != self.encoders.keys():
-            raise ValueError(
-                f"Found mismatched keys in encoder_input and instantiated encoders. "
-                f"Got {encoder_input.keys()}, expected {self.encoders.keys()}."
-            )
+        if encoder_input is not None:
+            if any(key not in self.encoders.keys() for key in encoder_input):
+                raise ValueError(
+                    f"Found missing keys of encoder_input in instantiated encoders. "
+                    f"Got {self.encoders.keys()}, expected {encoder_input.keys()}."
+                )
 
         bsz, seq_len = tokens.shape
         # is_text: [bsz, seq_len], text_embeds: [num_text, embed_dim]
@@ -229,7 +268,7 @@ class EarlyFusionModel(nn.Module):
         fused_embeds = torch.empty(
             bsz, seq_len, embed_dim, dtype=text_embeds.dtype, device=text_embeds.device
         )
-        # Place the text-only embeddings
+        # Place the text-only embeddings, fused_embeds: [bsz, seq_len, embed_dim]
         fused_embeds = fused_embeds.masked_scatter(is_text.unsqueeze(-1), text_embeds)
 
         encoder_input = encoder_input or {}
@@ -241,6 +280,8 @@ class EarlyFusionModel(nn.Module):
             # [bsz, seq_len, 1]
             encoder_mask = (tokens == self.encoder_tokens[encoder]).unsqueeze(-1)
             # At locations where encoder token is found, replace with encoder embedding
+            # Note: the encoder mask will account for the embeddings padding since we only
+            # add encoder tokens to text tokens for the non-padding part.
             fused_embeds = fused_embeds.masked_scatter(encoder_mask, encoder_embeds)
 
         output = self.decoder(

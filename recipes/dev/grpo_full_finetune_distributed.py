@@ -7,7 +7,7 @@
 import sys
 import time
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -20,9 +20,9 @@ from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.config._utils import _get_component_from_path
 from torchtune.datasets import ConcatDataset
-from torchtune.dev.grpo.generation import generate
-from torchtune.dev.grpo.rewards import batch_shaped_correctness_reward
-from torchtune.dev.grpo.types import GRPOStats, GRPOTrajectory
+from torchtune.dev.rl.generation import generate
+from torchtune.dev.rl.rewards import batched_rewards
+from torchtune.dev.rl.types import GRPOStats, GRPOTrajectory
 from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
@@ -32,103 +32,39 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
-    """
-    Full finetuning recipe for dense transformer-based LLMs such as Llama2, trained with GRPO. This recipe supports
-    distributed training and can be run on a single node (1 to 8 GPUs).
-
-    Features:
-        - FSDP. Supported using PyTorch's FSDP APIs. CPU offload of parameters, gradients, and optimizer states
-            is supported via ``fsdp_cpu_offload``. Resharding of parameters after the forward pass is
-            disabled for faster generation (corresponding to FULL_SHARD sharding strategy).
-            DDP is currently not supported. Training on CPU is not supported.
-
-        - Activation Checkpointing. This can be controlled using the ``enable_activation_checkpointing``
-            flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
-            activations in memory and instead recompute them during the backward pass. This is especially
-            helpful for larger batch sizes when you're memory constrained. But these savings in memory
-            come at the cost of training performance. In most cases training can slow-down quite a bit as
-            a result of this activation recomputation.
-
-        - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
-            flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
-            most cases this should halve the memory footprint of full precision (fp32) training, without
-            loss in model quality (will depend on the model, training data and other settings). For
-            GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
-            precision are currently not supported.
-
-        - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
-            training. Optimizer state and recipe state (seed, total_epochs, number of epochs run etc) are
-            only saved at the end of a given epoch and used in case of resuming training.
-
-            Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
-            currently not supported.
-
-            For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
-
-        - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
-
-        - Gradient Clipping. Gradient clipping is supported using the ``clip_grad_norm`` flag. By default,
-            ``clip_grad_norm`` is set to ``None``. If you only want to log the grad norm, you can set
-            ``clip_grad_norm='inf'``.
-
-    For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
-    has example commands for how to kick-off training.
-
-    Args:
-        cfg (DictConfig): OmegaConf object parsed from yaml file
-
-    Raises:
-        ValueError: If ``dtype`` is set to fp16.
-        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-        RuntimeError: If ``left_pad_sequence`` is set as the data collator.
-    """
-
+class GRPOFullFinetuneRecipeDistributed(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
-        device_type = cfg.device
-
-        if self._dtype == torch.float16:
-            raise ValueError(
-                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
-            )
-
-        # logging attributes
         self._output_dir = cfg.output_dir
+
+        # Logging attributes
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-
         if self._log_peak_memory_stats and self._device.type != "cuda":
             log.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
 
+        # Initialize the distributed environment
         self.fsdp_cpu_offload = cfg.get("fsdp_cpu_offload", False)
-
         self.distributed_backend = training.get_distributed_backend(
-            device_type, offload_ops_to_cpu=self.fsdp_cpu_offload
+            cfg.device, offload_ops_to_cpu=self.fsdp_cpu_offload
         )
         init_process_group(self.distributed_backend)
+        self.world_size, self.rank = utils.get_world_size_and_rank()
+        self._is_rank_zero = self.rank == 0
 
-        world_size, rank = utils.get_world_size_and_rank()
-        self.rank = rank
-        self.world_size = world_size
-        self._is_rank_zero = rank == 0
-
-        # Training cfg
+        # Training attributes
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-
-        # activation checkpointing
         self._enable_activation_checkpointing = cfg.get(
             "enable_activation_checkpointing", False
         )
+        self._compile = cfg.get("compile", False)
 
-        # These are public properties which are updated by the checkpoint loader
-        # when ``resume_from_checkpoint`` is `True` or validated in tests
+        # Recipe state attributes
         self.seed = training.set_seed(seed=cfg.seed)
         self.total_epochs = cfg.epochs
         self.global_step = 0
@@ -137,7 +73,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._epochs_run = 0
         self._rng = torch.Generator(self._device).manual_seed(self.seed)
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
@@ -147,24 +83,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
 
-    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the reference checkpoint state from file and validate.
-        """
-        self._ref_checkpointer = config.instantiate(
-            cfg_ref_checkpointer, resume_from_checkpoint=False
-        )
-
-        ref_checkpoint_dict = self._ref_checkpointer.load_checkpoint()
-
-        return ref_checkpoint_dict
-
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -204,26 +125,39 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         """
         if self.fsdp_cpu_offload:
             training.set_torch_num_threads()
+
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
-
-            # log config with parameter override
             self._metric_logger.log_config(cfg)
 
+        # Setup model to train
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
-        ref_checkpoint_dict = self.load_ref_checkpoint(
-            cfg_ref_checkpointer=cfg.ref_checkpointer
-        )
-
-        self._compile = cfg.get("compile", False)
-        self._model, self._ref_model = self._setup_model(
+        if self._resume_from_checkpoint:
+            self._update_recipe_state(checkpoint_dict)
+        self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             custom_sharded_layers=cfg.get("custom_sharded_layers", None),
             fsdp_cpu_offload=self.fsdp_cpu_offload,
-            model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            ref_model_state_dict=ref_checkpoint_dict[training.MODEL_KEY],
+            model_sd=checkpoint_dict[training.MODEL_KEY],
+            reshard_after_forward=False,
         )
+        # Setup reference model
+        ref_checkpoint_dict = self.load_checkpoint(
+            cfg_checkpointer=cfg.ref_checkpointer
+        )
+        self._ref_model = self._setup_model(
+            cfg_model=cfg.model,
+            enable_activation_checkpointing=self._enable_activation_checkpointing,
+            custom_sharded_layers=cfg.get("custom_sharded_layers", None),
+            fsdp_cpu_offload=self.fsdp_cpu_offload,
+            model_sd=ref_checkpoint_dict[training.MODEL_KEY],
+            eval_mode=True,
+            reshard_after_forward=True,
+        )
+        torch.distributed.barrier()
+
+        # Utilize the same tokenizer for both models (hack)
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
         self._optimizer = self._setup_optimizer(
@@ -237,11 +171,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         # initialize loss
         self._loss_fn = config.instantiate(cfg.loss)
-
         if self._compile:
             training.compile_loss(self._loss_fn, verbose=self._is_rank_zero)
-
-        utils.log_rank_zero(log, "Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -290,9 +221,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         self._forward_batch_size = cfg.forward_batch_size
 
         self._ppo_epochs = cfg.ppo_epochs
-
         self._save_every_n_epochs = cfg.save_every_n_epochs
-
         self._total_steps = cfg.num_steps
 
         if cfg.get("stop_token_ids", False):
@@ -357,41 +286,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
@@ -417,6 +311,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 self.profiler_wait_steps = profiler_cfg["wait_steps"]
                 self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
                 self.profiler_active_steps = profiler_cfg["active_steps"]
+                self.profiler_num_cycles = profiler_cfg["num_cycles"]
 
         return profiler
 
@@ -425,9 +320,10 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         fsdp_cpu_offload: bool,
-        model_state_dict: Dict[str, Any],
-        ref_model_state_dict: Dict[str, Any],
-        custom_sharded_layers: Optional[List[str]] = None,
+        model_sd: dict[str, Any],
+        custom_sharded_layers: Optional[list[str]] = None,
+        eval_mode: bool = False,
+        reshard_after_forward: bool = True,
     ) -> tuple[nn.Module, nn.Module]:
         """
         Model initialization has some important considerations:
@@ -436,7 +332,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
            b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
               full state dicts are loaded with ``torch.load(mmap=True)``
         """
-
         utils.log_rank_zero(
             log,
             "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ...",
@@ -445,15 +340,14 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         with training.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
-            ref_model = config.instantiate(cfg_model)
 
-        ref_model.eval()
-        for p in ref_model.parameters():
-            p.requires_grad = False
+        if eval_mode:
+            model.eval()
+            for p in model.parameters():
+                p.requires_grad = False
 
         if self._compile:
             training.compile_model(model, verbose=self._is_rank_zero)
-            training.compile_model(ref_model, verbose=self._is_rank_zero)
 
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(
@@ -471,19 +365,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         # Policy doesn't reshard after forward for faster generation.
         # Reference net reshards after forward because it never calls .backward()
         # See: https://github.com/pytorch/torchtune/pull/2326/#issuecomment-2654684159
-
         training.shard_model(
             model=model,
             shard_conditions=fsdp_shard_conditions,
             cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=False,
-        )
-
-        training.shard_model(
-            model=ref_model,
-            shard_conditions=fsdp_shard_conditions,
-            cpu_offload=fsdp_cpu_offload,
-            reshard_after_forward=True,
+            reshard_after_forward=reshard_after_forward,
         )
 
         with training.set_default_dtype(self._dtype), self._device:
@@ -492,23 +378,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 if hasattr(m, "rope_init"):
                     m.rope_init()
 
-            for m in ref_model.modules():
-                if hasattr(m, "rope_init"):
-                    m.rope_init()
-
         # This method will convert the full model state dict into a sharded state
         # dict and load into the model
         training.load_from_full_model_state_dict(
             model,
-            model_state_dict,
-            self._device,
-            strict=True,
-            cpu_offload=fsdp_cpu_offload,
-        )
-
-        training.load_from_full_model_state_dict(
-            ref_model,
-            ref_model_state_dict,
+            model_sd,
             self._device,
             strict=True,
             cpu_offload=fsdp_cpu_offload,
@@ -516,8 +390,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Ensure no params and buffers are on meta device
         training.validate_no_params_on_meta_device(model)
-        training.validate_no_params_on_meta_device(ref_model)
-
         utils.log_rank_zero(
             log,
             f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs",
@@ -527,17 +399,13 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             training.log_memory_stats(memory_stats)
 
         disable_dropout(model)
-        disable_dropout(ref_model)
 
-        # synchronize before training begins
-        torch.distributed.barrier()
-
-        return model, ref_model
+        return model
 
     def _setup_optimizer(
         self,
         cfg_optimizer: DictConfig,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
@@ -547,7 +415,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 opt_state_dict,
                 self._device,
             )
-
         utils.log_rank_zero(log, "Optimizer is initialized.")
         return optimizer
 
@@ -557,7 +424,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. Currently this recipe only supports the
@@ -651,7 +518,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 self._is_rank_zero,
                 device=self._device,
             )
-
             utils.log_rank_zero(
                 log,
                 f"Getting optimizer state dict took {time.perf_counter() - start:.2f} secs",
@@ -690,7 +556,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         torch.distributed.barrier()
 
     def generate_trajectory(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: list[str]
     ) -> GRPOTrajectory:
         """
         Generates a trajectory given the current policy model, the reference policy model, the reward function,
@@ -706,7 +572,7 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-            answers (List[str]): list of answers corresponding to the input_ids
+            answers (list[str]): list of answers corresponding to the input_ids
 
         Returns:
             Trajectory: An instance of :class:`~torchtune.rlhf.GRPOTrajectory` comprising
@@ -719,7 +585,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         batch_input_ids = batch_input_ids.reshape(batch_size * grpo_size, -1)
 
         # step 1: generate responses, and logits corresponding to the responses using the current policy
-
         with local_kv_cache(
             model=self._model,
             batch_size=batch_size * grpo_size,
@@ -739,10 +604,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                 return_logits=False,
             )
 
-        torch.distributed.barrier()
-        training._distributed.recursive_reshard(self._model)
-        torch.cuda.empty_cache()
-
         responses = query_responses[:, context_length:].clone()
         query_response_padding_masks = query_responses != self._tokenizer.pad_id
 
@@ -753,15 +614,12 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         position_ids = generation.get_position_ids_from_padding_mask(
             query_response_padding_masks
         )
-
         del query_response_padding_masks
 
-        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
-
         # step 2. estimate logprobs of the responses using the current policy
+        logits = self._model(query_responses, input_pos=position_ids, mask=masks)
         logits = logits[:, context_length - 1 :]
         logprobs = rlhf.batched_logits_to_logprobs(logits, responses, self._temperature)
-
         del logits
         torch.cuda.empty_cache()
 
@@ -773,7 +631,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
         ref_logprobs = rlhf.batched_logits_to_logprobs(
             ref_logits, responses, self._temperature
         )
-
         del ref_logits
         torch.cuda.empty_cache()
 
@@ -786,24 +643,19 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             responses, self._stop_token_ids, self._tokenizer.pad_id
         )
 
+        # Do some reward modelingggggggg
         # responses :: [B x G, L]
         responses = responses.reshape(batch_size, grpo_size, -1)  # [B, G, L]
-
-        rewards, successes = batch_shaped_correctness_reward(
-            self._tokenizer, responses, answers
-        )  # [B, G]
-        rewards = rewards.to(self._device)
-        successes = successes.to(self._device)
+        rewards, successes = batched_rewards(self._tokenizer, responses, answers)
+        rewards = rewards.to(self._device)  # [B, G]
+        successes = successes.to(self._device)  # [B, G]
 
         advantages = (rewards - rewards.mean(1, keepdim=True)) / (
             rewards.std(1, keepdim=True) + 1e-4
         )
         advantages = advantages.reshape(batch_size * grpo_size)  # flatten
-
         del responses
         torch.cuda.empty_cache()
-
-        seq_lens = training.get_unmasked_sequence_lengths(response_padding_masks)
 
         # step 6. mask out all the invalid values in the trajectory due to padding tokens
         logprobs[response_padding_masks] = 1.0
@@ -819,11 +671,11 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             masks=masks,
             position_ids=position_ids,
             response_padding_masks=response_padding_masks,
-            seq_lens=seq_lens,
+            seq_lens=training.get_unmasked_sequence_lengths(response_padding_masks),
         )
 
     def generate_trajectory_batched(
-        self, input_ids: torch.Tensor, answers: List[str]
+        self, input_ids: torch.Tensor, answers: list[str]
     ) -> GRPOTrajectory:
         """
         Generates a ``self.batch_size`` batch of trajectories using `self._forward_batch_size` batch sizes.
@@ -831,13 +683,13 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
         Args:
             input_ids (torch.Tensor): tensor of input token IDs with shape [b, seq_length]
-            answers: (List[str]): list of answers corresponding to the input_ids
+            answers: (list[str]): list of answers corresponding to the input_ids
 
         Returns:
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
-        trajectories: List[GRPOTrajectory] = []
+        trajectories: list[GRPOTrajectory] = []
         with torch.no_grad():
             for batch_start in range(0, self.batch_size, self._forward_batch_size):
                 batch_input_ids = input_ids[
@@ -873,10 +725,9 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                - approx_policy_kls: Average estimated KL divergence between the policy before and after the optimisation step.
 
         """
-        # estimate logprobs from the policy at the current optimisation step
-
         torch.cuda.empty_cache()
 
+        # estimate logprobs from the policy at the current optimisation step
         pi_logits = self._model(
             trajectory.query_responses,
             input_pos=trajectory.position_ids,
@@ -942,13 +793,13 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
             pbar = tqdm(total=self._steps_per_epoch, disable=not self._is_rank_zero)
             self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
-
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
                     self._is_rank_zero
                     and curr_epoch == 0
                     and self.profiler_profile_memory
                     and idx == self.profiler_wait_steps + self.profiler_warmup_steps
+                    and self._device.type == "cuda"
                 ):
                     torch.cuda.memory._record_memory_history()
 
@@ -963,7 +814,6 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
 
                 grpo_stats: list[GRPOStats] = []
                 for _ in range(self._ppo_epochs):
-
                     step_stats = self.grpo_step(trajectory, context_length)
 
                     grpo_stats.append(step_stats)
@@ -983,6 +833,19 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     if self._lr_scheduler is not None:
                         self._lr_scheduler.step()
 
+                # Stop tracking CUDA memory now that active steps are complete
+                if (
+                    self._is_rank_zero
+                    and curr_epoch == 0
+                    and self.profiler_profile_memory
+                    and idx
+                    == self.profiler_wait_steps
+                    + self.profiler_warmup_steps
+                    + self.profiler_active_steps
+                    and self._device.type == "cuda"
+                ):
+                    torch.cuda.memory._record_memory_history(enabled=None)
+
                 self._steps_run += 1
                 if self._steps_run % self._log_every_n_steps == 0:
                     extra_metrics = {}
@@ -997,6 +860,8 @@ class FullGRPOFinetuneRecipeDistributed(FTRecipeInterface):
                     )
 
                 self.cleanup_after_step(trajectory, grpo_stats)
+                self._profiler.step()
+
                 pbar.update(1)
 
                 if self._steps_run == self._total_steps:
@@ -1072,8 +937,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line
     """
 
-    recipe = FullGRPOFinetuneRecipeDistributed(cfg=cfg)
-    config.log_config(recipe_name="FullGRPOFinetuneRecipeDistributed", cfg=cfg)
+    recipe = GRPOFullFinetuneRecipeDistributed(cfg=cfg)
+    config.log_config(recipe_name="GRPOFullFinetuneRecipeDistributed", cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

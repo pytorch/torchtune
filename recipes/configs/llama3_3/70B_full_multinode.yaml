@@ -17,12 +17,20 @@ tokenizer:
   path: /tmp/Llama-3.3-70B-Instruct/original/tokenizer.model
   max_seq_len: 1024
 
-# Dataset
+# Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  packed: True  # True increases speed
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  packed: False  # True increases speed
+  split: train[:95%]
 seed: null
 shuffle: True
+
+# Validation
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
+dataset_val:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  split: train[95%:]
+batch_size_val: ${batch_size}
 
 # Model Arguments
 model:
@@ -39,6 +47,13 @@ checkpointer:
   model_type: LLAMA3
 resume_from_checkpoint: False
 
+# Parallelism tweaks
+tensor_parallel_dim: 8 # 8-way TP
+tensor_parallel_plan:
+  _component_: torchtune.models.llama3.base_llama_tp_plan
+data_parallel_shard_dim: -1 # -1 means to infer based on other parallel dims & world size
+data_parallel_replicate_dim: 1
+
 # Fine-tuning arguments
 batch_size: 4
 epochs: 1
@@ -49,10 +64,9 @@ optimizer:
   fused: True
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
-
 
 # Training env
 device: cuda
@@ -75,6 +89,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 # Profiler (disabled)
 profiler:

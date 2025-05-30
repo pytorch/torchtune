@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import copy
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -66,7 +66,7 @@ def inv_sqrt_l_loss_scale(
 
 def early_exit_loss(
     model: TransformerDecoder,
-    hidden_states_dict: Dict[int, torch.Tensor],
+    hidden_states_dict: dict[int, torch.Tensor],
     labels: torch.Tensor,
     loss_fn: torch.nn.Module,
     e_scale: float = 1.0,
@@ -83,7 +83,7 @@ def early_exit_loss(
 
     Args:
         model (TransformerDecoder): The model to compute the early exit loss for.
-        hidden_states_dict (Dict[int, torch.Tensor]): A dictionary of hidden states,
+        hidden_states_dict (dict[int, torch.Tensor]): A dictionary of hidden states,
             where each key is a layer index and each value is a tensor of shape [b, s, d].
         labels (torch.Tensor): The labels for the input data.
         loss_fn (torch.nn.Module): The loss function to use (should be the same as the standard loss function for last layer).
@@ -133,7 +133,7 @@ class EarlyExitCurriculum:
     during training.
 
     Args:
-        do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
+        do_output_hidden_states (list[bool]): A list indicating whether each layer's hidden state
             should be output to calculate their losses.
         max_steps (int): The maximum number of steps in the curriculum.
         train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
@@ -144,7 +144,7 @@ class EarlyExitCurriculum:
 
     def __init__(
         self,
-        do_output_hidden_states: List[bool],
+        do_output_hidden_states: list[bool],
         max_steps: int,
         train_last_layer: bool = True,
         last_step: Optional[int] = None,
@@ -182,7 +182,7 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
     at each step.
 
     Args:
-        do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
+        do_output_hidden_states (list[bool]): A list indicating whether each layer's hidden state
             should be output to calculate their losses.
         max_steps (int): The maximum number of steps in the curriculum.
         train_last_layer (bool, optional): Whether to always calculate loss for the last layer. Defaults to True.
@@ -193,7 +193,7 @@ class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
 
     def __init__(
         self,
-        do_output_hidden_states: List[bool],
+        do_output_hidden_states: list[bool],
         max_steps: int,
         train_last_layer: bool = True,
         last_step: Optional[int] = None,
@@ -228,7 +228,7 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
     A gradual early exit curriculum, which gradually enables more layers (starting from the last layer) as training progresses.
 
     Args:
-        do_output_hidden_states (List[bool]): A list indicating whether each layer's hidden state
+        do_output_hidden_states (list[bool]): A list indicating whether each layer's hidden state
             should be output to calculate their losses.
         max_steps (int): The maximum number of steps in the curriculum.
         train_last_layer (bool): Whether to always calculate loss for the last layer. Defaults to True.
@@ -242,7 +242,7 @@ class GradualEarlyExitCurriculum(EarlyExitCurriculum):
 
     def __init__(
         self,
-        do_output_hidden_states: List[bool],
+        do_output_hidden_states: list[bool],
         max_steps: int,
         train_last_layer: bool = True,
         last_step: Optional[int] = None,

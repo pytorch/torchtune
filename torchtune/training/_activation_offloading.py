@@ -70,7 +70,6 @@ class OffloadActivations(saved_tensors_hooks):
         max_fwd_stash_size: int = 5,
         min_offload_size: int = 1024,
     ) -> None:
-
         self.use_streams: bool = use_streams
 
         self.min_tensor_size_bytes = (
@@ -145,11 +144,18 @@ class OffloadActivations(saved_tensors_hooks):
             num_bytes = get_num_bytes_tensor(activation)
             tensor_id = get_tensor_id()
 
-            # only offload hefty bois if they're activations (our heuristic for that is to
-            # check if they're not params or buffers)!
-            if num_bytes >= self.min_tensor_size_bytes and (
-                not isinstance(activation, torch.nn.Parameter)
-                and not isinstance(activation, torch.nn.Buffer)
+            # only offload hefty bois if they're activations on CUDA (our heuristic
+            # for that is to check if they're not params or buffers)!
+            if (
+                activation.is_cuda
+                and num_bytes >= self.min_tensor_size_bytes
+                and (
+                    not isinstance(activation, torch.nn.Parameter)
+                    and not (
+                        hasattr(torch.nn, "Buffer")
+                        and isinstance(activation, torch.nn.Buffer)
+                    )
+                )
             ):
                 if self.use_streams:
                     # First, sync back and dereference previously offloaded tensors
@@ -371,7 +377,7 @@ class NoOpManager(saved_tensors_hooks):
 
 
 def get_act_offloading_ctx_manager(
-    model: nn.Module, enable_activation_offloading: bool
+    model: nn.Module, enable_activation_offloading: bool, use_streams: bool = True
 ) -> Union[OffloadActivations, contextlib.nullcontext]:
     """Returns the activation offloading context manager for the model, which will be
     a null context if enable_activation_offloading is False.
@@ -383,6 +389,7 @@ def get_act_offloading_ctx_manager(
         model (nn.Module): the model to wrap with the activation offloading context manager.
         enable_activation_offloading (bool): whether or not to enable activation offloading
             for the model.
+        use_streams (bool): whether or not to enable streams for overlapping communication.
 
     Returns:
         contextlib.ContextDecorator: the activation offloading context manager for the model.
@@ -391,7 +398,7 @@ def get_act_offloading_ctx_manager(
         NotImplementedError: If the model is a multimodal model and activation offloading is enabled.
     """
     if enable_activation_offloading:
-        activations_handling_ctx = OffloadActivations()
+        activations_handling_ctx = OffloadActivations(use_streams=use_streams)
 
         # Below is our hack to disable offloading the last output Linear in every
         # step, as the cost for offloading the activation and then soon after bringing

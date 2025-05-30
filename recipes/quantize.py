@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import torch
 from omegaconf import DictConfig
@@ -54,7 +54,7 @@ class QuantizationRecipe:
             seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
         )
 
-    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> dict[str, Any]:
         self._checkpointer = config.instantiate(checkpointer_cfg)
         checkpoint_dict = self._checkpointer.load_checkpoint()
         return checkpoint_dict
@@ -69,7 +69,7 @@ class QuantizationRecipe:
     def _setup_model(
         self,
         model_cfg: DictConfig,
-        model_state_dict: Dict[str, Any],
+        model_state_dict: dict[str, Any],
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
@@ -102,15 +102,13 @@ class QuantizationRecipe:
 
     def save_checkpoint(self, cfg: DictConfig):
         ckpt_dict = self._model.state_dict()
-        split = cfg.checkpointer.checkpoint_files[0].split(".")
-        file_name = split[0]
-        suffix = split[-1]
+        file_name = cfg.checkpointer.checkpoint_files[0].split(".")[0]
 
         output_dir = Path(cfg.checkpointer.output_dir)
         output_dir.mkdir(exist_ok=True)
         checkpoint_file = Path.joinpath(
             output_dir, f"{file_name}-{self._quantization_mode}".rstrip("-qat")
-        ).with_suffix(suffix)
+        ).with_suffix(".ckpt")
 
         torch.save(ckpt_dict, checkpoint_file)
         logger.info(

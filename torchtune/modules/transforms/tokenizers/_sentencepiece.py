@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional
+from typing import Optional
 
 from sentencepiece import SentencePieceProcessor
 from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer
@@ -53,7 +53,7 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
         add_eos: bool = True,
         trim_leading_whitespace: bool = False,
         prefix: Optional[str] = None,
-    ) -> List[int]:
+    ) -> list[int]:
         """Encode text into token IDs.
 
         Args:
@@ -70,7 +70,7 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
                 whitespaces. Used only if trim_leading_whitespace=True. Default: None
 
         Returns:
-            List[int]: The encoded token IDs.
+            list[int]: The encoded token IDs.
         """
         # We typically trim leading whitespace on the next message when
         # it is a continuation of the turn (i.e. not the first message)
@@ -99,11 +99,11 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
                 out_type=int,
             )
 
-    def decode(self, ids: List[int]) -> str:
+    def decode(self, ids: list[int]) -> str:
         """Decode token IDs to strings.
 
         Args:
-            ids (List[int]): The input token IDs to be decoded.
+            ids (list[int]): The input token IDs to be decoded.
 
         Returns:
             str: The decoded text.

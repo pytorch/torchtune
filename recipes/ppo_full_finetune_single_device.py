@@ -10,14 +10,15 @@ import sys
 import time
 from functools import partial
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torchdata.stateful_dataloader import StatefulDataLoader
+from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, generation, modules, rlhf, training, utils
 from torchtune.data import padded_collate
 from torchtune.datasets import ConcatDataset
@@ -25,9 +26,9 @@ from torchtune.modules import local_kv_cache
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.rlhf import PPOStats, Trajectory
 from torchtune.training import disable_dropout, DummyProfiler, PROFILER_KEY
+from torchtune.training.lr_schedulers import get_lr
 from tqdm import tqdm
 
-log = utils.get_logger("DEBUG")
 # enabling compile results in slightly more recompiles than the default cache limit (8)
 # so we set a higher limit here
 torch._dynamo.config.cache_size_limit = 16
@@ -109,7 +110,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = training.get_dtype(cfg.dtype, device=self._device)
 
@@ -124,9 +124,10 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._logger = utils.get_logger(cfg.log_level)
 
         if self._log_peak_memory_stats and self._device.type != "cuda":
-            log.info(
+            self._logger.info(
                 "log_peak_memory_stats was set to True, however, training does not use cuda. Setting log_peak_memory_stats=False."
             )
             self._log_peak_memory_stats = False
@@ -204,7 +205,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # setup tokenizer
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        log.info("Tokenizer is initialized from file.")
+        self._logger.info("Tokenizer is initialized from file.")
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
@@ -219,11 +220,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        log.info("Loss is initialized.")
+        self._logger.info("Loss is initialized.")
 
         # sampler and dataloader depends on the tokenizer and should be set
         # setup after it is initialized
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -256,6 +257,19 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             * (self.batch_size // self._ppo_batch_size)
         )
 
+        lr_steps = (
+            self._total_steps
+            * self._ppo_epochs
+            * (self.batch_size // self._ppo_batch_size)
+        )
+
+        # Setup lr scheduler
+        self._lr_scheduler = self._setup_lr_scheduler(
+            cfg_lr_scheduler=cfg.get("lr_scheduler", None),
+            num_training_steps=lr_steps,
+            last_epoch=self.global_step - 1,
+        )
+
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
@@ -265,41 +279,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
-
-        Args:
-            cfg_profiler (Optional[DictConfig]): ``profiler`` section of the top-level ``cfg`` (the main config passed to
-                `recipe.main`). Default None.
-
-        Returns:
-            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
-            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
-            that the instrumented training loop does not need to be changed profiling is disabled.
-
-        The profiler config can be provided in configs under the `profiler` key with the following layout:
-
-        .. code-block:: yaml
-            profiler:
-                enabled: bool
-
-                #Output directory of trace artifacts
-                output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            cpu: bool
-            cuda: bool
-
-                #Trace options
-                profile_memory: bool
-                with_stack: bool
-                record_shapes: bool
-                with_flops: bool
-
-            # `torch.profiler.schedule` options:
-            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-            wait_steps: int
-            warmup_steps: int
-            active_steps: int
-            num_cycles: int
         """
 
         # Missing profiler section in config, assume disabled
@@ -317,7 +296,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
 
         self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
         if profiler_cfg["enabled"]:
@@ -326,6 +305,53 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self.profiler_active_steps = profiler_cfg["active_steps"]
 
         return profiler
+
+    def _setup_lr_scheduler(
+        self,
+        cfg_lr_scheduler: Optional[DictConfig],
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optional[Optimizer]:
+        """
+        Set up the learning rate scheduler based on the provided configuration.
+        It handles both standard optimization and optimizer-in-backward cases, and supports
+        schedulers from both torchtune.modules and torch.optim.
+
+        Args:
+            cfg_lr_scheduler (Optional[DictConfig]): The learning rate scheduler configuration.
+            num_training_steps (int): The total number of training steps.
+            last_epoch (int): The index of the last epoch.
+
+        Returns:
+            lr_scheduler (Optional[Optimizer]): The learning rate scheduler.
+        """
+        if cfg_lr_scheduler is None:
+            self._logger.info(
+                "No learning rate scheduler configured. Using constant learning rate."
+            )
+            return None
+
+        if self._optimizer_in_bwd:
+            # Use the first optimizer from the wrapper to represent the learning rate
+            optimizer = next(iter(self._optim_ckpt_wrapper.optim_map.values()))
+        else:
+            # Standard case: use the single optimizer
+            optimizer = self._optimizer
+
+        # Instantiate the learning rate scheduler
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+
+        if self._optimizer_in_bwd:
+            # Modify the scheduler for optimizer_in_bwd case
+            self._optim_ckpt_wrapper.set_lr_scheduler(lr_scheduler)
+
+        self._logger.info("Learning rate scheduler is initialized.")
+        return lr_scheduler
 
     def _setup_training_hyperparameters(self, cfg) -> None:
         """
@@ -437,7 +463,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 f"the number of batches in the dataset ({batches_per_epoch}). "
                 f"Intermediate checkpoints will only be saved every {batches_per_epoch} steps."
             )
-        log.info(
+        self._logger.info(
             f"Total steps to run: {self._total_steps}, Total epochs to run: {self._total_epochs}"
         )
 
@@ -447,7 +473,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ref_policy_cfg: DictConfig,
         value_cfg: DictConfig,
         reward_cfg: DictConfig,
-    ) -> Tuple[
+    ) -> tuple[
         training.Checkpointer,
         training.Checkpointer,
         training.Checkpointer,
@@ -503,11 +529,11 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_reward_value_model: DictConfig,
         enable_activation_checkpointing: bool,
         compile_model: bool,
-        policy_state_dict: Dict[str, Any],
-        ref_policy_state_dict: Dict[str, Any],
-        value_model_state_dict: Dict[str, Any],
-        reward_model_state_dict: Dict[str, Any],
-    ) -> Tuple[nn.Module, nn.Module, nn.Module]:
+        policy_state_dict: dict[str, Any],
+        ref_policy_state_dict: dict[str, Any],
+        value_model_state_dict: dict[str, Any],
+        reward_model_state_dict: dict[str, Any],
+    ) -> tuple[nn.Module, nn.Module, nn.Module]:
         """
         Sets up the policy model, reference policy model, reward model, and value model.
         """
@@ -565,7 +591,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ref_policy_model.named_parameters(), dtype=self._dtype
         )
 
-        log.info(f"Models are initialized with precision {self._dtype}.")
+        self._logger.info(f"Models are initialized with precision {self._dtype}.")
 
         # disabling dropout if found - non-determinism leads to issues in e.g. comparing logprobs
         # between ref policy and current policy
@@ -592,9 +618,8 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
+        opt_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optimizer:
-
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
             optim_dict = {
@@ -628,7 +653,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         "Failed loading in-backward optimizer checkpoints."
                         "Please make sure run being restored from was using in-backward optimizer."
                     ) from e
-            log.info("In-backward optimizers are set up.")
+            self._logger.info("In-backward optimizers are set up.")
             return None
         else:
             optimizer = config.instantiate(
@@ -638,12 +663,12 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             if opt_state_dict:
                 optimizer.load_state_dict(opt_state_dict)
 
-            log.info("Optimizer is initialized.")
+            self._logger.info("Optimizer is initialized.")
             return optimizer
 
     def _setup_data(
         self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> StatefulDataLoader:
         """
         All data related setup happens here.
         """
@@ -656,14 +681,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
-        sampler = DistributedSampler(
+        sampler = StatefulDistributedSampler(
             ds,
             num_replicas=1,
             rank=0,
             shuffle=shuffle,
-            seed=0,
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset=ds,
             sampler=sampler,
             batch_size=batch_size,
@@ -676,7 +700,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(
         self, epoch: int, is_intermediate_checkpoint: bool = False
@@ -698,6 +722,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     training.MAX_STEPS_KEY: self._total_steps,
                     training.STEPS_KEY: self._steps_run,
                     training.RNG_KEY: self._rng.get_state(),
+                    training.DATALOADER_KEY: self._dataloader.state_dict(),
                 }
             )
             if not self._optimizer_in_bwd:
@@ -719,7 +744,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=False,
         )
 
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
         """
         Updates the recipe state from checkpoint.
         """
@@ -890,7 +915,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             Trajectory: An instance of :class:`~torchtune.rlhf.Trajectory`, comprising
                 the current trajectory.
         """
-        trajectories: List[Trajectory] = []
+        trajectories: list[Trajectory] = []
         with torch.no_grad():
             for batch_start in range(0, self.batch_size, self._forward_batch_size):
                 batch_input_ids = input_ids[
@@ -905,7 +930,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop."""
 
         if self.compile:
-            log.info(
+            self._logger.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward."
                 "Expect a relatively slow first iteration."
             )
@@ -919,8 +944,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         for curr_epoch in range(self._epochs_run, self._total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
+            self._dataloader.sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(self._dataloader):
                 # Start tracking CUDA memory for active steps for just the first epoch
                 if (
@@ -960,13 +984,13 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # # step 4. optimise using the PPO objective over multiple epochs
                 t0_ppo = time.perf_counter()
-                ppo_stats: List[PPOStats] = []
+                ppo_stats: list[PPOStats] = []
                 for _ in range(self._ppo_epochs):
                     batch_idxs = torch.randperm(self.batch_size, device=self._device)
                     for i in range(0, self.batch_size, self._ppo_batch_size):
                         mini_batch_idxs = batch_idxs[i : i + self._ppo_batch_size]
 
-                        batch_ppo_stats: List[PPOStats] = []
+                        batch_ppo_stats: list[PPOStats] = []
                         for j in range(
                             0, self._ppo_batch_size, self._ppo_backward_batch_size
                         ):
@@ -1000,8 +1024,20 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
 
+                        # Need to fix `lr_scheduler.step()` before `optimizer.step()` warning
+                        if self._lr_scheduler is not None:
+                            self._lr_scheduler.step()
                         self.global_step += 1
+
                 ppo_time = time.perf_counter() - t0_ppo
+
+                current_lr = get_lr(
+                    (
+                        self._optimizer
+                        if not self._optimizer_in_bwd
+                        else self._optim_ckpt_wrapper
+                    ),
+                )
 
                 # step 5. profit
                 self._steps_run += 1
@@ -1013,6 +1049,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         kl_rewards,
                         num_tokens / traj_time,
                         num_tokens / ppo_time,
+                        current_lr,
                     )
                 self.cleanup_after_step(
                     trajectory, ppo_stats, advantages, returns, kl, kl_rewards
@@ -1139,6 +1176,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         kl_rewards: torch.Tensor,
         tokens_per_second_trajectory: torch.Tensor,
         tokens_per_second_loss: torch.Tensor,
+        lr: float,
     ) -> None:
         """
         Log metrics and statistics for the current step to the metric logger.
@@ -1149,6 +1187,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             "rlhf_reward": trajectory.scores.mean() + kl_rewards.sum(1).mean(),
             "kl": kl.sum(1).mean(),
             "kl_reward": kl_rewards.sum(1).mean(),
+            "lr": lr,
             "loss": ppo_stats.loss.mean(),
             "policy_loss": ppo_stats.policy_loss.mean(),
             "value_loss": ppo_stats.value_loss.mean(),

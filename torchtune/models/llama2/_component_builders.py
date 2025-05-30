@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional
+from typing import Optional
 
 from torch import nn
 
@@ -22,6 +22,7 @@ from torchtune.modules import (
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
+from torchtune.utils._logging import deprecated
 
 """
 Component builders for the Llama2 model and popular variants such as LoRA.
@@ -152,7 +153,7 @@ def llama2_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedFo
 
 
 def lora_llama2(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -179,7 +180,7 @@ def lora_llama2(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -288,13 +289,15 @@ def lora_llama2(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model
 
 
 def lora_llama2_self_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
     embed_dim: int,
@@ -314,7 +317,7 @@ def lora_llama2_self_attention(
     applied to a subset of its linear layers
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
         embed_dim (int): embedding dimension for self-attention
@@ -477,6 +480,11 @@ def lora_llama2_mlp(
 # ------------------ Llama2 Classifier ------------------
 
 
+@deprecated(
+    msg="Model-specific classifier builders are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.llama2.llama2` instead."
+)
 def llama2_classifier(
     num_classes: int,
     *,
@@ -521,7 +529,7 @@ def llama2_classifier(
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    
+
     layers = nn.ModuleList()
     for _ in range(num_layers):
         self_attn = MultiHeadAttention(
@@ -560,8 +568,15 @@ def llama2_classifier(
     )
 
 
+@deprecated(
+    msg="Model-specific classifier builders, and PEFT-based classifier builders with `apply_lora_to_output=True` "
+    " are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.llama2.lora_llama2` and "
+    "`apply_lora_to_output=False` instead."
+)
 def lora_llama2_classifier(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -590,7 +605,7 @@ def lora_llama2_classifier(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -696,6 +711,8 @@ def lora_llama2_classifier(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from torch import nn
 
@@ -38,7 +38,7 @@ def clip_vision_encoder(
     cls_output_dim: int = 512,
     attn_bias: bool = True,
     use_rope: bool = False,
-    out_indices: Optional[List[int]] = None,
+    out_indices: Optional[list[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
@@ -68,7 +68,7 @@ def clip_vision_encoder(
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
         attn_bias (bool): Boolean for if to use bias in the attention module. Default True.
         use_rope (bool): If True, include 2D rope in attention in each transformer layer. Default: False
-        out_indices (Optional[List[int]]): The indices of hidden layers to return.
+        out_indices (Optional[list[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
@@ -104,8 +104,7 @@ def clip_vision_encoder(
         VisionRotaryPositionalEmbeddings(
             patch_size=patch_size,
             tile_size=tile_size,
-            max_num_tiles=max_num_tiles,
-            dim=head_dim // 2,
+            dim=head_dim,
             base=10_000,
             append_cls_token=append_cls_token,
         )
@@ -268,7 +267,7 @@ def clip_mlp(
 
 
 def lora_clip_vision_encoder(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     *,
     # clip encoder parameters
@@ -280,7 +279,7 @@ def lora_clip_vision_encoder(
     activation: Callable = nn.SiLU,
     cls_output_dim: int = 512,
     attn_bias: bool = False,
-    out_indices: Optional[List[int]] = None,
+    out_indices: Optional[list[int]] = None,
     output_cls_projection: bool = False,
     max_num_tiles: int = 4,
     in_channels: int = 3,
@@ -296,7 +295,7 @@ def lora_clip_vision_encoder(
     Build a LoRA implementation of the CLIP vision encoder.
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -311,8 +310,8 @@ def lora_clip_vision_encoder(
         num_heads (int): The number of attention heads in each transformer layer.
         activation (Callable): The activation function to use in the MLP layer.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
-        attn_bias (bool): Boolean for if to use bias in the attention module. Default False.
-        out_indices (Optional[List[int]]): The indices of hidden layers to return.
+        attn_bias (bool): whether to use bias in Q, K, V, output projections. Default: False
+        out_indices (Optional[list[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
@@ -328,6 +327,10 @@ def lora_clip_vision_encoder(
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
 
 
     Returns:
@@ -435,7 +438,7 @@ def lora_clip_vision_encoder(
 
 
 def lora_clip_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
     embed_dim: int,
@@ -457,7 +460,7 @@ def lora_clip_attention(
     applied to a subset of its linear layers
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
         embed_dim (int): embedding dimension for self-attention
@@ -470,12 +473,17 @@ def lora_clip_attention(
             for GQA `num_kv_heads` < `num_heads`, and for MQA set `num_kv_heads` == 1.
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
+        attn_bias (bool): whether to use bias in Q, K, V, output projections. Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
         use_dora (bool): Whether to use DoRA layers instead of LoRA layers. Default is ``False``.
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
+        **quantization_kwargs: Keyword arguments to pass to `to_nf4` when quantizing the base linear weight.
+            Examples of valid arguments are `block_size` and `scaler_block_size`, which control the granularity of
+            weight quantization and scaler quantization respectively. This is only used if `quantize_base` is True.
+            Default None
 
     Returns:
         MultiHeadAttention: instantiation of self-attention module with LoRA
@@ -497,6 +505,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -516,6 +525,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -538,6 +548,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )
@@ -560,6 +571,7 @@ def lora_clip_attention(
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
+            use_bias=attn_bias,
             quantize_base=quantize_base,
             **quantization_kwargs,
         )

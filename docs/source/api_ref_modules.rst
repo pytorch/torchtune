@@ -25,6 +25,7 @@ Modeling Components and Building Blocks
     VisionTransformer
     LayerDropout
     prepare_layer_dropout
+    classifier_model
 
 Losses
 ------
@@ -33,9 +34,20 @@ Losses
     :toctree: generated/
     :nosignatures:
 
-    loss.CEWithChunkedOutputLoss
+    loss.LinearCrossEntropyLoss
     loss.ForwardKLLoss
     loss.ForwardKLWithChunkedOutputLoss
+    loss.ReverseKLWithChunkedOutputLoss
+    loss.SymmetricKLWithChunkedOutputLoss
+
+Optimizers
+----------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    optim.OptimizerInBackward
 
 Base Tokenizers
 ---------------
@@ -110,6 +122,7 @@ These are utilities that are common to and can be used by all modules.
    common_utils.local_kv_cache
    common_utils.disable_kv_cache
    common_utils.delete_kv_caches
+   embedding_utils.resize_token_embeddings
 
 
 Vision Transforms

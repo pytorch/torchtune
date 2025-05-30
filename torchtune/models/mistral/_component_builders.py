@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
-
 from torch import nn
 
 from torchtune.modules import (
@@ -20,6 +18,7 @@ from torchtune.modules import (
 from torchtune.modules.common_utils import _register_reparametrize_state_dict_hooks
 
 from torchtune.modules.peft import DoRALinear, LORA_ATTN_MODULES, LoRALinear
+from torchtune.utils._logging import deprecated
 
 """
 Component builders for the Mistral 7B models and popular variants such as LoRA.
@@ -142,7 +141,7 @@ def mistral_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedF
 
 
 def lora_mistral(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -169,7 +168,7 @@ def lora_mistral(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -274,7 +273,7 @@ def lora_mistral(
 
 
 def lora_mistral_self_attention(
-    lora_modules: List[LORA_ATTN_MODULES],
+    lora_modules: list[LORA_ATTN_MODULES],
     *,
     # MultiHeadAttention args
     embed_dim: int,
@@ -295,7 +294,7 @@ def lora_mistral_self_attention(
     applied to a subset of its linear layers
 
     Args:
-        lora_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to. Options are ``{"q_proj", "k_proj", "v_proj",
             "output_proj"}``.
         embed_dim (int): embedding dimension for self-attention
@@ -457,6 +456,11 @@ def lora_mistral_mlp(
     )
 
 
+@deprecated(
+    msg="Model-specific classifier builders are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.mistral.mistral` instead."
+)
 def mistral_classifier(
     num_classes: int,
     *,
@@ -540,9 +544,15 @@ def mistral_classifier(
         output=output_proj,
     )
 
-
+@deprecated(
+    msg="Model-specific classifier builders, and PEFT-based classifier builders with `apply_lora_to_output=True` "
+    " are deprecated and will be removed in 0.8.0. "
+    "Please use `torchtune.modules.classifier_model`, with "
+    "`base_model_path=torchtune.models.mistral.lora_mistral` and "
+    "`apply_lora_to_output=False` instead."
+)
 def lora_mistral_classifier(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
     apply_lora_to_output: bool = False,
     *,
@@ -571,7 +581,7 @@ def lora_mistral_classifier(
     with LoRA applied to some of the linear layers in its self-attention modules.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
@@ -675,6 +685,8 @@ def lora_mistral_classifier(
         # so as to not increase peak memory
         # TODO this is clowny, figure out a better way to get what precision the rest
         # of the model is in
-        _register_reparametrize_state_dict_hooks(model, dtype=tok_embeddings.weight.dtype)
+        _register_reparametrize_state_dict_hooks(
+            model, dtype=tok_embeddings.weight.dtype
+        )
 
     return model

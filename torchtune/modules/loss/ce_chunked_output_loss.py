@@ -4,13 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
-
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+from torch.distributed.tensor import DTensor
+
+from torchtune.utils import deprecated
+
+from .loss_types import SFTLoss
 
 
-class CEWithChunkedOutputLoss(torch.nn.Module):
+@deprecated("Please use `torchtune.modules.loss.LinearCrossEntropyLoss` instead.")
+class CEWithChunkedOutputLoss(torch.nn.Module, SFTLoss):
     """
     Cross-entropy with chunked outputs that saves memory by only upcasting one chunk at a time.
 
@@ -38,14 +43,27 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         """
         Upcast logits to fp32 and compute cross entropy loss.
         """
+        if isinstance(logits, DTensor):
+            logits = logits.full_tensor()
         return F.cross_entropy(
             logits.float(), labels, ignore_index=self.ignore_index, reduction="sum"
         )
 
-    def forward(self, logits: List[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
+    def apply_compile_strategy(self, *args, **kwargs):
+        """Applies compile only to the fkl_loss function."""
+        self.compute_cross_entropy = torch.compile(
+            self.compute_cross_entropy, *args, **kwargs
+        )
+        return self
+
+    def set_model_output(self, model: nn.Module) -> None:
+        """Modify model output to match the expected input for the loss function."""
+        model.set_num_output_chunks(self.num_output_chunks)
+
+    def forward(self, logits: list[torch.Tensor], labels: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            logits (List[torch.Tensor]): List of chunked logits of length
+            logits (list[torch.Tensor]): list of chunked logits of length
                 ``self.num_output_chunks``, where each chunk has shape
                 ``(batch_size, num_tokens / num_output_chunks, vocab_size)``.
             labels (torch.Tensor): Ground truth labels of shape ``(batch_size, num_tokens)``.
@@ -54,10 +72,10 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
             torch.Tensor: Cross entropy loss of shape (1,).
 
         Example:
-            >>> loss_fn = ChunkedCrossEntropyLoss()
+            >>> loss_fn = CEWithChunkedOutputLoss()
             >>>
             >>> h = torch.tensor([bsz, num_tokens, dim])
-            >>> output_chunks = [model.output(chunk) for chunk in h.chunk(num_chunks, dim=1)]
+            >>> output_chunks = [model.output(chunk) for chunk in h.tensor_split(num_chunks, dim=1)]
             >>>
             >>> labels = torch.tensor([bsz, num_tokens])
             >>> loss = loss_fn(output_chunks, labels)
@@ -68,8 +86,9 @@ class CEWithChunkedOutputLoss(torch.nn.Module):
         # chunk and reshape labels (bsz, num_tokens, vocab) -> [(bsz*num_tokens/num_chunks, vocab)]
         labels = [
             target_chunk.reshape(-1)
-            for target_chunk in labels.chunk(self.num_output_chunks, dim=1)
+            for target_chunk in labels.tensor_split(self.num_output_chunks, dim=1)
         ]
+
         # reshape logits [(bsz, num_tokens/num_chunks, vocab)] -> [(bsz*num_tokens/num_chunks, vocab)]
         logits = [
             logit_chunk.reshape(-1, logit_chunk.size(-1)) for logit_chunk in logits

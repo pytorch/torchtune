@@ -4,10 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import inspect
 from argparse import Namespace
 from importlib import import_module
-from types import ModuleType
-from typing import Any, Dict, List, Union
+from typing import Any, Optional, Union
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -30,86 +30,95 @@ def log_config(recipe_name: str, cfg: DictConfig) -> None:
     )
 
 
-def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
+def _has_component(node: Union[dict[str, Any], DictConfig]) -> bool:
     return (OmegaConf.is_dict(node) or isinstance(node, dict)) and "_component_" in node
 
 
-def _get_component_from_path(path: str) -> Any:
+def _get_component_from_path(
+    path: str, caller_globals: Optional[dict[str, Any]] = None
+) -> Any:
     """
-    Return an object by name or dotted path, importing as necessary.
-    The base functionality relies on ``getattr()`` and handles all
-    possible exceptions accordingly.
+    Resolve a Python object from a dotted path or simple name.
 
-    Based on Hydra's `_locate` from Facebook Research:
-    https://github.com/facebookresearch/hydra/blob/main/hydra/_internal/utils.py#L614
+    Retrieves a module, class, or function from a string like `"os.path.join"` or `"os"`. For dotted paths,
+    it imports the module and gets the final attribute. For simple names, it imports the module or checks
+    `caller_globals` (defaults to `__main__` globals if not provided).
 
     Args:
-        path (str): Dotted path of the object
+        path (str): Dotted path (e.g., "os.path.join") or simple name (e.g., "os").
+        caller_globals (Optional[dict[str, Any]]): The caller's global namespace. Defaults to __main__ if None.
 
     Returns:
-        Any: The object
+        Any: The resolved object (module, class, function, etc.).
 
     Raises:
-        InstantiationError: If there is an exception loading the
-            object from the provided path
-        ValueError: If a relative or invalid dotpath is passed in
+        InstantiationError: If the path is empty, not a string, or if the module/attribute cannot be resolved.
+        ValueError: If the path contains invalid dotstrings (e.g., relative imports like ".test" or "test..path").
+
+    Examples:
+        >>> _get_component_from_path("torch.nn.Linear")
+        <class 'torch.nn.modules.linear.Linear'>
+        >>> _get_component_from_path("torch")
+        <module 'torch' from '...'>
+        >>> # Assuming FooBar is in caller's globals
+        >>> _get_component_from_path("FooBar")
+        <class 'FooBar'>
     """
-    if path == "":
-        raise ValueError("Empty path")
+    if not path or not isinstance(path, str):
+        raise InstantiationError(f"Invalid path: '{path}'")
 
-    parts = [part for part in path.split(".")]
-    for part in parts:
-        # If a relative path is passed in, the first part will be empty
-        if not len(part):
-            raise ValueError(
-                f"Error loading '{path}': invalid dotstring."
-                + "\nRelative imports are not supported."
-            )
-    # First module requires trying to import to validate
-    part0 = parts[0]
-    try:
-        obj = import_module(part0)
-    except ImportError as exc_import:
-        raise InstantiationError(
-            f"Error loading '{path}':\n{repr(exc_import)}"
-            + f"\nAre you sure that module '{part0}' is installed?"
-        ) from exc_import
-    # Subsequent components can be checked via getattr() on first module
-    # It can either be an attribute that we can return or a submodule that we
-    # can import and continue searching
-    for m in range(1, len(parts)):
-        part = parts[m]
+    # Check for ".test", "test..path", "test..", etc.
+    parts = path.split(".")
+    if any(not part for part in parts):
+        raise ValueError(
+            f"Invalid dotstring. Relative imports are not supported. Got {path=}."
+        )
+
+    # single part, e.g. "torch" or "my_local_fn"
+    if len(parts) == 1:
+        name = parts[0]
         try:
-            obj = getattr(obj, part)
-        # If getattr fails, check to see if it's a module we can import and
-        # continue down the path
-        except AttributeError as exc_attr:
-            parent_dotpath = ".".join(parts[:m])
-            if isinstance(obj, ModuleType):
-                mod = ".".join(parts[: m + 1])
-                try:
-                    obj = import_module(mod)
-                    continue
-                except ModuleNotFoundError as exc_import:
-                    raise InstantiationError(
-                        f"Error loading '{path}':\n{repr(exc_import)}"
-                        + f"\nAre you sure that '{part}' is importable from module '{parent_dotpath}'?"
-                    ) from exc_import
-                # Any other error trying to import module can be raised as
-                # InstantiationError
-                except Exception as exc_import:
-                    raise InstantiationError(
-                        f"Error loading '{path}':\n{repr(exc_import)}"
-                    ) from exc_import
-            # If the component is not an attribute nor a module, it doesn't exist
-            raise InstantiationError(
-                f"Error loading '{path}':\n{repr(exc_attr)}"
-                + f"\nAre you sure that '{part}' is an attribute of '{parent_dotpath}'?"
-            ) from exc_attr
-    return obj
+            # try to import as a module, e.g. "torch"
+            return import_module(name)
+        except ImportError:
+            # if caller_globals is None, collect __main__ globals of the caller
+            search_globals = caller_globals if caller_globals is not None else {}
+            if caller_globals is None:
+                current_frame = inspect.currentframe()
+                if current_frame and current_frame.f_back:
+                    search_globals = current_frame.f_back.f_globals
+
+            # check if local_fn is in caller_globals, e.g. "my_local_fn"
+            if name in search_globals:
+                return search_globals[name]
+            else:
+                # scope to differentiate between provided globals and caller's globals in error message
+                scope = (
+                    "the provided globals"
+                    if caller_globals is not None
+                    else "the caller's globals"
+                )
+                raise InstantiationError(
+                    f"Could not resolve '{name}': not a module and not found in {scope}."
+                ) from None
+
+    # multiple parts, e.g. "torch.nn.Linear"
+    module_path = ".".join(parts[:-1])
+    try:
+        module = import_module(module_path)
+        component = getattr(module, parts[-1])
+        return component
+    except ImportError as e:
+        raise InstantiationError(
+            f"Could not import module '{module_path}': {str(e)}."
+        ) from e
+    except AttributeError as e:
+        raise InstantiationError(
+            f"Module '{module_path}' has no attribute '{parts[-1]}'."
+        ) from e
 
 
-def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictConfig:
+def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: list[str]) -> DictConfig:
     """
     Takes the direct output of argparse's parse_known_args which returns known
     args as a Namespace and unknown args as a dotlist (in our case, yaml args and
@@ -136,7 +145,7 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     Args:
         yaml_args (Namespace): Namespace containing args from yaml file, components
             should have _component_ fields
-        cli_args (List[str]): List of key=value strings
+        cli_args (list[str]): list of key=value strings
 
     Returns:
         DictConfig: OmegaConf DictConfig containing merged args
@@ -193,25 +202,25 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     return OmegaConf.merge(yaml_conf, cli_conf)
 
 
-def _remove_key_by_dotpath(nested_dict: Dict[str, Any], dotpath: str) -> None:
+def _remove_key_by_dotpath(nested_dict: dict[str, Any], dotpath: str) -> None:
     """
     Removes a key specified by dotpath from a nested dict. Errors should handled by
     the calling function.
 
     Args:
-        nested_dict (Dict[str, Any]): Dict to remove key from
+        nested_dict (dict[str, Any]): dict to remove key from
         dotpath (str): dotpath of key to remove, e.g., "a.b.c"
     """
     path = dotpath.split(".")
 
-    def delete_non_component(d: Dict[str, Any], key: str) -> None:
+    def delete_non_component(d: dict[str, Any], key: str) -> None:
         if _has_component(d[key]):
             raise ValueError(
                 f"Removing components from CLI is not supported: ~{dotpath}"
             )
         del d[key]
 
-    def recurse_and_delete(d: Dict[str, Any], path: List[str]) -> None:
+    def recurse_and_delete(d: dict[str, Any], path: list[str]) -> None:
         if len(path) == 1:
             delete_non_component(d, path[0])
         else:

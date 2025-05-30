@@ -33,24 +33,73 @@ _CONFIG = {
 }
 
 
+# Test local function
+def local_fn():
+    return "hello world"
+
+
 class TestUtils:
     def test_get_component_from_path(self):
-        good_paths = [
-            "torchtune",  # Test single module without dot
-            "torchtune.models",  # Test dotpath for a module
-            "torchtune.models.llama2.llama2_7b",  # Test dotpath for an object
+        # Test valid paths with three components
+        valid_paths = [
+            "torchtune",
+            "os.path.join",
         ]
-        for path in good_paths:
-            _ = _get_component_from_path(path)
+        for path in valid_paths:
+            result = _get_component_from_path(path)
+            assert result is not None, f"Failed to resolve valid path '{path}'"
 
-        # Test that a relative path fails
-        with pytest.raises(ValueError, match="Relative imports are not supported"):
-            _ = _get_component_from_path(".test")
-        # Test that a non-existent path fails
+        # test callable
+        path = "torchtune.models.llama2.llama2_7b"
+        result = _get_component_from_path(path)
+        assert callable(result), f"Resolved '{path}' is not callable"
+
+        # simulate call from globals
+        fn = _get_component_from_path("local_fn")
+        output = fn()
+        assert output == "hello world", f"Got {output=}. Expected 'hello world'."
+
+        # Test empty path
+        with pytest.raises(InstantiationError, match="Invalid path: ''"):
+            _get_component_from_path("")
+
+        # Test non-string path
+        with pytest.raises(InstantiationError, match="Invalid path: '123'"):
+            _get_component_from_path(123)
+
+        # Test relative imports
+        relative_paths = [
+            ".test.module",  # Leading dot
+            "test.module.",  # Trailing dot
+            "test..module",  # Consecutive dots
+        ]
+        for path in relative_paths:
+            with pytest.raises(
+                ValueError,
+                match="Invalid dotstring. Relative imports are not supported.",
+            ):
+                _get_component_from_path(path)
+
+        # Test non-existent components
+        # Single-part path not found
         with pytest.raises(
-            InstantiationError, match="Error loading 'torchtune.models.dummy'"
+            InstantiationError,
+            match=r"Could not resolve 'nonexistent': not a module and not found in the caller's globals\.",
         ):
-            _ = _get_component_from_path("torchtune.models.dummy")
+            _get_component_from_path("nonexistent")
+
+        # Multi-part path with import failure
+        with pytest.raises(
+            InstantiationError, match=r"Could not import module 'os\.nonexistent': .*"
+        ):
+            _get_component_from_path("os.nonexistent.attr")
+
+        # Multi-part path with attribute error
+        with pytest.raises(
+            InstantiationError,
+            match=r"Module 'os\.path' has no attribute 'nonexistent'",
+        ):
+            _get_component_from_path("os.path.nonexistent")
 
     @mock.patch(
         "torchtune.config._parse.OmegaConf.load", return_value=OmegaConf.create(_CONFIG)
@@ -134,12 +183,12 @@ class TestUtils:
         handler = logging.StreamHandler(stream)
         logger.addHandler(handler)
 
-        with mock.patch(
-            "torchtune.config._utils.get_logger", return_value=logger
-        ), mock.patch(
-            "torchtune.utils._logging.dist.is_available", return_value=True
-        ), mock.patch(
-            "torchtune.utils._logging.dist.is_initialized", return_value=True
+        with (
+            mock.patch("torchtune.config._utils.get_logger", return_value=logger),
+            mock.patch("torchtune.utils._logging.dist.is_available", return_value=True),
+            mock.patch(
+                "torchtune.utils._logging.dist.is_initialized", return_value=True
+            ),
         ):
             # Make sure rank 0 logs as expected
             with mock.patch(

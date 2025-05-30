@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Optional
+from typing import Optional
 
 from torchtune.data._prompt_templates import _get_prompt_template, _TemplateType
 
@@ -14,12 +14,11 @@ from torchtune.models.llama3_2_vision._component_builders import (  # noqa
     llama3_2_vision_encoder,
     lora_llama3_2_vision_decoder,
     lora_llama3_2_vision_encoder,
-    LoRATrainable,
 )
 
 from torchtune.models.llama3_2_vision._transform import Llama3VisionTransform
 from torchtune.modules.model_fusion import DeepFusionModel
-from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.modules.peft import LORA_ATTN_MODULES, TrainableParams
 
 
 def llama3_2_vision_transform(
@@ -118,7 +117,7 @@ def llama3_2_vision_11b(
 
 
 def lora_llama3_2_vision_11b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     decoder_trainable: str = "frozen",
     encoder_trainable: str = "lora",
     fusion_trainable: str = "lora",
@@ -136,7 +135,7 @@ def lora_llama3_2_vision_11b(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         decoder_trainable (str): Option to set decoder params as fully trainble (full), lora trainable (lora),
@@ -163,17 +162,17 @@ def lora_llama3_2_vision_11b(
         a subset of the attention projections in each layer.
 
     """
-    decoder_type = LoRATrainable(decoder_trainable.lower())
-    encoder_type = LoRATrainable(encoder_trainable.lower())
-    fusion_type = LoRATrainable(fusion_trainable.lower())
-    assert LoRATrainable.FULL not in [
+    decoder_type = TrainableParams(decoder_trainable.lower())
+    encoder_type = TrainableParams(encoder_trainable.lower())
+    fusion_type = TrainableParams(fusion_trainable.lower())
+    assert TrainableParams.FULL not in [
         decoder_type,
         encoder_type,
         fusion_type,
     ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama3_2_vision_11b if you need full finetuning"
     encoder = lora_llama3_2_vision_encoder(
-        encoder_lora=encoder_type == LoRATrainable.LORA,
-        fusion_lora=fusion_type == LoRATrainable.LORA,
+        encoder_lora=encoder_type == TrainableParams.LORA,
+        fusion_lora=fusion_type == TrainableParams.LORA,
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -197,8 +196,8 @@ def lora_llama3_2_vision_11b(
         scaler_block_size=200 if quantize_base else None,
     )
     decoder = lora_llama3_2_vision_decoder(
-        decoder_lora=decoder_type == LoRATrainable.LORA,
-        fusion_lora=fusion_type == LoRATrainable.LORA,
+        decoder_lora=decoder_type == TrainableParams.LORA,
+        fusion_lora=fusion_type == TrainableParams.LORA,
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -222,9 +221,9 @@ def lora_llama3_2_vision_11b(
     return DeepFusionModel(
         encoder=encoder,
         decoder=decoder,
-        encoder_trainable=encoder_type != LoRATrainable.FROZEN,
-        decoder_trainable=decoder_type != LoRATrainable.FROZEN,
-        fusion_trainable=fusion_type != LoRATrainable.FROZEN,
+        encoder_trainable=encoder_type != TrainableParams.FROZEN,
+        decoder_trainable=decoder_type != TrainableParams.FROZEN,
+        fusion_trainable=fusion_type != TrainableParams.FROZEN,
     )
 
 
@@ -281,7 +280,7 @@ def llama3_2_vision_90b(
 
 
 def lora_llama3_2_vision_90b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_attn_modules: list[LORA_ATTN_MODULES],
     decoder_trainable: str = "frozen",
     encoder_trainable: str = "lora",
     fusion_trainable: str = "lora",
@@ -299,7 +298,7 @@ def lora_llama3_2_vision_90b(
     with LoRA applied based on the passed in configuration.
 
     Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         decoder_trainable (str): Option to set decoder params as fully trainble (full), lora trainable (lora),
@@ -326,17 +325,17 @@ def lora_llama3_2_vision_90b(
         a subset of the attention projections in each layer.
 
     """
-    decoder_type = LoRATrainable(decoder_trainable.lower())
-    encoder_type = LoRATrainable(encoder_trainable.lower())
-    fusion_type = LoRATrainable(fusion_trainable.lower())
-    assert LoRATrainable.FULL not in [
+    decoder_type = TrainableParams(decoder_trainable.lower())
+    encoder_type = TrainableParams(encoder_trainable.lower())
+    fusion_type = TrainableParams(fusion_trainable.lower())
+    assert TrainableParams.FULL not in [
         decoder_type,
         encoder_type,
         fusion_type,
     ], "We've temporarily removed support for mixed LoRA + Full Finetuning yet. Please don't use the 'full' option and use llama3_2_vision_90b if you need full finetuning"
     encoder = lora_llama3_2_vision_encoder(
-        encoder_lora=encoder_type == LoRATrainable.LORA,
-        fusion_lora=fusion_type == LoRATrainable.LORA,
+        encoder_lora=encoder_type == TrainableParams.LORA,
+        fusion_lora=fusion_type == TrainableParams.LORA,
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -360,8 +359,8 @@ def lora_llama3_2_vision_90b(
         scaler_block_size=200 if quantize_base else None,
     )
     decoder = lora_llama3_2_vision_decoder(
-        decoder_lora=decoder_type == LoRATrainable.LORA,
-        fusion_lora=fusion_type == LoRATrainable.LORA,
+        decoder_lora=decoder_type == TrainableParams.LORA,
+        fusion_lora=fusion_type == TrainableParams.LORA,
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
@@ -385,9 +384,9 @@ def lora_llama3_2_vision_90b(
     return DeepFusionModel(
         encoder=encoder,
         decoder=decoder,
-        encoder_trainable=encoder_type != LoRATrainable.FROZEN,
-        decoder_trainable=decoder_type != LoRATrainable.FROZEN,
-        fusion_trainable=fusion_type != LoRATrainable.FROZEN,
+        encoder_trainable=encoder_type != TrainableParams.FROZEN,
+        decoder_trainable=decoder_type != TrainableParams.FROZEN,
+        fusion_trainable=fusion_type != TrainableParams.FROZEN,
     )
 
 

@@ -20,7 +20,13 @@ SMALL_MODEL_URLS=(
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-reward-07122024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-vision-10172024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-vision-10172024.pt"
-
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/config.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/generation_config.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/model.safetensors"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/model.safetensors.index.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/special_tokens_map.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/tokenizer.json"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/llama3-hf-04232025/tokenizer_config.json"
 )
 FULL_MODEL_URL=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
 TOKENIZER_URLS=(
@@ -71,13 +77,24 @@ fi
 # Sanity check debug log
 echo "Expected artifacts for test run are:"
 for url in "${S3_URLS[@]}"; do
-    echo "$(basename "$url")"
+    if [[ "$url" == *"llama3-hf-04232025"* ]]; then
+        to_print="llama3-hf-04232025/"$(basename "$url")
+        echo $to_print
+    else
+        echo "$(basename "$url")"
+    fi
+
 done
 
 # Download relevant files from S3 to local
 mkdir -p $LOCAL_DIR
 for S3_URL in "${S3_URLS[@]}"; do
-    FILE_NAME=$(basename "$S3_URL")
+    # TODO: this is a horrible hack
+    if [[ "$S3_URL" == *"llama3-hf-04232025"* ]]; then
+        FILE_NAME="llama3-hf-04232025/"$(basename "$S3_URL")
+    else
+        FILE_NAME=$(basename "$S3_URL")
+    fi
 
     # Check if file already exists locally
     if [ -e "$LOCAL_DIR/$FILE_NAME" ]; then
@@ -92,7 +109,8 @@ for S3_URL in "${S3_URLS[@]}"; do
             fi
         # For https: download with curl
         else
-            cp_cmd="curl --output ${LOCAL_DIR}/${FILE_NAME} ${S3_URL}"
+            cp_cmd="curl --create-dirs --output ${LOCAL_DIR}/${FILE_NAME} ${S3_URL}"
+            echo $cp_cmd
         fi
         bash -c "${cp_cmd}"
         # Check if download was successful

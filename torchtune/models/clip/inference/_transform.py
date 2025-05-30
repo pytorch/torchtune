@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Any, List, Mapping, Optional, Tuple, Union
+from typing import Any, Mapping, Optional, Union
 
 import torch
 import torchvision
@@ -29,8 +29,8 @@ class _CLIPImageTransform(torch.nn.Module):
     def __init__(
         self,
         resample: str,
-        image_mean: Optional[List[float]],
-        image_std: Optional[List[float]],
+        image_mean: Optional[list[float]],
+        image_std: Optional[list[float]],
         tile_size: int,
         max_num_tiles: int,
         antialias: bool,
@@ -47,8 +47,8 @@ class _CLIPImageTransform(torch.nn.Module):
 
     def check_variable_bounds_for_export(
         self,
-        target_size: List[int],
-        canvas_size: List[int],
+        target_size: list[int],
+        canvas_size: list[int],
         lower: int,
         upper: int,
     ) -> None:
@@ -71,7 +71,7 @@ class _CLIPImageTransform(torch.nn.Module):
 
     def forward(
         self, image: torch.Tensor, target_size: torch.Tensor, canvas_size: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Performs the core transformations involved in CLIPImageTransform;
         1. Resize the image to target_size.
@@ -83,7 +83,7 @@ class _CLIPImageTransform(torch.nn.Module):
             target_size (torch.Tensor): tensor of shape (2,) containing the target_height and target_width for resize.
             canvas_size (torch.Tensor): tensor of shape (2,) containing the canvas_height and canvas_width for padding.
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Image tensor of shape [n, channels, tile_size, tile_size]
+            tuple[torch.Tensor, torch.Tensor]: Image tensor of shape [n, channels, tile_size, tile_size]
                 and aspect ratio tensor of shape [1, 2].
         """
 
@@ -154,11 +154,11 @@ class CLIPImageTransform:
     Image is tiled 2x5, for a final output shape of (10, 3, 224, 224)
 
     Args:
-        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+        image_mean (Optional[list[float]]): Mean values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
-        image_std (Optional[List[float]]): Standard deviation values of each channel, used for normalization.
+        image_std (Optional[list[float]]): Standard deviation values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, no normalization is performed. Default None.
-        possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
+        possible_resolutions (Optional[list[tuple[int, int]]]): list of possible resolutions as tuples (height, width).
             where each tuple represents a possible canvas to fit the image into when calling ``get_canvas_best_fit``.
             If None, this will be calculated using max_num_tiles and tile_size. Default None.
         tile_size (int): Size of the tiles to divide the image into. Default 224.
@@ -197,16 +197,15 @@ class CLIPImageTransform:
 
     def __init__(
         self,
-        image_mean: Optional[List[float]] = None,
-        image_std: Optional[List[float]] = None,
-        possible_resolutions: Optional[List[Tuple[int, int]]] = None,
+        image_mean: Optional[list[float]] = None,
+        image_std: Optional[list[float]] = None,
+        possible_resolutions: Optional[list[tuple[int, int]]] = None,
         tile_size: int = 224,
         max_num_tiles: Optional[int] = 4,
         resample: str = "bilinear",
         resize_to_max_canvas: bool = False,
         antialias: bool = True,
     ) -> None:
-
         # get_canvas_best_fit
         assert (
             possible_resolutions is not None or max_num_tiles is not None
@@ -255,7 +254,6 @@ class CLIPImageTransform:
     def __call__(
         self, *, image: Union[Image.Image, torch.Tensor], **kwargs
     ) -> Mapping[str, Any]:
-
         assert isinstance(
             image, (Image.Image, torch.Tensor)
         ), "Input image must be a PIL image or torch.Tensor."

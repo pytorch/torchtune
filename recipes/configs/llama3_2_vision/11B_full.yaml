@@ -44,13 +44,20 @@ checkpointer:
   model_type: LLAMA3_VISION
 resume_from_checkpoint: False
 
-# Dataset
+# Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.multimodal.the_cauldron_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   packed: False  # True increases speed
-  subset: ocrvqa
+  split: train[:95%]
 seed: null
 shuffle: True
+
+# Validation
+run_val_every_n_steps: null  # Change to an integer to enable validation every N steps
+dataset_val:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  split: train[95%:]
+batch_size_val: ${batch_size}
 collate_fn: torchtune.data.padded_collate_tiled_images_and_mask
 
 # Fine-tuning arguments
@@ -65,7 +72,7 @@ optimizer:
 optimizer_in_bwd: False  # True saves memory. Requires gradient_accumulation_steps=1
 
 loss:
-  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+  _component_: torchtune.modules.loss.LinearCrossEntropyLoss
 clip_grad_norm: 1.0
 compile: False  # torch.compile the model + loss, True increases speed + decreases memory
 
@@ -83,6 +90,7 @@ metric_logger:
   log_dir: ${output_dir}/logs
 log_every_n_steps: 1
 log_peak_memory_stats: True
+log_level: INFO  # DEBUG, WARN, etc.
 
 
 # Profiler (disabled)
