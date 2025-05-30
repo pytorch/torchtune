@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -253,6 +254,7 @@ class TestKDDistributedRecipe:
         )
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
+        shutil.rmtree((tmpdir / "epoch_1"))
 
         # Resume training
         cmd_2 = f"""

@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -278,6 +279,8 @@ class TestLoRAFinetuneDistributedRecipe:
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        shutil.rmtree((tmpdir / "epoch_1"))
 
         # Resume training
         cmd_2 = f"""
