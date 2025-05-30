@@ -133,7 +133,7 @@ class ParallelDims:
         return mesh
 
     @property
-    def enabled(self):
+    def cp_enabled(self):
         return self.cp > 1
 
     @property
@@ -824,13 +824,13 @@ def get_context_parallel_manager(
 
     Example:
         ```python
-        batch = {"inputs": inputs, "labels": labels}
-        with get_context_parallel_context(
+        context_parallel_manager = get_context_parallel_manager(
             enabled=parallel_dims.enabled,
             cp_mesh=world_mesh["cp"] if parallel_dims.enabled else None,
-            model_inputs=list(batch.values()),
-            model_buffers=model.buffers(),
-        ):
+            model=model,
+        )
+        batch = {"inputs": inputs, "labels": labels}
+        with get_context_parallel_manager(list(batch.values())):
             logits = model(inputs)
             loss = loss(logits, labels)
             loss.backward()
