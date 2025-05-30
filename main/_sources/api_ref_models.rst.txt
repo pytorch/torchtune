@@ -238,34 +238,6 @@ To download the Llama2-70B model:
     llama2.qlora_llama2_reward_7b
     llama2.Llama2ChatTemplate
 
-
-code llama
-----------
-
-Models from the `Code Llama family <https://arxiv.org/pdf/2308.12950>`_.
-
-Important: You need to request access on `Hugging Face <https://huggingface.co/meta-llama/CodeLlama-7b-hf>`__ before downloading it.
-
-To download the CodeLlama-7B model:
-
-.. code-block:: bash
-
-    tune download meta-llama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf --hf-token <HF_TOKEN>
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    code_llama2.code_llama2_7b
-    code_llama2.lora_code_llama2_7b
-    code_llama2.qlora_code_llama2_7b
-    code_llama2.code_llama2_13b
-    code_llama2.lora_code_llama2_13b
-    code_llama2.qlora_code_llama2_13b
-    code_llama2.code_llama2_70b
-    code_llama2.lora_code_llama2_70b
-    code_llama2.qlora_code_llama2_70b
-
 qwen-2.5
 --------
 
