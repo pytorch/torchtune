@@ -19,7 +19,7 @@ nightly versions with the following commands:
     pip install torch torchvision torchao
 
     # Or nightly install for latest features
-    pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu121/cu124/cu126/xpu
+    pip install --pre torch torchvision torchao --index-url https://download.pytorch.org/whl/nightly/cu126 # full options are cpu/cu118/cu124/cu126/xpu/rocm6.2/rocm6.3/rocm6.4
 
 
 Install via PyPI
