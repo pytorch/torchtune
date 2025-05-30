@@ -464,12 +464,14 @@
 <span class="sd">the llama3_2_1b model builder uses the llama3_2 component builder to create the</span>
 <span class="sd">Llama3.2 1B model.</span>
 <span class="sd">&quot;&quot;&quot;</span>
+
+
 <div class="viewcode-block" id="llama3_2_1b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.llama3_2_1b.html#torchtune.models.llama3_2.llama3_2_1b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_1b</span><span class="p">(</span>
     <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama3.2 model initialized w/ the default 1b parameter values.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        tie_word_embeddings (bool): whether the model&#39;s input and output word embeddings should be tied.</span>
 
@@ -490,6 +492,8 @@
         <span class="n">scale_factor</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
         <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="llama3_2_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.llama3_2_3b.html#torchtune.models.llama3_2.llama3_2_3b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">llama3_2_3b</span><span class="p">(</span>
     <span class="n">tie_word_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
@@ -516,6 +520,8 @@
         <span class="n">scale_factor</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
         <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="lora_llama3_2_1b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.lora_llama3_2_1b.html#torchtune.models.llama3_2.lora_llama3_2_1b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_1b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -532,7 +538,7 @@
 <span class="sd">    The Llama3.2 defaults are the same as in :func:`~torchtune.models.llama3_2.llama3_2_1b`,</span>
 <span class="sd">    while LoRA default params are based on</span>
 <span class="sd">    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        lora_attn_modules (list[LORA_ATTN_MODULES]): list of which linear layers</span>
 <span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
@@ -574,6 +580,8 @@
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
         <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="lora_llama3_2_3b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3_2.lora_llama3_2_3b.html#torchtune.models.llama3_2.lora_llama3_2_3b">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">lora_llama3_2_3b</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -610,7 +618,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama3.2 3B model with LoRA applied</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-           
     <span class="k">return</span> <span class="n">lora_llama3_2</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
         <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
@@ -633,6 +640,8 @@
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
         <span class="n">tie_word_embeddings</span><span class="o">=</span><span class="n">tie_word_embeddings</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+
 <span class="n">qlora_llama3_2_1b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_llama3_2_1b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">qlora_llama3_2_1b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">Builder for creating a Llama3.2 1B model with QLoRA enabled. Base model weights in linear layers</span>

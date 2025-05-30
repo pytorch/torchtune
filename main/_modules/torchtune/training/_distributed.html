@@ -454,12 +454,13 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
@@ -477,6 +478,10 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.device_mesh</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeviceMesh</span><span class="p">,</span> <span class="n">init_device_mesh</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.fsdp</span><span class="w"> </span><span class="kn">import</span> <span class="n">FSDPModule</span><span class="p">,</span> <span class="n">ShardingStrategy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.tensor.experimental</span><span class="w"> </span><span class="kn">import</span> <span class="n">context_parallel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.distributed.tensor.experimental._attention</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_rotate_method</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.attention</span><span class="w"> </span><span class="kn">import</span> <span class="n">sdpa_kernel</span><span class="p">,</span> <span class="n">SDPBackend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.attention.flex_attention</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlockMask</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules.module</span><span class="w"> </span><span class="kn">import</span> <span class="n">_IncompatibleKeys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optimizer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchao.dtypes.nf4tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
@@ -506,26 +511,28 @@
     <span class="n">dp_replicate</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">dp_shard</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">tp</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">cp</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">world_size</span><span class="p">:</span> <span class="nb">int</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">dp_replicate</span><span class="p">,</span> <span class="n">dp_shard</span><span class="p">,</span> <span class="n">tp</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">dp_replicate</span><span class="p">,</span> <span class="n">dp_shard</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">cp</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cp</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">(</span><span class="n">dp_replicate</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="p">(</span><span class="n">dp_replicate</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">cp</span><span class="p">):</span>
             <span class="k">assert</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Parallelism degree should be &gt;= 1, except for dp_shard&quot;</span>
 
         <span class="k">assert</span> <span class="n">dp_shard</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">dp_shard</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot; dp_shard must -1 or &gt;=1.&quot;</span>
         <span class="k">if</span> <span class="n">dp_shard</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span> <span class="o">=</span> <span class="n">dp_shard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">//</span> <span class="p">(</span><span class="n">dp_replicate</span> <span class="o">*</span> <span class="n">tp</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span> <span class="o">=</span> <span class="n">dp_shard</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">//</span> <span class="p">(</span><span class="n">dp_replicate</span> <span class="o">*</span> <span class="n">tp</span> <span class="o">*</span> <span class="n">cp</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">dp_shard</span> <span class="o">&gt;=</span> <span class="mi">1</span>
 
-        <span class="k">assert</span> <span class="n">dp_replicate</span> <span class="o">*</span> <span class="n">dp_shard</span> <span class="o">*</span> <span class="n">tp</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">,</span> <span class="p">(</span>
+        <span class="k">assert</span> <span class="n">dp_replicate</span> <span class="o">*</span> <span class="n">dp_shard</span> <span class="o">*</span> <span class="n">tp</span> <span class="o">*</span> <span class="n">cp</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="p">,</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Invalid parallel dims: dp_replicate(</span><span class="si">{</span><span class="n">dp_replicate</span><span class="si">}</span><span class="s2">) * dp_shard(</span><span class="si">{</span><span class="n">dp_shard</span><span class="si">}</span><span class="s2">) * &quot;</span>
             <span class="sa">f</span><span class="s2">&quot;tp(</span><span class="si">{</span><span class="n">tp</span><span class="si">}</span><span class="s2">) != WORLD_SIZE(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">world_size</span><span class="si">}</span><span class="s2">)&quot;</span>
         <span class="p">)</span>
@@ -534,8 +541,8 @@
         <span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="p">],</span>
-            <span class="p">[</span><span class="s2">&quot;dp_replicate&quot;</span><span class="p">,</span> <span class="s2">&quot;dp_shard&quot;</span><span class="p">,</span> <span class="s2">&quot;tp&quot;</span><span class="p">],</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="p">],</span>
+            <span class="p">[</span><span class="s2">&quot;dp_replicate&quot;</span><span class="p">,</span> <span class="s2">&quot;dp_shard&quot;</span><span class="p">,</span> <span class="s2">&quot;cp&quot;</span><span class="p">,</span> <span class="s2">&quot;tp&quot;</span><span class="p">],</span>
         <span class="p">):</span>
             <span class="k">if</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
@@ -548,16 +555,35 @@
         <span class="c1"># initialized:</span>
         <span class="c1"># Mesh for data loading (no communication on this mesh)</span>
         <span class="n">dp_mesh_dim_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dp_shard_cp_mesh_dim_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dp_cp_mesh_dim_names</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_replicate_enabled</span><span class="p">:</span>
             <span class="n">dp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;dp_replicate&quot;</span><span class="p">)</span>
+            <span class="n">dp_cp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;dp_replicate&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dp_shard_enabled</span><span class="p">:</span>
             <span class="n">dp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;dp_shard&quot;</span><span class="p">)</span>
+            <span class="n">dp_shard_cp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;dp_shard&quot;</span><span class="p">)</span>
+            <span class="n">dp_cp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;dp_shard&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_enabled</span><span class="p">:</span>
+            <span class="n">dp_shard_cp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;cp&quot;</span><span class="p">)</span>
+            <span class="n">dp_cp_mesh_dim_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;cp&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">dp_mesh_dim_names</span> <span class="o">!=</span> <span class="p">[]:</span>
             <span class="n">mesh</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">dp_mesh_dim_names</span><span class="p">)]</span><span class="o">.</span><span class="n">_flatten</span><span class="p">(</span><span class="n">mesh_dim_name</span><span class="o">=</span><span class="s2">&quot;dp&quot;</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">dp_shard_cp_mesh_dim_names</span> <span class="o">!=</span> <span class="p">[]:</span>
+            <span class="n">mesh</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">dp_shard_cp_mesh_dim_names</span><span class="p">)]</span><span class="o">.</span><span class="n">_flatten</span><span class="p">(</span>
+                <span class="n">mesh_dim_name</span><span class="o">=</span><span class="s2">&quot;dp_shard_cp&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">dp_cp_mesh_dim_names</span> <span class="o">!=</span> <span class="p">[]:</span>
+            <span class="n">mesh</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">dp_cp_mesh_dim_names</span><span class="p">)]</span><span class="o">.</span><span class="n">_flatten</span><span class="p">(</span><span class="n">mesh_dim_name</span><span class="o">=</span><span class="s2">&quot;dp_cp&quot;</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">mesh</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cp_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span> <span class="o">&gt;</span> <span class="mi">1</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">dp_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -578,7 +604,22 @@
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">non_data_parallel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># update below as more parallelism options are implemented</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">min_seq_len_divisor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This property can be used for padding batches to a sequence length that is valid for</span>
+<span class="sd">        the given ParallelDims.</span>
+
+<span class="sd">        Sequence parallelism requires that seq_len be divisible by TP dim.</span>
+<span class="sd">        Ref: https://github.com/pytorch/torchtitan/pull/640#discussion_r1849481001</span>
+
+<span class="sd">        Context parallelism requires that seq_len be divisible by 2 * CP dim.</span>
+<span class="sd">        Ref: https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_sharding_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ShardingStrategy</span><span class="p">:</span>
@@ -1175,6 +1216,113 @@
     <span class="k">if</span> <span class="n">is_fusion_model</span><span class="p">:</span>
         <span class="n">model</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
     <span class="k">return</span> <span class="n">model</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_sdpa_context</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="p">(</span>
+    <span class="n">Callable</span><span class="p">[[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]],</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a context manager to confine to flash/efficient/cuDNN attention backends.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A context manager function that takes an optional context parallel context.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">context</span><span class="p">(</span><span class="n">cp_context</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cp_context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
+                    <span class="n">sdpa_kernel</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="n">SDPBackend</span><span class="o">.</span><span class="n">FLASH_ATTENTION</span><span class="p">,</span>
+                            <span class="n">SDPBackend</span><span class="o">.</span><span class="n">EFFICIENT_ATTENTION</span><span class="p">,</span>
+                            <span class="n">SDPBackend</span><span class="o">.</span><span class="n">CUDNN_ATTENTION</span><span class="p">,</span>
+                        <span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">cp_context</span><span class="p">)</span>
+
+            <span class="k">yield</span>
+
+    <span class="k">return</span> <span class="n">context</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_context_parallel_manager</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">world_mesh</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">DeviceMesh</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Context manager for applying context parallelism to a model. In addition to applying the</span>
+<span class="sd">    standard context manager to patch SDPA and shard model inputs and buffers along the sequence</span>
+<span class="sd">    dimension, this context manager also calls into _get_sdpa_context to filter to acceptable SDPA backends.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        enabled (bool): Whether context parallel is enabled. Default: False</span>
+<span class="sd">        world_mesh (torch.distributed.DeviceMesh): Global device mesh.</span>
+<span class="sd">        model (TransformerDecoder): Model to apply context parallelism to.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A context manager applying context parallelism if enabled is True. Otherwise a context manager</span>
+<span class="sd">        disabling the math SDPA backend.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if enabled is True but world_mesh does not contain a &quot;cp&quot; dimension</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        ```python</span>
+<span class="sd">        context_parallel_manager = get_context_parallel_manager(</span>
+<span class="sd">            enabled=parallel_dims.enabled,</span>
+<span class="sd">            cp_mesh=world_mesh[&quot;cp&quot;] if parallel_dims.enabled else None,</span>
+<span class="sd">            model=model,</span>
+<span class="sd">        )</span>
+<span class="sd">        batch = {&quot;inputs&quot;: inputs, &quot;labels&quot;: labels}</span>
+<span class="sd">        with get_context_parallel_manager(list(batch.values())):</span>
+<span class="sd">            logits = model(inputs)</span>
+<span class="sd">            loss = loss(logits, labels)</span>
+<span class="sd">            loss.backward()</span>
+<span class="sd">        ```</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="s2">&quot;cp&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">world_mesh</span><span class="o">.</span><span class="n">mesh_dim_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Context parallel is enabled but no context parallel device mesh is provided.&quot;</span>
+        <span class="p">)</span>
+    <span class="c1"># TODO: context parallel for multimodal models requires extra work</span>
+    <span class="k">if</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">TransformerDecoder</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Context parallel is only supported for text models&quot;</span><span class="p">)</span>
+    <span class="c1"># TODO: this is a hacky proxy for whether we use flex for chunked attention</span>
+    <span class="c1"># remove this once flex is supported</span>
+    <span class="k">if</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">layer</span><span class="o">.</span><span class="n">mask_mod</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Context parallel with flex attention is not yet supported&quot;</span><span class="p">)</span>
+    <span class="n">model_buffers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">buffers</span><span class="p">())</span>
+
+    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">context</span><span class="p">(</span><span class="n">model_inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]):</span>
+        <span class="c1"># Create context parallel context if enabled</span>
+        <span class="n">cp_context</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">BlockMask</span><span class="p">)</span> <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="n">model_inputs</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Context parallel with flex attention is not yet supported&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">enabled</span><span class="p">:</span>
+            <span class="n">set_rotate_method</span><span class="p">(</span><span class="s2">&quot;allgather&quot;</span><span class="p">)</span>
+            <span class="n">cp_context</span> <span class="o">=</span> <span class="n">context_parallel</span><span class="p">(</span>
+                <span class="n">world_mesh</span><span class="p">[</span><span class="s2">&quot;cp&quot;</span><span class="p">],</span>
+                <span class="n">buffers</span><span class="o">=</span><span class="n">model_inputs</span> <span class="o">+</span> <span class="n">model_buffers</span><span class="p">,</span>
+                <span class="n">buffer_seq_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_inputs</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_buffers</span><span class="p">),</span>
+                <span class="n">no_restore_buffers</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">model_inputs</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Create and enter the train context with the optional cp_context</span>
+        <span class="n">sdpa_context</span> <span class="o">=</span> <span class="n">_get_sdpa_context</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">sdpa_context</span><span class="p">(</span><span class="n">cp_context</span><span class="p">):</span>
+            <span class="k">yield</span>
+
+    <span class="k">return</span> <span class="n">context</span>
 </pre></div>
 
              </article>
