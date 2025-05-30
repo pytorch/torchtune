@@ -67,7 +67,6 @@ Let's look for the right config for this use case by using the tune CLI.
     $ tune ls
     RECIPE                                  CONFIG
     full_finetune_single_device             llama2/7B_full_low_memory
-                                            code_llama2/7B_full_low_memory
                                             llama3/8B_full_single_device
                                             llama3_1/8B_full_single_device
                                             llama3_2/1B_full_single_device
