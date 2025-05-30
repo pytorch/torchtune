@@ -116,7 +116,7 @@ class ParallelDims:
             dp_mesh_dim_names.append("dp_shard")
             dp_shard_cp_mesh_dim_names.append("dp_shard")
             dp_cp_mesh_dim_names.append("dp_shard")
-        if self.enabled:
+        if self.cp_enabled:
             dp_shard_cp_mesh_dim_names.append("cp")
             dp_cp_mesh_dim_names.append("cp")
 
