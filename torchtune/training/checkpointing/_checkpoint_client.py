@@ -122,6 +122,7 @@ class CheckpointClient:
         self,
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
+        scheduler: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         training_progress: TrainingProgress,
         epoch: int,
         adapter_config: Optional[dict[str, Any]],
@@ -151,6 +152,7 @@ class CheckpointClient:
 
         ckpt_dict[training.MODEL_KEY] = model.state_dict()
         ckpt_dict[training.OPT_KEY] = optimizer.state_dict()
+        ckpt_dict[training.SCHEDULER_KEY] = scheduler.state_dict()
 
         if adapter_config is not None:
             ckpt_dict.update(
@@ -205,6 +207,7 @@ class CheckpointClient:
         self,
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
+        scheduler: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         training_progress: TrainingProgress,
         epoch: int,
         adapter_config: Optional[dict[str, Any]],
@@ -278,6 +281,7 @@ class CheckpointClient:
                     )
             else:
                 optim_state_dict = optimizer.state_dict()
+                scheduler_state_dict = scheduler.state_dict()
 
             if self._is_rank_zero:
                 log.info(
@@ -291,6 +295,7 @@ class CheckpointClient:
             # as well.
             if intermediate_checkpoint:
                 checkpoint_dict.update({training.OPT_KEY: optim_state_dict})
+                checkpoint_dict.update({training.SCHEDULER_KEY: scheduler_state_dict})
                 checkpoint_dict.update(training_progress.state_dict())
 
             if adapter_config is not None:
@@ -337,6 +342,7 @@ class CheckpointClient:
         self,
         model: torch.nn.Module,
         optimizer: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
+        scheduler: Union[torch.optim.Optimizer, OptimizerInBackwardWrapper],
         training_progress: TrainingProgress,
         epoch: int,
         adapter_config: Optional[dict[str, Any]] = None,
@@ -360,6 +366,7 @@ class CheckpointClient:
             self._save_checkpoint_async(
                 model,
                 optimizer,
+                scheduler,
                 training_progress,
                 epoch,
                 adapter_config,
@@ -369,6 +376,7 @@ class CheckpointClient:
             self._save_checkpoint_sync(
                 model,
                 optimizer,
+                scheduler,
                 training_progress,
                 epoch,
                 adapter_config,

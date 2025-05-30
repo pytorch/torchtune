@@ -678,6 +678,7 @@ class QATRecipeSingleDevice(FTRecipeInterface):
             checkpoint_dict.update(
                 {
                     training.OPT_KEY: self._optimizer.state_dict(),
+                    training.SCHEDULER_KEY: self._lr_scheduler.state_dict(),
                     training.SEED_KEY: self.seed,
                     training.EPOCHS_KEY: self.epochs_run,
                     training.TOTAL_EPOCHS_KEY: self.total_epochs,

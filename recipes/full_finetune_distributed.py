@@ -469,6 +469,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_lr_scheduler=cfg.get("lr_scheduler", None),
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
+            scheduler_state_dict=(
+                checkpoint_dict[training.SCHEDULER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
         )
 
         # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
@@ -487,6 +492,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_lr_scheduler: Optional[DictConfig],
         num_training_steps: int,
         last_epoch: int,
+        scheduler_state_dict: Optional[dict[str, Any]] = None,
     ) -> Optional[Optimizer]:
         """
         Set up the learning rate scheduler based on the provided configuration.
@@ -521,6 +527,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
+
+        if scheduler_state_dict:
+            lr_scheduler.load_state_dict(scheduler_state_dict)
 
         if self._optimizer_in_bwd:
             # Modify the scheduler for optimizer_in_bwd case
@@ -1071,6 +1080,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     if not self._optimizer_in_bwd
                     else self._optim_ckpt_wrapper
                 ),
+                scheduler=self._lr_scheduler,
                 training_progress=TrainingProgress(
                     seed=self.seed,
                     epochs_run=self.epochs_run,
@@ -1080,7 +1090,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ),
                 epoch=curr_epoch,
             )
-
         self._profiler.stop()
 
     def cleanup(self) -> None:
