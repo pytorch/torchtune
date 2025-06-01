@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Optional, Union, Tuple
+from typing import Any, Optional, Union
 from warnings import warn
 
 import torch
@@ -570,7 +570,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
-    ) ->Tuple[torch.Tensor, torch.Tensor]:
+    ) ->tuple[torch.Tensor, torch.Tensor]:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
