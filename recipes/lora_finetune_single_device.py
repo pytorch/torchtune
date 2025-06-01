@@ -15,7 +15,6 @@ from omegaconf import DictConfig
 from recipes.full_finetune_single_device import FullFinetuneRecipeSingleDevice
 
 from torch import nn
-from torch.optim import Optimizer
 from torchtune import config, modules, training, utils
 from torchtune.modules.loss import SFTLoss
 from torchtune.modules.peft import (
@@ -154,7 +153,7 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
         self._tokenizer = config.instantiate(cfg.tokenizer)
         self._logger.info("Tokenizer is initialized from file.")
 
-        self._optimizer = self._setup_optimizer(
+        self.optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
                 checkpoint_dict[training.OPT_KEY]
@@ -171,7 +170,7 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
             if self._enable_async_checkpointing:
                 checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
                     self._model,
-                    self._optimizer,
+                    self.optimizer,
                     self._adapter_config,
                 )
 
@@ -317,36 +316,10 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
             training.log_memory_stats(memory_stats)
         return model
 
-    def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[dict[str, Any]] = None
-    ) -> Optimizer:
-        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
-        if opt_state_dict:
-            optimizer.load_state_dict(opt_state_dict)
-
-        self._logger.info("Optimizer and loss are initialized.")
-        return optimizer
-
-    def _setup_lr_scheduler(
-        self,
-        cfg_lr_scheduler: DictConfig,
-        num_training_steps: int,
-        last_epoch: int,
-    ) -> Optimizer:
-        lr_scheduler = config.instantiate(
-            cfg_lr_scheduler,
-            self._optimizer,
-            num_training_steps=num_training_steps,
-            last_epoch=last_epoch,
-        )
-
-        self._logger.info("Learning rate scheduler is initialized.")
-        return lr_scheduler
-
     def save_checkpoint(self, epoch: int) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
-            optimizer=self._optimizer,
+            optimizer=self.optimizer,
             training_progress=TrainingProgress(
                 seed=self.seed,
                 epochs_run=self.epochs_run,
@@ -408,8 +381,8 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
                                 self._model.parameters(),
                                 max_norm=float(self._clip_grad_norm),
                             )
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
+                        self.optimizer.step()
+                        self.optimizer.zero_grad(set_to_none=True)
                         self._lr_scheduler.step()
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
@@ -425,7 +398,7 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
                             time_per_step = time.perf_counter() - t0
                             log_dict = {
                                 "loss": loss_to_log,
-                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "lr": self.optimizer.param_groups[0]["lr"],
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if (
