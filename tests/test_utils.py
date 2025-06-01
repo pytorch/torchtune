@@ -21,7 +21,6 @@ from torch import nn
 from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
-from torchtune.training._compile import compile_model
 
 
 CKPT_MODEL_PATHS = {

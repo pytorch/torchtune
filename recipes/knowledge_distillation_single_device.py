@@ -570,7 +570,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
-    ) ->tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
