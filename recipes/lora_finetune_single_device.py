@@ -7,22 +7,16 @@
 import sys
 import time
 
-from functools import partial
-from typing import Any, Optional, Union
-from warnings import warn
+from typing import Any, Optional
 
 import torch
 import torchtune.modules.common_utils as common_utils
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig
+from recipes.full_finetune_single_device import FullFinetuneRecipeSingleDevice
 
 from torch import nn
 from torch.optim import Optimizer
-from torchdata.stateful_dataloader import StatefulDataLoader
-from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 from torchtune import config, modules, training, utils
-from torchtune.config._utils import _get_component_from_path
-from torchtune.data import padded_collate_packed
-from torchtune.datasets import ConcatDataset
 from torchtune.modules.loss import SFTLoss
 from torchtune.modules.peft import (
     get_adapter_params,
@@ -30,8 +24,7 @@ from torchtune.modules.peft import (
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
-from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.training import DummyProfiler, PROFILER_KEY
+from torchtune.training import PROFILER_KEY
 from torchtune.training.checkpointing._checkpoint_client import (
     CheckpointClient,
     TrainingProgress,
@@ -40,7 +33,7 @@ from torchtune.training.checkpointing._checkpoint_client import (
 from tqdm import tqdm
 
 
-class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
+class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
     for single GPU training. Training on CPU is not supported.
@@ -188,46 +181,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
-    def _update_recipe_state(self, ckpt_dict: dict[str, Any]) -> None:
-        """
-        Updates the recipe state from checkpoint.
-        """
-        try:
-            self.epochs_run = ckpt_dict[training.EPOCHS_KEY]
-
-            # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[training.SEED_KEY]:
-                warn(
-                    message=(
-                        "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.SEED_KEY]}"
-                    )
-                )
-                self.seed = ckpt_dict[training.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[training.MAX_STEPS_KEY]:
-                warn(
-                    message=(
-                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[training.MAX_STEPS_KEY]}"
-                    )
-                )
-                self.max_steps_per_epoch = ckpt_dict[training.MAX_STEPS_KEY]
-
-            # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[training.TOTAL_EPOCHS_KEY]:
-                warn(
-                    message=(
-                        "Config value for total_epochs does not match the checkpoint value, "
-                        f"using the config value: {self.total_epochs}"
-                    )
-                )
-
-        except KeyError as e:
-            raise KeyError(
-                "Checkpoint does not contain the required keys needed for updating recipe state. "
-                "Are you sure you passed in the right recipe checkpoint?"
-            ) from e
-
     def setup(self, cfg: DictConfig) -> None:
         """
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
@@ -344,38 +297,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
-    def _setup_profiler(
-        self, cfg_profiler: Optional[DictConfig] = None
-    ) -> Union[torch.profiler.profile, DummyProfiler]:
-        """
-        Parses the `profiler` section of top-level `cfg` and sets up profiler
-        """
-
-        # Missing profiler section in config, assume disabled
-        if cfg_profiler is None:
-            cfg_profiler = DictConfig({"enabled": False})
-
-        # Check that component is included and set correctly
-        if cfg_profiler.get("_component_", None) is None:
-            cfg_profiler["_component_"] = "torchtune.training.setup_torch_profiler"
-        else:
-            assert (
-                cfg_profiler.get("_component_")
-                == "torchtune.training.setup_torch_profiler"
-            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
-
-        profiler, profiler_cfg = config.instantiate(cfg_profiler)
-
-        self._logger.info(f" Profiler config after instantiation: {profiler_cfg}")
-
-        self.profiler_profile_memory = profiler_cfg.get("profile_memory", False)
-        if profiler_cfg["enabled"]:
-            self.profiler_wait_steps = profiler_cfg["wait_steps"]
-            self.profiler_warmup_steps = profiler_cfg["warmup_steps"]
-            self.profiler_active_steps = profiler_cfg["active_steps"]
-
-        return profiler
-
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -487,60 +408,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._logger.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
-    def _setup_data(
-        self,
-        cfg_dataset: DictConfig,
-        shuffle: bool,
-        batch_size: int,
-        collate_fn: str,
-    ) -> StatefulDataLoader:
-        """
-        All data related setup happens here. This recipe currently supports only
-        map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
-        it is loaded into the dataloader.
-        """
-        if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
-            ds = ConcatDataset(datasets=datasets)
-            packed = getattr(ds, "packed", False)
-        else:
-            ds = config.instantiate(cfg_dataset, self._tokenizer)
-            packed = cfg_dataset.get("packed", False)
-
-        # Instantiate collate_fn
-        if "left_pad_sequence" in collate_fn:
-            raise RuntimeError("left_pad_sequence collator is only for inference.")
-        collate_fn = _get_component_from_path(collate_fn)
-
-        sampler = StatefulDistributedSampler(
-            ds,
-            num_replicas=1,
-            rank=0,
-            shuffle=shuffle,
-            seed=0,
-        )
-        dataloader = StatefulDataLoader(
-            dataset=ds,
-            batch_size=batch_size,
-            sampler=sampler,
-            collate_fn=(
-                partial(
-                    collate_fn,
-                    padding_idx=self._tokenizer.pad_id,
-                    ignore_idx=self._loss_fn.ignore_index,
-                )
-                if not packed
-                else padded_collate_packed
-            ),
-            # dropping last avoids shape issues with compile + flex attention
-            drop_last=True,
-        )
-
-        return dataloader
-
     def save_checkpoint(self, epoch: int) -> None:
         self._checkpoint_client.save_checkpoint(
             model=self._model,
@@ -557,26 +424,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             adapter_only=self._save_adapter_weights_only,
             single_device=True,
         )
-
-    def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
-        # Shape [b, s], needed for the loss not the model
-        labels = batch.pop("labels")
-        # run model
-        with self.activations_handling_ctx:
-            outputs = self._model(**batch)
-
-        # post process for third party loss functions
-        if not isinstance(self._loss_fn, SFTLoss):
-            labels = labels.reshape(-1)
-            outputs = outputs.reshape(-1, outputs.size(-1))
-
-        # Compute loss
-        loss = self._loss_fn(outputs, labels)
-
-        # free outputs otherwise it peaks backward memory
-        del outputs
-
-        return loss
 
     def train(self) -> None:
         """
