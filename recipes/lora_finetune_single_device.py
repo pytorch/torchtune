@@ -25,10 +25,7 @@ from torchtune.modules.peft import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.training import PROFILER_KEY
-from torchtune.training.checkpointing._checkpoint_client import (
-    CheckpointClient,
-    TrainingProgress,
-)
+from torchtune.training.checkpointing._checkpoint_client import TrainingProgress
 
 from tqdm import tqdm
 
@@ -116,70 +113,8 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
-        # Reduced precision logic
-        self._dtype = training.get_dtype(cfg.dtype, device=self._device)
-        # fp16 precision is explicitly disabled as it is not supported in this
-        # recipe (for example, no gradient scaling).
-        if self._dtype == torch.float16:
-            raise ValueError(
-                "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
-            )
-
-        # logging attributes
-        self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
-        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-        self._logger = utils.get_logger(cfg.log_level)
-
-        if self._log_peak_memory_stats and self._device.type == "cpu":
-            self._logger.info(
-                "log_peak_memory_stats was set to True, however, training uses cpu. Setting log_peak_memory_stats=False."
-            )
-            self._log_peak_memory_stats = False
-
-        # These are public properties which are updated by the checkpoint loader
-        # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = training.set_seed(
-            seed=cfg.seed, debug_mode=cfg.get("cudnn_deterministic_mode", None)
-        )
-        self.epochs_run = 0
-        self.total_epochs = cfg.epochs
-        self.max_steps_per_epoch = cfg.max_steps_per_epoch
-        self.global_step = 0
-        self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        super().__init__(cfg=cfg)
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
-        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._clip_grad_norm = cfg.get("clip_grad_norm", None)
-
-        self._enable_async_checkpointing = cfg.get("enable_async_checkpointing", False)
-        self._checkpoint_client = CheckpointClient(cfg)
-
-        # activation checkpointing/offloading
-        self._enable_activation_checkpointing = cfg.get(
-            "enable_activation_checkpointing", False
-        )
-        self._enable_activation_offloading = cfg.get(
-            "enable_activation_offloading", False
-        )
-        if self._enable_activation_offloading:
-            if self._device.type != "cuda":
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when training on CUDA"
-                )
-            if not self._enable_activation_checkpointing:
-                raise RuntimeError(
-                    "enable_activation_offloading should only be True when enable_activation_checkpointing is True"
-                )
-        elif (
-            self._enable_activation_checkpointing
-            and cfg.checkpointer.model_type != "LLAMA3_VISION"
-        ):
-            utils.log_rank_zero(
-                self._logger,
-                "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
-                "Enabling activation offloading should reduce memory further.",
-            )
 
     def setup(self, cfg: DictConfig) -> None:
         """
