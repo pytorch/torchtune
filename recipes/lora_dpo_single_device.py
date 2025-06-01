@@ -478,10 +478,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop.
         """
-        if self._model_compile:
-            self._logger.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
+        
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()

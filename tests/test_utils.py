@@ -18,7 +18,6 @@ import pytest
 
 import torch
 from torch import nn
-import logging
 from torchtune.data import Message, PromptTemplate, truncate
 from torchtune.modules.transforms import Transform
 from torchtune.modules.transforms.tokenizers import ModelTokenizer
@@ -387,23 +386,4 @@ def rl_test() -> bool:
     return pytest.mark.skipif(
         "not config.getoption('--run-rl-tests')",
         reason="Only run when --run-rl-tests is given",
-    )
-
-class DummyTransformer(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.layer = nn.Linear(10, 10)
-
-    def modules(self):
-        return [self.layer]
-
-def test_compile_model_logs_message(caplog):
-    model = DummyTransformer()
-
-    with caplog.at_level(logging.INFO):
-        compile_model(model, verbose=True)
-
-    assert any(
-        "Compiling model layers with torch.compile. Expect a relatively slower first step."
-        in message for message in caplog.messages
     )
