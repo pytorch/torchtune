@@ -929,7 +929,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop."""
 
-        
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
