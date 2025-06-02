@@ -177,7 +177,6 @@ def dora_llama2_expected_adapter_keys():
 
 @pytest.fixture
 def lora_llama2_expected_base_model_keys():
-
     base_model = llama2(
         vocab_size=VOCAB_SIZE,
         num_layers=N_LAYERS,
@@ -393,7 +392,6 @@ class TestPeftUtils:
         lora_unexpected,
         expected,
     ):
-
         if expected:
             with pytest.raises(RuntimeError, match=expected):
                 validate_missing_and_unexpected_for_lora(

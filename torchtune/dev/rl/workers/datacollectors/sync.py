@@ -6,7 +6,7 @@
 
 import time
 from functools import partial
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 import ray
 import torch
@@ -154,7 +154,7 @@ class SyncLLMCollector(SyncDataCollector):
         del response_padding_masks
 
         # Generate unique sequence IDs for the batch
-        # FIXME: it outputs a List[List[str]] when sampling from replay buffer, with shape num_samples X 16.
+        # FIXME: it outputs a list[list[str]] when sampling from replay buffer, with shape num_samples X 16.
         # It should have shape num_samplesX1, so we can log a single sequence_id per sequence.
         batch_size = query_responses.shape[0]
         sequence_ids = NonTensorStack(
@@ -174,10 +174,8 @@ class SyncLLMCollector(SyncDataCollector):
             seq_lens=seq_lens,
             answers=answers,
             policy_version=policy_version,
-            rewards=None,
+            reward_outputs=None,
             advantages=None,
-            successes=None,
-            reward_metadata=None,
             sequence_ids=sequence_ids,
         )
 
@@ -316,7 +314,7 @@ class SyncLLMCollector(SyncDataCollector):
         shuffle: bool,
         batch_size: int,
         collate_fn: str,
-        dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        dataloader_state_dict: Optional[dict[str, Any]] = None,
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. Currently this recipe only supports the

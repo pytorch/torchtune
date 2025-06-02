@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import json
 import tempfile
 from io import StringIO
 from typing import cast
@@ -30,7 +31,7 @@ from torchtune.training.metric_logging import (
 
 
 class TestDiskLogger:
-    def test_log(self) -> None:
+    def test_log_txt(self) -> None:
         with tempfile.TemporaryDirectory() as log_dir:
             logger = DiskLogger(log_dir=log_dir)
             for i in range(5):
@@ -44,7 +45,7 @@ class TestDiskLogger:
             for i in range(5):
                 assert values[i] == f"Step {i} | test_log:{float(i) ** 2}\n"
 
-    def test_log_dict(self) -> None:
+    def test_log_dict_txt(self) -> None:
         with tempfile.TemporaryDirectory() as log_dir:
             logger = DiskLogger(log_dir=log_dir)
             for i in range(5):
@@ -56,7 +57,44 @@ class TestDiskLogger:
             values = open(log_path).readlines()
             assert_expected(len(values), 5)
             for i in range(5):
-                assert values[i] == f"Step {i} | metric_1:{i} metric_2:{i ** 2} \n"
+                assert values[i] == f"Step {i} | metric_1:{i} metric_2:{i**2} \n"
+
+    def test_log_jsonl(self) -> None:
+        with tempfile.TemporaryDirectory() as log_dir:
+            logger = DiskLogger(log_dir=log_dir, output_fmt="jsonl")
+            for i in range(5):
+                logger.log("test_log", float(i) ** 2, i)
+            logger.close()
+
+            log_path = logger.path_to_log_file()
+            assert log_path.exists()
+            values = open(log_path).readlines()
+            assert_expected(len(values), 5)
+            for i in range(5):
+                json_line = json.loads(values[i].strip())
+                assert json_line == {
+                    "step": i,
+                    "test_log": float(i) ** 2,
+                }, f"Unexpected JSON line: {json_line}"
+
+    def test_log_dict_jsonl(self) -> None:
+        with tempfile.TemporaryDirectory() as log_dir:
+            logger = DiskLogger(log_dir=log_dir, output_fmt="jsonl")
+            for i in range(5):
+                logger.log_dict(step=i, payload={"metric_1": i, "metric_2": i**2})
+            logger.close()
+
+            log_path = logger.path_to_log_file()
+            assert log_path.exists()
+            values = open(log_path).readlines()
+            assert_expected(len(values), 5)
+            for i in range(5):
+                json_line = json.loads(values[i].strip())
+                assert json_line == {
+                    "step": i,
+                    "metric_1": i,
+                    "metric_2": i**2,
+                }, f"Unexpected JSON line: {json_line}"
 
 
 class TestStdoutLogger:
@@ -155,12 +193,12 @@ class TestWandBLogger:
             mock_log.assert_called_with(metric_dict, step=1)
 
     def test_save_config(self) -> None:
-        with patch("wandb.init") as mock_init, patch(
-            "wandb.run", create=True
-        ) as mock_run, patch("OmegaConf.save") as mock_save, patch(
-            "wandb.save"
-        ) as mock_wandb_save:
-
+        with (
+            patch("wandb.init") as mock_init,
+            patch("wandb.run", create=True) as mock_run,
+            patch("OmegaConf.save") as mock_save,
+            patch("wandb.save") as mock_wandb_save,
+        ):
             logger = WandBLogger(project="test_project")
             cfg = OmegaConf.create({"a": 1, "b": 2})
 

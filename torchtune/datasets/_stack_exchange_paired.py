@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 from torchtune.data import Message
 from torchtune.datasets._preference import PreferenceDataset
@@ -37,14 +37,14 @@ class StackExchangePairedToMessages(Transform):
     Args:
         train_on_input (bool): Whether the model is trained on the user prompt or not.
             Default is False.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "prompt",
+        column_map (Optional[dict[str, str]]): a mapping to change the expected "prompt",
             "chosen", and "rejected" column names to the actual column names in the dataset.
             Keys should be "prompt", "chosen", and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
     """
 
     def __init__(
-        self, train_on_input: bool = False, column_map: Optional[Dict[str, str]] = None
+        self, train_on_input: bool = False, column_map: Optional[dict[str, str]] = None
     ):
         self.train_on_input = train_on_input
         self._column_map = column_map
@@ -76,11 +76,11 @@ def stack_exchange_paired_dataset(
     tokenizer: ModelTokenizer,
     *,
     source: str = "lvwerra/stack-exchange-paired",
-    column_map: Optional[Dict[str, str]] = None,
+    column_map: Optional[dict[str, str]] = None,
     train_on_input: bool = False,
     filter_fn: Optional[Callable] = None,
     split: str = "train",
-    **load_dataset_kwargs: Dict[str, Any],
+    **load_dataset_kwargs: dict[str, Any],
 ) -> PreferenceDataset:
     """
     Family of preference datasets similar to the `Stack Exchange Paired dataset
@@ -96,7 +96,7 @@ def stack_exchange_paired_dataset(
             in the filepath in ``data_files``. See `Hugging Face's
             <https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path>`_
             ``load_dataset`` for more details. Default is ``lvwerra/stack-exchange-paired``.
-        column_map (Optional[Dict[str, str]]): a mapping to change the expected "prompt",
+        column_map (Optional[dict[str, str]]): a mapping to change the expected "prompt",
             "chosen", and "rejected" column names to the actual column names in the dataset.
             Keys should be "prompt", "chosen", and "rejected" and values should be the actual column names.
             Default is None, keeping the default column names.
@@ -106,7 +106,7 @@ def stack_exchange_paired_dataset(
             details.
         split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset
             of a given split, e.g. ``split="train[:10%]"``. Default is "train".
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+        **load_dataset_kwargs (dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
         PreferenceDataset: The preference dataset built from source paired data.

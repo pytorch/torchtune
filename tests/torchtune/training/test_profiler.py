@@ -164,7 +164,6 @@ def test_instantiate_full(profiler_cfg, reference_profiler_full):
 
 
 def test_schedule_setup(profiler_cfg, reference_profiler_basic):
-
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
 
     # Test that after removing schedule, setup method will implement default schedule
@@ -235,7 +234,6 @@ def test_default_trace_opts(profiler_cfg):
 
 
 def test_dummy_profiler(profiler_cfg):
-
     # Test missing `profile` key returns fake profiler
     cfg = OmegaConf.create(profiler_cfg)
     cfg.pop(PROFILER_KEY)

@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict
-
 import torch.nn as nn
 from torch.distributed.tensor import Partial, Replicate, Shard
 
@@ -25,7 +23,7 @@ from torchtune.modules.moe._parallelism import (
 from torchtune.modules.moe.moe import MoE
 
 
-def decoder_only_tp_training_plan(model: nn.Module) -> Dict[str, ParallelStyle]:
+def decoder_only_tp_training_plan(model: nn.Module) -> dict[str, ParallelStyle]:
     """
     Helper function to get the tensor parallel plan for Llama4 where only the decoder is parallelized.
     For our implementation to work with fused optimizers, we need to parallelize RMSNorm layers with SequenceParallel.
@@ -36,7 +34,7 @@ def decoder_only_tp_training_plan(model: nn.Module) -> Dict[str, ParallelStyle]:
         model (nn.Module): Model to generate plan for
 
     Returns:
-        Dict[str, Any]: The tensor parallel plan for Llama4 model.
+        dict[str, Any]: The tensor parallel plan for Llama4 model.
     """
     plan = {
         "decoder": PrepareModuleInput(
@@ -62,12 +60,11 @@ def decoder_only_tp_training_plan(model: nn.Module) -> Dict[str, ParallelStyle]:
     }
 
     for layer_id, transformer_block in enumerate(model.decoder.layers):
-
         layer_plan = {
             f"decoder.layers.{layer_id}.sa_norm": SequenceParallel(),
             f"decoder.layers.{layer_id}.attn": PrepareModuleInput(
-                input_layouts=(Shard(1), None),
-                desired_input_layouts=(Replicate(), None),
+                input_layouts=(Shard(1), Shard(1)),
+                desired_input_layouts=(Replicate(), Replicate()),
             ),
             f"decoder.layers.{layer_id}.attn.q_proj": ColwiseParallel(),
             f"decoder.layers.{layer_id}.attn.k_proj": ColwiseParallel(),
@@ -111,7 +108,7 @@ def decoder_only_tp_training_plan(model: nn.Module) -> Dict[str, ParallelStyle]:
     return plan
 
 
-def decoder_only_tp_inference_plan(model: nn.Module) -> Dict[str, ParallelStyle]:
+def decoder_only_tp_inference_plan(model: nn.Module) -> dict[str, ParallelStyle]:
     """
     Helper function to get the tensor parallel plan for Llama4 where only the decoder is parallelized.
     Usage of SequenceParallel requires that tp_dim % seq_len == 0, which will not hold in general
@@ -120,14 +117,13 @@ def decoder_only_tp_inference_plan(model: nn.Module) -> Dict[str, ParallelStyle]
         model (nn.Module): Model to generate plan for
 
     Returns:
-        Dict[str, Any]: The tensor parallel plan for Llama4 model.
+        dict[str, Any]: The tensor parallel plan for Llama4 model.
     """
     plan = {
         "decoder.output": ColwiseParallel(output_layouts=Replicate()),
     }
 
     for layer_id, transformer_block in enumerate(model.decoder.layers):
-
         layer_plan = {
             f"decoder.layers.{layer_id}.attn.q_proj": ColwiseParallel(),
             f"decoder.layers.{layer_id}.attn.k_proj": ColwiseParallel(),
@@ -166,7 +162,7 @@ def decoder_only_tp_inference_plan(model: nn.Module) -> Dict[str, ParallelStyle]
 
 def decoder_only_tp_plan(
     model: nn.Module, inference: bool = False
-) -> Dict[str, ParallelStyle]:
+) -> dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
 
@@ -175,7 +171,7 @@ def decoder_only_tp_plan(
         inference (bool): Whether running inference or not.
 
     Returns:
-        Dict[str, Any]: The tensor parallel plan for Llama3 model.
+        dict[str, Any]: The tensor parallel plan for Llama3 model.
     """
     return (
         decoder_only_tp_inference_plan(model)

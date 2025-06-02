@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict
+from typing import Any
 
 import ray
 import torch
@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 
 from torchtune import config, generation, rlhf, utils
 from torchtune.dev.rl.datatypes import Trajectory
-from torchtune.dev.rl.rewards import batched_rewards
+from torchtune.dev.rl.rewards import Reward, RewardOutput
 
 log = utils.get_logger("DEBUG")
 
@@ -60,11 +60,15 @@ class PostProcessingWorker:
             self._tokenizer.stop_tokens, device=self._device
         )
 
+        self.reward_functions: list[Reward] = [
+            config.instantiate(reward_fn) for reward_fn in self.cfg.reward_functions
+        ]
+
     def set_metric_logger(self, logger):
         if self._is_actor_zero:
             self._metric_logger = logger
 
-    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> Dict[str, Any]:
+    def load_ref_checkpoint(self, cfg_ref_checkpointer: DictConfig) -> dict[str, Any]:
         """Extract the reference checkpoint state from file and validate."""
         self._ref_checkpointer = config.instantiate(
             cfg_ref_checkpointer, resume_from_checkpoint=False
@@ -105,13 +109,8 @@ class PostProcessingWorker:
         time_total_ref_step,
         time_model_running,
         time_waiting_buffer,
-        # full_queue_data_discard,
         rollout_queue_size,
-        rewards_mean,
-        successes_mean,
-        rewards_mean_per_func,
-        successes_mean_per_func,
-        reward_metadata,
+        reward_outputs,
     ):
         """Log metrics for the RefActor, only on actor zero."""
         if not self._is_actor_zero:
@@ -150,32 +149,20 @@ class PostProcessingWorker:
             }
         )
 
+        rewards_mean = torch.tensor(
+            [reward_output.total_reward.mean() for reward_output in reward_outputs]
+        ).mean()
+        successes_mean = torch.tensor(
+            [reward_output.successes.mean() for reward_output in reward_outputs]
+        ).mean()
         log_dict.update(
             {
                 "postprocessing_worker_rewards/rewards_mean": rewards_mean.item(),
                 "postprocessing_worker_rewards/successes_mean": successes_mean.item(),
             }
         )
-
-        # # TODO we should encode this in the dataclass instead of keeping a dict
-        # # otherwise we end up with a list of identical dicts
-        # assert all(
-        #     metadata["func_names"] == reward_metadata[0]["func_names"]
-        #     for metadata in reward_metadata
-        # ), "Function names in reward_metadata are not consistent across all entries"
-        # function_names = reward_metadata[0]["func_names"]
-
-        function_names = reward_metadata["func_names"]
-
-        # Per-function rewards and successes
-        for func_name, func_mean in zip(function_names, rewards_mean_per_func):
-            log_dict[
-                f"postprocessing_worker_rewards/rewards_func_{func_name}_mean"
-            ] = func_mean.item()
-        for func_name, func_mean in zip(function_names, successes_mean_per_func):
-            log_dict[
-                f"postprocessing_worker_rewards/successes_func_{func_name}_mean"
-            ] = func_mean.item()
+        for reward_output in reward_outputs:
+            log_dict.update(reward_output.log(prefix="ref_actor_rewards"))
 
         ray.get(self._metric_logger.log_dict.remote(log_dict, step=step_idx))
 
@@ -240,11 +227,6 @@ class PostProcessingWorker:
             responses = trajectory.responses
             query_response_padding_masks = trajectory.query_response_padding_masks
             answers = trajectory.answers  # list[str] of len (B * G)
-            answers = [
-                answers[i : i + self.group_size]
-                for i in range(0, len(answers), self.group_size)
-            ]  # list[list[str]] of len [B, G]. Basically a reshape
-
             # Truncate sequences at first stop token
             (
                 response_padding_masks,
@@ -266,19 +248,25 @@ class PostProcessingWorker:
             del query_response_padding_masks
 
             # Compute rewards
-            responses = responses.reshape(batch_size, group_size, -1)
-            rewards_by_fn, successes_by_fn, reward_metadata = batched_rewards(
-                self._tokenizer, responses, answers, device=self._device
-            )  # These are (B, G, num_funcs)
+            response_ids = responses.reshape(batch_size * group_size, -1)
+            responses_str = [
+                self._tokenizer.decode(response_ids[i].tolist())
+                for i in range(batch_size * group_size)
+            ]
+            reward_outputs: list[RewardOutput] = []
+            for reward_fn in self.reward_functions:
+                reward_outputs.append(reward_fn(response_ids, responses_str, answers))
 
+            group_rewards = torch.stack(
+                [reward_output.total_reward for reward_output in reward_outputs], dim=-1
+            )  # (B * G, num_funcs)
+            group_rewards = group_rewards.reshape(batch_size, group_size, -1)
             # Compute advantages: B, G, num_funcs -> B, G
-            group_rewards = rewards_by_fn.sum(-1)
-
+            group_rewards = group_rewards.sum(-1)
             # To compute advantage, subtract the mean of the group rewards from each group reward
             group_advantages = (group_rewards - group_rewards.mean(1, keepdim=True)) / (
                 group_rewards.std(1, keepdim=True) + 1e-4
             )  # (B, G)
-
             # Repack trajectory with policy_version
 
             trajectory = Trajectory(
@@ -290,16 +278,10 @@ class PostProcessingWorker:
                 seq_lens=trajectory.seq_lens,
                 answers=trajectory.answers,
                 policy_version=trajectory.policy_version,
-                rewards=rewards_by_fn.reshape(
-                    batch_size * group_size, -1
-                ),  # (B, G, num_funcs)
                 advantages=group_advantages.reshape(batch_size * group_size),  # (B, G)
-                successes=successes_by_fn.reshape(
-                    batch_size * group_size, -1
-                ),  # (B, G, num_funcs)
-                reward_metadata=reward_metadata,
                 batch_size=batch_size * group_size,
                 sequence_ids=trajectory.sequence_ids,
+                reward_outputs=reward_outputs,
             )
 
             log.info(f"Constructed trajectory: {trajectory}")
@@ -312,11 +294,6 @@ class PostProcessingWorker:
             # End of step timing
             time_total_ref_step = time.perf_counter() - time_step_start
 
-            # Calculate mean rewards and successes for logging
-            rewards_mean_per_func = rewards_by_fn.mean(dim=(0, 1)).cpu()
-            successes_mean_per_func = successes_by_fn.mean(dim=(0, 1)).cpu()
-            rewards_mean = rewards_mean_per_func.mean()
-            successes_mean = successes_mean_per_func.mean()
             # log metrics
             if self._is_actor_zero:
                 self._log_metrics(
@@ -327,11 +304,7 @@ class PostProcessingWorker:
                     # TODO: what should we do with this? We can log the total number of elements written in the buffer instead
                     # full_queue_data_discard=full_queue_data_discard,
                     rollout_queue_size=rollout_queue_size,
-                    rewards_mean=rewards_mean,
-                    successes_mean=successes_mean,
-                    rewards_mean_per_func=rewards_mean_per_func,
-                    successes_mean_per_func=successes_mean_per_func,
-                    reward_metadata=reward_metadata,
+                    reward_outputs=reward_outputs,
                 )
 
             torch.cuda.empty_cache()

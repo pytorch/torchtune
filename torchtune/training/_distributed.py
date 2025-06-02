@@ -5,12 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import contextlib
 import logging
 import os
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import chain
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple
+from typing import Any, Callable, cast, Generator, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -28,6 +29,10 @@ from torch.distributed.checkpoint.state_dict import (
 )
 from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
 from torch.distributed.fsdp import FSDPModule, ShardingStrategy
+from torch.distributed.tensor.experimental import context_parallel
+from torch.distributed.tensor.experimental._attention import set_rotate_method
+from torch.nn.attention import sdpa_kernel, SDPBackend
+from torch.nn.attention.flex_attention import BlockMask
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
@@ -57,26 +62,28 @@ class ParallelDims:
     dp_replicate: int
     dp_shard: int
     tp: int
+    cp: int
     world_size: int
 
     def __post_init__(self):
         self._validate()
 
     def _validate(self):
-        dp_replicate, dp_shard, tp = (
+        dp_replicate, dp_shard, tp, cp = (
             self.dp_replicate,
             self.dp_shard,
             self.tp,
+            self.cp,
         )
-        for d in (dp_replicate, tp):
+        for d in (dp_replicate, tp, cp):
             assert d >= 1, "Parallelism degree should be >= 1, except for dp_shard"
 
         assert dp_shard == -1 or dp_shard >= 1, " dp_shard must -1 or >=1."
         if dp_shard < 0:
-            self.dp_shard = dp_shard = self.world_size // (dp_replicate * tp)
+            self.dp_shard = dp_shard = self.world_size // (dp_replicate * tp * cp)
         assert dp_shard >= 1
 
-        assert dp_replicate * dp_shard * tp == self.world_size, (
+        assert dp_replicate * dp_shard * tp * cp == self.world_size, (
             f"Invalid parallel dims: dp_replicate({dp_replicate}) * dp_shard({dp_shard}) * "
             f"tp({tp}) != WORLD_SIZE({self.world_size})"
         )
@@ -85,8 +92,8 @@ class ParallelDims:
         dims = []
         names = []
         for d, name in zip(
-            [self.dp_replicate, self.dp_shard, self.tp],
-            ["dp_replicate", "dp_shard", "tp"],
+            [self.dp_replicate, self.dp_shard, self.cp, self.tp],
+            ["dp_replicate", "dp_shard", "cp", "tp"],
         ):
             if d > 1:
                 dims.append(d)
@@ -99,16 +106,35 @@ class ParallelDims:
         # initialized:
         # Mesh for data loading (no communication on this mesh)
         dp_mesh_dim_names = []
+        dp_shard_cp_mesh_dim_names = []
+        dp_cp_mesh_dim_names = []
 
         if self.dp_replicate_enabled:
             dp_mesh_dim_names.append("dp_replicate")
+            dp_cp_mesh_dim_names.append("dp_replicate")
         if self.dp_shard_enabled:
             dp_mesh_dim_names.append("dp_shard")
+            dp_shard_cp_mesh_dim_names.append("dp_shard")
+            dp_cp_mesh_dim_names.append("dp_shard")
+        if self.cp_enabled:
+            dp_shard_cp_mesh_dim_names.append("cp")
+            dp_cp_mesh_dim_names.append("cp")
 
         if dp_mesh_dim_names != []:
             mesh[tuple(dp_mesh_dim_names)]._flatten(mesh_dim_name="dp")
 
+        if dp_shard_cp_mesh_dim_names != []:
+            mesh[tuple(dp_shard_cp_mesh_dim_names)]._flatten(
+                mesh_dim_name="dp_shard_cp"
+            )
+        if dp_cp_mesh_dim_names != []:
+            mesh[tuple(dp_cp_mesh_dim_names)]._flatten(mesh_dim_name="dp_cp")
+
         return mesh
+
+    @property
+    def cp_enabled(self):
+        return self.cp > 1
 
     @property
     def dp_enabled(self):
@@ -129,7 +155,22 @@ class ParallelDims:
     @cached_property
     def non_data_parallel_size(self):
         # update below as more parallelism options are implemented
-        return self.tp
+        return self.tp * self.cp
+
+    @cached_property
+    def min_seq_len_divisor(self):
+        """
+        This property can be used for padding batches to a sequence length that is valid for
+        the given ParallelDims.
+
+        Sequence parallelism requires that seq_len be divisible by TP dim.
+        Ref: https://github.com/pytorch/torchtitan/pull/640#discussion_r1849481001
+
+        Context parallelism requires that seq_len be divisible by 2 * CP dim.
+        Ref: https://github.com/pytorch/pytorch/blob/4f62dcc/torch/distributed/tensor/experimental/_attention.py#L1246
+
+        """
+        return 2 * self.tp * self.cp
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -216,11 +257,11 @@ def get_distributed_backend(device_type: str, offload_ops_to_cpu: bool = False) 
 @deprecated(
     msg="The functionality of `init_distributed` is covered by `torch.distributed.init_process_group`. "
 )
-def init_distributed(**kwargs: Dict[str, Any]) -> bool:
+def init_distributed(**kwargs: dict[str, Any]) -> bool:
     """Initialize process group required for ``torch.distributed``.
 
     Args:
-        **kwargs (Dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.
+        **kwargs (dict[str, Any]): Additional arguments to pass to torch.distributed.init_process_group.
 
     Returns:
         bool: True if torch.distributed is initialized.
@@ -257,12 +298,12 @@ def set_torch_num_threads() -> None:
     msg="`get_world_size_and_rank` will move to `torchtune.utils._device` in future releases. "
     "Please use `torchtune.utils.get_world_size_and_rank` instead."
 )
-def get_world_size_and_rank() -> Tuple[int, int]:
+def get_world_size_and_rank() -> tuple[int, int]:
     """Function that gets the current world size (aka total number
     of ranks) and rank number of the current process in the default process group.
 
     Returns:
-        Tuple[int, int]: world size, rank
+        tuple[int, int]: world size, rank
     """
     if dist.is_available() and dist.is_initialized():
         return torch.distributed.get_world_size(), torch.distributed.get_rank()
@@ -289,7 +330,7 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
 
 def load_from_full_model_state_dict(
     model: "FSDPModule",  # noqa
-    full_sd: Dict[str, Any],
+    full_sd: dict[str, Any],
     device: torch.device,
     strict: bool = False,
     cpu_offload: bool = False,
@@ -301,7 +342,7 @@ def load_from_full_model_state_dict(
     and loading it into FSDP model
     Args:
         model (FSDPModule): Model to generate fully qualified names for cpu_state_dict
-        full_sd (Dict[str, Any]): a full state dict to load into the model
+        full_sd (dict[str, Any]): a full state dict to load into the model
         device (torch.device): device used to move full state dict tensors
         strict (bool): flag to check if to load the model in strict mode
         cpu_offload (bool): flag to check if offload to CPU is enabled
@@ -442,7 +483,7 @@ def gather_cpu_state_dict(
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
     adapter_weights_only: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Converting sharded state dict into a full state dict on CPU
     Returning non-empty result only on rank0 to avoid peaking CPU memory
@@ -457,7 +498,7 @@ def gather_cpu_state_dict(
         adapter_weights_only (bool): flag to check if only trainable parameters should be returned. Default: False
 
     Returns:
-        Dict[str, Any]: State dict on CPU
+        dict[str, Any]: State dict on CPU
     """
     # TODO: Disabling DSD as it has issues. Add back changes in #2138 once DSD issue is fixed.
     cpu_state_dict = {}
@@ -488,7 +529,7 @@ def get_full_optimizer_state_dict(
     opt: Optimizer,
     is_rank_zero: bool,
     device: Optional[torch.device] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Converting optimizer state from sharded to full
     For example, "exp_avg" in AdamW is `DTensor`,
@@ -508,7 +549,7 @@ def get_full_optimizer_state_dict(
 def load_from_full_optimizer_state_dict(
     model: "FSDPModule",  # noqa
     opt: Optimizer,
-    full_sd: Dict[str, Any],
+    full_sd: dict[str, Any],
     device: torch.device,
 ) -> None:
     """
@@ -566,7 +607,7 @@ def load_from_full_optimizer_state_dict(
 def get_shard_conditions(
     name: str,
     module: nn.Module,
-    names_to_match: Optional[List[str]] = None,
+    names_to_match: Optional[list[str]] = None,
     *args,
     **kwargs,
 ) -> bool:
@@ -585,7 +626,7 @@ def get_shard_conditions(
     Args:
         name (str): Name of the module.
         module (nn.Module): Module to be sharded.
-        names_to_match (Optional[List[str]]): List of names to match, if any.
+        names_to_match (Optional[list[str]]): list of names to match, if any.
         *args: Variable length argument list to be passed to the Embedding module.
         **kwargs: Arbitrary keyword arguments to be passed to the Embedding module.
 
@@ -614,7 +655,7 @@ def get_shard_conditions(
 
 def shard_model(
     model: TransformerDecoder,
-    shard_conditions: List[Callable[[str, nn.Module], bool]],
+    shard_conditions: list[Callable[[str, nn.Module], bool]],
     *,
     cpu_offload: bool,
     reshard_after_forward: bool = True,
@@ -628,7 +669,7 @@ def shard_model(
 
     Args:
         model (TransformerDecoder): Model to shard with FSDP.
-        shard_conditions (List[Callable[[str, nn.Module], bool]]): A list of functions to determine
+        shard_conditions (list[Callable[[str, nn.Module], bool]]): A list of functions to determine
             which modules to shard with FSDP. Each function should take module name (relative to root)
             and the module itself, returning True if FSDP should shard the module and False otherwise.
             If any of shard_conditions return True for a given module, it will be sharded by FSDP.
@@ -726,3 +767,110 @@ def prepare_mha_for_tp(
     if is_fusion_model:
         model.decoder = decoder
     return model
+
+
+def _get_sdpa_context() -> (
+    Callable[[Optional[Generator[None, None, None]]], Generator[None, None, None]]
+):
+    """
+    Creates a context manager to confine to flash/efficient/cuDNN attention backends.
+
+    Returns:
+        A context manager function that takes an optional context parallel context.
+    """
+
+    @contextlib.contextmanager
+    def context(cp_context: Union[Generator[None, None, None], None] = None):
+        with contextlib.ExitStack() as stack:
+            if cp_context is not None:
+                stack.enter_context(
+                    sdpa_kernel(
+                        [
+                            SDPBackend.FLASH_ATTENTION,
+                            SDPBackend.EFFICIENT_ATTENTION,
+                            SDPBackend.CUDNN_ATTENTION,
+                        ]
+                    )
+                )
+                stack.enter_context(cp_context)
+
+            yield
+
+    return context
+
+
+def get_context_parallel_manager(
+    *,
+    enabled: bool = False,
+    world_mesh: torch.distributed.DeviceMesh,
+    model: TransformerDecoder,
+) -> Callable[[list[torch.Tensor]], Generator[None, None, None]]:
+    """
+    Context manager for applying context parallelism to a model. In addition to applying the
+    standard context manager to patch SDPA and shard model inputs and buffers along the sequence
+    dimension, this context manager also calls into _get_sdpa_context to filter to acceptable SDPA backends.
+
+    Args:
+        enabled (bool): Whether context parallel is enabled. Default: False
+        world_mesh (torch.distributed.DeviceMesh): Global device mesh.
+        model (TransformerDecoder): Model to apply context parallelism to.
+
+    Returns:
+        A context manager applying context parallelism if enabled is True. Otherwise a context manager
+        disabling the math SDPA backend.
+
+    Raises:
+        ValueError: if enabled is True but world_mesh does not contain a "cp" dimension
+
+    Example:
+        ```python
+        context_parallel_manager = get_context_parallel_manager(
+            enabled=parallel_dims.enabled,
+            cp_mesh=world_mesh["cp"] if parallel_dims.enabled else None,
+            model=model,
+        )
+        batch = {"inputs": inputs, "labels": labels}
+        with get_context_parallel_manager(list(batch.values())):
+            logits = model(inputs)
+            loss = loss(logits, labels)
+            loss.backward()
+        ```
+    """
+
+    if enabled and "cp" not in world_mesh.mesh_dim_names:
+        raise ValueError(
+            "Context parallel is enabled but no context parallel device mesh is provided."
+        )
+    # TODO: context parallel for multimodal models requires extra work
+    if enabled and not isinstance(model, TransformerDecoder):
+        raise ValueError("Context parallel is only supported for text models")
+    # TODO: this is a hacky proxy for whether we use flex for chunked attention
+    # remove this once flex is supported
+    if enabled and any([layer.mask_mod is not None for layer in model.layers]):
+        raise ValueError("Context parallel with flex attention is not yet supported")
+    model_buffers = list(model.buffers())
+
+    @contextlib.contextmanager
+    def context(model_inputs: list[torch.Tensor]):
+        # Create context parallel context if enabled
+        cp_context = None
+        if enabled and any([isinstance(input, BlockMask) for input in model_inputs]):
+            raise ValueError(
+                "Context parallel with flex attention is not yet supported"
+            )
+        if enabled:
+            set_rotate_method("allgather")
+            cp_context = context_parallel(
+                world_mesh["cp"],
+                buffers=model_inputs + model_buffers,
+                buffer_seq_dims=[1] * len(model_inputs) + [0] * len(model_buffers),
+                no_restore_buffers=set(model_inputs),
+            )
+
+        # Create and enter the train context with the optional cp_context
+        sdpa_context = _get_sdpa_context()
+
+        with sdpa_context(cp_context):
+            yield
+
+    return context
