@@ -12,6 +12,8 @@ from torch import nn
 from torch.nn import functional as F
 from torchtune.modules.peft import AdapterModule
 
+from .config import should_use_grouped_mm
+
 
 class GroupedExperts(nn.Module):
     """This class implements the grouped experts layer used in Mixture of Experts. Each expert
@@ -22,7 +24,6 @@ class GroupedExperts(nn.Module):
         hidden_dim (int): Hidden dimension.
         num_experts (int): Number of experts in this grouped experts layer. Default is 1.
         activation (Callable): Activation function to use. Default is F.silu.
-        use_grouped_mm (bool): use grouped_mm or for loop for experts computation.
     """
 
     def __init__(
@@ -32,7 +33,6 @@ class GroupedExperts(nn.Module):
         hidden_dim: int,
         num_experts: int = 1,
         activation: Callable = F.silu,
-        use_grouped_mm: bool = False,
     ):
         super().__init__()
         self.dim = dim
@@ -41,7 +41,7 @@ class GroupedExperts(nn.Module):
         self.down_proj = nn.Parameter(torch.empty(num_experts, hidden_dim, dim))
         self.up_proj = nn.Parameter(torch.empty(num_experts, dim, hidden_dim))
         self.act_fn = activation
-        self.use_grouped_mm = use_grouped_mm
+        self.use_grouped_mm = should_use_grouped_mm()
 
     def reset_parameters(self) -> None:
         # Default initialization used by torch.nn.Linear
@@ -99,7 +99,7 @@ class GroupedExperts(nn.Module):
         if num_tokens_per_expert is not None:
             # https://github.com/pytorch/pytorch/pull/150374
             # NOTE: torch._gouped_mm requires bf16 dtypes
-            #       and shapes to be multiple of 8
+            #       and shapes to be multiple of 16
             offsets = torch.cumsum(num_tokens_per_expert, dim=0, dtype=torch.int32)
             # grouped mm between a 2D tensor and a 3D tensor
             assert x.dim() == 2

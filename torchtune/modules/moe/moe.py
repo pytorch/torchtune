@@ -4,10 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Optional
 
 import torch
 from torch import nn
+
+from .config import should_use_grouped_mm
 
 
 class TokenChoiceTopKRouter(nn.Module):
@@ -91,7 +94,6 @@ class MoE(nn.Module):
         experts (nn.Module): experts module.
         router (nn.Module): router module.
         shared_expert (Optional[nn.Module]): shared expert module. Default is None.
-        use_grouped_mm (bool): use grouped_mm or for loop for experts computation.
     """
 
     def __init__(
@@ -100,13 +102,12 @@ class MoE(nn.Module):
         experts: nn.Module,
         router: nn.Module,
         shared_expert: Optional[nn.Module] = None,
-        use_grouped_mm: bool = False,
     ):
         super().__init__()
         self.experts = experts
         self.router = router
         self.shared_expert = shared_expert
-        self.use_grouped_mm = use_grouped_mm
+        self.use_grouped_mm = should_use_grouped_mm()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
