@@ -8,20 +8,17 @@ import sys
 
 from typing import Any, Optional
 
-import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig
 from recipes.full_finetune_single_device import FullFinetuneRecipeSingleDevice
 
 from torch import nn
 from torchtune import config, modules, training
-from torchtune.modules.loss import SFTLoss
 from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
-from torchtune.training import PROFILER_KEY
 from torchtune.training.checkpointing._checkpoint_client import TrainingProgress
 
 
@@ -111,121 +108,19 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
         super().__init__(cfg=cfg)
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
 
-    def setup(self, cfg: DictConfig) -> None:
-        """
-        Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
-        model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
-        """
-        self._metric_logger = config.instantiate(cfg.metric_logger)
+    def _load_distributed_checkpoint(self):
+        checkpoint = self._checkpoint_client.load_distributed_checkpoint(
+            self._model,
+            self.optimizer,
+            self._adapter_config,
+        )
 
-        # log config with parameter override
-        self._metric_logger.log_config(cfg)
-
-        self._compile = cfg.compile
-        if cfg.device == "npu" and cfg.compile:
+        if training.ADAPTER_KEY not in checkpoint:
             raise ValueError(
-                "NPU does not support model compilation. Please set `compile: False` in the config."
+                "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
             )
-        checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
-        # hack to toggle to the low cpu ram version of the reparametrize_as_dtype
-        # hook based on the config.
-        common_utils._use_low_cpu_ram = cfg.get("low_cpu_ram", False)
-
-        # set up model
-        self._model = self._setup_model(
-            cfg_model=cfg.model,
-            enable_activation_checkpointing=self._enable_activation_checkpointing,
-            enable_activation_offloading=self._enable_activation_offloading,
-            compile_model=cfg.compile,
-            base_model_state_dict=checkpoint_dict[training.MODEL_KEY],
-            lora_weights_state_dict=(
-                checkpoint_dict[training.ADAPTER_KEY]
-                if training.ADAPTER_KEY in checkpoint_dict
-                else None
-            ),
-        )
-
-        self._tokenizer = config.instantiate(cfg.tokenizer)
-        self._logger.info("Tokenizer is initialized from file.")
-
-        self.optimizer = self._setup_optimizer(
-            cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(
-                checkpoint_dict[training.OPT_KEY]
-                if training.OPT_KEY in checkpoint_dict
-                else None
-            ),
-        )
-
-        if self._resume_from_checkpoint:
-            # If async checkpointing is enabled, intermediate checkpoints are saved asynchronously
-            # using the DistributedCheckpointer.
-            # Therefore the recipe needs to load the distributed checkpoint to restore the training
-            # progress.
-            if self._enable_async_checkpointing:
-                checkpoint_dict = self._checkpoint_client.load_distributed_checkpoint(
-                    self._model,
-                    self.optimizer,
-                    self._adapter_config,
-                )
-
-            if training.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError(
-                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
-                )
-
-            # Update the recipe state from the checkpoint state dict.
-            self._update_recipe_state(checkpoint_dict)
-
-        # initialize loss
-        self._loss_fn = config.instantiate(cfg.loss)
-        if isinstance(self._loss_fn, SFTLoss):
-            self._loss_fn.set_model_output(self._model)
-
-        if self._compile:
-            self._loss_fn = training.compile_loss(self._loss_fn)
-
-        self._logger.info("Loss is initialized.")
-
-        # Dataloader depends on the tokenizer and loss_fn and should be
-        # setup after all of these are setup
-        collate_name = cfg.get("collate_fn", "torchtune.data.padded_collate_sft")
-        self._dataloader = self._setup_data(
-            cfg_dataset=cfg.dataset,
-            shuffle=cfg.shuffle,
-            batch_size=cfg.batch_size,
-            collate_fn=collate_name,
-        )
-
-        # Finally update the recipe state which can only be correctly set after all of the
-        # other components have been initialized and updated.
-
-        # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader and the max_steps_per_epoch param set by the user and is used
-        # for logging and tracking training state. This should be computed after the dataloader
-        # has been setup
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
-        if (
-            self.max_steps_per_epoch is not None
-            and self.max_steps_per_epoch < self._steps_per_epoch
-        ):
-            self._steps_per_epoch = self.max_steps_per_epoch
-            self.global_step = self.epochs_run * self._steps_per_epoch
-
-        # Learning rate scheduler can only be set up after number of steps
-        # has been computed
-        self.lr_scheduler = self._setup_lr_scheduler(
-            cfg_lr_scheduler=cfg.lr_scheduler,
-            num_training_steps=self.total_epochs * self._steps_per_epoch,
-            last_epoch=self.global_step - 1,
-        )
-
-        # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
-        # if cfg is missing profiler key or if `cfg.profiler.enabled = False
-        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+        return checkpoint
 
     def _setup_model(
         self,
@@ -233,8 +128,7 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        base_model_state_dict: dict[str, Any],
-        lora_weights_state_dict: Optional[dict[str, Any]] = None,
+        checkpoint_dict: Optional[dict[str, Any]],
     ) -> nn.Module:
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
@@ -266,10 +160,10 @@ class LoRAFinetuneRecipeSingleDevice(FullFinetuneRecipeSingleDevice):
             training.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
-
         base_missing, base_unexpected = model.load_state_dict(
-            base_model_state_dict, strict=False
+            checkpoint_dict[training.MODEL_KEY], strict=False
         )
+        lora_weights_state_dict = checkpoint_dict.get(training.ADAPTER_KEY)
         # This is for any adapters that need to be initialized after base weights
         # have been loaded (e.g. DoRA).
         if self._is_dora:

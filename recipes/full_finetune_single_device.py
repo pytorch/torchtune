@@ -262,7 +262,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             enable_activation_checkpointing=self._enable_activation_checkpointing,
             enable_activation_offloading=self._enable_activation_offloading,
             compile_model=self._compile,
-            model_state_dict=ckpt_dict[training.MODEL_KEY],
+            checkpoint_dict=ckpt_dict,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
         self._logger.info("Tokenizer is initialized from file.")
@@ -286,10 +286,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # progress.
             if self._enable_async_checkpointing:
                 try:
-                    ckpt_dict = self._checkpoint_client.load_distributed_checkpoint(
-                        self._model,
-                        self.optimizer,
-                    )
+                    ckpt_dict = self._load_distributed_checkpoint()
                 except Exception as e:
                     self._logger.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
@@ -350,6 +347,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
+    def _load_distributed_checkpoint(self) -> dict[str, Any]:
+        return self._checkpoint_client.load_distributed_checkpoint(
+            model=self._model,
+            optimizer=self.optimizer,
+        )
+
     def _setup_profiler(
         self, cfg_profiler: Optional[DictConfig] = None
     ) -> Union[torch.profiler.profile, DummyProfiler]:
@@ -388,7 +391,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         enable_activation_offloading: bool,
         compile_model: bool,
-        model_state_dict: dict[str, Any],
+        checkpoint_dict: dict[str, Any],
     ) -> nn.Module:
         """
         Set up the model including enabling activation checkpointing.
@@ -404,7 +407,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
             )
 
-        model.load_state_dict(model_state_dict)
+        model.load_state_dict(checkpoint_dict[training.MODEL_KEY])
 
         # Validate model was loaded in with the expected dtype.
         training.validate_expected_param_dtype(
