@@ -6,6 +6,7 @@
 
 import os
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -201,7 +202,6 @@ class TestLoRADPOSingleDeviceRecipe:
 
         resumed_log_dir = (tmpdir / "resumed/").mkdir()
         resumed_log_file = gen_log_file_name(resumed_log_dir)
-        import shutil
 
         shutil.rmtree(tmpdir / "epoch_1")
 
