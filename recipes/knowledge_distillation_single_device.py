@@ -570,7 +570,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
@@ -607,11 +607,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop.
         """
-
-        if self._compile:
-            self._logger.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()

@@ -50,10 +50,6 @@ _ALL_RECIPES = [
                 file_path="llama2/7B_full_low_memory.yaml",
             ),
             Config(
-                name="code_llama2/7B_full_low_memory",
-                file_path="code_llama2/7B_full_low_memory.yaml",
-            ),
-            Config(
                 name="llama3/8B_full_single_device",
                 file_path="llama3/8B_full_single_device.yaml",
             ),
@@ -199,14 +195,6 @@ _ALL_RECIPES = [
             Config(
                 name="llama2/7B_qlora_single_device",
                 file_path="llama2/7B_qlora_single_device.yaml",
-            ),
-            Config(
-                name="code_llama2/7B_lora_single_device",
-                file_path="code_llama2/7B_lora_single_device.yaml",
-            ),
-            Config(
-                name="code_llama2/7B_qlora_single_device",
-                file_path="code_llama2/7B_qlora_single_device.yaml",
             ),
             Config(
                 name="llama3/8B_lora_single_device",
@@ -614,12 +602,12 @@ _ALL_RECIPES = [
                 file_path="llama3_2/evaluation.yaml",
             ),
             Config(
-                name="code_llama2/evaluation",
-                file_path="code_llama2/evaluation.yaml",
-            ),
-            Config(
                 name="qwen3/evaluation",
                 file_path="qwen3/evaluation.yaml",
+            ),
+            Config(
+                name="llama3_1/evaluation",
+                file_path="llama3_1/evaluation.yaml",
             ),
         ],
         supports_distributed=False,
