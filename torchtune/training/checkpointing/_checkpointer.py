@@ -731,6 +731,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         *,
         step: Optional[int] = None,
         max_shard_size: str = MAX_SHARD_SIZE,
+        dir_prefix: str = "epoch",
     ) -> None:
         """
         Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -746,19 +747,31 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
                 and (if applicable) adapter weights are created. Default is False
             adapter_only (bool): If True, only save the adapter weights. Default is False
-            step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
+            step (Optional[int]): Step number. Used to create the checkpoint file name if ``dir_prefix`` is 'step'.
             max_shard_size (str): Maximum shard size for the checkpoint files. Default is '5GB'.
+            dir_prefix (str): Prefix for the checkpoint directory. Default is 'epoch'.
 
         Raises:
-            ValueError: if ``adapter_only`` is True and adapter checkpoint not found in state_dict.
+            ValueError:
+                If ``adapter_only`` is True and adapter checkpoint not found in state_dict.
+                If ``output_dir`` is not specified.
+                If ``dir_prefix`` is 'step' but ``step`` is None.
+                If ``dir_prefix`` is not 'epoch' or 'step'.
         """
-        # Prefer to use step, not epoch
-        if step is not None:
+        if dir_prefix == "epoch":
+            ckpt_save_dirname = f"epoch_{epoch}"
+            ckpt_pattern = r"^epoch_(\d+)"
+        elif dir_prefix == "step":
+            if step is None:
+                raise ValueError(
+                    "Step number must be provided when dir_prefix is 'step'."
+                )
             ckpt_save_dirname = f"step_{step}"
             ckpt_pattern = r"^step_(\d+)"
         else:
-            ckpt_save_dirname = f"epoch_{epoch}"
-            ckpt_pattern = r"^epoch_(\d+)"
+            raise ValueError(
+                f"Invalid dir_prefix: {dir_prefix}. Expected 'epoch' or 'step'."
+            )
 
         if self._output_dir is None:
             raise ValueError(
@@ -853,6 +866,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     head_dim=self._config.get("head_dim", None),
                 )
 
+            # Here we actually save the model weights
             if self._enable_dcp:
                 self._save_checkpoint_with_dcp_hf(
                     state_dict, output_path=ckpt_output_dir
@@ -1333,6 +1347,7 @@ class DistributedCheckpointer(_CheckpointerInterface):
         adapter_only: bool = False,
         *,
         step: Optional[int] = None,
+        dir_prefix: str = "epoch",
     ) -> None:
         """
         Save a distributed checkpoint to storage.
@@ -1346,12 +1361,23 @@ class DistributedCheckpointer(_CheckpointerInterface):
             save_async (bool): If True, save the checkpoint asynchronously
             adapter_only (bool): If True, only adapter weights are being saved, which affects which path to save to.
             step (Optional[int]): Step number. Used to create the checkpoint file name if provided.
+            dir_prefix (str): Prefix to use for the checkpoint directory name. Defaults to "epoch".
+
+        Raises:
+            ValueError:
+                If ``dir_prefix`` is 'step' and ``step`` is None.
+                If ``dir_prefix`` is not one of 'epoch' or 'step'.
         """
-        # Prefer to use step, not epoch
-        if step is not None:
+        if dir_prefix == "epoch":
+            ckpt_save_dirname = f"epoch_{epoch}"
+        elif dir_prefix == "step":
+            if step is None:
+                raise ValueError("Step number is required when dir_prefix is 'step'.")
             ckpt_save_dirname = f"step_{step}"
         else:
-            ckpt_save_dirname = f"epoch_{epoch}"
+            raise ValueError(
+                f"Invalid dir_prefix: {dir_prefix}. Must be one of 'epoch' or 'step'."
+            )
 
         checkpoint_path = os.path.join(self._output_dir, ckpt_save_dirname)
         if adapter_only:
@@ -1424,3 +1450,5 @@ class DistributedCheckpointer(_CheckpointerInterface):
                 ),
                 process_group=self._process_group,
             )
+
+        # TODO: prune old checkpoints

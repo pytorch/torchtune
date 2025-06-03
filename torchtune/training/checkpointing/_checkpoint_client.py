@@ -130,6 +130,8 @@ class CheckpointClient:
         epoch: int,
         adapter_config: Optional[dict[str, Any]],
         adapter_only: bool,
+        *,
+        dir_prefix: str,
     ) -> None:
         """
         Checkpoint the training state asynchronously as a distributed checkpoint. Saving
@@ -179,6 +181,7 @@ class CheckpointClient:
                 epoch=epoch,
                 save_async=True,
                 step=training_progress.steps_run,
+                dir_prefix=dir_prefix,
             )
             if self._is_rank_zero:
                 log.info(
@@ -194,6 +197,7 @@ class CheckpointClient:
                 save_async=True,
                 adapter_only=True,
                 step=training_progress.steps_run,
+                dir_prefix=dir_prefix,
             )
 
             if adapter_only:
@@ -225,6 +229,8 @@ class CheckpointClient:
         adapter_only: bool,
         single_device: bool,
         intermediate_checkpoint: bool,
+        *,
+        dir_prefix: str,
     ) -> None:
         """
         Checkpoint the training state synchronously.
@@ -332,6 +338,7 @@ class CheckpointClient:
                 intermediate_checkpoint=intermediate_checkpoint,
                 adapter_only=adapter_only,
                 step=training_progress.steps_run,
+                dir_prefix=dir_prefix,
             )
 
             if self._is_rank_zero:
@@ -359,6 +366,7 @@ class CheckpointClient:
         single_device: bool = False,
         *,
         fast_save: Optional[bool] = None,
+        dir_prefix: str = "epoch",
     ) -> None:
         """
         Checkpoint the training state.
@@ -387,6 +395,7 @@ class CheckpointClient:
                 epoch,
                 adapter_config,
                 adapter_only,
+                dir_prefix=dir_prefix,
             )
         else:
             self._save_checkpoint_sync(
@@ -398,6 +407,7 @@ class CheckpointClient:
                 adapter_only,
                 single_device,
                 intermediate_checkpoint,
+                dir_prefix=dir_prefix,
             )
 
     def load_base_checkpoint(self) -> dict[str, Any]:

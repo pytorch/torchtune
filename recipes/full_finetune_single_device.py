@@ -333,6 +333,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # For now, default to saving at epoch boundaries
         if self.save_every_n_steps is None:
             self.save_every_n_steps = self._steps_per_epoch
+            self.checkpoint_dir_prefix = "epoch"
+        else:
+            self.checkpoint_dir_prefix = "step"
 
         if (
             self._resume_from_checkpoint
@@ -545,6 +548,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             epoch=epoch,
             single_device=True,
             fast_save=fast_save,
+            dir_prefix=self.checkpoint_dir_prefix,
         )
 
     def _loss_step(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:

@@ -8,6 +8,7 @@ import os
 import re
 
 import runpy
+import shutil
 
 import sys
 from pathlib import Path
@@ -30,11 +31,7 @@ from tests.test_utils import (
     TOKENIZER_PATHS,
 )
 
-from torchtune.training.checkpointing._utils import (
-    get_largest_iter_folder,
-    RECIPE_STATE_DIRNAME,
-    SHARD_FNAME,
-)
+from torchtune.training.checkpointing._utils import get_largest_iter_folder
 
 
 class TestFullFinetuneSingleDeviceRecipe:
@@ -194,13 +191,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         )
 
         # Resume training
+        shutil.rmtree(os.path.join(tmpdir / "epoch_2"))
         log_file = gen_log_file_name(tmpdir, suffix="resume")
-        epoch_folder = get_largest_iter_folder(tmpdir)
-        epoch_folder_minus_one = f"epoch_{int(epoch_folder.split('_')[-1]) - 1}"
-        suffix = ".safetensors"
-        model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
-        )
         cmd_2 = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_full_low_memory \
@@ -208,8 +200,8 @@ class TestFullFinetuneSingleDeviceRecipe:
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
-            checkpointer.checkpoint_files=[{os.path.join(epoch_folder_minus_one, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.checkpoint_files=[model.safetensors] \
+            checkpointer.recipe_checkpoint="recipe_state.pt" \
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
@@ -320,13 +312,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # 2. Find the checkpoint at the end of the first epoch
-        step_folder = get_largest_iter_folder(tmpdir, pattern=r"^step_(\d+)")
-        step_folder_at_epoch_boundary = f"step_{int(step_folder.split('_')[-1]) - 2}"
-        suffix = ".safetensors"
-        model_ckpt_fname = (
-            SHARD_FNAME.format(cpt_idx="1".zfill(5), num_shards="1".zfill(5)) + suffix
-        )
+        # 2. Simulate a crash by deleting the last checkpoint
+        shutil.rmtree(os.path.join(tmpdir, "step_4"))
 
         # 3. Resume training w/ the checkpoint from epoch boundary
         cmd_2 = f"""
@@ -336,8 +323,8 @@ class TestFullFinetuneSingleDeviceRecipe:
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.training.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
-            checkpointer.checkpoint_files=[{os.path.join(step_folder_at_epoch_boundary, model_ckpt_fname)}]\
-            checkpointer.recipe_checkpoint={os.path.join(RECIPE_STATE_DIRNAME, "recipe_state.pt")}\
+            checkpointer.checkpoint_files=[model.safetensors]\
+            checkpointer.recipe_checkpoint="recipe_state.pt"\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
@@ -414,8 +401,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         )
 
         # delete latest checkpoint dir to make sure we are resuming from the right one
-        import shutil
-
         shutil.rmtree(os.path.join(tmpdir, "step_4"))
 
         # Resume training
