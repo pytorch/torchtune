@@ -9,6 +9,8 @@ import json
 import jinja2
 from jinja2 import StrictUndefined
 
+from typing import Any
+
 from tokenizers import Tokenizer
 from torchtune.data import Message, truncate
 from torchtune.modules.transforms.tokenizers._utils import BaseTokenizer, ModelTokenizer
@@ -37,8 +39,8 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         self,
         tokenizer_json_path: str,
         *,
-        tokenizer_config_json_path: Optional[str] = None,
-        generation_config_path: Optional[str] = None,
+        tokenizer_config_json_path: str | None = None,
+        generation_config_path: str | None = None,
     ):
         self.tokenizer = Tokenizer.from_file(tokenizer_json_path)
         if not (tokenizer_config_json_path or generation_config_path):
