@@ -10,9 +10,15 @@ from typing import Optional
 import torch
 from torch import nn, Tensor
 from torch.distributed.tensor import DTensor
-from torch.nn.utils.clip_grad import _no_grad, _TensorOrTensors
+from torch.nn.utils.clip_grad import _no_grad
 from torch.utils._foreach_utils import _device_has_foreach_support, _has_foreach_support
 from torchtune.utils._logging import deprecated
+
+
+if torch.__version__ < "2.8.0.dev20250601":
+    from torch.nn.utils.clip_grad import _tensor_or_tensors as TensorOrTensors
+else:
+    from torch.nn.utils.clip_grad import _TensorOrTensors as TensorOrTensors
 
 
 @deprecated(msg="Please use `scale_grads_` instead.")
@@ -41,7 +47,7 @@ def scale_grads(model: nn.Module, scaler: torch.Tensor) -> None:
 
 @_no_grad
 def scale_grads_(
-    parameters: _TensorOrTensors,
+    parameters: TensorOrTensors,
     scaler: torch.Tensor,
     foreach: Optional[bool] = None,
 ) -> None:
@@ -51,7 +57,7 @@ def scale_grads_(
     Gradients are modified in-place, multiplying by specified scaler.
 
     Args:
-        parameters (_TensorOrTensors): an iterable of Tensors or a
+        parameters (TensorOrTensors): an iterable of Tensors or a
             single Tensor that will have gradients scaled
         scaler (torch.Tensor): multiplier to scale gradients
         foreach (Optional[bool]): use the faster foreach-based implementation.
@@ -80,7 +86,7 @@ def _group_tensors_by_device(
 
 @_no_grad
 def _scale_grad_(
-    parameters: _TensorOrTensors,
+    parameters: TensorOrTensors,
     scaler: torch.Tensor,
     foreach: Optional[bool] = None,
 ) -> None:
