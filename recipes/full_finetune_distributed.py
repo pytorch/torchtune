@@ -347,6 +347,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._compile_loss = compile.get("loss", True)
             self._compile_optimizer_step = compile.get("optimizer_step", False)
             self._compile_scale_grads = compile.get("scale_grads", True)
+            self._compile_autograd = compile.get("autograd", False)
         if self._compile_model:
             # Capture scalar outputs is required to compile MoE
             torch._dynamo.config.capture_scalar_outputs = True
