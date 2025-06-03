@@ -26,6 +26,7 @@ def _get_base_llama_tp_training_plan(
     layerwise_colwise_parallel_cls: type[ParallelStyle] = ColwiseParallel,
     layerwise_rowwise_parallel_cls: type[ParallelStyle] = RowwiseParallel,
     layerwise_prepare_module_input_cls: type[ParallelStyle] = PrepareModuleInput,
+    loss_parallel: bool = False,
 ) -> dict[str, ParallelStyle]:
     """
     Define the Tensor Parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models.
@@ -35,7 +36,11 @@ def _get_base_llama_tp_training_plan(
             input_layouts=Replicate(), output_layouts=Shard(1)
         ),
         "norm": SequenceParallel(),
-        "output": ColwiseParallel(input_layouts=Shard(1), output_layouts=Replicate()),
+        "output": ColwiseParallel(
+            input_layouts=Shard(1),
+            output_layouts=Shard(-1) if loss_parallel else Replicate(),
+            use_local_output=not loss_parallel,
+        ),
         "layers.*.attn": layerwise_prepare_module_input_cls(
             input_layouts=(Shard(1), Shard(1)),
             desired_input_layouts=(Replicate(), Replicate()),
@@ -58,51 +63,59 @@ def _get_base_llama_tp_training_plan(
     }
 
 
-BASE_LLAMA_TP_TRAINING_PLAN = _get_base_llama_tp_training_plan()
-
-FP8_LLAMA_TP_TRAINING_PLAN = _get_base_llama_tp_training_plan(
-    layerwise_colwise_parallel_cls=Float8ColwiseParallel,
-    layerwise_rowwise_parallel_cls=Float8RowwiseParallel,
-    layerwise_prepare_module_input_cls=PrepareFloat8ModuleInput,
-)
-
-BASE_LLAMA_TP_INFERENCE_PLAN = {
-    "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
-    "output": ColwiseParallel(output_layouts=Replicate()),
-    "layers.*.attn.q_proj": ColwiseParallel(),
-    "layers.*.attn.k_proj": ColwiseParallel(),
-    "layers.*.attn.v_proj": ColwiseParallel(),
-    "layers.*.attn.output_proj": RowwiseParallel(),
-    "layers.*.mlp.w1": ColwiseParallel(),
-    "layers.*.mlp.w2": RowwiseParallel(),
-    "layers.*.mlp.w3": ColwiseParallel(),
-}
+def _get_base_llama_tp_inference_plan():
+    return {
+        "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
+        "output": ColwiseParallel(output_layouts=Replicate()),
+        "layers.*.attn.q_proj": ColwiseParallel(),
+        "layers.*.attn.k_proj": ColwiseParallel(),
+        "layers.*.attn.v_proj": ColwiseParallel(),
+        "layers.*.attn.output_proj": RowwiseParallel(),
+        "layers.*.mlp.w1": ColwiseParallel(),
+        "layers.*.mlp.w2": RowwiseParallel(),
+        "layers.*.mlp.w3": ColwiseParallel(),
+    }
 
 
 def base_llama_tp_plan(
-    model: nn.Module, inference: bool = False
+    model: nn.Module, *, inference: bool = False, loss_parallel: bool = False
 ) -> dict[str, ParallelStyle]:
     """
     Helper function to get the base tensor parallel plan for Llama3 model, which will also be shared with 3.1, 3.2, and 3.3 models
 
     Args:
         model (nn.Module): Model to generate plan for (no-op)
-        inference (bool): Whether running inference or not.
+        inference (bool): Whether running inference or not
+        loss_parallel (bool): Whether to use loss parallelism after the output layer
 
     Returns:
         dict[str, Any]: The tensor parallel plan for Llama3 model.
     """
-    return BASE_LLAMA_TP_INFERENCE_PLAN if inference else BASE_LLAMA_TP_TRAINING_PLAN
+    return (
+        _get_base_llama_tp_inference_plan()
+        if inference
+        else _get_base_llama_tp_training_plan(loss_parallel=loss_parallel)
+    )
 
 
-# TODO: expose this once tested
-def _fp8_llama_tp_plan() -> dict[str, ParallelStyle]:
+def fp8_llama_tp_plan(
+    model: nn.Module, *, loss_parallel: bool = False
+) -> dict[str, ParallelStyle]:
     """
     Return the tensor parallel plan for Llama3 model that uses float8 for all-gather for both
     rowwise and colwise computation, currently only compatible with float8 fine-tuning with
     "tensorwise" scaling. This tensor parallel plan is shared between 3.1, 3.2, and 3.3 models.
 
+    Args:
+        model (nn.Module): Model to generate plan for (no-op)
+        loss_parallel (bool): Whether to use loss parallelism after the output layer
+
     Returns:
         dict[str, Any]: The float8-enabled tensor parallel plan for Llama3 model.
     """
-    return FP8_LLAMA_TP_TRAINING_PLAN
+    return _get_base_llama_tp_training_plan(
+        layerwise_colwise_parallel_cls=Float8ColwiseParallel,
+        layerwise_rowwise_parallel_cls=Float8RowwiseParallel,
+        layerwise_prepare_module_input_cls=PrepareFloat8ModuleInput,
+        loss_parallel=loss_parallel,
+    )
