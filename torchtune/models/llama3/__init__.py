@@ -30,4 +30,5 @@ __all__ = [
     "qlora_llama3_8b",
     "qlora_llama3_70b",
     "base_llama_tp_plan",
+    "fp8_llama_tp_plan",
 ]
