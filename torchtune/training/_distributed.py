@@ -64,6 +64,7 @@ class ParallelDims:
     tp: int
     cp: int
     world_size: int
+    enable_loss_parallel: bool
 
     def __post_init__(self):
         self._validate()
@@ -151,6 +152,10 @@ class ParallelDims:
     @property
     def tp_enabled(self):
         return self.tp > 1
+
+    @property
+    def loss_parallel_enabled(self):
+        return self.enable_loss_parallel and self.tp > 1
 
     @cached_property
     def non_data_parallel_size(self):
@@ -871,6 +876,29 @@ def get_context_parallel_manager(
         sdpa_context = _get_sdpa_context()
 
         with sdpa_context(cp_context):
+            yield
+
+    return context
+
+
+def get_train_context(
+    enable_loss_parallel: bool, enable_compiled_autograd: bool
+) -> Generator[None, None, None]:
+    @contextlib.contextmanager
+    def context(cp_context: Generator[None, None, None] | None = None):
+        with contextlib.ExitStack() as stack:
+            if enable_loss_parallel:
+                stack.enter_context(torch.distributed.tensor.parallel.loss_parallel())
+
+            if enable_compiled_autograd:
+                stack.enter_context(
+                    torch._dynamo.utils.maybe_enable_compiled_autograd(True)
+                )
+
+            # because we create a noop ctx manager, this is never None in actual recipes
+            # leave condition so this can be used separately
+            if cp_context is not None:
+                stack.enter_context(cp_context)
             yield
 
     return context
