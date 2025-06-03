@@ -5,11 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 import jinja2
 from jinja2 import StrictUndefined
-
 
 from tokenizers import Tokenizer
 from torchtune.data import Message, truncate
@@ -153,7 +151,7 @@ class HuggingFaceBaseTokenizer(BaseTokenizer):
         return self.tokenizer.decode(token_ids)
 
 
-def _infer_special_tokens_from_hf_config(config: dict) -> List[str]:
+def _infer_special_tokens_from_hf_config(config: dict) -> list[str]:
     special_tokens = set()
 
     standard_keys = [
@@ -198,8 +196,8 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
         self,
         tokenizer_json_path: str,
         *,
-        tokenizer_config_json_path: Optional[str] = None,
-        generation_config_path: Optional[str] = None,
+        tokenizer_config_json_path: str | None = None,
+        generation_config_path: str | None = None,
         truncation_type: str = "right",
     ):
         self.base_tokenizer = HuggingFaceBaseTokenizer(
@@ -238,10 +236,10 @@ class HuggingFaceModelTokenizer(ModelTokenizer):
 
     def tokenize_messages(
         self,
-        messages: List[Message],
+        messages: list[Message],
         add_eos: bool = True,
-        max_seq_len: Union[int, None] = None,
-    ) -> Tuple[List[int], List[bool]]:
+        max_seq_len: int | None = None,
+    ) -> tuple[list[int], list[bool]]:
         tokenized_messages = []
         mask = []
         previous_tokens = []
