@@ -130,7 +130,6 @@ The ``tune ls`` command lists out all the built-in recipes and configs within to
     $ tune ls
     RECIPE                                   CONFIG
     full_finetune_single_device              llama2/7B_full_low_memory
-                                             code_llama2/7B_full_low_memory
                                              llama3/8B_full_single_device
                                              mistral/7B_full_low_memory
                                              phi3/mini_full_low_memory
@@ -260,7 +259,6 @@ You can also use the ``--sort`` option to print the config in sorted order, whic
        $ tune ls
        RECIPE                                   CONFIG
        full_finetune_single_device              llama2/7B_full_low_memory
-                                                code_llama2/7B_full_low_memory
                                                 llama3/8B_full_single_device
                                                 mistral/7B_full_low_memory
                                                 phi3/mini_full_low_memory

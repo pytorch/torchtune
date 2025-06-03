@@ -282,6 +282,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
         self._compile = cfg.get("compile", False)
+        # Capture scalar outputs is required to compile MoE
+        torch._dynamo.config.capture_scalar_outputs = True
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -323,7 +325,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         )
                     )
                 except Exception as e:
-                    log.warning(
+                    self._logger.warning(
                         f"Failed to load distributed checkpoint: {e}. Training will start from the base checkpoint."
                     )
 
@@ -860,7 +862,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         log_dict = {"val_loss": avg_val_loss}
 
         if self._is_rank_zero:
-            log.info(f"Validation loss: {avg_val_loss:.4f}")
+            self._logger.info(f"Validation loss: {avg_val_loss:.4f}")
             self._metric_logger.log_dict(
                 log_dict,
                 step=self.global_step,

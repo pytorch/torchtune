@@ -168,6 +168,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             raise ValueError(
                 "Tensor Parallel plan needs to be provided when tensor parallel is enabled."
             )
+        self.cp_degree = cfg.get("context_parallel_dim", 1)
         data_shard = cfg.get("data_parallel_shard_dim", -1)  # -1 means to infer
         data_replicate = cfg.get("data_parallel_replicate_dim", 1)
 
@@ -176,6 +177,7 @@ class QATRecipeDistributed(FTRecipeInterface):
             dp_replicate=data_replicate,
             dp_shard=data_shard,
             tp=self.tp_degree,
+            cp=self.cp_degree,
             world_size=self.world_size,
         )
         self.world_mesh = self.parallel_dims.build_mesh(device_type=device_type)
@@ -670,6 +672,13 @@ class QATRecipeDistributed(FTRecipeInterface):
                 dp_mesh=self.world_mesh[dp_mesh_dim_names],
             )
 
+        # Define context manager for context parallelism
+        self.context_parallel_manager = training.get_context_parallel_manager(
+            enabled=self.cp_degree > 1,
+            world_mesh=self.world_mesh,
+            model=model,
+        )
+
         with training.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 # RoPE is not covered in state dict
@@ -802,7 +811,7 @@ class QATRecipeDistributed(FTRecipeInterface):
                     collate_fn,
                     padding_idx=self._tokenizer.pad_id,
                     ignore_idx=self._loss_fn.ignore_index,
-                    pad_to_multiple_of=self.tp_degree,
+                    pad_to_multiple_of=self.parallel_dims.min_seq_len_divisor,
                 )
                 if not packed
                 else padded_collate_packed
@@ -925,17 +934,19 @@ class QATRecipeDistributed(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                current_loss = self._loss_step(batch) * current_num_tokens
-                running_loss += current_loss
+                with self.context_parallel_manager(list(batch.values())):
+                    current_loss = self._loss_step(batch) * current_num_tokens
+                    running_loss += current_loss
 
-                # For optimizer in backward, we need to normalize before calling backward
-                # This case and gradient accumulation are mutually exclusive
-                if self._optimizer_in_bwd:
-                    torch.distributed.all_reduce(num_tokens)
-                    torch.distributed.all_reduce(running_loss)
-                    current_loss = current_loss * (self.dp_degree / num_tokens)
+                    # For optimizer in backward, we need to normalize before calling backward
+                    # This case and gradient accumulation are mutually exclusive
+                    if self._optimizer_in_bwd:
+                        torch.distributed.all_reduce(num_tokens)
+                        torch.distributed.all_reduce(running_loss)
+                        current_loss = current_loss * (self.dp_degree / num_tokens)
 
-                current_loss.backward()
+                    current_loss.backward()
+
                 # Optimizer step (if not fused in backward call)
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
