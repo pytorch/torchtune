@@ -862,7 +862,6 @@ def recipe_main(cfg: DictConfig) -> None:
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
         training.set_torch_num_threads()
-    init_process_group("cuda:nccl,cpu:gloo")
 
     config.log_config(recipe_name="QATLoRAFinetuneRecipeDistributed", cfg=cfg)
 
