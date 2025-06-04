@@ -67,16 +67,20 @@ class CheckpointClient:
 
     Args:
         cfg (DictConfig): Configuration object used to instantiate the recipe.
+        checkpointer (Optional[Any]): Checkpointer used to save and load checkpoints.
+                                      Used if we want to override the default checkpointer.
+                                      eg. teacher checkpointer config
     """
 
     def __init__(
         self,
         cfg: DictConfig,
+        checkpointer: Optional[Any] = None,
     ) -> None:
         self._cfg = cfg
 
         # _checkpointer is the user configured checkpointer
-        self._checkpointer = None
+        self._checkpointer = checkpointer
 
         # DistributedCheckpointer is used for asynchronous checkpointing, if enabled.
         self._dcp_checkpointer = None

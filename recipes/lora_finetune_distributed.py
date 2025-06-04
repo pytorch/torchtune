@@ -282,6 +282,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         checkpoint_dict = self._checkpoint_client.load_base_checkpoint()
 
         self._compile = cfg.get("compile", False)
+        # Capture scalar outputs is required to compile MoE
+        torch._dynamo.config.capture_scalar_outputs = True
 
         self._model = self._setup_model(
             cfg_model=cfg.model,

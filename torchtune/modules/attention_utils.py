@@ -24,7 +24,7 @@ if _SUPPORTS_FLEX_ATTENTION:
 
     def compile_flex_attention():
         try:
-            return torch.compile(flex_attention, dynamic=False)
+            return torch.compile(flex_attention)
         except Exception as e:
             # It may fail on some combinations of hardware/versions. Using max-autotune fixes this issue.
             # Context: https://github.com/pytorch/torchtune/issues/2113
@@ -32,7 +32,7 @@ if _SUPPORTS_FLEX_ATTENTION:
                 f"Compiling flex_attention failed with error '{e}'. Retrying with mode='max-autotune'."
             )
             try:
-                return torch.compile(flex_attention, dynamic=False, mode="max-autotune")
+                return torch.compile(flex_attention, mode="max-autotune")
             except Exception as e:
                 _log.info(
                     f"Compiling flex_attention failed with error: '{e}', "
@@ -209,11 +209,12 @@ def _sdpa_or_flex_attention() -> Callable:
             # This will use flash attention under the hood with support for custom masks.
             # Currently, it is used when sample packing is enabled (see torchtune.datasets.PackedDataset)
             if isinstance(mask, BlockMask):
-                log_once(
-                    _log,
-                    "Using flex attention for attention computation since a BlockMask was passed in.",
-                    level=logging.DEBUG,
-                )
+                if not torch.compiler.is_compiling():
+                    log_once(
+                        _log,
+                        "Using flex attention for attention computation since a BlockMask was passed in.",
+                        level=logging.DEBUG,
+                    )
                 if dropout_p > 0.0:
                     raise ValueError(
                         "Flex attention does not support dropout. Please set dropout to 0.0."

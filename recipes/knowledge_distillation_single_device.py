@@ -13,7 +13,7 @@ from warnings import warn
 
 import torch
 import torchtune.modules.common_utils as common_utils
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
@@ -149,17 +149,11 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         Extract the teacher checkpoint state from file.
         """
-        # update checkpointer class to config to work with checkpoint_client
-        # by setting the teacher_checkpointer key as the checkpointer key
-        # that the checkpoint client will use to load
-        new_cfg = OmegaConf.create(cfg)
-        del new_cfg["checkpointer"]
-        teacher_checkpoint_val = new_cfg.pop("teacher_checkpointer")
-        new_cfg["checkpointer"] = teacher_checkpoint_val
 
-        teacher_checkpoint_client = CheckpointClient(
-            new_cfg,
+        teacher_checkpointer = config.instantiate(
+            cfg.teacher_checkpointer,
         )
+        teacher_checkpoint_client = CheckpointClient(cfg, teacher_checkpointer)
         checkpoint_dict = teacher_checkpoint_client.load_base_checkpoint()
         return checkpoint_dict
 
@@ -570,7 +564,7 @@ class KDRecipeSingleDevice(FTRecipeInterface):
 
     def _loss_step(
         self, batch: dict[str, torch.Tensor]
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # Both are shape [b, s]
         tokens, labels = batch["tokens"], batch["labels"]
 
@@ -607,11 +601,6 @@ class KDRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop.
         """
-
-        if self._compile:
-            self._logger.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
